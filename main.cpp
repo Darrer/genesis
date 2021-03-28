@@ -1,4 +1,5 @@
 #include "ROM.h"
+#include "ROM_debug.hpp"
 #include "string_utils.hpp"
 
 #include <iostream>

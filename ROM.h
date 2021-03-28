@@ -36,7 +36,6 @@ public:
 
 class ROM
 {
-	// TODO: move ROMHeader here
 public:
 	ROM(const std::string_view path_to_rom);
 
@@ -54,16 +53,6 @@ private:
 	mutable uint16_t saved_checksum = 0;
 };
 
-
-// TODO: move to separate file
-namespace rom::debug
-{
-	void print_rom_header(std::ostream& os, const ROMHeader& header);
-	void print_rom_vectors(std::ostream& os, const VectorList& vectors);
-	void print_rom_body(std::ostream&os, const Body& body);
 }
-
-};
-
 
 #endif // __ROM_H__
