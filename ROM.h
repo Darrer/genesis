@@ -1,12 +1,15 @@
 #include <string>
 #include <inttypes.h>
 #include <filesystem>
+#include <array>
 
 
 namespace genesis
 {
 
 // add namespace rom?
+
+using VectorList = std::array<uint32_t, 64>;
 
 struct ROMHeader
 {
@@ -33,17 +36,22 @@ public:
 	ROM(const std::string_view path_to_rom);
 
 	inline const ROMHeader& header() const { return _header; }
-	// TODO: array of interupt's adressess
+	inline const VectorList& vectors() const { return _vectors; }
+
 	// TODO: array of body data
+	// TODO: calc actual checksum?
 
 private:
 	ROMHeader _header;
+	VectorList _vectors;
 };
 
 
-namespace debug
+// TODO: move to separate file
+namespace rom::debug
 {
 	void print_rom_header(std::ostream& os, const ROMHeader& header);
+	void print_rom_vectors(std::ostream& os, const VectorList& vectors);
 }
 
 };

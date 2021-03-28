@@ -22,7 +22,9 @@ int main(int args, char* argv[])
 	{
 		std::cout << "Going to parse: " << rom_path << std::endl;
 		genesis::ROM rom(rom_path);
-		genesis::debug::print_rom_header(std::cout, rom.header());
+		
+		genesis::rom::debug::print_rom_header(std::cout, rom.header());
+		genesis::rom::debug::print_rom_vectors(std::cout, rom.vectors());
 	}
 	catch(std::exception& e)
 	{

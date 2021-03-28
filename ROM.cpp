@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <sstream>
 #include <exception>
+#include <cassert>
 
 
 namespace genesis
@@ -19,6 +20,7 @@ class ROMParser
 public:
 	virtual ExtentionList supported_extentions() const = 0;
 	virtual ROMHeader parse_header(std::ifstream&) const = 0;
+	virtual VectorList parse_vectors(std::ifstream&) const = 0;
 
 protected:
 	static std::string read_string(std::ifstream& f, size_t offset, size_t size)
@@ -47,7 +49,6 @@ protected:
 };
 
 
-// rename to *Parser
 class BinROMParser : public ROMParser
 {
 public:
@@ -73,6 +74,23 @@ public:
 			.ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
 			.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)
 		};
+	}
+
+	VectorList parse_vectors(std::ifstream& f) const override
+	{
+		VectorList vectors;
+
+		size_t vec_num = 0;
+
+		std::generate(vectors.begin(), vectors.end(), [&]() {
+			return read_builtin_type<uint32_t>(f, vec_num++ * sizeof(uint32_t));
+		});
+
+
+		assert(vec_num * sizeof(uint32_t) == 0x100);
+		assert(vectors.size() == 64);
+
+		return vectors;
 	}
 
 } BinROMParser;
@@ -118,8 +136,23 @@ ROM::ROM(const std::string_view path_to_rom)
 	}
 
 	_header = parser->parse_header(fs);
+	_vectors = parser->parse_vectors(fs);
 }
 
+
+namespace rom::debug
+{
+
+// TODO: move to string_utils?
+template<class T>
+auto _hex(T t)
+{
+	std::stringstream ss;
+	ss << "0x";
+	ss << std::hex << std::setfill('0') << std::setw(sizeof(t) * 2);
+	ss << t;
+	return ss.str();
+}
 
 void print_rom_header(std::ostream& os, const ROMHeader& header)
 {
@@ -128,19 +161,30 @@ void print_rom_header(std::ostream& os, const ROMHeader& header)
 	os << "Game name (domestic): '" << header.game_name_domestic << "'" << std::endl;
 	os << "Game name (overseas) '" << header.game_name_overseas << "'" << std::endl;
 
-	// TODO: move to string_utils?
-	auto _hex = [](auto t)
-	{
-		std::stringstream ss;
-		ss << "0x";
-		ss << std::hex << std::setfill('0') << std::setw(sizeof(t) * 2);
-		ss << t;
-		return ss.str();
-	};
-
 	os << "ROM checksum: "  << _hex(header.rom_checksum) << std::endl;
 	os << "ROM address range: " << _hex(header.rom_start_addr) << " - " << _hex(header.rom_end_addr) << std::endl;
 	os << "RAM address range: " << _hex(header.ram_start_addr) << " - " << _hex(header.ram_end_addr) << std::endl;
+}
+
+void print_rom_vectors(std::ostream& os, const VectorList& vectors)
+{
+	const size_t addr_per_row = 4;
+
+	size_t printed = 0;
+	auto dump_addr = [&](auto vec)
+	{
+		os << _hex(vec);
+		++printed;
+
+		if( (printed % addr_per_row == 0) || printed == vectors.size() )
+			os << '\n';
+		else
+			os << ' ';
+	};
+
+	std::for_each(vectors.cbegin(), vectors.cend(), dump_addr);
+}
+
 }
 
 };
