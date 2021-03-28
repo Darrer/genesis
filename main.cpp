@@ -1,4 +1,5 @@
 #include "ROM.h"
+#include "string_utils.hpp"
 
 #include <iostream>
 
@@ -22,9 +23,14 @@ int main(int args, char* argv[])
 	{
 		std::cout << "Going to parse: " << rom_path << std::endl;
 		genesis::ROM rom(rom_path);
-		
-		genesis::rom::debug::print_rom_header(std::cout, rom.header());
-		genesis::rom::debug::print_rom_vectors(std::cout, rom.vectors());
+
+
+		std::ostream& os = std::cout;
+		genesis::rom::debug::print_rom_header(os, rom.header());
+		os << "Actual checksum: " << hex_str(rom.checksum()) << std::endl;
+
+		genesis::rom::debug::print_rom_vectors(os, rom.vectors());
+		genesis::rom::debug::print_rom_body(os, rom.body());
 	}
 	catch(std::exception& e)
 	{

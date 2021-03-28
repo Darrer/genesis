@@ -12,15 +12,15 @@ namespace genesis
 {
 
 using ExtentionList = std::vector<std::string>;
-using ParseFunction = ROM(*)(std::ifstream& f);
-
 
 class ROMParser
 {
 public:
 	virtual ExtentionList supported_extentions() const = 0;
+
 	virtual ROMHeader parse_header(std::ifstream&) const = 0;
 	virtual VectorList parse_vectors(std::ifstream&) const = 0;
+	virtual Body parse_body(std::ifstream&) const = 0;
 
 protected:
 	static std::string read_string(std::ifstream& f, size_t offset, size_t size)
@@ -93,6 +93,23 @@ public:
 		return vectors;
 	}
 
+	Body parse_body(std::ifstream& f) const override
+	{
+		Body body;
+
+		f.seekg(0x200);
+		while(f)
+		{
+			char c;
+			f.get(c);
+
+			body.push_back(static_cast<uint8_t>(c));
+		}
+
+		body.shrink_to_fit();
+		return body;
+	}
+
 } BinROMParser;
 
 
@@ -137,22 +154,41 @@ ROM::ROM(const std::string_view path_to_rom)
 
 	_header = parser->parse_header(fs);
 	_vectors = parser->parse_vectors(fs);
+	_body = parser->parse_body(fs);
+}
+
+
+uint16_t ROM::checksum() const
+{
+	auto calc_chksum = [this]()
+	{
+		size_t num_to_check = _body.size();
+		if(num_to_check > 0 && num_to_check % 2 != 0)
+			--num_to_check;
+
+		uint16_t chksum = 0;
+		for(size_t i = 0; i < num_to_check; ++i)
+		{
+			if(i % 2 == 0)
+				chksum += _body[i] * (uint16_t)256;
+			else
+				chksum += _body[i];
+		}
+
+		return chksum;
+	};
+
+	if(saved_checksum == 0)
+		saved_checksum = calc_chksum();
+
+	return saved_checksum;
 }
 
 
 namespace rom::debug
 {
 
-// TODO: move to string_utils?
-template<class T>
-auto _hex(T t)
-{
-	std::stringstream ss;
-	ss << "0x";
-	ss << std::hex << std::setfill('0') << std::setw(sizeof(t) * 2);
-	ss << t;
-	return ss.str();
-}
+#include "string_utils.hpp"
 
 void print_rom_header(std::ostream& os, const ROMHeader& header)
 {
@@ -161,9 +197,9 @@ void print_rom_header(std::ostream& os, const ROMHeader& header)
 	os << "Game name (domestic): '" << header.game_name_domestic << "'" << std::endl;
 	os << "Game name (overseas) '" << header.game_name_overseas << "'" << std::endl;
 
-	os << "ROM checksum: "  << _hex(header.rom_checksum) << std::endl;
-	os << "ROM address range: " << _hex(header.rom_start_addr) << " - " << _hex(header.rom_end_addr) << std::endl;
-	os << "RAM address range: " << _hex(header.ram_start_addr) << " - " << _hex(header.ram_end_addr) << std::endl;
+	os << "ROM checksum: "  << hex_str(header.rom_checksum) << std::endl;
+	os << "ROM address range: " << hex_str(header.rom_start_addr) << " - " << hex_str(header.rom_end_addr) << std::endl;
+	os << "RAM address range: " << hex_str(header.ram_start_addr) << " - " << hex_str(header.ram_end_addr) << std::endl;
 }
 
 void print_rom_vectors(std::ostream& os, const VectorList& vectors)
@@ -173,7 +209,7 @@ void print_rom_vectors(std::ostream& os, const VectorList& vectors)
 	size_t printed = 0;
 	auto dump_addr = [&](auto vec)
 	{
-		os << _hex(vec);
+		os << hex_str(vec);
 		++printed;
 
 		if( (printed % addr_per_row == 0) || printed == vectors.size() )
@@ -183,6 +219,25 @@ void print_rom_vectors(std::ostream& os, const VectorList& vectors)
 	};
 
 	std::for_each(vectors.cbegin(), vectors.cend(), dump_addr);
+}
+
+void print_rom_body(std::ostream&os, const Body& body)
+{
+	const size_t bytes_per_row = 16;
+
+	size_t printed = 0;
+	auto dump_addr = [&](uint8_t addr)
+	{
+		os << hex_str<int>(static_cast<unsigned int>(addr), sizeof(addr)*2);
+		++printed;
+
+		if( (printed % bytes_per_row == 0) || printed == body.size() )
+			os << '\n';
+		else
+			os << ' ';
+	};
+
+	std::for_each(body.cbegin(), body.cend(), dump_addr);
 }
 
 }
