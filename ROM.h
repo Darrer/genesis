@@ -1,20 +1,17 @@
 #ifndef __ROM_H__
 #define __ROM_H__
 
-#include <string>
-#include <inttypes.h>
-#include <filesystem>
 #include <array>
-
+#include <filesystem>
+#include <inttypes.h>
+#include <string>
 
 namespace genesis
 {
 
-// add namespace rom?
-
+// TODO: move all these types to rom class
 using VectorList = std::array<uint32_t, 64>;
 using Body = std::vector<uint8_t>;
-
 
 struct ROMHeader
 {
@@ -33,15 +30,25 @@ public:
 	uint32_t ram_end_addr;
 };
 
-
 class ROM
 {
 public:
 	ROM(const std::string_view path_to_rom);
 
-	inline const ROMHeader& header() const { return _header; }
-	inline const VectorList& vectors() const { return _vectors; }
-	inline const Body& body() const { return _body; }
+	inline const ROMHeader& header() const
+	{
+		return _header;
+	}
+
+	inline const VectorList& vectors() const
+	{
+		return _vectors;
+	}
+
+	inline const Body& body() const
+	{
+		return _body;
+	}
 
 	uint16_t checksum() const;
 
@@ -53,6 +60,6 @@ private:
 	mutable uint16_t saved_checksum = 0;
 };
 
-}
+} // namespace genesis
 
 #endif // __ROM_H__

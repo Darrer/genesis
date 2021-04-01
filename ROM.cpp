@@ -1,12 +1,11 @@
 #include "ROM.h"
 
-#include <iostream>
+#include <cassert>
+#include <exception>
 #include <fstream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
-#include <exception>
-#include <cassert>
-
 
 namespace genesis
 {
@@ -36,8 +35,7 @@ protected:
 	}
 
 	// TODO: add big/little endian correction
-	template<class T>
-	static T read_builtin_type(std::ifstream& f, size_t offset)
+	template <class T> static T read_builtin_type(std::ifstream& f, size_t offset)
 	{
 		T data;
 
@@ -59,21 +57,18 @@ public:
 
 	ROMHeader parse_header(std::ifstream& f) const override
 	{
-		return ROMHeader
-		{
-			.system_type = read_string(f, 0x100, 16),
-			.copyright = read_string(f, 0x110, 16),
-			.game_name_domestic = read_string(f, 0x120, 48),
-			.game_name_overseas = read_string(f, 0x150, 48),
+		return ROMHeader{.system_type = read_string(f, 0x100, 16),
+						 .copyright = read_string(f, 0x110, 16),
+						 .game_name_domestic = read_string(f, 0x120, 48),
+						 .game_name_overseas = read_string(f, 0x150, 48),
 
-			.rom_checksum = read_builtin_type<uint16_t>(f, 0x18E),
+						 .rom_checksum = read_builtin_type<uint16_t>(f, 0x18E),
 
-			.rom_start_addr = read_builtin_type<uint32_t>(f, 0x1A0),
-			.rom_end_addr = read_builtin_type<uint32_t>(f, 0x1A4),
+						 .rom_start_addr = read_builtin_type<uint32_t>(f, 0x1A0),
+						 .rom_end_addr = read_builtin_type<uint32_t>(f, 0x1A4),
 
-			.ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
-			.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)
-		};
+						 .ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
+						 .ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)};
 	}
 
 	VectorList parse_vectors(std::ifstream& f) const override
@@ -81,11 +76,8 @@ public:
 		VectorList vectors;
 
 		size_t vec_num = 0;
-
-		std::generate(vectors.begin(), vectors.end(), [&]() {
-			return read_builtin_type<uint32_t>(f, vec_num++ * sizeof(uint32_t));
-		});
-
+		std::generate(vectors.begin(), vectors.end(),
+					  [&]() { return read_builtin_type<uint32_t>(f, vec_num++ * sizeof(uint32_t)); });
 
 		assert(vec_num * sizeof(uint32_t) == 0x100);
 		assert(vectors.size() == 64);
@@ -98,7 +90,7 @@ public:
 		Body body;
 
 		f.seekg(0x200);
-		while(f)
+		while (f)
 		{
 			char c;
 			f.get(c);
@@ -113,27 +105,21 @@ public:
 } BinROMParser;
 
 
-static auto registered_parsers = 
-{
-	BinROMParser
-};
-
+static auto registered_parsers = {BinROMParser};
 
 const ROMParser* find_parser(const std::string& extention)
 {
-	auto is_support_ext = [&](const ROMParser& p)
-	{
+	auto is_support_ext = [&](const ROMParser& p) {
 		auto ext = p.supported_extentions();
 		return std::find(ext.begin(), ext.end(), extention) != ext.end();
 	};
 
 	auto it = std::find_if(registered_parsers.begin(), registered_parsers.end(), is_support_ext);
 
-	if(it == registered_parsers.end())
+	if (it == registered_parsers.end())
 		return nullptr;
 	return &(*it);
 }
-
 
 ROM::ROM(const std::string_view path_to_rom)
 {
@@ -141,13 +127,13 @@ ROM::ROM(const std::string_view path_to_rom)
 	auto extention = rom_path.extension().string();
 
 	auto parser = find_parser(extention);
-	if(parser == nullptr)
+	if (parser == nullptr)
 	{
 		throw std::runtime_error("Faild to parse ROM: extention '" + extention + "' is not supported");
 	}
 
 	std::ifstream fs(rom_path, std::ios_base::binary);
-	if(!fs.is_open())
+	if (!fs.is_open())
 	{
 		throw std::runtime_error("Failed to open ROM: file '" + rom_path.string() + "' not found");
 	}
@@ -157,19 +143,17 @@ ROM::ROM(const std::string_view path_to_rom)
 	_body = parser->parse_body(fs);
 }
 
-
 uint16_t ROM::checksum() const
 {
-	auto calc_chksum = [this]()
-	{
+	auto calc_chksum = [this]() {
 		size_t num_to_check = _body.size();
-		if(num_to_check > 0 && num_to_check % 2 != 0)
+		if (num_to_check > 0 && num_to_check % 2 != 0)
 			--num_to_check;
 
 		uint16_t chksum = 0;
-		for(size_t i = 0; i < num_to_check; ++i)
+		for (size_t i = 0; i < num_to_check; ++i)
 		{
-			if(i % 2 == 0)
+			if (i % 2 == 0)
 				chksum += _body[i] * (uint16_t)256;
 			else
 				chksum += _body[i];
@@ -178,10 +162,10 @@ uint16_t ROM::checksum() const
 		return chksum;
 	};
 
-	if(saved_checksum == 0)
+	if (saved_checksum == 0)
 		saved_checksum = calc_chksum();
 
 	return saved_checksum;
 }
 
-}
+} // namespace genesis

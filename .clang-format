@@ -1,0 +1,11 @@
+BasedOnStyle: Microsoft
+
+MaxEmptyLinesToKeep: 2
+PointerAlignment: Left
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+
+---
+Language: Cpp
+AccessModifierOffset: -4

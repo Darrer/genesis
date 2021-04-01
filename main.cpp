@@ -1,8 +1,8 @@
+#include <iostream>
+
 #include "ROM.h"
 #include "ROM_debug.hpp"
 #include "string_utils.hpp"
-
-#include <iostream>
 
 
 void print_usage(char* prog_path)
@@ -12,7 +12,7 @@ void print_usage(char* prog_path)
 
 int main(int args, char* argv[])
 {
-	if(args != 2)
+	if (args != 2)
 	{
 		print_usage(argv[0]);
 		return EXIT_FAILURE;
@@ -25,7 +25,6 @@ int main(int args, char* argv[])
 		std::cout << "Going to parse: " << rom_path << std::endl;
 		genesis::ROM rom(rom_path);
 
-
 		std::ostream& os = std::cout;
 		genesis::rom::debug::print_rom_header(os, rom.header());
 		os << "Actual checksum: " << hex_str(rom.checksum()) << std::endl;
@@ -33,7 +32,7 @@ int main(int args, char* argv[])
 		genesis::rom::debug::print_rom_vectors(os, rom.vectors());
 		genesis::rom::debug::print_rom_body(os, rom.body());
 	}
-	catch(std::exception& e)
+	catch (std::exception& e)
 	{
 		std::cerr << "Error: " << e.what() << std::endl;
 		return EXIT_FAILURE;
