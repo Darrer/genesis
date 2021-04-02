@@ -9,43 +9,44 @@
 namespace genesis
 {
 
-// TODO: move all these types to rom class
-using VectorList = std::array<uint32_t, 64>;
-using Body = std::vector<uint8_t>;
-
-struct ROMHeader
+class rom
 {
 public:
-	std::string system_type;
-	std::string copyright;
-	std::string game_name_domestic;
-	std::string game_name_overseas;
+	struct header_data
+	{
+	public:
+		std::string system_type;
+		std::string copyright;
+		std::string game_name_domestic;
+		std::string game_name_overseas;
 
-	uint16_t rom_checksum;
+		uint16_t rom_checksum;
 
-	uint32_t rom_start_addr;
-	uint32_t rom_end_addr;
+		uint32_t rom_start_addr;
+		uint32_t rom_end_addr;
 
-	uint32_t ram_start_addr;
-	uint32_t ram_end_addr;
-};
+		uint32_t ram_start_addr;
+		uint32_t ram_end_addr;
+	};
 
-class ROM
-{
+	// vector_array
+	using vector_list = std::array<uint32_t, 64>;
+	using byte_array = std::vector<uint8_t>;
+
 public:
-	ROM(const std::string_view path_to_rom);
+	rom(const std::string_view path_to_rom);
 
-	inline const ROMHeader& header() const
+	inline const header_data& header() const
 	{
 		return _header;
 	}
 
-	inline const VectorList& vectors() const
+	inline const vector_list& vectors() const
 	{
 		return _vectors;
 	}
 
-	inline const Body& body() const
+	inline const byte_array& body() const
 	{
 		return _body;
 	}
@@ -53,9 +54,9 @@ public:
 	uint16_t checksum() const;
 
 private:
-	ROMHeader _header;
-	VectorList _vectors;
-	Body _body;
+	header_data _header;
+	vector_list _vectors;
+	byte_array _body;
 
 	mutable uint16_t saved_checksum = 0;
 };

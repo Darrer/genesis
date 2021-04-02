@@ -1,14 +1,15 @@
 #ifndef __ROM_DEBUG_HPP_
 #define __ROM_DEBUG_HPP_
 
-#include "ROM.h"
+#include "rom.h"
 #include "string_utils.hpp"
+#include <ostream>
 
 
-namespace genesis::rom::debug
+namespace genesis::debug
 {
 
-static void print_rom_header(std::ostream& os, const ROMHeader& header)
+[[maybe_unused]] static void print_rom_header(std::ostream& os, const rom::header_data& header)
 {
 	os << "Sys type: '" << header.system_type << "'" << std::endl;
 	os << "Copyright: '" << header.copyright << "'" << std::endl;
@@ -20,7 +21,8 @@ static void print_rom_header(std::ostream& os, const ROMHeader& header)
 	os << "RAM address range: " << hex_str(header.ram_start_addr) << " - " << hex_str(header.ram_end_addr) << std::endl;
 }
 
-static void print_rom_vectors(std::ostream& os, const VectorList& vectors)
+
+[[maybe_unused]] static void print_rom_vectors(std::ostream& os, const rom::vector_list& vectors)
 {
 	const size_t addr_per_row = 4;
 
@@ -38,7 +40,8 @@ static void print_rom_vectors(std::ostream& os, const VectorList& vectors)
 	std::for_each(vectors.cbegin(), vectors.cend(), dump_addr);
 }
 
-static void print_rom_body(std::ostream& os, const Body& body)
+
+[[maybe_unused]] static void print_rom_body(std::ostream& os, const rom::byte_array& body)
 {
 	const size_t bytes_per_row = 16;
 
@@ -56,6 +59,6 @@ static void print_rom_body(std::ostream& os, const Body& body)
 	std::for_each(body.cbegin(), body.cend(), dump_addr);
 }
 
-} // namespace genesis::rom::debug
+} // namespace genesis::debug
 
 #endif // __ROM_DEBUG_HPP_

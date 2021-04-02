@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "ROM.h"
-#include "ROM_debug.hpp"
+#include "rom.h"
+#include "rom_debug.hpp"
 #include "string_utils.hpp"
 
 
@@ -9,6 +9,7 @@ void print_usage(char* prog_path)
 {
 	std::cout << "Usage ./" << prog_path << " <path to rom>" << std::endl;
 }
+
 
 int main(int args, char* argv[])
 {
@@ -23,14 +24,14 @@ int main(int args, char* argv[])
 	try
 	{
 		std::cout << "Going to parse: " << rom_path << std::endl;
-		genesis::ROM rom(rom_path);
+		genesis::rom rom(rom_path);
 
 		std::ostream& os = std::cout;
-		genesis::rom::debug::print_rom_header(os, rom.header());
+		genesis::debug::print_rom_header(os, rom.header());
 		os << "Actual checksum: " << hex_str(rom.checksum()) << std::endl;
 
-		genesis::rom::debug::print_rom_vectors(os, rom.vectors());
-		genesis::rom::debug::print_rom_body(os, rom.body());
+		genesis::debug::print_rom_vectors(os, rom.vectors());
+		// genesis::debug::print_rom_body(os, rom.body());
 	}
 	catch (std::exception& e)
 	{

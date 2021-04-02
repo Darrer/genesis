@@ -1,4 +1,4 @@
-#include "ROM.h"
+#include "rom.h"
 
 #include <cassert>
 #include <exception>
@@ -10,16 +10,17 @@
 namespace genesis
 {
 
-using ExtentionList = std::vector<std::string>;
-
-class ROMParser
+class rom_parser
 {
 public:
-	virtual ExtentionList supported_extentions() const = 0;
+	using extention_list = std::vector<std::string>;
 
-	virtual ROMHeader parse_header(std::ifstream&) const = 0;
-	virtual VectorList parse_vectors(std::ifstream&) const = 0;
-	virtual Body parse_body(std::ifstream&) const = 0;
+public:
+	virtual extention_list supported_extentions() const = 0;
+
+	virtual rom::header_data parse_header(std::ifstream&) const = 0;
+	virtual rom::vector_list parse_vectors(std::ifstream&) const = 0;
+	virtual rom::byte_array parse_body(std::ifstream&) const = 0;
 
 protected:
 	static std::string read_string(std::ifstream& f, size_t offset, size_t size)
@@ -47,33 +48,33 @@ protected:
 };
 
 
-class BinROMParser : public ROMParser
+class bin_rom_parser : public rom_parser
 {
 public:
-	ExtentionList supported_extentions() const override
+	extention_list supported_extentions() const override
 	{
 		return {".bin", ".md"};
 	}
 
-	ROMHeader parse_header(std::ifstream& f) const override
+	rom::header_data parse_header(std::ifstream& f) const override
 	{
-		return ROMHeader{.system_type = read_string(f, 0x100, 16),
-						 .copyright = read_string(f, 0x110, 16),
-						 .game_name_domestic = read_string(f, 0x120, 48),
-						 .game_name_overseas = read_string(f, 0x150, 48),
+		return rom::header_data{.system_type = read_string(f, 0x100, 16),
+								.copyright = read_string(f, 0x110, 16),
+								.game_name_domestic = read_string(f, 0x120, 48),
+								.game_name_overseas = read_string(f, 0x150, 48),
 
-						 .rom_checksum = read_builtin_type<uint16_t>(f, 0x18E),
+								.rom_checksum = read_builtin_type<uint16_t>(f, 0x18E),
 
-						 .rom_start_addr = read_builtin_type<uint32_t>(f, 0x1A0),
-						 .rom_end_addr = read_builtin_type<uint32_t>(f, 0x1A4),
+								.rom_start_addr = read_builtin_type<uint32_t>(f, 0x1A0),
+								.rom_end_addr = read_builtin_type<uint32_t>(f, 0x1A4),
 
-						 .ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
-						 .ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)};
+								.ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
+								.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)};
 	}
 
-	VectorList parse_vectors(std::ifstream& f) const override
+	rom::vector_list parse_vectors(std::ifstream& f) const override
 	{
-		VectorList vectors;
+		rom::vector_list vectors;
 
 		size_t vec_num = 0;
 		std::generate(vectors.begin(), vectors.end(),
@@ -85,9 +86,9 @@ public:
 		return vectors;
 	}
 
-	Body parse_body(std::ifstream& f) const override
+	rom::byte_array parse_body(std::ifstream& f) const override
 	{
-		Body body;
+		rom::byte_array body;
 
 		f.seekg(0x200);
 		while (f)
@@ -102,14 +103,14 @@ public:
 		return body;
 	}
 
-} BinROMParser;
+} bin_rom_parser;
 
 
-static auto registered_parsers = {BinROMParser};
+static auto registered_parsers = {bin_rom_parser};
 
-const ROMParser* find_parser(const std::string& extention)
+const rom_parser* find_parser(const std::string& extention)
 {
-	auto is_support_ext = [&](const ROMParser& p) {
+	auto is_support_ext = [&](const rom_parser& p) {
 		auto ext = p.supported_extentions();
 		return std::find(ext.begin(), ext.end(), extention) != ext.end();
 	};
@@ -121,7 +122,7 @@ const ROMParser* find_parser(const std::string& extention)
 	return &(*it);
 }
 
-ROM::ROM(const std::string_view path_to_rom)
+rom::rom(const std::string_view path_to_rom)
 {
 	std::filesystem::path rom_path(path_to_rom);
 	auto extention = rom_path.extension().string();
@@ -135,7 +136,7 @@ ROM::ROM(const std::string_view path_to_rom)
 	std::ifstream fs(rom_path, std::ios_base::binary);
 	if (!fs.is_open())
 	{
-		throw std::runtime_error("Failed to open ROM: file '" + rom_path.string() + "' not found");
+		throw std::runtime_error("Failed to open ROM: file '" + rom_path.string() + "'");
 	}
 
 	_header = parser->parse_header(fs);
@@ -143,7 +144,7 @@ ROM::ROM(const std::string_view path_to_rom)
 	_body = parser->parse_body(fs);
 }
 
-uint16_t ROM::checksum() const
+uint16_t rom::checksum() const
 {
 	auto calc_chksum = [this]() {
 		size_t num_to_check = _body.size();
