@@ -5,7 +5,8 @@
 #include <string>
 
 
-template <class T> std::string hex_str(T t, size_t wide = sizeof(T) * 2)
+template <class T>
+std::string hex_str(T t, size_t wide = sizeof(T) * 2)
 {
 	std::stringstream ss;
 	ss << "0x";

@@ -29,8 +29,7 @@ public:
 		uint32_t ram_end_addr;
 	};
 
-	// vector_array
-	using vector_list = std::array<uint32_t, 64>;
+	using vector_array = std::array<uint32_t, 64>;
 	using byte_array = std::vector<uint8_t>;
 
 public:
@@ -41,7 +40,7 @@ public:
 		return _header;
 	}
 
-	inline const vector_list& vectors() const
+	inline const vector_array& vectors() const
 	{
 		return _vectors;
 	}
@@ -55,7 +54,7 @@ public:
 
 private:
 	header_data _header;
-	vector_list _vectors;
+	vector_array _vectors;
 	byte_array _body;
 
 	mutable uint16_t saved_checksum = 0;

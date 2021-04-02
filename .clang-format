@@ -1,5 +1,6 @@
 BasedOnStyle: Microsoft
 
+AlwaysBreakTemplateDeclarations: Yes
 MaxEmptyLinesToKeep: 2
 PointerAlignment: Left
 UseTab: Always

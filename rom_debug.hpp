@@ -22,41 +22,41 @@ namespace genesis::debug
 }
 
 
-[[maybe_unused]] static void print_rom_vectors(std::ostream& os, const rom::vector_list& vectors)
+template <class array, class format_func>
+static void print_array(std::ostream& os, const array& arr, format_func fn, size_t elments_per_row)
 {
-	const size_t addr_per_row = 4;
-
 	size_t printed = 0;
-	auto dump_addr = [&](auto vec) {
-		os << hex_str(vec);
+	for (const auto& el : arr)
+	{
+		os << fn(el);
 		++printed;
 
-		if ((printed % addr_per_row == 0) || printed == vectors.size())
+		if ((printed % elments_per_row == 0) || printed == arr.size())
 			os << '\n';
 		else
 			os << ' ';
-	};
+	}
+}
 
-	std::for_each(vectors.cbegin(), vectors.cend(), dump_addr);
+
+template <class array>
+static void print_hex_array(std::ostream& os, const array& arr, size_t elements_per_row)
+{
+	auto format_fn = [](const auto& el) { return hex_str(el); };
+	print_array(os, arr, format_fn, elements_per_row);
+}
+
+
+[[maybe_unused]] static void print_rom_vectors(std::ostream& os, const rom::vector_array& vectors)
+{
+	print_hex_array(os, vectors, 4);
 }
 
 
 [[maybe_unused]] static void print_rom_body(std::ostream& os, const rom::byte_array& body)
 {
-	const size_t bytes_per_row = 16;
-
-	size_t printed = 0;
-	auto dump_addr = [&](uint8_t addr) {
-		os << hex_str<int>(static_cast<unsigned int>(addr), sizeof(addr) * 2);
-		++printed;
-
-		if ((printed % bytes_per_row == 0) || printed == body.size())
-			os << '\n';
-		else
-			os << ' ';
-	};
-
-	std::for_each(body.cbegin(), body.cend(), dump_addr);
+	auto format_fn = [](const auto& addr) { return hex_str<int>(static_cast<unsigned>(addr), sizeof(addr) * 2); };
+	print_array(os, body, format_fn, 16);
 }
 
 } // namespace genesis::debug

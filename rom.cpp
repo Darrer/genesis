@@ -13,13 +13,13 @@ namespace genesis
 class rom_parser
 {
 public:
-	using extention_list = std::vector<std::string>;
+	using extention_list = std::vector<std::string_view>;
 
 public:
 	virtual extention_list supported_extentions() const = 0;
 
 	virtual rom::header_data parse_header(std::ifstream&) const = 0;
-	virtual rom::vector_list parse_vectors(std::ifstream&) const = 0;
+	virtual rom::vector_array parse_vectors(std::ifstream&) const = 0;
 	virtual rom::byte_array parse_body(std::ifstream&) const = 0;
 
 protected:
@@ -36,7 +36,8 @@ protected:
 	}
 
 	// TODO: add big/little endian correction
-	template <class T> static T read_builtin_type(std::ifstream& f, size_t offset)
+	template <class T>
+	static T read_builtin_type(std::ifstream& f, size_t offset)
 	{
 		T data;
 
@@ -72,9 +73,9 @@ public:
 								.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)};
 	}
 
-	rom::vector_list parse_vectors(std::ifstream& f) const override
+	rom::vector_array parse_vectors(std::ifstream& f) const override
 	{
-		rom::vector_list vectors;
+		rom::vector_array vectors;
 
 		size_t vec_num = 0;
 		std::generate(vectors.begin(), vectors.end(),
@@ -108,6 +109,7 @@ public:
 
 static auto registered_parsers = {bin_rom_parser};
 
+
 const rom_parser* find_parser(const std::string& extention)
 {
 	auto is_support_ext = [&](const rom_parser& p) {
@@ -121,6 +123,7 @@ const rom_parser* find_parser(const std::string& extention)
 		return nullptr;
 	return &(*it);
 }
+
 
 rom::rom(const std::string_view path_to_rom)
 {
@@ -143,6 +146,7 @@ rom::rom(const std::string_view path_to_rom)
 	_vectors = parser->parse_vectors(fs);
 	_body = parser->parse_body(fs);
 }
+
 
 uint16_t rom::checksum() const
 {
