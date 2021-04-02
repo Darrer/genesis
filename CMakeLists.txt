@@ -5,16 +5,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 
 set(SRC
-    main.cpp
-    rom.cpp
+    src/main.cpp
+    src/rom.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SRC})
 
 set(HEADERS
-    rom.h
-    rom_debug.hpp
-    string_utils.hpp
+    src/rom.h
+    src/rom_debug.hpp
+    src/string_utils.hpp
 )
 
 add_custom_target(
