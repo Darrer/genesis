@@ -1,4 +1,5 @@
 #include "rom.h"
+#include "endianness.hpp"
 
 #include <cassert>
 #include <exception>
@@ -35,7 +36,6 @@ protected:
 		return str;
 	}
 
-	// TODO: add big/little endian correction
 	template <class T>
 	static T read_builtin_type(std::ifstream& f, size_t offset)
 	{
@@ -44,6 +44,7 @@ protected:
 		f.seekg(offset);
 		f.read(reinterpret_cast<char*>(&data), sizeof(T));
 
+		endianness::swap(data);
 		return data;
 	}
 };
