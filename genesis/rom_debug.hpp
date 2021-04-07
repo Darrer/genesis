@@ -14,8 +14,9 @@ namespace genesis::debug
 	os << "Sys type: '" << header.system_type << "'" << std::endl;
 	os << "Copyright: '" << header.copyright << "'" << std::endl;
 	os << "Game name (domestic): '" << header.game_name_domestic << "'" << std::endl;
-	os << "Game name (overseas) '" << header.game_name_overseas << "'" << std::endl;
+	os << "Game name (overseas): '" << header.game_name_overseas << "'" << std::endl;
 
+	using namespace su;
 	os << "ROM checksum: " << hex_str(header.rom_checksum) << std::endl;
 	os << "ROM address range: " << hex_str(header.rom_start_addr) << " - " << hex_str(header.rom_end_addr) << std::endl;
 	os << "RAM address range: " << hex_str(header.ram_start_addr) << " - " << hex_str(header.ram_end_addr) << std::endl;
@@ -42,7 +43,7 @@ static void print_array(std::ostream& os, const array& arr, format_func fn, size
 template <class array>
 static void print_hex_array(std::ostream& os, const array& arr, size_t elements_per_row)
 {
-	auto format_fn = [](const auto& el) { return hex_str(el); };
+	auto format_fn = [](const auto& el) { return su::hex_str(el); };
 	print_array(os, arr, format_fn, elements_per_row);
 }
 
@@ -55,7 +56,7 @@ static void print_hex_array(std::ostream& os, const array& arr, size_t elements_
 
 [[maybe_unused]] static void print_rom_body(std::ostream& os, const rom::byte_array& body)
 {
-	auto format_fn = [](const auto& addr) { return hex_str<int>(static_cast<unsigned>(addr), sizeof(addr) * 2); };
+	auto format_fn = [](const auto& addr) { return su::hex_str<int>(static_cast<unsigned>(addr), sizeof(addr) * 2); };
 	print_array(os, body, format_fn, 16);
 }
 

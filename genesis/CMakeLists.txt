@@ -1,28 +1,24 @@
 cmake_minimum_required (VERSION 3.0)
+
 project (genesis)
 
-set(SRC
-    main.cpp
-    rom.cpp
+# library
+add_library(${GENESIS_LIB})
+target_sources(${GENESIS_LIB}
+PRIVATE
+	rom.cpp
+
+	rom_debug.hpp
+	string_utils.hpp
+	endian.hpp
 )
 
-add_executable(${PROJECT_NAME} ${SRC})
-
-set(HEADERS
-    rom.h
-    rom_debug.hpp
-    string_utils.hpp
-    endianness.hpp
+# executable based on core lib
+add_executable(${GENESIS})
+target_sources(${GENESIS}
+PRIVATE
+	main.cpp
 )
 
-add_custom_target(
-    format
-    clang-format -style=file -i ${SRC} ${HEADERS}
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-)
+target_link_libraries(${GENESIS} PRIVATE ${GENESIS_LIB})
 
-add_custom_target(
-    tidy
-    clang-tidy --quiet -header-filter=.* -p ${CMAKE_BINARY_DIR} ${SRC} |& sed "/\\d* warnings generated\\./d"
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-)

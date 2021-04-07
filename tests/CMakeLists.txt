@@ -13,12 +13,16 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 
-set(TEST_SRC
-	endianness.cpp
+add_executable(${GENESIS_TESTS})
+target_sources(${GENESIS_TESTS}
+PRIVATE
+	endian.cpp
+	rom.cpp
 )
 
-add_executable(${PROJECT_NAME} ${TEST_SRC})
-target_link_libraries(${PROJECT_NAME} gtest_main)
+target_link_libraries(${GENESIS_TESTS} gtest_main)
+target_link_libraries(${GENESIS_TESTS} ${GENESIS_LIB})
 
 include(GoogleTest)
-gtest_discover_tests(${PROJECT_NAME})
+gtest_discover_tests(${GENESIS_TESTS})
+

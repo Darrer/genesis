@@ -12,8 +12,11 @@ namespace genesis
 class rom
 {
 public:
-	struct header_data
+	class header_data
 	{
+	public:
+		bool operator==(const header_data&) const = default;
+
 	public:
 		std::string system_type;
 		std::string copyright;

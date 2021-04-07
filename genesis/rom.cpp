@@ -1,5 +1,7 @@
 #include "rom.h"
-#include "endianness.hpp"
+#include "endian.hpp"
+#include "string_utils.hpp"
+
 
 #include <cassert>
 #include <exception>
@@ -32,19 +34,20 @@ protected:
 		f.seekg(offset);
 		f.read(str.data(), size);
 
-		// TODO: trim str
+		su::trim(str);
 		return str;
 	}
 
 	template <class T>
 	static T read_builtin_type(std::ifstream& f, size_t offset)
 	{
-		T data;
+		T data{};
 
 		f.seekg(offset);
 		f.read(reinterpret_cast<char*>(&data), sizeof(T));
 
-		endianness::swap(data);
+		// NOTE: rom has big-endian format
+		endian::big_to_sys(data);
 		return data;
 	}
 };
@@ -96,9 +99,8 @@ public:
 		while (f)
 		{
 			char c;
-			f.get(c);
-
-			body.push_back(static_cast<uint8_t>(c));
+			if (f.get(c))
+				body.push_back(static_cast<uint8_t>(c));
 		}
 
 		body.shrink_to_fit();

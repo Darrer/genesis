@@ -28,7 +28,7 @@ int main(int args, char* argv[])
 
 		std::ostream& os = std::cout;
 		genesis::debug::print_rom_header(os, rom.header());
-		os << "Actual checksum: " << hex_str(rom.checksum()) << std::endl;
+		os << "Actual checksum: " << su::hex_str(rom.checksum()) << std::endl;
 
 		genesis::debug::print_rom_vectors(os, rom.vectors());
 		// genesis::debug::print_rom_body(os, rom.body());

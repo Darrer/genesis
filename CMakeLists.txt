@@ -2,11 +2,21 @@ cmake_minimum_required (VERSION 3.0)
 project (genesis)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+if (MSVC)
+	add_compile_options(/W4)
+else()
+	add_compile_options(-Wall -Wextra -pedantic)
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(genesis)
+
+set(GENESIS genesis)
+set(GENESIS_LIB ${GENESIS}_core)
+set(GENESIS_TESTS ${GENESIS}_tests)
+
 
 add_subdirectory(genesis)
 
@@ -16,3 +26,6 @@ enable_testing()
 # if(BUILD_TESTING)
 	add_subdirectory(tests)
 # endif()
+
+
+add_subdirectory(extra)
