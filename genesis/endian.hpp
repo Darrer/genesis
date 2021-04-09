@@ -40,7 +40,7 @@ inline void swap<std::uint8_t>(std::uint8_t&)
 template <class T>
 void big_to_sys(T& big_endian)
 {
-	if (std::endian::native == std::endian::little)
+	if constexpr (std::endian::native == std::endian::little)
 		swap(big_endian);
 }
 
@@ -48,7 +48,7 @@ void big_to_sys(T& big_endian)
 template <class T>
 void little_to_sys(T& little_endian)
 {
-	if (std::endian::native == std::endian::big)
+	if constexpr (std::endian::native == std::endian::big)
 		swap(little_endian);
 }
 
@@ -56,7 +56,7 @@ void little_to_sys(T& little_endian)
 template <class T>
 void sys_to_big(T& val)
 {
-	if (std::endian::native == std::endian::little)
+	if constexpr (std::endian::native == std::endian::little)
 		swap(val);
 }
 
@@ -64,7 +64,7 @@ void sys_to_big(T& val)
 template <class T>
 void sys_to_little(T& val)
 {
-	if (std::endian::native == std::endian::big)
+	if constexpr (std::endian::native == std::endian::big)
 		swap(val);
 }
 
