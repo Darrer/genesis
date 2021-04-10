@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "endian.hpp"
+
+#include <gtest/gtest.h>
 
 
 TEST(Endian, uint32)

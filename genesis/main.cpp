@@ -1,8 +1,8 @@
-#include <iostream>
-
 #include "rom.h"
 #include "rom_debug.hpp"
 #include "string_utils.hpp"
+
+#include <iostream>
 
 
 void print_usage(char* prog_path)

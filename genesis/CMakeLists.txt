@@ -8,6 +8,7 @@ target_sources(${GENESIS_LIB}
 PRIVATE
 	rom.cpp
 
+	rom.h
 	rom_debug.hpp
 	string_utils.hpp
 	endian.hpp
