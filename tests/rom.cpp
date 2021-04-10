@@ -1,26 +1,24 @@
+#include "rom.h"
+
+#include "endian.hpp"
+#include "rom_debug.hpp"
+#include "string_utils.hpp"
+
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <span>
 #include <sstream>
-
-#include "endian.hpp"
-#include "rom.h"
-#include "rom_debug.hpp"
-#include "string_utils.hpp"
-
-
-TEST(ROM, WrongPath)
-{
-	EXPECT_THROW(genesis::rom("/some/path/rom"), std::runtime_error);
-	EXPECT_THROW(genesis::rom("/some/path/rom."), std::runtime_error);
-	EXPECT_THROW(genesis::rom("/some/path/rom.txt"), std::runtime_error);
-}
 
 
 namespace builtin_rom
 {
+
+const genesis::rom::byte_array empty_array = {};
+
 
 const genesis::rom::vector_array raw_vectors = {
 	0x00fffff6, 0x00000200, 0x00002460, 0x0000246e, 0x0000247c, 0x0000248a, 0x00002498, 0x000024a6,
@@ -142,65 +140,107 @@ const genesis::rom::byte_array raw_body = {
 } // namespace builtin_rom
 
 
-class BaseROMGenerator : public ::testing::Test
+class TempFile
 {
 public:
-	std::string path() const
+	TempFile() : _path(gen_temp_path()), _stream(_path, std::ios::trunc | std::ios::binary | std::ios::out)
+	{
+		if (!_stream.is_open())
+			throw std::runtime_error("failed to open temporary ('" + _path + "') file");
+	}
+
+	~TempFile()
+	{
+		_stream.close();
+		std::remove(_path.c_str());
+	}
+
+	inline std::string path() const
 	{
 		return _path;
 	}
 
-protected:
-	virtual void dump_rom(std::ofstream&) = 0;
-
-	void SetUp() override
+	inline std::ostream& stream()
 	{
-		_path = temp_path();
-
-		std::ofstream tmp_file(_path, std::ios::trunc | std::ios::binary | std::ios::out);
-		if (!tmp_file.is_open())
-			throw std::runtime_error("Failed to create temporary ('" + _path + "') file");
-
-		dump_rom(tmp_file);
-	}
-
-	void TearDown() override
-	{
-		std::remove(_path.c_str());
-	}
-
-private:
-	static std::string temp_path()
-	{
-		return "__test_rom_file__.bin";
+		return _stream;
 	}
 
 private:
 	std::string _path;
-};
+	std::ofstream _stream;
 
+private:
+	static std::atomic_uint64_t file_id;
 
-class TestROM : public BaseROMGenerator
-{
-protected:
-	void dump_rom(std::ofstream& stream) override
+	static std::string gen_temp_path()
 	{
-		auto write = [&stream](auto val) {
-			endian::sys_to_big(val);
-			stream.write(reinterpret_cast<char*>(&val), sizeof(val));
-		};
+		// TODO: generate random name?
+		std::stringstream ss;
+		ss << "__genesis_tmp_file__";
+		ss << '.' << file_id.fetch_add(1);
+		ss << ".bin";
 
-		std::for_each(builtin_rom::raw_vectors.cbegin(), builtin_rom::raw_vectors.cend(), write);
-		std::for_each(builtin_rom::raw_header.cbegin(), builtin_rom::raw_header.cend(), write);
-		std::for_each(builtin_rom::raw_body.cbegin(), builtin_rom::raw_body.cend(), write);
+		return ss.str();
 	}
 };
 
+std::atomic_uint64_t TempFile::file_id = 0;
 
-TEST_F(TestROM, DataParsing)
+
+template <class Vectors, class Header, class Body>
+class ROMConstructor
 {
-	genesis::rom test_rom(path());
+public:
+	ROMConstructor(const Vectors& vectors, const Header& header, const Body& body)
+		: _vectors(vectors), _header(header), _body(body)
+	{
+		dump_rom();
+	}
 
+	inline std::string path() const
+	{
+		return tmp_file.path();
+	}
+
+private:
+	void dump_rom()
+	{
+		auto write_array = [this](const auto& arr) {
+			auto write = [this](auto val) {
+				endian::sys_to_big(val);
+				tmp_file.stream().write(reinterpret_cast<char*>(&val), sizeof(val));
+			};
+
+			std::for_each(std::cbegin(arr), std::cend(arr), write);
+		};
+
+		write_array(_vectors);
+		write_array(_header);
+		write_array(_body);
+
+		tmp_file.stream().flush();
+	}
+
+private:
+	const Vectors& _vectors;
+	const Header& _header;
+	const Body& _body;
+	TempFile tmp_file;
+};
+
+
+TEST(ROM, WrongPath)
+{
+	EXPECT_THROW(genesis::rom("/some/path/rom"), std::runtime_error);
+	EXPECT_THROW(genesis::rom("/some/path/rom."), std::runtime_error);
+	EXPECT_THROW(genesis::rom("/some/path/rom.txt"), std::runtime_error);
+}
+
+
+TEST(ROM, DataParsing)
+{
+	ROMConstructor rom(builtin_rom::raw_vectors, builtin_rom::raw_header, builtin_rom::raw_body);
+	genesis::rom test_rom(rom.path());
 
 	auto check_arrays = [](const auto& arr1, const auto& arr2) {
 		ASSERT_EQ(arr1.size(), arr2.size());
@@ -216,4 +256,39 @@ TEST_F(TestROM, DataParsing)
 	ASSERT_EQ(test_rom.checksum(), test_rom.header().rom_checksum);
 
 	ASSERT_EQ(builtin_rom::header, test_rom.header());
+}
+
+
+template <class Vectors, class Header, class Body>
+void check_ill_formatted_rom(const Vectors& vectors, const Header& header, const Body& body)
+{
+	ROMConstructor tmp_rom(vectors, header, body);
+	EXPECT_THROW(genesis::rom{tmp_rom.path()}, std::runtime_error);
+}
+
+template <class Array>
+auto half_array(const Array& arr)
+{
+	return std::span(arr.data(), arr.size() / 2);
+}
+
+
+TEST(ROM, CorruptedInput)
+{
+	using namespace builtin_rom;
+
+	/* empty rom */
+	check_ill_formatted_rom(empty_array, empty_array, empty_array);
+
+	/* half vectors */
+	check_ill_formatted_rom(half_array(raw_vectors), empty_array, empty_array);
+
+	/* empty header */
+	check_ill_formatted_rom(raw_vectors, empty_array, empty_array);
+
+	/* helf header */
+	check_ill_formatted_rom(raw_vectors, half_array(raw_header), empty_array);
+
+	/* empty body */
+	check_ill_formatted_rom(raw_vectors, raw_header, empty_array);
 }

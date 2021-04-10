@@ -1,7 +1,7 @@
 #include "rom.h"
+
 #include "endian.hpp"
 #include "string_utils.hpp"
-
 
 #include <cassert>
 #include <exception>
@@ -10,8 +10,12 @@
 #include <iostream>
 #include <sstream>
 
+
 namespace genesis
 {
+
+// add namespace
+const std::string rom_format_err_msg = "ROM format error!";
 
 class rom_parser
 {
@@ -34,6 +38,8 @@ protected:
 		f.seekg(offset);
 		f.read(str.data(), size);
 
+		check_stream(f);
+
 		su::trim(str);
 		return str;
 	}
@@ -46,9 +52,17 @@ protected:
 		f.seekg(offset);
 		f.read(reinterpret_cast<char*>(&data), sizeof(T));
 
+		check_stream(f);
+
 		// NOTE: rom has big-endian format
 		endian::big_to_sys(data);
 		return data;
+	}
+
+	static inline void check_stream(std::ifstream& f)
+	{
+		if (!f.good())
+			throw std::runtime_error(rom_format_err_msg);
 	}
 };
 
@@ -103,6 +117,10 @@ public:
 				body.push_back(static_cast<uint8_t>(c));
 		}
 
+		// body cannot be empty
+		if (body.empty())
+			throw std::runtime_error(rom_format_err_msg);
+
 		body.shrink_to_fit();
 		return body;
 	}
@@ -136,13 +154,13 @@ rom::rom(const std::string_view path_to_rom)
 	auto parser = find_parser(extention);
 	if (parser == nullptr)
 	{
-		throw std::runtime_error("Faild to parse ROM: extention '" + extention + "' is not supported");
+		throw std::runtime_error("faild to parse ROM: extention '" + extention + "' is not supported");
 	}
 
 	std::ifstream fs(rom_path, std::ios_base::binary);
 	if (!fs.is_open())
 	{
-		throw std::runtime_error("Failed to open ROM: file '" + rom_path.string() + "'");
+		throw std::runtime_error("failed to open ROM: file '" + rom_path.string() + "'");
 	}
 
 	_header = parser->parse_header(fs);

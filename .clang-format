@@ -10,3 +10,4 @@ TabWidth: 4
 ---
 Language: Cpp
 AccessModifierOffset: -4
+IncludeBlocks: Regroup
