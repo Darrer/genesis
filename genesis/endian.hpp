@@ -2,6 +2,7 @@
 #define __ENDIANNESS_HPP__
 
 #include <bit>
+#include <cstdint>
 
 // TODO: rewrite using return value?
 

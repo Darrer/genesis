@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <inttypes.h>
 #include <string>
+#include <vector>
 
 
 namespace genesis
