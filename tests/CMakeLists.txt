@@ -19,6 +19,7 @@ PRIVATE
 	endian.cpp
 	rom.cpp
 
+	memory.cpp
 	z80/cpu_registers.cpp
 )
 

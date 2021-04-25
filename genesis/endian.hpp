@@ -4,7 +4,6 @@
 #include <bit>
 #include <cstdint>
 
-// TODO: rewrite using return value?
 
 namespace endian
 {
@@ -14,7 +13,11 @@ static_assert(std::endian::native == std::endian::big || std::endian::native == 
 
 
 template <class T>
-inline void swap(T& val) = delete;
+inline void swap(T&)
+{
+	// Default implementation for 1-byte types
+	static_assert(sizeof(T) == 1, "not supported");
+}
 
 
 template <>
@@ -29,12 +32,6 @@ template <>
 inline void swap<std::uint16_t>(std::uint16_t& val)
 {
 	val = (val << 8) | ((val >> 8) & 0xFF);
-}
-
-
-template <>
-inline void swap<std::uint8_t>(std::uint8_t&)
-{
 }
 
 
