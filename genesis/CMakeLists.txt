@@ -12,7 +12,8 @@ PRIVATE
 	rom_debug.hpp
 	string_utils.hpp
 	endian.hpp
-	z80/register_set.hpp
+
+	z80/cpu_registers.hpp
 )
 
 # executable based on core lib

@@ -1,5 +1,5 @@
-#ifndef __Z80_REGISTER_SET_HPP__
-#define __Z80_REGISTER_SET_HPP__
+#ifndef __Z80_CPU_REGISTERS_HPP__
+#define __Z80_CPU_REGISTERS_HPP__
 
 #include <bit>
 #include <cstdint>
@@ -80,6 +80,32 @@ public:
 };
 
 
+class cpu_registers
+{
+public:
+	cpu_registers()
+	{
+		I = R = 0x0;
+		IX = IY = SP = PC = 0x0;
+	}
+
+	/* general purpose & accumulator/flag registers*/
+
+	register_set main_set;
+	register_set alt_set;
+
+	/* special purpose registers */
+
+	std::uint8_t I;
+	std::uint8_t R;
+
+	std::uint16_t IX;
+	std::uint16_t IY;
+
+	std::uint16_t SP;
+	std::uint16_t PC;
+};
+
 } // namespace genesis::z80
 
-#endif // __Z80_REGISTER_SET_HPP__
+#endif // __Z80_CPU_REGISTERS_HPP__

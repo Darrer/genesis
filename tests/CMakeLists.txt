@@ -19,7 +19,7 @@ PRIVATE
 	endian.cpp
 	rom.cpp
 
-	z80/register_set.cpp
+	z80/cpu_registers.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
