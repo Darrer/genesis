@@ -50,3 +50,9 @@ TEST(Memory, ReadWrite)
 	test_mem(mem1);
 	test_mem(mem2);
 }
+
+
+TEST(Memory, ByteOrder)
+{
+	// TODO
+}

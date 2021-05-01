@@ -7,13 +7,18 @@ add_library(${GENESIS_LIB})
 target_sources(${GENESIS_LIB}
 PRIVATE
 	rom.cpp
-
 	rom.h
 	rom_debug.hpp
+
 	string_utils.hpp
 	endian.hpp
+	memory.hpp
 
 	z80/cpu_registers.hpp
+	z80/cpu.h
+	z80/cpu.cpp
+
+	z80/impl/arithmetic_logic_unit.hpp
 )
 
 # executable based on core lib

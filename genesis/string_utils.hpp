@@ -1,8 +1,10 @@
 #ifndef __STRING_UTILS_HPP__
 #define __STRING_UTILS_HPP__
 
+#include <iomanip>
 #include <sstream>
 #include <string>
+
 
 // string utils
 namespace su
@@ -13,8 +15,7 @@ std::string hex_str(T t, size_t wide = sizeof(T) * 2)
 {
 	std::stringstream ss;
 	ss << "0x";
-	ss << std::hex << std::setfill('0') << std::setw(wide);
-	ss << t;
+	ss << std::hex << std::setfill('0') << std::setw(wide) << (long long)t;
 	return ss.str();
 }
 
