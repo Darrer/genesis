@@ -54,5 +54,35 @@ TEST(Memory, ReadWrite)
 
 TEST(Memory, ByteOrder)
 {
-	// TODO
+	auto assert_byte_sequence = [](mem_addr addr, auto& mem, std::initializer_list<std::uint8_t> bytes) {
+		for (auto b : bytes)
+		{
+			auto mem_data = mem.template read<std::uint8_t>(addr++);
+			ASSERT_EQ(b, mem_data);
+		}
+	};
+
+	const mem_addr addr = 0x0;
+
+	/* big endian */
+	{
+		auto mem = big_end_memory();
+
+		std::uint32_t val = 0x12345678;
+		mem.write(addr, val);
+
+		// val should be written as big endian
+		assert_byte_sequence(addr, mem, {0x12, 0x34, 0x56, 0x78});
+	}
+
+	/* little endian */
+	{
+		auto mem = little_end_memory();
+
+		std::uint32_t val = 0x12345678;
+		mem.write(addr, val);
+
+		// val should be written as little endian
+		assert_byte_sequence(addr, mem, {0x78, 0x56, 0x34, 0x12});
+	}
 }
