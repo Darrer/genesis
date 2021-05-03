@@ -28,6 +28,9 @@ void execute(genesis::z80::cpu& cpu, std::initializer_list<std::uint8_t> opcode,
 
 	cpu.execute_one();
 
+	// NOTE: won't work for jump instructions
+	ASSERT_EQ(cpu.registers().PC, 0x0 + opcode.size());
+
 	if (verify_fn)
 		verify_fn();
 }
@@ -35,10 +38,11 @@ void execute(genesis::z80::cpu& cpu, std::initializer_list<std::uint8_t> opcode,
 
 TEST(Z80ArithmeticLogicUnit, ADD)
 {
-	auto mem = std::make_shared<genesis::z80::z80_mem>();
+	auto mem = std::make_shared<genesis::z80::memory>();
 	auto cpu = genesis::z80::cpu(mem);
 	auto& regs = cpu.registers();
 
+	/* ADD HL */
 	{
 		regs.main_set.A = 0x13;
 		regs.main_set.HL = reserved + 0x20;
@@ -47,5 +51,26 @@ TEST(Z80ArithmeticLogicUnit, ADD)
 
 		execute(cpu, {0x86});
 		ASSERT_EQ(regs.main_set.A, 0x13 + 0x31);
+	}
+
+	/* ADD r */
+	{
+		using test_pair = std::pair<genesis::z80::opcode, std::uint8_t&>;
+
+		std::initializer_list<test_pair> test_suites = {
+			{0x87, regs.main_set.A}, {0x80, regs.main_set.B}, {0x81, regs.main_set.C}, {0x82, regs.main_set.D},
+			{0x83, regs.main_set.E}, {0x84, regs.main_set.F}, {0x85, regs.main_set.L}};
+
+		for (auto& s : test_suites)
+		{
+			auto& [op, r] = s;
+			regs.main_set.A = 0x17;
+			r = 0x42;
+
+			auto expected = regs.main_set.A + r;
+
+			execute(cpu, {op});
+			ASSERT_EQ(regs.main_set.A, expected);
+		}
 	}
 }

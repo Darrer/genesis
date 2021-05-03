@@ -18,6 +18,8 @@ PRIVATE
 	z80/cpu.h
 	z80/cpu.cpp
 
+	z80/impl/cpu_unit.hpp
+	z80/impl/base_unit.hpp
 	z80/impl/arithmetic_logic_unit.hpp
 )
 

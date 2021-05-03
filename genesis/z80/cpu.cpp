@@ -4,13 +4,15 @@
 
 // units
 #include "impl/arithmetic_logic_unit.hpp"
+#include "impl/cpu_unit.hpp"
 
 
 namespace genesis::z80
 {
 
-cpu::cpu(std::shared_ptr<z80_mem> memory) : mem(memory)
+cpu::cpu(std::shared_ptr<z80::memory> memory) : mem(memory)
 {
+	units.push_back(std::make_shared<unit::arithmetic_logic_unit>(*this));
 }
 
 
@@ -27,12 +29,7 @@ void cpu::execute_one()
 
 bool cpu::try_execute()
 {
-	using namespace impl;
-
-	if (arithmetic_logic_unit::execute(*this))
-		return true;
-
-	return false;
+	return std::any_of(units.begin(), units.end(), [](auto& u) { return u->execute(); });
 }
 
 } // namespace genesis::z80

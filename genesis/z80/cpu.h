@@ -12,20 +12,20 @@
 namespace genesis::z80
 {
 
-using z80_mem = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
+using memory = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
 using opcode = std::uint8_t;
 
 class cpu
 {
 public:
-	cpu(std::shared_ptr<z80_mem> memory);
+	cpu(std::shared_ptr<z80::memory> memory);
 
 	inline cpu_registers& registers()
 	{
 		return regs;
 	}
 
-	inline z80_mem& memory()
+	inline memory& memory()
 	{
 		return *mem;
 	}
@@ -36,8 +36,12 @@ private:
 	bool try_execute();
 
 private:
-	std::shared_ptr<z80_mem> mem;
+	std::shared_ptr<z80::memory> mem;
 	cpu_registers regs;
+
+private:
+	class unit;
+	std::vector<std::shared_ptr<unit>> units;
 };
 
 } // namespace genesis::z80

@@ -89,7 +89,7 @@ public:
 		IX = IY = SP = PC = 0x0;
 	}
 
-	/* general purpose & accumulator/flag registers*/
+	/* general purpose & accumulator/flag registers */
 
 	register_set main_set;
 	register_set alt_set;
