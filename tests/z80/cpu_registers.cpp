@@ -1,9 +1,11 @@
 #include "z80/cpu_registers.hpp"
 
+#include "string_utils.hpp"
+
 #include <gtest/gtest.h>
 
 
-TEST(RegisterSet, RegisterPairing)
+TEST(Z80RegisterSet, RegisterPairing)
 {
 	auto check_regs = [](auto& first, auto& second, auto& pair) {
 		first = 0x19;
@@ -32,7 +34,7 @@ TEST(RegisterSet, RegisterPairing)
 }
 
 
-TEST(CPURegisters, InitialValues)
+TEST(Z80CPURegisters, InitialValues)
 {
 	auto assert_all_zeros = [](const auto& arr) {
 		for (const auto& i : arr)
@@ -57,4 +59,14 @@ TEST(CPURegisters, InitialValues)
 
 	assert_all_zeros(sp1);
 	assert_all_zeros(sp2);
+}
+
+
+TEST(Z80CPURegisters, NumberRepresination)
+{
+	auto regs = genesis::z80::cpu_registers();
+
+	regs.main_set.A = -5;
+
+	ASSERT_EQ(su::bin_str(regs.main_set.A), "11111011");
 }

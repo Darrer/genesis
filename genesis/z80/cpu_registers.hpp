@@ -10,7 +10,7 @@ namespace genesis::z80
 
 /* z80 stores data in little endian */
 
-// relaying on IA-32 little endianness
+// rely on IA-32 little endianness
 static_assert(std::endian::native == std::endian::little);
 
 class register_set
@@ -19,37 +19,37 @@ private:
 	union {
 		struct
 		{
-			std::uint8_t f;
-			std::uint8_t a;
+			std::int8_t f;
+			std::int8_t a;
 		} af_t;
-		std::uint16_t af;
+		std::int16_t af;
 	};
 
 	union {
 		struct
 		{
-			std::uint8_t c;
-			std::uint8_t b;
+			std::int8_t c;
+			std::int8_t b;
 		} bc_t;
-		std::uint16_t bc;
+		std::int16_t bc;
 	};
 
 	union {
 		struct
 		{
-			std::uint8_t e;
-			std::uint8_t d;
+			std::int8_t e;
+			std::int8_t d;
 		} de_t;
-		std::uint16_t de;
+		std::int16_t de;
 	};
 
 	union {
 		struct
 		{
-			std::uint8_t l;
-			std::uint8_t h;
+			std::int8_t l;
+			std::int8_t h;
 		} hl_t;
-		std::uint16_t hl;
+		std::int16_t hl;
 	};
 
 public:
@@ -62,21 +62,21 @@ public:
 		AF = BC = DE = HL = 0x0;
 	}
 
-	std::uint8_t& A;
-	std::uint8_t& F;
-	std::uint16_t& AF;
+	std::int8_t& A;
+	std::int8_t& F;
+	std::int16_t& AF;
 
-	std::uint8_t& B;
-	std::uint8_t& C;
-	std::uint16_t& BC;
+	std::int8_t& B;
+	std::int8_t& C;
+	std::int16_t& BC;
 
-	std::uint8_t& D;
-	std::uint8_t& E;
-	std::uint16_t& DE;
+	std::int8_t& D;
+	std::int8_t& E;
+	std::int16_t& DE;
 
-	std::uint8_t& H;
-	std::uint8_t& L;
-	std::uint16_t& HL;
+	std::int8_t& H;
+	std::int8_t& L;
+	std::int16_t& HL;
 };
 
 

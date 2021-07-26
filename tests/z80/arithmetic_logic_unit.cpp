@@ -55,7 +55,7 @@ TEST(Z80ArithmeticLogicUnit, ADD)
 
 	/* ADD r */
 	{
-		using test_pair = std::pair<genesis::z80::opcode, std::uint8_t&>;
+		using test_pair = std::pair<genesis::z80::opcode, std::int8_t&>;
 
 		std::initializer_list<test_pair> test_suites = {
 			{0x87, regs.main_set.A}, {0x80, regs.main_set.B}, {0x81, regs.main_set.C}, {0x82, regs.main_set.D},
@@ -65,7 +65,7 @@ TEST(Z80ArithmeticLogicUnit, ADD)
 		{
 			auto& [op, r] = s;
 			regs.main_set.A = 0x17;
-			r = 0x42;
+			r = 0x12;
 
 			auto expected = regs.main_set.A + r;
 
