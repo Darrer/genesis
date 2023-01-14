@@ -17,51 +17,49 @@ public:
 		auto& regs = cpu.registers();
 		auto& mem = cpu.memory();
 
-		if (execute_add(regs, mem))
+		z80::opcode op = mem.read<z80::opcode>(regs.PC);
+
+		if (execute_add(op, regs, mem))
 			return true;
 
 		return false;
 	}
 
 private:
-	bool execute_add(genesis::z80::cpu_registers& regs, genesis::z80::memory& mem)
+	bool execute_add(z80::opcode op, genesis::z80::cpu_registers& regs, genesis::z80::memory& mem)
 	{
 		size_t opcode_size = 1;
 
-		if (is_next_opcode(0x86))
+		switch (op)
 		{
+		case 0x86:
 			regs.main_set.A += mem.read<std::uint8_t>(regs.main_set.HL);
-		}
-		else if (is_next_opcode(0x87))
-		{
+			break;
+		case 0x87:
 			regs.main_set.A += regs.main_set.A;
-		}
-		else if (is_next_opcode(0x80))
-		{
+			break;
+		case 0x80:
 			regs.main_set.A += regs.main_set.B;
-		}
-		else if (is_next_opcode(0x81))
-		{
+			break;
+		case 0x81:
 			regs.main_set.A += regs.main_set.C;
-		}
-		else if (is_next_opcode(0x82))
-		{
+			break;
+		case 0x82:
 			regs.main_set.A += regs.main_set.D;
-		}
-		else if (is_next_opcode(0x83))
-		{
+			break;
+		case 0x83:
 			regs.main_set.A += regs.main_set.E;
-		}
-		else if (is_next_opcode(0x84))
-		{
+			break;
+		case 0x84:
 			regs.main_set.A += regs.main_set.F;
-		}
-		else if (is_next_opcode(0x85))
-		{
+			break;
+		case 0x85:
 			regs.main_set.A += regs.main_set.L;
-		}
-		else
-		{
+			break;
+		case 0x88:
+
+			break;
+		default:
 			return false;
 		}
 

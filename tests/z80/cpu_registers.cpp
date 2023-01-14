@@ -70,3 +70,51 @@ TEST(Z80CPURegisters, NumberRepresination)
 
 	ASSERT_EQ(su::bin_str(regs.main_set.A), "11111011");
 }
+
+TEST(Z80CPURegisters, Flags)
+{
+	auto regs = genesis::z80::cpu_registers();
+
+	auto check_flags = [&regs](std::string_view expected) {
+		ASSERT_EQ(expected, su::bin_str(regs.main_set.F));
+		regs.main_set.F = 0;
+	};
+
+	auto& flags = regs.main_set.flags;
+
+	/* check individual flag */
+	flags.S = 1;
+	check_flags("10000000");
+
+	flags.Z = 1;
+	check_flags("01000000");
+
+	flags.H = 1;
+	check_flags("00010000");
+
+	flags.PV = 1;
+	check_flags("00000100");
+
+	flags.N = 1;
+	check_flags("00000010");
+
+	flags.C = 1;
+	check_flags("00000001");
+
+	/* check flag pairs */
+	flags.S = flags.C = 1;
+	check_flags("10000001");
+
+	flags.S = flags.N = 1;
+	check_flags("10000010");
+
+	flags.Z = flags.H = 1;
+	check_flags("01010000");
+
+	flags.PV = flags.C = 1;
+	check_flags("00000101");
+
+	/* check all flags */
+	flags.S = flags.Z = flags.H = flags.PV = flags.N = flags.C = 1;
+	check_flags("11010111");
+}

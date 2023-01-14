@@ -13,13 +13,31 @@ namespace genesis::z80
 // rely on IA-32 little endianness
 static_assert(std::endian::native == std::endian::little);
 
+struct flags
+{
+	std::uint8_t C : 1;
+	std::uint8_t N : 1;
+	std::uint8_t PV : 1;
+	std::uint8_t X1 : 1;
+	std::uint8_t H : 1;
+	std::uint8_t X2 : 1;
+	std::uint8_t Z : 1;
+	std::uint8_t S : 1;
+};
+
+static_assert(sizeof(flags) == 1);
+
+
 class register_set
 {
 private:
 	union {
 		struct
 		{
-			std::int8_t f;
+			union {
+				flags flags;
+				std::int8_t f;
+			};
 			std::int8_t a;
 		} af_t;
 		std::int16_t af;
@@ -57,7 +75,8 @@ public:
 		: A(af_t.a), F(af_t.f), AF(af), // 1st group
 		  B(bc_t.b), C(bc_t.c), BC(bc), // 2nd group
 		  D(de_t.d), E(de_t.e), DE(de), // 3rd group
-		  H(hl_t.h), L(hl_t.l), HL(hl)	// 4th group
+		  H(hl_t.h), L(hl_t.l), HL(hl), // 4th group
+		  flags(af_t.flags)
 	{
 		AF = BC = DE = HL = 0x0;
 	}
@@ -77,6 +96,8 @@ public:
 	std::int8_t& H;
 	std::int8_t& L;
 	std::int16_t& HL;
+
+	flags& flags;
 };
 
 

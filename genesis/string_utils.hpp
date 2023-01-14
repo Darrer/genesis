@@ -1,11 +1,11 @@
 #ifndef __STRING_UTILS_HPP__
 #define __STRING_UTILS_HPP__
 
+#include <algorithm>
 #include <bitset>
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <algorithm>
 
 
 // string utils
