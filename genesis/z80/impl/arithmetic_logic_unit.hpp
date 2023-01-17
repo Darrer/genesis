@@ -27,6 +27,8 @@ public:
 			return true;
 		if(execute_sbc(op, regs))
 			return true;
+		if(execute_and_8(op, regs))
+			return true;
 
 		return false;
 	}
@@ -225,6 +227,54 @@ private:
 		return true;
 	}
 
+	bool execute_and_8(z80::opcode op, z80::cpu_registers& regs)
+	{
+		size_t opcode_size = 1;
+
+		switch (op)
+		{
+		case 0xA0:
+		case 0xA1:
+		case 0xA2:
+		case 0xA3:
+		case 0xA4:
+		case 0xA5:
+		case 0xA7:
+			and_8(regs, r(op & 0b111, regs));
+			break;
+		case 0xE6:
+			opcode_size = 2;
+			and_8(regs, fetch_pc<std::uint8_t>(+1));
+			break;
+		case 0xA6:
+			and_8(regs, fetch_hl<std::uint8_t>());
+			break;
+		case 0xDD:
+		case 0xFD:
+		{
+			if(fetch_pc(+1) == 0xA6)
+			{
+				opcode_size = 3;
+				auto d = fetch_pc<std::int8_t>(+2);
+				auto base = idx(op, regs);
+
+				and_8(regs, fetch<std::uint8_t>(base + d));
+			}
+			else
+			{
+				return false;
+			}
+			break;
+		}
+		default:
+			return false;
+		}
+
+		regs.PC += opcode_size;
+
+		return true;
+	}
+
 protected:
 	/* 8-Bit Arithmetic Group */
 	// TODO: split instruction execution and decoding
@@ -246,10 +296,10 @@ protected:
 
 		flags.N = 0;
 
+		regs.main_set.A = _a + _b;
+
 		flags.S = (regs.main_set.A < 0) ? 1 : 0;
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
-
-		regs.main_set.A = _a + _b;
 	}
 
 	inline static void adc(z80::cpu_registers& regs, std::int8_t b)
@@ -271,10 +321,10 @@ protected:
 
 		flags.N = 0;
 
+		regs.main_set.A = _a + _b + _c;
+
 		flags.S = (regs.main_set.A < 0) ? 1 : 0;
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
-
-		regs.main_set.A = _a + _b + _c;
 	}
 
 	inline static void sub(z80::cpu_registers& regs, std::int8_t b)
@@ -295,10 +345,10 @@ protected:
 
 		flags.N = 1;
 
+		regs.main_set.A = _a - _b;
+
 		flags.S = (regs.main_set.A < 0) ? 1 : 0;
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
-
-		regs.main_set.A = _a - _b;
 	}
 
 	inline static void sbc(z80::cpu_registers& regs, std::int8_t b)
@@ -320,15 +370,32 @@ protected:
 
 		flags.N = 1;
 
+		regs.main_set.A = _a - _b - _c;
+
 		flags.S = (regs.main_set.A < 0) ? 1 : 0;
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
-
-		regs.main_set.A = _a - _b - _c;
 	}
 
+	inline static void and_8(z80::cpu_registers& regs, std::int8_t b)
+	{
+		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
+		std::uint8_t _b = (std::uint8_t)b;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = flags.C = 0;
+
+		regs.main_set.A = _a & _b;
+
+		// check Parity/Overflow Flag (P/V)
+		flags.PV = check_parity(regs.main_set.A);
+
+		flags.S = (regs.main_set.A < 0) ? 1 : 0;
+		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+	}
 private:
 
-	// helper
+	// decode helpers
 	inline static std::uint16_t idx(z80::opcode op, z80::cpu_registers& regs)
 	{
 		assert(op == 0xDD || op == 0xFD);

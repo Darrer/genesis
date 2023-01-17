@@ -58,10 +58,26 @@ protected:
 	{
 		return fetch<T>(cpu.registers().main_set.HL + offset);
 	}
+
 protected:
 	z80::cpu& cpu;
 };
 
+
+// TODO: move somewhere
+std::uint8_t check_parity(int n) 
+{
+	int b;
+	b = n ^ (n >> 1); 
+	b = b ^ (b >> 2); 
+	b = b ^ (b >> 4); 
+	b = b ^ (b >> 8); 
+	b = b ^ (b >> 16); 
+	if (b & 1)
+		return 1;
+	else
+		return 0;
+}
 
 } // namespace genesis::z80
 
