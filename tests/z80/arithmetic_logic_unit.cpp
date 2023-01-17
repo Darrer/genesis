@@ -200,3 +200,63 @@ TEST(Z80ArithmeticLogicUnit, ADC)
 	/* ADC A, (IY + d) */
 	test_idx(cpu, 0x8E, adc);
 }
+
+TEST(Z80ArithmeticLogicUnit, SUB)
+{
+	auto cpu = make_cpu();
+
+	auto sub = [](std::int8_t a, std::int8_t b, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return a - b;
+	};
+
+	/* ADC r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0x97, regs.main_set.A}, {0x90, regs.main_set.B}, {0x91, regs.main_set.C}, {0x92, regs.main_set.D},
+			{0x93, regs.main_set.E}, {0x94, regs.main_set.H}, {0x95, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, sub);
+	}
+
+	/* ADC A, n */
+	test_n(cpu, 0xD6, sub);
+
+	/* ADC HL */
+	test_hl(cpu, 0x96, sub);
+
+	/* ADC A, (IX + d) */
+	/* ADC A, (IY + d) */
+	test_idx(cpu, 0x96, sub);
+}
+
+TEST(Z80ArithmeticLogicUnit, SBC)
+{
+	auto cpu = make_cpu();
+
+	auto sbc = [](std::int8_t a, std::int8_t b, const genesis::z80::cpu_registers& regs) -> std::int8_t
+	{
+		return a - b - regs.main_set.flags.C;
+	};
+
+	/* ADC r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0x9F, regs.main_set.A}, {0x98, regs.main_set.B}, {0x99, regs.main_set.C}, {0x9A, regs.main_set.D},
+			{0x9B, regs.main_set.E}, {0x9C, regs.main_set.H}, {0x9D, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, sbc);
+	}
+
+	/* ADC A, n */
+	test_n(cpu, 0xDE, sbc);
+
+	/* ADC HL */
+	test_hl(cpu, 0x9E, sbc);
+
+	/* ADC A, (IX + d) */
+	/* ADC A, (IY + d) */
+	test_idx(cpu, 0x9E, sbc);
+}
