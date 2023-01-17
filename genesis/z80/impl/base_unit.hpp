@@ -41,6 +41,23 @@ protected:
 		return is_next_opcode({op});
 	}
 
+	template<class T>
+	inline T fetch(z80::memory::address addr)
+	{
+		return cpu.memory().read<T>(addr);
+	}
+
+	template<class T = z80::opcode>
+	inline T fetch_pc(z80::memory::address offset = 0)
+	{
+		return fetch<T>(cpu.registers().PC + offset);
+	}
+
+	template<class T>
+	inline T fetch_hl(z80::memory::address offset = 0)
+	{
+		return fetch<T>(cpu.registers().main_set.HL + offset);
+	}
 protected:
 	z80::cpu& cpu;
 };

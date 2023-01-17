@@ -12,14 +12,15 @@
 namespace genesis
 {
 
-template <class address, size_t capacity /* in bytes */, std::endian byte_order>
+template <class address_t, size_t capacity /* in bytes */, std::endian byte_order>
 class memory
 {
 public:
+	using address = address_t;
 	memory()
 	{
 		static_assert(std::numeric_limits<address>::max() >= capacity,
-					  "address type must be larget enough to address capacity!");
+					  "address type must be big enough to address capacity!");
 
 		static_assert(byte_order == std::endian::little || byte_order == std::endian::big);
 	}
