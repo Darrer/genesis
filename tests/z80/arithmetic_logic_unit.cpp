@@ -260,3 +260,93 @@ TEST(Z80ArithmeticLogicUnit, SBC)
 	/* ADC A, (IY + d) */
 	test_idx(cpu, 0x9E, sbc);
 }
+
+TEST(Z80ArithmeticLogicUnit, AND_8)
+{
+	auto cpu = make_cpu();
+
+	auto add_8 = [](std::int8_t a, std::int8_t b, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return (std::uint8_t)a & (std::uint8_t)b;
+	};
+
+	/* ADC r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0xA7, regs.main_set.A}, {0xA0, regs.main_set.B}, {0xA1, regs.main_set.C}, {0xA2, regs.main_set.D},
+			{0xA3, regs.main_set.E}, {0xA4, regs.main_set.H}, {0xA5, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, add_8);
+	}
+
+	/* ADC A, n */
+	test_n(cpu, 0xE6, add_8);
+
+	/* ADC HL */
+	test_hl(cpu, 0xA6, add_8);
+
+	/* ADC A, (IX + d) */
+	/* ADC A, (IY + d) */
+	test_idx(cpu, 0xA6, add_8);
+}
+
+TEST(Z80ArithmeticLogicUnit, OR_8)
+{
+	auto cpu = make_cpu();
+
+	auto or_8 = [](std::int8_t a, std::int8_t b, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return (std::uint8_t)a | (std::uint8_t)b;
+	};
+
+	/* OR r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0xB7, regs.main_set.A}, {0xB0, regs.main_set.B}, {0xB1, regs.main_set.C}, {0xB2, regs.main_set.D},
+			{0xB3, regs.main_set.E}, {0xB4, regs.main_set.H}, {0xB5, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, or_8);
+	}
+
+	/* OR A, n */
+	test_n(cpu, 0xF6, or_8);
+
+	/* OR HL */
+	test_hl(cpu, 0xB6, or_8);
+
+	/* OR A, (IX + d) */
+	/* OR A, (IY + d) */
+	test_idx(cpu, 0xB6, or_8);
+}
+
+TEST(Z80ArithmeticLogicUnit, XOR)
+{
+	auto cpu = make_cpu();
+
+	auto xor_8 = [](std::int8_t a, std::int8_t b, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return (std::uint8_t)a ^ (std::uint8_t)b;
+	};
+
+	/* XOR r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0xAF, regs.main_set.A}, {0xA8, regs.main_set.B}, {0xA9, regs.main_set.C}, {0xAA, regs.main_set.D},
+			{0xAB, regs.main_set.E}, {0xAC, regs.main_set.H}, {0xAD, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, xor_8);
+	}
+
+	/* OR A, n */
+	test_n(cpu, 0xEE, xor_8);
+
+	/* OR HL */
+	test_hl(cpu, 0xAE, xor_8);
+
+	/* OR A, (IX + d) */
+	/* OR A, (IY + d) */
+	test_idx(cpu, 0xAE, xor_8);
+}

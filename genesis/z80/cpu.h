@@ -33,15 +33,8 @@ public:
 	void execute_one();
 
 private:
-	bool try_execute();
-
-private:
 	std::shared_ptr<z80::memory> mem;
 	cpu_registers regs;
-
-private:
-	class unit;
-	std::vector<std::shared_ptr<unit>> units;
 };
 
 } // namespace genesis::z80
