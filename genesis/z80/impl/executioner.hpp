@@ -7,6 +7,7 @@
 #include "string_utils.hpp"
 
 #include <cassert>
+#include <iostream>
 
 
 namespace genesis::z80
@@ -74,31 +75,39 @@ public:
 	static void execute_register_op(register_operation reg_op, z80::cpu& cpu)
 	{
 		auto& regs = cpu.registers();
-		switch(reg_op.reg)
+		auto get_reg = [&](register_type reg_type) -> std::int8_t&
 		{
-		case register_type::A:
-			exec_unary(reg_op.op_type, regs, regs.main_set.A);
-			break;
-		case register_type::B:
-			exec_unary(reg_op.op_type, regs, regs.main_set.B);
-			break;
-		case register_type::C:
-			exec_unary(reg_op.op_type, regs, regs.main_set.C);
-			break;
-		case register_type::D:
-			exec_unary(reg_op.op_type, regs, regs.main_set.D);
-			break;
-		case register_type::E:
-			exec_unary(reg_op.op_type, regs, regs.main_set.E);
-			break;
-		case register_type::H:
-			exec_unary(reg_op.op_type, regs, regs.main_set.H);
-			break;
-		case register_type::L:
-			exec_unary(reg_op.op_type, regs, regs.main_set.L);
-			break;
-		default:
-			throw std::runtime_error("execute_register_op unknown register type: " + reg_op.reg);
+			switch(reg_type)
+			{
+			case register_type::A:
+				return regs.main_set.A;
+			case register_type::B:
+				return regs.main_set.B;
+			case register_type::C:
+				return regs.main_set.C;
+			case register_type::D:
+				return regs.main_set.D;
+			case register_type::E:
+				return regs.main_set.E;
+			case register_type::H:
+				return regs.main_set.H;
+			case register_type::L:
+				return regs.main_set.L;
+			default:
+				throw std::runtime_error("execute_register_op unknown register type: " + reg_op.reg);
+			}
+		};
+		
+		auto& r_a = get_reg(reg_op.reg);
+		if(reg_op.reg_b.has_value())
+		{
+			// std::cout << "executing " << su::bin_str(reg_op.reg) << " <- " << su::bin_str(reg_op.reg_b.value()) << std::endl;
+			auto& r_b = get_reg(reg_op.reg_b.value());
+			exec_binary(reg_op.op_type, regs, r_b, r_a);
+		}
+		else
+		{
+			exec_unary(reg_op.op_type, regs, r_a);
 		}
 
 		regs.PC += 1;
@@ -206,6 +215,19 @@ public:
 		
 		default:
 			throw std::runtime_error("exec_unary_addr error: unknown/unsupported operation_type " + (int)op_type);
+		}
+	}
+
+	static void exec_binary(operation_type op_type, z80::cpu_registers&, std::int8_t& a, std::int8_t& b)
+	{
+		switch (op_type)
+		{
+		case operation_type::ld_reg:
+			operations::ld_reg(a, b);
+			break;
+		
+		default:
+			throw std::runtime_error("exec_binary error: unknown/unsupported operation_type " + (int)op_type);
 		}
 	}
 };

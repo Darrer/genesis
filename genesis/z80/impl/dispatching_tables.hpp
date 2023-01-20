@@ -2,6 +2,8 @@
 #define __DISPATCHING_TABLES_HPP__
 
 #include <cstdint>
+#include <optional>
+
 #include "executioner.hpp"
 
 namespace genesis::z80
@@ -21,6 +23,7 @@ enum operation_type : std::uint8_t
 	inc_at,
 	dec_reg,
 	dec_at,
+	ld_reg,
 };
 
 
@@ -40,16 +43,27 @@ struct register_operation
 	z80::operation_type op_type;
 	z80::opcode opcode;
 	z80::register_type reg;
+	std::optional<z80::register_type> reg_b = std::nullopt;
 };
 
-#define register_op(op, opcode, reg_offset) \
-	{op, opcode | (register_type::A << reg_offset), register_type::A}, \
-	{op, opcode | (register_type::B << reg_offset), register_type::B}, \
-	{op, opcode | (register_type::C << reg_offset), register_type::C}, \
-	{op, opcode | (register_type::D << reg_offset), register_type::D}, \
-	{op, opcode | (register_type::E << reg_offset), register_type::E}, \
-	{op, opcode | (register_type::H << reg_offset), register_type::H}, \
-	{op, opcode | (register_type::L << reg_offset), register_type::L}
+#define register_op(op, opcode, reg_offset, ...) \
+	{op, opcode | (register_type::A << reg_offset), register_type::A, __VA_ARGS__}, \
+	{op, opcode | (register_type::B << reg_offset), register_type::B, __VA_ARGS__}, \
+	{op, opcode | (register_type::C << reg_offset), register_type::C, __VA_ARGS__}, \
+	{op, opcode | (register_type::D << reg_offset), register_type::D, __VA_ARGS__}, \
+	{op, opcode | (register_type::E << reg_offset), register_type::E, __VA_ARGS__}, \
+	{op, opcode | (register_type::H << reg_offset), register_type::H, __VA_ARGS__}, \
+	{op, opcode | (register_type::L << reg_offset), register_type::L, __VA_ARGS__}
+
+#define register_bin_op(op, opcode) \
+	register_op(op, opcode | (register_type::A << 3), 0, register_type::A), \
+	register_op(op, opcode | (register_type::B << 3), 0, register_type::B), \
+	register_op(op, opcode | (register_type::C << 3), 0, register_type::C), \
+	register_op(op, opcode | (register_type::D << 3), 0, register_type::D), \
+	register_op(op, opcode | (register_type::E << 3), 0, register_type::E), \
+	register_op(op, opcode | (register_type::H << 3), 0, register_type::H), \
+	register_op(op, opcode | (register_type::L << 3), 0, register_type::L)
+
 
 /* {OP} r */
 register_operation register_ops[] = {
@@ -63,6 +77,7 @@ register_operation register_ops[] = {
 	register_op(operation_type::cp, 0b10111000, 0),
 	register_op(operation_type::inc_reg, 0b00000100, 3),
 	register_op(operation_type::dec_reg, 0b00000101, 3),
+	register_bin_op(operation_type::ld_reg, 0b01000000)
 };
 
 

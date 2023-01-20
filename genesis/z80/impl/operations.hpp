@@ -10,6 +10,12 @@ namespace genesis::z80
 class operations
 {
 public:
+	/* 8-Bit Load Group */
+	inline static void ld_reg(std::int8_t& r1, std::int8_t r2)
+	{
+		r1 = r2;
+	}
+
 	/* 8-Bit Arithmetic Group */
 	inline static void add(z80::cpu_registers& regs, std::int8_t b)
 	{

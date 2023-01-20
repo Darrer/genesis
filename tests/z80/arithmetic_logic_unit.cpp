@@ -39,6 +39,15 @@ void execute(genesis::z80::cpu& cpu, std::initializer_list<std::uint8_t> opcode,
 		verify_fn();
 }
 
+void reset_reg(z80::cpu_registers& regs)
+{
+	regs.I = regs.R = 0x0;
+	regs.IX = regs.IY = regs.SP = regs.PC = 0x0;
+
+	regs.main_set.AF = regs.main_set.BC = regs.main_set.DE = regs.main_set.HL = 0x0;
+	regs.alt_set.AF = regs.alt_set.BC = regs.alt_set.DE = regs.alt_set.HL = 0x0;
+}
+
 z80::cpu make_cpu()
 {
 	return z80::cpu(std::make_shared<genesis::z80::memory>());
@@ -83,6 +92,30 @@ void test_r(genesis::z80::cpu& cpu, std::initializer_list<reg_opcode_pair> reg_o
 			auto expected = un_op(reg, regs);
 			execute(cpu, {opcode});
 			auto actual = reg;
+
+			ASSERT_EQ(expected, actual) << "failed to execute " << su::hex_str(opcode);
+		}
+	}
+}
+
+using reg_opcode_bin_pair = std::pair<genesis::z80::opcode, std::pair<std::int8_t&, std::int8_t&>>;
+void test_binary_r(genesis::z80::cpu& cpu, std::initializer_list<reg_opcode_bin_pair> reg_opcode_bin_sets, bin_op_fn bin_op)
+{
+	auto& regs = cpu.registers();
+	for(auto& [opcode, reg] : reg_opcode_bin_sets)
+	{
+		for(int c = 0; c <= 1; ++c)
+		{
+			reset_reg(regs);
+
+			/* setup registers for test */
+			regs.main_set.flags.C = c;
+			reg.first = 0x14;
+			reg.second = 0x15;
+
+			auto expected = bin_op(reg.first, reg.second, regs);
+			execute(cpu, {opcode});
+			auto actual = reg.first;
 
 			ASSERT_EQ(expected, actual) << "failed to execute " << su::hex_str(opcode);
 		}
@@ -506,7 +539,53 @@ TEST(Z80ArithmeticLogicUnit, DEC)
 	/* DEC HL */
 	test_hl_write(cpu, 0x35, dec);
 
+	/* DEC A, (IX + d) */
+	/* DEC A, (IY + d) */
+	test_idx_write(cpu, 0x35, dec);
+}
+
+TEST(Z80ArithmeticLogicUnit, LD)
+{
+	auto cpu = make_cpu();
+
+	auto ld = [](std::int8_t, std::int8_t r, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return r;
+	};
+
+	/* LD r */
+	{
+		auto& r = cpu.registers().main_set;
+		std::initializer_list<reg_opcode_bin_pair> op_reg_pairs = {
+			{0x7F, {r.A, r.A}}, {0x78, {r.A, r.B}}, {0x79, {r.A, r.C}}, {0x7A, {r.A, r.D}},
+			{0x7B, {r.A, r.E}}, {0x7C, {r.A, r.H}}, {0x7D, {r.A, r.L}},
+
+			{0x47, {r.B, r.A}}, {0x40, {r.B, r.B}}, {0x41, {r.B, r.C}}, {0x42, {r.B, r.D}},
+			{0x43, {r.B, r.E}}, {0x44, {r.B, r.H}}, {0x45, {r.B, r.L}},
+
+			{0x4F, {r.C, r.A}}, {0x48, {r.C, r.B}}, {0x49, {r.C, r.C}}, {0x4A, {r.C, r.D}},
+			{0x4B, {r.C, r.E}}, {0x4C, {r.C, r.H}}, {0x4D, {r.C, r.L}},
+
+			{0x57, {r.D, r.A}}, {0x50, {r.D, r.B}}, {0x51, {r.D, r.C}}, {0x52, {r.D, r.D}},
+			{0x53, {r.D, r.E}}, {0x54, {r.D, r.H}}, {0x55, {r.D, r.L}},
+
+			{0x5F, {r.E, r.A}}, {0x58, {r.E, r.B}}, {0x59, {r.E, r.C}}, {0x5A, {r.E, r.D}},
+			{0x5B, {r.E, r.E}}, {0x5C, {r.E, r.H}}, {0x5D, {r.E, r.L}},
+
+			{0x67, {r.H, r.A}}, {0x60, {r.H, r.B}}, {0x61, {r.H, r.C}}, {0x62, {r.H, r.D}},
+			{0x63, {r.H, r.E}}, {0x64, {r.H, r.H}}, {0x65, {r.H, r.L}},
+
+			{0x6F, {r.L, r.A}}, {0x68, {r.L, r.B}}, {0x69, {r.L, r.C}}, {0x6A, {r.L, r.D}},
+			{0x6B, {r.L, r.E}}, {0x6C, {r.L, r.H}}, {0x6D, {r.L, r.L}},
+		};
+
+		test_binary_r(cpu, op_reg_pairs, ld);
+	}
+
+	/* DEC HL */
+	// test_hl_write(cpu, 0x35, dec);
+
 	// /* DEC A, (IX + d) */
 	// /* DEC A, (IY + d) */
-	test_idx_write(cpu, 0x35, dec);
+	// test_idx_write(cpu, 0x35, dec);
 }
