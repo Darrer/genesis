@@ -47,7 +47,10 @@ public:
 		{
 			if(op.opcode == opcode)
 			{
-				exec_indirect_operation(op, cpu);
+				if(op.access_type == access::read)
+					exec_indirect_read_operation(op, cpu);
+				else
+					exec_indirect_write_operation(op, cpu);
 				return;
 			}
 		}
@@ -56,7 +59,10 @@ public:
 		{
 			if(op.opcode == opcode && op.opcode2 == opcode2)
 			{
-				exec_indexed_operation(op, cpu);
+				if(op.access_type == access::read)
+					exec_indexed_read_operation(op, cpu);
+				else
+					exec_indexed_write_operation(op, cpu);
 				return;
 			}
 		}
@@ -68,35 +74,33 @@ public:
 	static void execute_register_op(register_operation reg_op, z80::cpu& cpu)
 	{
 		auto& regs = cpu.registers();
-		std::int8_t b;
 		switch(reg_op.reg)
 		{
 		case register_type::A:
-			b = regs.main_set.A;
+			exec_unary(reg_op.op_type, regs, regs.main_set.A);
 			break;
 		case register_type::B:
-			b = regs.main_set.B;
+			exec_unary(reg_op.op_type, regs, regs.main_set.B);
 			break;
 		case register_type::C:
-			b = regs.main_set.C;
+			exec_unary(reg_op.op_type, regs, regs.main_set.C);
 			break;
 		case register_type::D:
-			b = regs.main_set.D;
+			exec_unary(reg_op.op_type, regs, regs.main_set.D);
 			break;
 		case register_type::E:
-			b = regs.main_set.E;
+			exec_unary(reg_op.op_type, regs, regs.main_set.E);
 			break;
 		case register_type::H:
-			b = regs.main_set.H;
+			exec_unary(reg_op.op_type, regs, regs.main_set.H);
 			break;
 		case register_type::L:
-			b = regs.main_set.L;
+			exec_unary(reg_op.op_type, regs, regs.main_set.L);
 			break;
 		default:
 			throw std::runtime_error("execute_register_op unknown register type: " + reg_op.reg);
 		}
 
-		exec_unary(reg_op.op_type, regs, b);
 		regs.PC += 1;
 	}
 
@@ -109,7 +113,7 @@ public:
 		regs.PC += 2;
 	}
 
-	static void exec_indirect_operation(indirect_operation ind_op, z80::cpu& cpu)
+	static void exec_indirect_read_operation(indirect_operation ind_op, z80::cpu& cpu)
 	{
 		auto& regs = cpu.registers();
 		std::int8_t b = cpu.memory().read<std::int8_t>(regs.main_set.HL);
@@ -118,7 +122,14 @@ public:
 		regs.PC += 1;
 	}
 
-	static void exec_indexed_operation(indexed_operation idx_op, z80::cpu& cpu)
+	static void exec_indirect_write_operation(indirect_operation ind_op, z80::cpu& cpu)
+	{
+		auto& regs = cpu.registers();
+		exec_unary_addr(ind_op.op_type, regs, regs.main_set.HL, cpu.memory());
+		regs.PC += 1;
+	}
+
+	static void exec_indexed_read_operation(indexed_operation idx_op, z80::cpu& cpu)
 	{
 		assert(idx_op.opcode == 0xDD || idx_op.opcode == 0xFD);
 
@@ -131,7 +142,19 @@ public:
 		regs.PC += 3;
 	}
 
-	static void exec_unary(operation_type op_type, z80::cpu_registers& regs, std::int8_t b)
+	static void exec_indexed_write_operation(indexed_operation idx_op, z80::cpu& cpu)
+	{
+		assert(idx_op.opcode == 0xDD || idx_op.opcode == 0xFD);
+
+		auto& regs = cpu.registers();
+		auto d = cpu.memory().read<std::int8_t>(regs.PC + 2);
+		auto base = idx_op.opcode == 0xDD ? regs.IX : regs.IY;
+
+		exec_unary_addr(idx_op.op_type, regs, base + d, cpu.memory());
+		regs.PC += 3;
+	}
+
+	static void exec_unary(operation_type op_type, z80::cpu_registers& regs, std::int8_t& b)
 	{
 		switch(op_type)
 		{
@@ -156,8 +179,33 @@ public:
 		case operation_type::xor_8:
 			operations::xor_8(regs, b);
 			break;
+		case operation_type::cp:
+			operations::cp(regs, b);
+			break;
+		case operation_type::inc_reg:
+			operations::inc_reg(regs, b);
+			break;
+		case operation_type::dec_reg:
+			operations::dec_reg(regs, b);
+			break;
 		default:
 			throw std::runtime_error("exec_unary_op error: unknown/unsupported operation_type " + (int)op_type);
+		}
+	}
+
+	static void exec_unary_addr(operation_type op_type, z80::cpu_registers& regs, z80::memory::address addr, z80::memory& mem)
+	{
+		switch (op_type)
+		{
+		case operation_type::inc_at:
+			operations::inc_at(regs, addr, mem);
+			break;
+		case operation_type::dec_at:
+			operations::dec_at(regs, addr, mem);
+			break;
+		
+		default:
+			throw std::runtime_error("exec_unary_addr error: unknown/unsupported operation_type " + (int)op_type);
 		}
 	}
 };

@@ -163,6 +163,88 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
+	inline static void cp(z80::cpu_registers& regs, std::int8_t b)
+	{
+		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
+		std::uint8_t _b = (std::uint8_t)b;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = (_b & 0x0f) > (_a & 0x0f) ? 1 : 0;
+
+		flags.PV = (int)_a - (int)_b > 127 || (int)_a - (int)_b < -128 ? 1 : 0;
+
+		flags.S = (regs.main_set.A - b < 0) ? 1 : 0;
+
+		flags.N = 1;
+		flags.C = _b > _a  ? 1 : 0;
+		flags.Z = (regs.main_set.A == b) ? 1 : 0;
+	}
+
+	inline static void inc_reg(z80::cpu_registers& regs, std::int8_t& r)
+	{
+		auto& flags = regs.main_set.flags;
+
+		flags.N = 0;
+		flags.PV = r == 127 ? 1 : 0;
+		flags.H = (r & 0x0f) == 0x0f ? 1 : 0;
+		
+		r = ((std::uint8_t) r) + 1;
+
+		flags.Z = r == 0 ? 1 : 0;
+		flags.S = r < 0 ? 1 : 0;
+	}
+
+	inline static void inc_at(z80::cpu_registers& regs, z80::memory::address addr, z80::memory& mem)
+	{
+		std::uint8_t val = mem.read<std::uint8_t>(addr);
+
+		auto& flags = regs.main_set.flags;
+
+		flags.N = 0;
+		flags.PV = val == 127 ? 1 : 0;
+		flags.H = (val & 0x0f) == 0x0f ? 1 : 0;
+		
+		++val;
+
+		flags.Z = val == 0 ? 1 : 0;
+		flags.S = (std::int8_t)val < 0 ? 1 : 0;
+
+		mem.write(addr, val);
+	}
+
+	inline static void dec_reg(z80::cpu_registers& regs, std::int8_t& r)
+	{
+		auto& flags = regs.main_set.flags;
+
+		flags.N = 0;
+		flags.PV = r == -128 ? 1 : 0;
+		flags.H = (r & 0x0f) == 0 ? 1 : 0;
+		
+		--r;
+
+		flags.Z = r == 0 ? 1 : 0;
+		flags.S = r < 0 ? 1 : 0;
+	}
+
+	inline static void dec_at(z80::cpu_registers& regs, z80::memory::address addr, z80::memory& mem)
+	{
+		auto val = mem.read<std::int8_t>(addr);
+
+		auto& flags = regs.main_set.flags;
+
+		flags.N = 0;
+		flags.PV = val == -128 ? 1 : 0;
+		flags.H = (val & 0x0f) == 0 ? 1 : 0;
+		
+		--val;
+
+		flags.Z = val == 0 ? 1 : 0;
+		flags.S = val < 0 ? 1 : 0;
+
+		mem.write(addr, val);
+	}
+
 
 	/* utils */
 	static std::uint8_t check_parity(int n) 

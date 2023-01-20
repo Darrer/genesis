@@ -45,6 +45,7 @@ z80::cpu make_cpu()
 }
 
 using bin_op_fn = std::function<std::int8_t(std::int8_t, std::int8_t, const genesis::z80::cpu_registers& regs)>;
+using un_op_fn = std::function<std::int8_t(std::int8_t, const genesis::z80::cpu_registers& regs)>;
 
 using reg_opcode_pair = std::pair<genesis::z80::opcode, std::int8_t&>;
 void test_r(genesis::z80::cpu& cpu, std::initializer_list<reg_opcode_pair> reg_opcode_sets, bin_op_fn bin_op)
@@ -62,6 +63,26 @@ void test_r(genesis::z80::cpu& cpu, std::initializer_list<reg_opcode_pair> reg_o
 			auto expected = bin_op(regs.main_set.A, reg, regs);
 			execute(cpu, {opcode});
 			auto actual = regs.main_set.A;
+
+			ASSERT_EQ(expected, actual) << "failed to execute " << su::hex_str(opcode);
+		}
+	}
+}
+
+void test_r(genesis::z80::cpu& cpu, std::initializer_list<reg_opcode_pair> reg_opcode_sets, un_op_fn un_op)
+{
+	auto& regs = cpu.registers();
+	for(auto& [opcode, reg] : reg_opcode_sets)
+	{
+		for(int c = 0; c <= 1; ++c)
+		{
+			/* setup registers for test */
+			regs.main_set.flags.C = c;
+			reg = 0x15;
+
+			auto expected = un_op(reg, regs);
+			execute(cpu, {opcode});
+			auto actual = reg;
 
 			ASSERT_EQ(expected, actual) << "failed to execute " << su::hex_str(opcode);
 		}
@@ -131,6 +152,61 @@ void test_idx(z80::cpu& cpu, z80::opcode opcode, bin_op_fn bin_op)
 			auto expected = bin_op(regs.main_set.A, b, regs);
 			execute(cpu, {op, opcode, d});
 			auto actual = regs.main_set.A;
+
+			ASSERT_EQ(expected, actual) << "failed to execute "
+				<< su::hex_str(op) << ' '
+				<< su::hex_str(opcode) << ' '
+				<< su::hex_str(d);
+		}
+	}
+}
+
+/* write block */
+
+void test_hl_write(z80::cpu& cpu, z80::opcode opcode, un_op_fn un_op)
+{
+	const std::int8_t b = 0xb;
+	const z80::memory::address addr = reserved + 0xef;
+
+	auto& regs = cpu.registers();
+	for(int c = 0; c <= 1; ++c)
+	{
+		cpu.memory().write(addr, b);
+
+		/* setup registers for test */
+		regs.main_set.HL = addr;
+		regs.main_set.flags.C = c;
+
+		auto expected = un_op(b, regs);
+		execute(cpu, {opcode});
+		auto actual = cpu.memory().read<std::int8_t>(addr);
+
+		ASSERT_EQ(expected, actual) << "failed to execute " << su::hex_str(opcode);
+	}
+}
+
+void test_idx_write(z80::cpu& cpu, z80::opcode opcode, un_op_fn un_op)
+{
+	const std::uint8_t d = 0x14;
+	const z80::memory::address base = reserved + 0x20;
+	const z80::memory::address addr = base + d;
+	const std::uint8_t b = 0x17;
+
+	auto& regs = cpu.registers();
+	for(z80::opcode op : {0xDD, 0xFD})
+	{
+		for(int c = 0; c <= 1; ++c)
+		{
+			cpu.memory().write(addr, b);
+
+			/* setup registers for test */
+			auto& reg = op == 0xDD ? regs.IX : regs.IY;
+			reg = base;
+			regs.main_set.flags.C = c;
+
+			auto expected = un_op(b, regs);
+			execute(cpu, {op, opcode, d});
+			auto actual = cpu.memory().read<std::int8_t>(addr);
 
 			ASSERT_EQ(expected, actual) << "failed to execute "
 				<< su::hex_str(op) << ' '
@@ -349,4 +425,88 @@ TEST(Z80ArithmeticLogicUnit, XOR)
 	/* OR A, (IX + d) */
 	/* OR A, (IY + d) */
 	test_idx(cpu, 0xAE, xor_8);
+}
+
+TEST(Z80ArithmeticLogicUnit, CP)
+{
+	auto cpu = make_cpu();
+
+	auto cp = [](std::int8_t a, std::int8_t, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return a;
+	};
+
+	/* CP r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0xBF, regs.main_set.A}, {0xB8, regs.main_set.B}, {0xB9, regs.main_set.C}, {0xBA, regs.main_set.D},
+			{0xBB, regs.main_set.E}, {0xBC, regs.main_set.H}, {0xBD, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, cp);
+	}
+
+	/* CP A, n */
+	test_n(cpu, 0xFE, cp);
+
+	/* CP HL */
+	test_hl(cpu, 0xBE, cp);
+
+	/* CP A, (IX + d) */
+	/* CP A, (IY + d) */
+	test_idx(cpu, 0xBE, cp);
+}
+
+TEST(Z80ArithmeticLogicUnit, INC)
+{
+	auto cpu = make_cpu();
+
+	auto inc = [](std::int8_t r, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return r + 1;
+	};
+
+	/* INC r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0x3C, regs.main_set.A}, {0x04, regs.main_set.B}, {0x0C, regs.main_set.C}, {0x14, regs.main_set.D},
+			{0x1C, regs.main_set.E}, {0x24, regs.main_set.H}, {0x2C, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, inc);
+	}
+
+	/* INC HL */
+	test_hl_write(cpu, 0x34, inc);
+
+	/* INC A, (IX + d) */
+	/* INC A, (IY + d) */
+	test_idx_write(cpu, 0x34, inc);
+}
+
+TEST(Z80ArithmeticLogicUnit, DEC)
+{
+	auto cpu = make_cpu();
+
+	auto dec = [](std::int8_t r, const genesis::z80::cpu_registers&) -> std::int8_t
+	{
+		return r - 1;
+	};
+
+	/* DEC r */
+	{
+		auto& regs = cpu.registers();
+		std::initializer_list<reg_opcode_pair> op_reg_pairs = {
+			{0x3D, regs.main_set.A}, {0x05, regs.main_set.B}, {0x0D, regs.main_set.C}, {0x15, regs.main_set.D},
+			{0x1D, regs.main_set.E}, {0x25, regs.main_set.H}, {0x2D, regs.main_set.L}};
+
+		test_r(cpu, op_reg_pairs, dec);
+	}
+
+	/* DEC HL */
+	test_hl_write(cpu, 0x35, dec);
+
+	// /* DEC A, (IX + d) */
+	// /* DEC A, (IY + d) */
+	test_idx_write(cpu, 0x35, dec);
 }
