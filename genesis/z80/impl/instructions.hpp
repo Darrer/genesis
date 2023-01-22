@@ -75,14 +75,14 @@ enum register_type : std::uint8_t
 };
 
 // name pattern <source>_<destination>
-#define implied_register(op, opcode, reg_offset) \
-	{op, { opcode | (register_type::A << reg_offset) }, addressing_mode::implied, addressing_mode::register_a}, \
-	{op, { opcode | (register_type::B << reg_offset) }, addressing_mode::implied, addressing_mode::register_b}, \
-	{op, { opcode | (register_type::C << reg_offset) }, addressing_mode::implied, addressing_mode::register_c}, \
-	{op, { opcode | (register_type::D << reg_offset) }, addressing_mode::implied, addressing_mode::register_d}, \
-	{op, { opcode | (register_type::E << reg_offset) }, addressing_mode::implied, addressing_mode::register_e}, \
-	{op, { opcode | (register_type::H << reg_offset) }, addressing_mode::implied, addressing_mode::register_h}, \
-	{op, { opcode | (register_type::L << reg_offset) }, addressing_mode::implied, addressing_mode::register_l}
+#define register_implied(op, opcode, reg_offset) \
+	{op, { opcode | (register_type::A << reg_offset) }, addressing_mode::register_a, addressing_mode::implied}, \
+	{op, { opcode | (register_type::B << reg_offset) }, addressing_mode::register_b, addressing_mode::implied}, \
+	{op, { opcode | (register_type::C << reg_offset) }, addressing_mode::register_c, addressing_mode::implied}, \
+	{op, { opcode | (register_type::D << reg_offset) }, addressing_mode::register_d, addressing_mode::implied}, \
+	{op, { opcode | (register_type::E << reg_offset) }, addressing_mode::register_e, addressing_mode::implied}, \
+	{op, { opcode | (register_type::H << reg_offset) }, addressing_mode::register_h, addressing_mode::implied}, \
+	{op, { opcode | (register_type::L << reg_offset) }, addressing_mode::register_l, addressing_mode::implied}
 
 #define register_register_impl(op, opcode, dest) \
 	{op, { opcode | register_type::A }, addressing_mode::register_a, dest}, \
@@ -102,6 +102,16 @@ enum register_type : std::uint8_t
 	register_register_impl(op, opcode | (register_type::H << 3), addressing_mode::register_h), \
 	register_register_impl(op, opcode | (register_type::L << 3), addressing_mode::register_l)
 
+#define immediate_register(op, opcode) \
+	{op, {opcode | (register_type::A << 3)}, addressing_mode::immediate, addressing_mode::register_a}, \
+	{op, {opcode | (register_type::B << 3)}, addressing_mode::immediate, addressing_mode::register_b}, \
+	{op, {opcode | (register_type::C << 3)}, addressing_mode::immediate, addressing_mode::register_c}, \
+	{op, {opcode | (register_type::D << 3)}, addressing_mode::immediate, addressing_mode::register_d}, \
+	{op, {opcode | (register_type::E << 3)}, addressing_mode::immediate, addressing_mode::register_e}, \
+	{op, {opcode | (register_type::H << 3)}, addressing_mode::immediate, addressing_mode::register_h}, \
+	{op, {opcode | (register_type::L << 3)}, addressing_mode::immediate, addressing_mode::register_l}
+
+
 #define immediate_implied(op, opcode) \
 	{op, {opcode}, addressing_mode::immediate, addressing_mode::implied}
 
@@ -120,16 +130,16 @@ enum register_type : std::uint8_t
 	{op, {0xFD, opcode2}, addressing_mode::indexed_iy, addressing_mode::indexed_iy}
 
 const instruction instructionss[] = {
-	implied_register(operation_type::add, 0b10000000, 0),
-	implied_register(operation_type::adc, 0b10001000, 0),
-	implied_register(operation_type::sub, 0b10010000, 0),
-	implied_register(operation_type::sbc, 0b10011000, 0),
-	implied_register(operation_type::and_8, 0b10100000, 0),
-	implied_register(operation_type::or_8, 0b10110000, 0),
-	implied_register(operation_type::xor_8, 0b10101000, 0),
-	implied_register(operation_type::cp, 0b10111000, 0),
-	implied_register(operation_type::inc_reg, 0b00000100, 3),
-	implied_register(operation_type::dec_reg, 0b00000101, 3),
+	register_implied(operation_type::add, 0b10000000, 0),
+	register_implied(operation_type::adc, 0b10001000, 0),
+	register_implied(operation_type::sub, 0b10010000, 0),
+	register_implied(operation_type::sbc, 0b10011000, 0),
+	register_implied(operation_type::and_8, 0b10100000, 0),
+	register_implied(operation_type::or_8, 0b10110000, 0),
+	register_implied(operation_type::xor_8, 0b10101000, 0),
+	register_implied(operation_type::cp, 0b10111000, 0),
+	register_implied(operation_type::inc_reg, 0b00000100, 3),
+	register_implied(operation_type::dec_reg, 0b00000101, 3),
 
 	register_register(operation_type::ld_reg, 0b01000000),
 
@@ -141,6 +151,8 @@ const instruction instructionss[] = {
 	immediate_implied(operation_type::or_8, 0xF6),
 	immediate_implied(operation_type::xor_8, 0xEE),
 	immediate_implied(operation_type::cp, 0xFE),
+
+	immediate_register(operation_type::ld_reg, 0b00000110),
 
 	indirect_hl_implied(operation_type::add, 0x86),
 	indirect_hl_implied(operation_type::adc, 0x8E),
