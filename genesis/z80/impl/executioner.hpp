@@ -2,12 +2,15 @@
 #define __EXECUTIONER_HPP__
 
 #include "../cpu.h"
-#include "dispatching_tables.hpp"
 #include "operations.hpp"
 #include "string_utils.hpp"
 
+#include "instructions.hpp"
+
 #include <cassert>
 #include <iostream>
+
+#include "decoder.hpp"
 
 
 namespace genesis::z80
@@ -24,143 +27,133 @@ public:
 		z80::opcode opcode = mem.read<z80::opcode>(regs.PC);
 		z80::opcode opcode2 = mem.read<z80::opcode>(regs.PC + 1);
 
-		// TODO: refine it!
-
-		for(const auto& op : register_ops)
+		for(const auto& inst : instructionss)
 		{
-			if(op.opcode == opcode)
+			if(opcode == inst.opcodes[0] && (inst.opcodes[1] == 0x0 || inst.opcodes[1] == opcode2))
 			{
-				execute_register_op(op, cpu);
+				exec_inst(cpu, inst);
 				return;
 			}
 		}
 
-		for(const auto& op : immediate_ops)
-		{
-			if(op.opcode == opcode)
-			{
-				exec_immediate_op(op, cpu);
-				return;
-			}
-		}
-
-		for(const auto& op : indirect_ops)
-		{
-			if(op.opcode == opcode)
-			{
-				if(op.access_type == access::read)
-					exec_indirect_read_operation(op, cpu);
-				else
-					exec_indirect_write_operation(op, cpu);
-				return;
-			}
-		}
-
-		for(const auto& op : indexed_ops)
-		{
-			if(op.opcode == opcode && op.opcode2 == opcode2)
-			{
-				if(op.access_type == access::read)
-					exec_indexed_read_operation(op, cpu);
-				else
-					exec_indexed_write_operation(op, cpu);
-				return;
-			}
-		}
-		
 		throw std::runtime_error("decoder::execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
 			") at " + su::hex_str(regs.PC));
 	}
 
-	static void execute_register_op(register_operation reg_op, z80::cpu& cpu)
+private:
+	static void exec_inst(z80::cpu& cpu, const z80::instruction& inst)
 	{
 		auto& regs = cpu.registers();
-		auto get_reg = [&](register_type reg_type) -> std::int8_t&
+		auto& mem = cpu.memory();
+		switch (inst.source)
 		{
-			switch(reg_type)
-			{
-			case register_type::A:
-				return regs.main_set.A;
-			case register_type::B:
-				return regs.main_set.B;
-			case register_type::C:
-				return regs.main_set.C;
-			case register_type::D:
-				return regs.main_set.D;
-			case register_type::E:
-				return regs.main_set.E;
-			case register_type::H:
-				return regs.main_set.H;
-			case register_type::L:
-				return regs.main_set.L;
-			default:
-				throw std::runtime_error("execute_register_op unknown register type: " + reg_op.reg);
-			}
-		};
+		case addressing_mode::register_a:
+		case addressing_mode::register_b:
+		case addressing_mode::register_c:
+		case addressing_mode::register_d:
+		case addressing_mode::register_e:
+		case addressing_mode::register_h:
+		case addressing_mode::register_l:
+			exec_n(cpu, inst, decoder::decode_register(inst.source, regs));
+			break;
+
+		case addressing_mode::immediate:
+			exec_n(cpu, inst, decoder::decode_immediate(inst, regs, mem));
+			break;
+
+		case addressing_mode::indirect_hl:
+			exec_addr(cpu, inst, decoder::decode_indirect(inst.source, regs));
+			break;
+
+		case addressing_mode::indexed_ix:
+		case addressing_mode::indexed_iy:
+			exec_addr(cpu, inst, decoder::decode_indexed(inst.source, regs, mem));
+			break;
+
+		case addressing_mode::implied:
+			exec_implied(cpu, inst);
+			break;
+
+		default:
+			throw std::runtime_error("exec_inst error: unsupported source addresing mode: " + inst.source);
+		}
+
+		decoder::advance_pc(inst, regs);
+	}
+
+	static void exec_addr(z80::cpu& cpu, const z80::instruction& inst, z80::memory::address addr)
+	{
+		auto& regs = cpu.registers();
+		auto& mem = cpu.memory();
+		switch (inst.destination)
+		{
+		case addressing_mode::implied:
+		{
+			std::int8_t src = mem.read<std::int8_t>(addr);
+			exec_unary(inst.op_type, regs, src);
+			break;
+		}
+
+		case addressing_mode::indirect_hl:
+		case addressing_mode::indexed_ix:
+		case addressing_mode::indexed_iy:
+		{
+			// TODO: assume src=dest!!!
+			exec_unary_addr(inst.op_type, regs, addr, mem);
+			break;
+		}
+			
+		default:
+			throw std::runtime_error("exec_addr error: unsupported source addresing mode: " + inst.source);
+		}
+	}
+
+	// TODO: src should be reference!
+	static void exec_n(z80::cpu& cpu, const z80::instruction& inst, std::int8_t src)
+	{
+		auto& regs = cpu.registers();
+		switch (inst.destination)
+		{
+		case addressing_mode::register_a:
+		case addressing_mode::register_b:
+		case addressing_mode::register_c:
+		case addressing_mode::register_d:
+		case addressing_mode::register_e:
+		case addressing_mode::register_h:
+		case addressing_mode::register_l:
+		{
+			auto& dest = decoder::decode_register(inst.destination, regs);
+			exec_binary(inst.op_type, regs, src, dest);
+			break;
+		}
+
+		case addressing_mode::implied:
+			exec_unary(inst.op_type, regs, src);
+			break;
+
+		default:
+			throw std::runtime_error("exec_n error: unsupported source addresing mode: " + inst.source);
+		}
+	}
+
+	static void exec_implied(z80::cpu& cpu, const z80::instruction& inst)
+	{
+		auto& regs = cpu.registers();
+		switch (inst.destination)
+		{
+		case addressing_mode::register_a:
+		case addressing_mode::register_b:
+		case addressing_mode::register_c:
+		case addressing_mode::register_d:
+		case addressing_mode::register_e:
+		case addressing_mode::register_h:
+		case addressing_mode::register_l:
+			exec_unary(inst.op_type, regs, decoder::decode_register(inst.destination, regs));
+			break;
 		
-		auto& r_a = get_reg(reg_op.reg);
-		if(reg_op.reg_b.has_value())
-		{
-			// std::cout << "executing " << su::bin_str(reg_op.reg) << " <- " << su::bin_str(reg_op.reg_b.value()) << std::endl;
-			auto& r_b = get_reg(reg_op.reg_b.value());
-			exec_binary(reg_op.op_type, regs, r_b, r_a);
+		default:
+			throw std::runtime_error("exec_implied error: unsupported source addresing mode: " + inst.source);
 		}
-		else
-		{
-			exec_unary(reg_op.op_type, regs, r_a);
-		}
-
-		regs.PC += 1;
-	}
-
-	static void exec_immediate_op(immediate_operation im_op, z80::cpu& cpu)
-	{
-		auto& regs = cpu.registers();
-		std::int8_t b = cpu.memory().read<std::int8_t>(regs.PC + 1);
-
-		exec_unary(im_op.op_type, regs, b);
-		regs.PC += 2;
-	}
-
-	static void exec_indirect_read_operation(indirect_operation ind_op, z80::cpu& cpu)
-	{
-		auto& regs = cpu.registers();
-		std::int8_t b = cpu.memory().read<std::int8_t>(regs.main_set.HL);
-
-		exec_unary(ind_op.op_type, regs, b);
-		regs.PC += 1;
-	}
-
-	static void exec_indirect_write_operation(indirect_operation ind_op, z80::cpu& cpu)
-	{
-		auto& regs = cpu.registers();
-		exec_unary_addr(ind_op.op_type, regs, regs.main_set.HL, cpu.memory());
-		regs.PC += 1;
-	}
-
-	static void exec_indexed_read_operation(indexed_operation idx_op, z80::cpu& cpu)
-	{
-		assert(idx_op.opcode == 0xDD || idx_op.opcode == 0xFD);
-
-		auto& regs = cpu.registers();
-		auto d = cpu.memory().read<std::int8_t>(regs.PC + 2);
-		auto base = idx_op.opcode == 0xDD ? regs.IX : regs.IY;
-
-		std::int8_t b = cpu.memory().read<std::int8_t>(base + d);
-		exec_unary(idx_op.op_type, regs, b);
-		regs.PC += 3;
-	}
-
-	static void exec_indexed_write_operation(indexed_operation idx_op, z80::cpu& cpu)
-	{
-		assert(idx_op.opcode == 0xDD || idx_op.opcode == 0xFD);
-
-		auto& regs = cpu.registers();
-		auto d = cpu.memory().read<std::int8_t>(regs.PC + 2);
-		auto base = idx_op.opcode == 0xDD ? regs.IX : regs.IY;
-
-		exec_unary_addr(idx_op.op_type, regs, base + d, cpu.memory());
-		regs.PC += 3;
 	}
 
 	static void exec_unary(operation_type op_type, z80::cpu_registers& regs, std::int8_t& b)
@@ -218,12 +211,12 @@ public:
 		}
 	}
 
-	static void exec_binary(operation_type op_type, z80::cpu_registers&, std::int8_t& a, std::int8_t& b)
+	static void exec_binary(operation_type op_type, z80::cpu_registers&, std::int8_t& src, std::int8_t& dest)
 	{
 		switch (op_type)
 		{
 		case operation_type::ld_reg:
-			operations::ld_reg(a, b);
+			operations::ld_reg(dest, src);
 			break;
 		
 		default:

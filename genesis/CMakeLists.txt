@@ -18,13 +18,10 @@ PRIVATE
 	z80/cpu.h
 	z80/cpu.cpp
 
-	# z80/impl/cpu_unit.hpp
-	# z80/impl/base_unit.hpp
-	# z80/impl/arithmetic_logic_unit.hpp
-
-	z80/impl/executioner.hpp
-	z80/impl/dispatching_tables.hpp
 	z80/impl/operations.hpp
+	z80/impl/instructions.hpp
+	z80/impl/decoder.hpp
+	z80/impl/executioner.hpp
 )
 
 # executable based on core lib
