@@ -27,7 +27,7 @@ public:
 		z80::opcode opcode = mem.read<z80::opcode>(regs.PC);
 		z80::opcode opcode2 = mem.read<z80::opcode>(regs.PC + 1);
 
-		for(const auto& inst : instructionss)
+		for(const auto& inst : instructions)
 		{
 			if(opcode == inst.opcodes[0] && (inst.opcodes[1] == 0x0 || inst.opcodes[1] == opcode2))
 			{
@@ -84,7 +84,7 @@ public:
 			operations::dec_at(regs, decoder::decode_address(inst.source, regs, mem), mem);
 			break;
 		case operation_type::ld_reg:
-			operations::ld_reg(decoder::decode_register(inst.destination, regs), decoder::decode_register(inst.source, regs));
+			operations::ld_reg(decoder::decode_register(inst.destination, regs), decoder::decode_to_byte(inst.source, inst, regs, mem));
 			break;
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
