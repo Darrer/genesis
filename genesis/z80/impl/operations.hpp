@@ -16,6 +16,11 @@ public:
 		r1 = r2;
 	}
 
+	inline static void ld_at(z80::memory::address addr, std::int8_t val, z80::memory& mem)
+	{
+		mem.write<std::int8_t>(addr, val);
+	}
+
 	/* 8-Bit Arithmetic Group */
 	inline static void add(z80::cpu_registers& regs, std::int8_t b)
 	{
