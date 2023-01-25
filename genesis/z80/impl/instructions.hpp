@@ -47,6 +47,7 @@ enum addressing_mode : std::uint8_t
 	register_i,
 	register_r,
 
+	// immediate
 	immediate,
 	immediate_ext,
 
@@ -55,6 +56,7 @@ enum addressing_mode : std::uint8_t
 	indirect_bc,
 	indirect_de,
 
+	// indexed
 	indexed_ix,
 	indexed_iy
 };
