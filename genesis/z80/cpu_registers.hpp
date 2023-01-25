@@ -117,8 +117,8 @@ public:
 
 	/* special purpose registers */
 
-	std::uint8_t I;
-	std::uint8_t R;
+	std::int8_t I;
+	std::int8_t R;
 
 	std::uint16_t IX;
 	std::uint16_t IY;

@@ -11,14 +11,29 @@ class operations
 {
 public:
 	/* 8-Bit Load Group */
-	inline static void ld_reg(std::int8_t& r1, std::int8_t r2)
+	inline static void ld_reg(std::int8_t src, std::int8_t& dest)
 	{
-		r1 = r2;
+		dest = src;
 	}
 
-	inline static void ld_at(z80::memory::address addr, std::int8_t val, z80::memory& mem)
+	inline static void ld_at(std::int8_t src, z80::memory::address dest_addr, z80::memory& mem)
 	{
-		mem.write<std::int8_t>(addr, val);
+		mem.write(dest_addr, src);
+	}
+
+	inline static void ld_ir(std::int8_t src, z80::cpu_registers& regs)
+	{
+		regs.main_set.A = src;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.S = src < 0 ? 1 : 0;
+		flags.Z = src == 0 ? 1 : 0;
+
+		flags.H = flags.N = 0;
+
+		// TODO: P/V should contain contents of IFF2
+		flags.PV = 0;
 	}
 
 	/* 8-Bit Arithmetic Group */

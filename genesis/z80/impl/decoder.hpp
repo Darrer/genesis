@@ -29,21 +29,29 @@ public:
 		case addressing_mode::immediate:
 			return decode_immediate(inst, regs, mem);
 		
+		case addressing_mode::immediate_ext:
 		case addressing_mode::indirect_hl:
+		case addressing_mode::indirect_bc:
+		case addressing_mode::indirect_de:
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
-			return mem.read<std::int8_t>(decode_address(addr_mode, regs, mem));
+			return mem.read<std::int8_t>(decode_address(addr_mode, inst, regs, mem));
 		
 		default:
 			throw std::runtime_error("decode_to_byte error: unsupported addresing mode " + addr_mode);
 		}
 	}
 
-	static z80::memory::address decode_address(addressing_mode addr_mode, cpu_registers& regs, z80::memory& mem)
+	static z80::memory::address decode_address(addressing_mode addr_mode, const instruction& inst, cpu_registers& regs, z80::memory& mem)
 	{
 		switch(addr_mode)
 		{
+		case addressing_mode::immediate_ext:
+			return decode_immediate_ext(inst, regs, mem);
+
 		case addressing_mode::indirect_hl:
+		case addressing_mode::indirect_bc:
+		case addressing_mode::indirect_de:
 			return decode_indirect(addr_mode, regs);
 
 		case addressing_mode::indexed_ix:
@@ -75,6 +83,10 @@ public:
 			return regs.main_set.H;
 		case addressing_mode::register_l:
 			return regs.main_set.L;
+		case addressing_mode::register_i:
+			return regs.I;
+		case addressing_mode::register_r:
+			return regs.R;
 		default:
 			throw std::runtime_error("decode_register error: unsupported addressing mode: " + addr_mode);
 		}
@@ -85,9 +97,42 @@ public:
 		auto addr = regs.PC;
 		addr += inst.opcodes[1] == 0x0 ? 1 : 2;
 
-		// TODO: if one of the addressing mode is indexed - we need to add 1 to offset (to skip d)
+		auto is_indexed = [](addressing_mode addr_mode)
+		{
+			return addr_mode == addressing_mode::indexed_ix || addr_mode == addressing_mode::indexed_iy;
+		};
+
+		// check if addressing mode indexed combined with addressing mode immediate
+		if(is_indexed(inst.source) || is_indexed(inst.destination))
+		{
+			// in this case after opcode we have displacement for indexed
+			// and only then immediate operand
+			addr += 1; // to skip displacement
+		}
 
 		return mem.read<std::int8_t>(addr);
+	}
+
+	static std::uint16_t decode_immediate_ext(const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	{
+		auto addr = regs.PC;
+		addr += inst.opcodes[1] == 0x0 ? 1 : 2;
+
+		auto is_indexed = [](addressing_mode addr_mode)
+		{
+			return addr_mode == addressing_mode::indexed_ix || addr_mode == addressing_mode::indexed_iy;
+		};
+
+		// check if addressing mode indexed combined with addressing mode immediate
+		if(is_indexed(inst.source) || is_indexed(inst.destination))
+		{
+			// in this case after opcode we have displacement for indexed
+			// and only then immediate operand
+			addr += 1; // to skip displacement
+		}
+
+		// TODO: check high/low bytes are read in a right order!
+		return mem.read<std::uint16_t>(addr);
 	}
 
 	// TODO: return uin16, not address!
@@ -98,6 +143,10 @@ public:
 		{
 		case addressing_mode::indirect_hl:
 			return regs.main_set.HL;
+		case addressing_mode::indirect_bc:
+			return regs.main_set.BC;
+		case addressing_mode::indirect_de:
+			return regs.main_set.DE;
 		default:
 			throw std::runtime_error("decode_indirect error: unsupported addressing mode: " + addr_mode);
 		}
@@ -133,7 +182,11 @@ public:
 			case addressing_mode::register_e:
 			case addressing_mode::register_h:
 			case addressing_mode::register_l:
+			case addressing_mode::register_i:
+			case addressing_mode::register_r:
 			case addressing_mode::indirect_hl:
+			case addressing_mode::indirect_bc:
+			case addressing_mode::indirect_de:
 			case addressing_mode::implied:
 				return 0;
 
@@ -141,6 +194,9 @@ public:
 			case addressing_mode::indexed_ix:
 			case addressing_mode::indexed_iy:
 				return 1;
+
+			case addressing_mode::immediate_ext:
+				return 2;
 			default:
 				throw std::runtime_error("advance_pc error: unsupported addressing mode: " + addr_mode);
 			}
@@ -149,6 +205,8 @@ public:
 		auto src_offset = addressing_mode_offset(inst.source);
 		auto dest_offset = addressing_mode_offset(inst.destination);
 		std::uint16_t opcode_offset = inst.opcodes[1] == 0x0 ? 1 : 2;
+
+		// TODO: if addressing mode is indexed and immidiate = we have to add offsets, not choose the max!
 
 		regs.PC += opcode_offset + std::max(src_offset, dest_offset);
 	}

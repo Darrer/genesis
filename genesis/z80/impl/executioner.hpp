@@ -78,13 +78,19 @@ public:
 			operations::dec_reg(regs, decoder::decode_register(inst.source, regs));
 			break;
 		case operation_type::inc_at:
-			operations::inc_at(regs, decoder::decode_address(inst.source, regs, mem), mem);
+			operations::inc_at(regs, decoder::decode_address(inst.source, inst, regs, mem), mem);
 			break;
 		case operation_type::dec_at:
-			operations::dec_at(regs, decoder::decode_address(inst.source, regs, mem), mem);
+			operations::dec_at(regs, decoder::decode_address(inst.source, inst, regs, mem), mem);
 			break;
 		case operation_type::ld_reg:
-			operations::ld_reg(decoder::decode_register(inst.destination, regs), decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::ld_reg(decoder::decode_to_byte(inst.source, inst, regs, mem), decoder::decode_register(inst.destination, regs));
+			break;
+		case operation_type::ld_at:
+			operations::ld_at(decoder::decode_to_byte(inst.source, inst, regs, mem), decoder::decode_address(inst.destination, inst, regs, mem), mem);
+			break;
+		case operation_type::ld_ir:
+			operations::ld_ir(decoder::decode_register(inst.source, regs), regs);
 			break;
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
