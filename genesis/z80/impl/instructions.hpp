@@ -27,6 +27,12 @@ enum operation_type : std::uint8_t
 	ld_reg,
 	ld_at,
 	ld_ir,
+	ld_16_reg,
+	ld_16_at,
+	push,
+
+	call,
+	ret,
 };
 
 enum addressing_mode : std::uint8_t
@@ -55,6 +61,8 @@ enum addressing_mode : std::uint8_t
 	indirect_hl,
 	indirect_bc,
 	indirect_de,
+	indirect_sp,
+	indirect_af,
 
 	// indexed
 	indexed_ix,
@@ -148,6 +156,8 @@ enum register_type : std::uint8_t
 	{op, {0xDD, opcode2}, addressing_mode::immediate, addressing_mode::indexed_ix}, \
 	{op, {0xFD, opcode2}, addressing_mode::immediate, addressing_mode::indexed_iy}
 
+/* indirect source */
+
 #define indirect_hl_implied(op, opcode) \
 	{op, {opcode}, addressing_mode::indirect_hl, addressing_mode::implied}
 
@@ -155,6 +165,12 @@ enum register_type : std::uint8_t
 	{op, {opcode}, src_dest, src_dest}
 
 #define indirect_hl_register(op, opcode) destination_register(op, opcode, 3, addressing_mode::indirect_hl)
+
+#define indirect_dd_des(op, opcode, dd_offset, src) \
+	{op, {opcode | (0b00 << dd_offset)}, src, addressing_mode::indirect_bc}, \
+	{op, {opcode | (0b01 << dd_offset)}, src, addressing_mode::indirect_de}, \
+	{op, {opcode | (0b10 << dd_offset)}, src, addressing_mode::indirect_hl}, \
+	{op, {opcode | (0b11 << dd_offset)}, src, addressing_mode::indirect_sp}
 
 #define indexed_implied(op, opcode2) \
 	{op, {0xDD, opcode2}, addressing_mode::indexed_ix, addressing_mode::implied}, \
@@ -232,6 +248,18 @@ const instruction instructions[] = {
 
 	{ operation_type::ld_ir, {0xED, 0x57}, addressing_mode::register_i, addressing_mode::implied },
 	{ operation_type::ld_ir, {0xED, 0x5F}, addressing_mode::register_r, addressing_mode::implied },
+
+	/* 16-Bit Load Group */
+	indirect_dd_des(operation_type::ld_16_reg, 0b00000001, 4, addressing_mode::immediate_ext),
+	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::indirect_hl, addressing_mode::indirect_sp },
+
+	{ operation_type::push, {0xC5}, addressing_mode::indirect_bc, addressing_mode::implied },
+	{ operation_type::push, {0xD5}, addressing_mode::indirect_de, addressing_mode::implied },
+	{ operation_type::push, {0xE5}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::push, {0xF5}, addressing_mode::indirect_af, addressing_mode::implied },
+
+	/* Call and Return Group */
+	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
 };
 
 }

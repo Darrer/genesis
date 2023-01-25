@@ -10,13 +10,15 @@ namespace genesis::z80
 class operations
 {
 public:
-	/* 8-Bit Load Group */
-	inline static void ld_reg(std::int8_t src, std::int8_t& dest)
+	/* 8/16-Bit Load Group */
+	template<class T>
+	inline static void ld_reg(T src, T& dest)
 	{
 		dest = src;
 	}
 
-	inline static void ld_at(std::int8_t src, z80::memory::address dest_addr, z80::memory& mem)
+	template<class T>
+	inline static void ld_at(T src, z80::memory::address dest_addr, z80::memory& mem)
 	{
 		mem.write(dest_addr, src);
 	}
@@ -34,6 +36,18 @@ public:
 
 		// TODO: P/V should contain contents of IFF2
 		flags.PV = 0;
+	}
+
+	inline static void push(std::int16_t src, z80::cpu_registers& regs, z80::memory& mem)
+	{
+		regs.SP -= sizeof(src);
+		mem.write(regs.SP, src);
+	}
+
+	/* Call and Return Group */
+	inline static void call(z80::memory::address addr, z80::cpu_registers& regs, z80::memory& mem)
+	{
+		// TODO
 	}
 
 	/* 8-Bit Arithmetic Group */

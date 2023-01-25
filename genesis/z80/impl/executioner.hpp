@@ -47,6 +47,7 @@ public:
 
 		switch(inst.op_type)
 		{
+		/* 8-Bit Arithmetic Group */
 		case operation_type::add:
 			operations::add(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
 			break;
@@ -83,6 +84,8 @@ public:
 		case operation_type::dec_at:
 			operations::dec_at(regs, decoder::decode_address(inst.source, inst, regs, mem), mem);
 			break;
+
+		/* 8/16-Bit Load Group */
 		case operation_type::ld_reg:
 			operations::ld_reg(decoder::decode_to_byte(inst.source, inst, regs, mem), decoder::decode_register(inst.destination, regs));
 			break;
@@ -92,6 +95,17 @@ public:
 		case operation_type::ld_ir:
 			operations::ld_ir(decoder::decode_register(inst.source, regs), regs);
 			break;
+		case operation_type::ld_16_reg:
+			operations::ld_reg(decoder::decode_two_bytes(inst.source, inst, regs, mem), decoder::decode_indirect(inst.destination, regs));
+			break;
+		case operation_type::push:
+			operations::push(decoder::decode_two_bytes(inst.source, inst, regs, mem), regs, mem);
+			break;
+
+		/* Call and Return Group */
+		case operation_type::call:
+			operations::call(decoder::decode_address(inst.source, inst, regs, mem), regs, mem);
+			return;
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
 		}

@@ -35,12 +35,33 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
+		case addressing_mode::indirect_sp:
+		case addressing_mode::indirect_af:
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
 			return mem.read<std::int8_t>(decode_address(addr_mode, inst, regs, mem));
 
 		default:
 			throw std::runtime_error("decode_to_byte error: unsupported addresing mode " + addr_mode);
+		}
+	}
+
+	static std::int16_t decode_two_bytes(addressing_mode addr_mode, const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	{
+		switch(addr_mode)
+		{
+		case addressing_mode::immediate_ext:
+			return decode_immediate<std::int16_t>(inst, regs, mem);
+
+		case addressing_mode::indirect_hl:
+		case addressing_mode::indirect_bc:
+		case addressing_mode::indirect_de:
+		case addressing_mode::indirect_sp:
+		case addressing_mode::indirect_af:
+			return decode_indirect(addr_mode, regs);
+
+		default:
+			throw std::runtime_error("decode_two_bytes error: unsupported addresing mode " + addr_mode);
 		}
 	}
 
@@ -54,6 +75,8 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
+		case addressing_mode::indirect_sp:
+		case addressing_mode::indirect_af:
 			return decode_indirect(addr_mode, regs);
 
 		case addressing_mode::indexed_ix:
@@ -113,7 +136,7 @@ public:
 		return mem.read<T>(addr);
 	}
 
-	static std::int16_t decode_indirect(addressing_mode addr_mode, cpu_registers& regs)
+	static std::int16_t& decode_indirect(addressing_mode addr_mode, cpu_registers& regs)
 	{
 		switch (addr_mode)
 		{
@@ -123,6 +146,10 @@ public:
 			return regs.main_set.BC;
 		case addressing_mode::indirect_de:
 			return regs.main_set.DE;
+		case addressing_mode::indirect_sp:
+			return (std::int16_t&)regs.SP;
+		case addressing_mode::indirect_af:
+			return regs.main_set.AF;
 		default:
 			throw std::runtime_error("decode_indirect error: unsupported addressing mode: " + addr_mode);
 		}
@@ -163,6 +190,8 @@ public:
 			case addressing_mode::indirect_hl:
 			case addressing_mode::indirect_bc:
 			case addressing_mode::indirect_de:
+			case addressing_mode::indirect_sp:
+			case addressing_mode::indirect_af:
 			case addressing_mode::implied:
 				return 0;
 
@@ -184,7 +213,7 @@ public:
 		auto src_size = addressing_mode_size(inst.source);
 		auto dest_size = addressing_mode_size(inst.destination);
 
-		// we have to add offsets if addressing mode is indexed and immediate 
+		// we have to add operands' size if addressing mode is indexed and immediate 
 		if((is_indexed(inst.source) && is_immediate(inst.destination)) ||
 			(is_indexed(inst.destination) && is_immediate(inst.source)))
 		{
