@@ -60,6 +60,15 @@ public:
 		case addressing_mode::indirect_af:
 			return decode_indirect(addr_mode, regs);
 
+		case addressing_mode::register_af:
+		case addressing_mode::register_bc:
+		case addressing_mode::register_de:
+		case addressing_mode::register_hl:
+		case addressing_mode::register_sp:
+		case addressing_mode::register_ix:
+		case addressing_mode::register_iy:
+			return decode_register_pair(addr_mode, regs);
+
 		default:
 			throw std::runtime_error("decode_two_bytes error: unsupported addresing mode " + addr_mode);
 		}
@@ -114,6 +123,29 @@ public:
 			return regs.R;
 		default:
 			throw std::runtime_error("decode_register error: unsupported addressing mode: " + addr_mode);
+		}
+	}
+
+	static std::int16_t& decode_wide_register(addressing_mode addr_mode, cpu_registers& regs)
+	{
+		switch (addr_mode)
+		{
+		case addressing_mode::register_af:
+			return regs.main_set.AF;
+		case addressing_mode::register_bc:
+			return regs.main_set.BC;
+		case addressing_mode::register_de:
+			return regs.main_set.DE;
+		case addressing_mode::register_hl:
+			return regs.main_set.HL;
+		case addressing_mode::register_sp:
+			return regs.SP;
+		case addressing_mode::register_ix:
+			return regs.IX;
+		case addressing_mode::register_iy:
+			return regs.IY;
+		default:
+			throw std::runtime_error("decode_register_pair error: unsupported addressing mode: " + addr_mode);
 		}
 	}
 
@@ -192,7 +224,9 @@ public:
 			case addressing_mode::indirect_de:
 			case addressing_mode::indirect_sp:
 			case addressing_mode::indirect_af:
+			case addressing_mode::register_iy:
 			case addressing_mode::implied:
+			case addressing_mode::none:
 				return 0;
 
 			case addressing_mode::immediate:

@@ -22,6 +22,7 @@ PRIVATE
 	memory.cpp
 	z80/cpu_registers.cpp
 	z80/arithmetic_logic_unit.cpp
+	z80/zex_runner.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

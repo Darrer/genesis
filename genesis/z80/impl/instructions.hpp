@@ -33,6 +33,12 @@ enum operation_type : std::uint8_t
 
 	call,
 	ret,
+
+	/* Jump Group */
+	jp,
+
+	/* CPU Control Groups */
+	di,
 };
 
 enum addressing_mode : std::uint8_t
@@ -52,6 +58,15 @@ enum addressing_mode : std::uint8_t
 
 	register_i,
 	register_r,
+
+	// register pair
+	register_af,
+	register_bc,
+	register_de,
+	register_hl,
+	register_sp,
+	register_ix,
+	register_iy,
 
 	// immediate
 	immediate,
@@ -167,10 +182,10 @@ enum register_type : std::uint8_t
 #define indirect_hl_register(op, opcode) destination_register(op, opcode, 3, addressing_mode::indirect_hl)
 
 #define indirect_dd_des(op, opcode, dd_offset, src) \
-	{op, {opcode | (0b00 << dd_offset)}, src, addressing_mode::indirect_bc}, \
-	{op, {opcode | (0b01 << dd_offset)}, src, addressing_mode::indirect_de}, \
-	{op, {opcode | (0b10 << dd_offset)}, src, addressing_mode::indirect_hl}, \
-	{op, {opcode | (0b11 << dd_offset)}, src, addressing_mode::indirect_sp}
+	{op, {opcode | (0b00 << dd_offset)}, src, addressing_mode::register_bc}, \
+	{op, {opcode | (0b01 << dd_offset)}, src, addressing_mode::register_de}, \
+	{op, {opcode | (0b10 << dd_offset)}, src, addressing_mode::register_hl}, \
+	{op, {opcode | (0b11 << dd_offset)}, src, addressing_mode::register_sp}
 
 #define indexed_implied(op, opcode2) \
 	{op, {0xDD, opcode2}, addressing_mode::indexed_ix, addressing_mode::implied}, \
@@ -251,15 +266,24 @@ const instruction instructions[] = {
 
 	/* 16-Bit Load Group */
 	indirect_dd_des(operation_type::ld_16_reg, 0b00000001, 4, addressing_mode::immediate_ext),
-	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::indirect_hl, addressing_mode::indirect_sp },
+	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::register_hl, addressing_mode::register_sp },
+	{ operation_type::ld_16_reg, {0xFD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_iy },
 
 	{ operation_type::push, {0xC5}, addressing_mode::indirect_bc, addressing_mode::implied },
 	{ operation_type::push, {0xD5}, addressing_mode::indirect_de, addressing_mode::implied },
 	{ operation_type::push, {0xE5}, addressing_mode::indirect_hl, addressing_mode::implied },
 	{ operation_type::push, {0xF5}, addressing_mode::indirect_af, addressing_mode::implied },
+	{ operation_type::push, {0xFD, 0xE5}, addressing_mode::register_iy, addressing_mode::implied },
 
 	/* Call and Return Group */
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
+	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
+
+	/* Jump Group */
+	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
+
+	/* CPU Control Groups */
+	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
 };
 
 }

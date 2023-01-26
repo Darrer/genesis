@@ -44,8 +44,33 @@ public:
 		mem.write(regs.SP, src);
 	}
 
+	inline static void pop(std::int16_t& dest, z80::cpu_registers& regs, z80::memory& mem)
+	{
+		dest = mem.read<std::int16_t>(regs.SP);
+		regs.SP += sizeof(dest);
+	}
+
 	/* Call and Return Group */
 	inline static void call(z80::memory::address addr, z80::cpu_registers& regs, z80::memory& mem)
+	{
+		regs.PC += 3; // always assume call instruction is 3 byte long
+		push(regs.PC, regs, mem);
+		regs.PC = addr;
+	}
+
+	inline static void ret(z80::cpu_registers& regs, z80::memory& mem)
+	{
+		pop((std::int16_t&)regs.PC, regs, mem);
+	}
+
+	/* Jump Group */
+	inline static void jp(z80::memory::address addr, z80::cpu_registers& regs)
+	{
+		regs.PC = addr;
+	}
+
+	/* CPU Control Groups */
+	inline static void di()
 	{
 		// TODO
 	}

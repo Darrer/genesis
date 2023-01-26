@@ -96,7 +96,7 @@ public:
 			operations::ld_ir(decoder::decode_register(inst.source, regs), regs);
 			break;
 		case operation_type::ld_16_reg:
-			operations::ld_reg(decoder::decode_two_bytes(inst.source, inst, regs, mem), decoder::decode_indirect(inst.destination, regs));
+			operations::ld_reg(decoder::decode_two_bytes(inst.source, inst, regs, mem), decoder::decode_register_pair(inst.destination, regs));
 			break;
 		case operation_type::push:
 			operations::push(decoder::decode_two_bytes(inst.source, inst, regs, mem), regs, mem);
@@ -106,6 +106,20 @@ public:
 		case operation_type::call:
 			operations::call(decoder::decode_address(inst.source, inst, regs, mem), regs, mem);
 			return;
+		case operation_type::ret:
+			operations::ret(regs, mem);
+			return;
+		
+		/* Jump Group */
+		case operation_type::jp:
+			operations::jp(decoder::decode_address(inst.source, inst, regs, mem), regs);
+			return;
+
+		/* CPU Control Groups */
+		case operation_type::di:
+			operations::di();
+			break;
+
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
 		}

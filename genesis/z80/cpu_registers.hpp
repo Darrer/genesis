@@ -120,11 +120,11 @@ public:
 	std::int8_t I;
 	std::int8_t R;
 
-	std::uint16_t IX;
-	std::uint16_t IY;
+	std::int16_t IX;
+	std::int16_t IY;
 
-	std::uint16_t SP;
-	std::uint16_t PC;
+	std::int16_t SP;
+	std::int16_t PC;
 };
 
 } // namespace genesis::z80
