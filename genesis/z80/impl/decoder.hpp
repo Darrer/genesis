@@ -13,7 +13,11 @@ namespace genesis::z80
 class decoder
 {
 public:
-	static std::int8_t decode_to_byte(addressing_mode addr_mode, const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	decoder(z80::cpu& cpu) : mem(cpu.memory()), regs(cpu.registers())
+	{
+	}
+
+	std::int8_t decode_byte(addressing_mode addr_mode, const instruction& inst)
 	{
 		switch(addr_mode)
 		{
@@ -26,10 +30,10 @@ public:
 		case addressing_mode::register_l:
 		case addressing_mode::register_i:
 		case addressing_mode::register_r:
-			return decode_register(addr_mode, regs);
+			return decode_reg_8(addr_mode);
 
 		case addressing_mode::immediate:
-			return decode_immediate(inst, regs, mem);
+			return decode_immediate(inst);
 
 		case addressing_mode::immediate_ext:
 		case addressing_mode::indirect_hl:
@@ -39,26 +43,19 @@ public:
 		case addressing_mode::indirect_af:
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
-			return mem.read<std::int8_t>(decode_address(addr_mode, inst, regs, mem));
+			return mem.read<std::int8_t>(decode_address(addr_mode, inst));
 
 		default:
-			throw std::runtime_error("decode_to_byte error: unsupported addresing mode " + addr_mode);
+			throw std::runtime_error("decode_byte error: unsupported addresing mode " + addr_mode);
 		}
 	}
 
-	static std::int16_t decode_two_bytes(addressing_mode addr_mode, const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	std::int16_t decode_2_bytes(addressing_mode addr_mode, const instruction& inst)
 	{
 		switch(addr_mode)
 		{
 		case addressing_mode::immediate_ext:
-			return decode_immediate<std::int16_t>(inst, regs, mem);
-
-		case addressing_mode::indirect_hl:
-		case addressing_mode::indirect_bc:
-		case addressing_mode::indirect_de:
-		case addressing_mode::indirect_sp:
-		case addressing_mode::indirect_af:
-			return decode_indirect(addr_mode, regs);
+			return decode_immediate_ext(inst);
 
 		case addressing_mode::register_af:
 		case addressing_mode::register_bc:
@@ -67,39 +64,39 @@ public:
 		case addressing_mode::register_sp:
 		case addressing_mode::register_ix:
 		case addressing_mode::register_iy:
-			return decode_register_pair(addr_mode, regs);
+			return decode_reg_16(addr_mode);
 
 		default:
-			throw std::runtime_error("decode_two_bytes error: unsupported addresing mode " + addr_mode);
+			throw std::runtime_error("decode_2_bytes error: unsupported addresing mode " + addr_mode);
 		}
 	}
 
-	static z80::memory::address decode_address(addressing_mode addr_mode, const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	z80::memory::address decode_address(addressing_mode addr_mode, const instruction& inst)
 	{
 		switch(addr_mode)
 		{
 		case addressing_mode::immediate_ext:
-			return decode_immediate<z80::memory::address>(inst, regs, mem);
+			return decode_immediate_ext(inst);
 
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
 		case addressing_mode::indirect_sp:
 		case addressing_mode::indirect_af:
-			return decode_indirect(addr_mode, regs);
+			return decode_indirect(addr_mode);
 
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
-			return decode_indexed(addr_mode, regs, mem);
-		
+			return decode_indexed(addr_mode);
+
 		default:
-			throw std::runtime_error("decode_to_byte error: unsupported addresing mode " + addr_mode);
+			throw std::runtime_error("decode_address error: unsupported addresing mode " + addr_mode);
 		}
 	}
 
 	/* required minimum */
 
-	static std::int8_t& decode_register(addressing_mode addr_mode, cpu_registers& regs)
+	std::int8_t& decode_reg_8(addressing_mode addr_mode)
 	{
 		switch (addr_mode)
 		{
@@ -126,7 +123,7 @@ public:
 		}
 	}
 
-	static std::int16_t& decode_wide_register(addressing_mode addr_mode, cpu_registers& regs)
+	std::int16_t& decode_reg_16(addressing_mode addr_mode)
 	{
 		switch (addr_mode)
 		{
@@ -145,12 +142,12 @@ public:
 		case addressing_mode::register_iy:
 			return regs.IY;
 		default:
-			throw std::runtime_error("decode_register_pair error: unsupported addressing mode: " + addr_mode);
+			throw std::runtime_error("decode_reg_16 error: unsupported addressing mode: " + addr_mode);
 		}
 	}
 
 	template<class T = std::int8_t>
-	static T decode_immediate(const instruction& inst, cpu_registers& regs, z80::memory& mem)
+	T decode_immediate(const instruction& inst)
 	{
 		static_assert(sizeof(T) <= 2);
 
@@ -168,26 +165,29 @@ public:
 		return mem.read<T>(addr);
 	}
 
-	static std::int16_t& decode_indirect(addressing_mode addr_mode, cpu_registers& regs)
+	std::int16_t decode_immediate_ext(const instruction& inst)
+	{
+		return decode_immediate<std::int16_t>(inst);
+	}
+
+	z80::memory::address decode_indirect(addressing_mode addr_mode)
 	{
 		switch (addr_mode)
 		{
-		case addressing_mode::indirect_hl:
-			return regs.main_set.HL;
+		case addressing_mode::indirect_af:
+			return regs.main_set.AF;
 		case addressing_mode::indirect_bc:
 			return regs.main_set.BC;
 		case addressing_mode::indirect_de:
 			return regs.main_set.DE;
-		case addressing_mode::indirect_sp:
-			return (std::int16_t&)regs.SP;
-		case addressing_mode::indirect_af:
-			return regs.main_set.AF;
+		case addressing_mode::indirect_hl:
+			return regs.main_set.HL;
 		default:
 			throw std::runtime_error("decode_indirect error: unsupported addressing mode: " + addr_mode);
 		}
 	}
 
-	static std::uint16_t decode_indexed(addressing_mode addr_mode, cpu_registers& regs, z80::memory& mem)
+	z80::memory::address decode_indexed(addressing_mode addr_mode)
 	{
 		switch (addr_mode)
 		{
@@ -195,7 +195,7 @@ public:
 		case addressing_mode::indexed_iy:
 		{
 			auto d = mem.read<std::int8_t>(regs.PC + 2);
-			auto base = addr_mode == addressing_mode::indexed_ix ? regs.IX : regs.IY;
+			z80::memory::address base = addr_mode == addressing_mode::indexed_ix ? regs.IX : regs.IY;
 
 			return base + d;
 		}
@@ -204,7 +204,7 @@ public:
 		}
 	}
 
-	static void advance_pc(const instruction& inst, cpu_registers& regs)
+	void advance_pc(const instruction& inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
 		{
@@ -260,8 +260,8 @@ public:
 		}
 	}
 
-	/* helper methods */
 private:
+	/* helper methods */
 	static bool is_indexed(addressing_mode addr_mode)
 	{
 		return addr_mode == addressing_mode::indexed_ix || addr_mode == addressing_mode::indexed_iy;
@@ -271,6 +271,10 @@ private:
 	{
 		return addr_mode == addressing_mode::immediate || addr_mode == addressing_mode::immediate_ext;
 	}
+
+private:
+	z80::memory& mem;
+	z80::cpu_registers& regs;
 };
 
 }

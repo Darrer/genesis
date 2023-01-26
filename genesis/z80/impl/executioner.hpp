@@ -42,6 +42,8 @@ public:
 
 	static void exec_inst(z80::cpu& cpu, const z80::instruction& inst)
 	{
+		z80::decoder dec = z80::decoder(cpu);
+
 		auto& mem = cpu.memory();
 		auto& regs = cpu.registers();
 
@@ -49,62 +51,62 @@ public:
 		{
 		/* 8-Bit Arithmetic Group */
 		case operation_type::add:
-			operations::add(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::add(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::adc:
-			operations::adc(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::adc(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::sub:
-			operations::sub(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::sub(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::sbc:
-			operations::sbc(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::sbc(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::and_8:
-			operations::and_8(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::and_8(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::or_8:
-			operations::or_8(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::or_8(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::xor_8:
-			operations::xor_8(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::xor_8(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::cp:
-			operations::cp(regs, decoder::decode_to_byte(inst.source, inst, regs, mem));
+			operations::cp(regs, dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::inc_reg:
-			operations::inc_reg(regs, decoder::decode_register(inst.source, regs));
+			operations::inc_reg(regs, dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::dec_reg:
-			operations::dec_reg(regs, decoder::decode_register(inst.source, regs));
+			operations::dec_reg(regs, dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::inc_at:
-			operations::inc_at(regs, decoder::decode_address(inst.source, inst, regs, mem), mem);
+			operations::inc_at(regs, dec.decode_address(inst.source, inst), mem);
 			break;
 		case operation_type::dec_at:
-			operations::dec_at(regs, decoder::decode_address(inst.source, inst, regs, mem), mem);
+			operations::dec_at(regs, dec.decode_address(inst.source, inst), mem);
 			break;
 
 		/* 8/16-Bit Load Group */
 		case operation_type::ld_reg:
-			operations::ld_reg(decoder::decode_to_byte(inst.source, inst, regs, mem), decoder::decode_register(inst.destination, regs));
+			operations::ld_reg(dec.decode_byte(inst.source, inst), dec.decode_reg_8(inst.destination));
 			break;
 		case operation_type::ld_at:
-			operations::ld_at(decoder::decode_to_byte(inst.source, inst, regs, mem), decoder::decode_address(inst.destination, inst, regs, mem), mem);
+			operations::ld_at(dec.decode_byte(inst.source, inst), dec.decode_address(inst.destination, inst), mem);
 			break;
 		case operation_type::ld_ir:
-			operations::ld_ir(decoder::decode_register(inst.source, regs), regs);
+			operations::ld_ir(dec.decode_reg_8(inst.source), regs);
 			break;
 		case operation_type::ld_16_reg:
-			operations::ld_reg(decoder::decode_two_bytes(inst.source, inst, regs, mem), decoder::decode_register_pair(inst.destination, regs));
+			operations::ld_reg(dec.decode_2_bytes(inst.source, inst), dec.decode_reg_16(inst.destination));
 			break;
 		case operation_type::push:
-			operations::push(decoder::decode_two_bytes(inst.source, inst, regs, mem), regs, mem);
+			operations::push(dec.decode_2_bytes(inst.source, inst), regs, mem);
 			break;
 
 		/* Call and Return Group */
 		case operation_type::call:
-			operations::call(decoder::decode_address(inst.source, inst, regs, mem), regs, mem);
+			operations::call(dec.decode_address(inst.source, inst), regs, mem);
 			return;
 		case operation_type::ret:
 			operations::ret(regs, mem);
@@ -112,7 +114,7 @@ public:
 		
 		/* Jump Group */
 		case operation_type::jp:
-			operations::jp(decoder::decode_address(inst.source, inst, regs, mem), regs);
+			operations::jp(dec.decode_address(inst.source, inst), regs);
 			return;
 
 		/* CPU Control Groups */
@@ -124,7 +126,7 @@ public:
 			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
 		}
 
-		decoder::advance_pc(inst, regs);
+		dec.advance_pc(inst);
 	}
 };
 

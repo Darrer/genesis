@@ -124,7 +124,7 @@ public:
 	std::int16_t IY;
 
 	std::int16_t SP;
-	std::int16_t PC;
+	std::uint16_t PC;
 };
 
 } // namespace genesis::z80

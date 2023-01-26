@@ -55,7 +55,7 @@ TEST(Z80CPURegisters, InitialValues)
 	check_reg_set(regs.alt_set);
 
 	auto sp1 = {regs.I, regs.R};
-	auto sp2 = {regs.IX, regs.IY, regs.PC, regs.SP};
+	std::initializer_list<std::int16_t> sp2 = {regs.IX, regs.IY, (std::int16_t)regs.PC, regs.SP};
 
 	assert_all_zeros(sp1);
 	assert_all_zeros(sp2);
