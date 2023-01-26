@@ -36,7 +36,7 @@ public:
 			}
 		}
 
-		throw std::runtime_error("decoder::execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
+		throw std::runtime_error("executioner::execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
 			") at " + su::hex_str(regs.PC));
 	}
 
@@ -116,10 +116,19 @@ public:
 		case operation_type::jp:
 			operations::jp(dec.decode_address(inst.source, inst), regs);
 			return;
+		case operation_type::jr_z:
+			operations::jr_z(dec.decode_byte(inst.source, inst), regs);
+			return;
+		case operation_type::jr:
+			operations::jr(dec.decode_byte(inst.source, inst), regs);
+			return;
 
 		/* CPU Control Groups */
 		case operation_type::di:
 			operations::di();
+			break;
+		case operation_type::ei:
+			operations::ei();
 			break;
 
 		default:

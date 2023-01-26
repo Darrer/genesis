@@ -36,9 +36,12 @@ enum operation_type : std::uint8_t
 
 	/* Jump Group */
 	jp,
+	jr_z,
+	jr,
 
 	/* CPU Control Groups */
 	di,
+	ei,
 };
 
 enum addressing_mode : std::uint8_t
@@ -281,9 +284,12 @@ const instruction instructions[] = {
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
+	{ operation_type::jr_z, {0x28}, addressing_mode::immediate, addressing_mode::none },
+	{ operation_type::jr, {0x18}, addressing_mode::immediate, addressing_mode::none },
 
 	/* CPU Control Groups */
 	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::ei, {0xFB}, addressing_mode::none, addressing_mode::none },
 };
 
 }

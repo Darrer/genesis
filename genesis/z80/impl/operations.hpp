@@ -69,8 +69,30 @@ public:
 		regs.PC = addr;
 	}
 
+	inline static void jr_z(std::int8_t offset, z80::cpu_registers& regs)
+	{
+		if(regs.main_set.flags.Z)
+		{
+			regs.PC += offset + 2;
+		}
+		else
+		{
+			regs.PC += 2;
+		}
+	}
+
+	inline static void jr(std::int8_t offset, z80::cpu_registers& regs)
+	{
+		regs.PC += offset + 2;
+	}
+
 	/* CPU Control Groups */
 	inline static void di()
+	{
+		// TODO
+	}
+
+	inline static void ei()
 	{
 		// TODO
 	}
