@@ -2,6 +2,7 @@
 #define __DECODER_HPP__
 
 #include <cstdint>
+
 #include "../cpu_registers.hpp"
 #include "../cpu.h"
 #include "instructions.hpp"
@@ -9,6 +10,9 @@
 
 namespace genesis::z80
 {
+
+#define unsupported_addresing_mode(addr_mode) \
+	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " + std::to_string(addr_mode))
 
 class decoder
 {
@@ -46,7 +50,7 @@ public:
 			return mem.read<std::int8_t>(decode_address(addr_mode, inst));
 
 		default:
-			throw std::runtime_error("decode_byte error: unsupported addresing mode " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -67,7 +71,7 @@ public:
 			return decode_reg_16(addr_mode);
 
 		default:
-			throw std::runtime_error("decode_2_bytes error: unsupported addresing mode " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -90,7 +94,7 @@ public:
 			return decode_indexed(addr_mode);
 
 		default:
-			throw std::runtime_error("decode_address error: unsupported addresing mode " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -119,7 +123,7 @@ public:
 		case addressing_mode::register_r:
 			return regs.R;
 		default:
-			throw std::runtime_error("decode_register error: unsupported addressing mode: " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -142,7 +146,7 @@ public:
 		case addressing_mode::register_iy:
 			return regs.IY;
 		default:
-			throw std::runtime_error("decode_reg_16 error: unsupported addressing mode: " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -183,7 +187,7 @@ public:
 		case addressing_mode::indirect_hl:
 			return regs.main_set.HL;
 		default:
-			throw std::runtime_error("decode_indirect error: unsupported addressing mode: " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -200,7 +204,7 @@ public:
 			return base + d;
 		}
 		default:
-			throw std::runtime_error("decode_indexed error: unsupported addressing mode: " + addr_mode);
+			unsupported_addresing_mode(addr_mode);
 		}
 	}
 
@@ -219,12 +223,18 @@ public:
 			case addressing_mode::register_l:
 			case addressing_mode::register_i:
 			case addressing_mode::register_r:
+			case addressing_mode::register_af:
+			case addressing_mode::register_bc:
+			case addressing_mode::register_de:
+			case addressing_mode::register_hl:
+			case addressing_mode::register_sp:
+			case addressing_mode::register_ix:
+			case addressing_mode::register_iy:
 			case addressing_mode::indirect_hl:
 			case addressing_mode::indirect_bc:
 			case addressing_mode::indirect_de:
 			case addressing_mode::indirect_sp:
 			case addressing_mode::indirect_af:
-			case addressing_mode::register_iy:
 			case addressing_mode::implied:
 			case addressing_mode::none:
 				return 0;
@@ -237,7 +247,7 @@ public:
 			case addressing_mode::immediate_ext:
 				return 2;
 			default:
-				throw std::runtime_error("advance_pc error: unsupported addressing mode: " + addr_mode);
+				unsupported_addresing_mode(addr_mode);
 			}
 		};
 
@@ -271,7 +281,6 @@ private:
 	{
 		return addr_mode == addressing_mode::immediate || addr_mode == addressing_mode::immediate_ext;
 	}
-
 private:
 	z80::memory& mem;
 	z80::cpu_registers& regs;

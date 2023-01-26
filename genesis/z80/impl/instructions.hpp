@@ -269,10 +269,10 @@ const instruction instructions[] = {
 	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::register_hl, addressing_mode::register_sp },
 	{ operation_type::ld_16_reg, {0xFD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_iy },
 
-	{ operation_type::push, {0xC5}, addressing_mode::indirect_bc, addressing_mode::implied },
-	{ operation_type::push, {0xD5}, addressing_mode::indirect_de, addressing_mode::implied },
-	{ operation_type::push, {0xE5}, addressing_mode::indirect_hl, addressing_mode::implied },
-	{ operation_type::push, {0xF5}, addressing_mode::indirect_af, addressing_mode::implied },
+	{ operation_type::push, {0xC5}, addressing_mode::register_bc, addressing_mode::implied },
+	{ operation_type::push, {0xD5}, addressing_mode::register_de, addressing_mode::implied },
+	{ operation_type::push, {0xE5}, addressing_mode::register_hl, addressing_mode::implied },
+	{ operation_type::push, {0xF5}, addressing_mode::register_af, addressing_mode::implied },
 	{ operation_type::push, {0xFD, 0xE5}, addressing_mode::register_iy, addressing_mode::implied },
 
 	/* Call and Return Group */
