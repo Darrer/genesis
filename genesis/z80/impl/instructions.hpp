@@ -12,6 +12,7 @@ namespace genesis::z80
 
 enum operation_type : std::uint8_t
 {
+	/* 8-Bit Arithmetic Group */
 	add,
 	adc,
 	sub,
@@ -170,19 +171,12 @@ enum register_type : std::uint8_t
 /* immediate source */
 
 #define immediate_register(op, opcode, reg_offset) destination_register(op, opcode, reg_offset, addressing_mode::immediate)
-#define immediate_implied(op, opcode) {op, {opcode}, addressing_mode::immediate, addressing_mode::implied}
 
 #define immediate_indexed(op, opcode2) \
 	{op, {0xDD, opcode2}, addressing_mode::immediate, addressing_mode::indexed_ix}, \
 	{op, {0xFD, opcode2}, addressing_mode::immediate, addressing_mode::indexed_iy}
 
 /* indirect source */
-
-#define indirect_hl_implied(op, opcode) \
-	{op, {opcode}, addressing_mode::indirect_hl, addressing_mode::implied}
-
-#define indirect_indirect(op, opcode, src_dest) \
-	{op, {opcode}, src_dest, src_dest}
 
 #define indirect_hl_register(op, opcode) destination_register(op, opcode, 3, addressing_mode::indirect_hl)
 
@@ -205,6 +199,7 @@ enum register_type : std::uint8_t
 	destination_register_wide(op, 0xFD, opcode2, 3, addressing_mode::indexed_iy)
 
 const instruction instructions[] = {
+	/* 8-Bit Arithmetic Group */
 	register_implied(operation_type::add, 0b10000000, 0),
 	register_implied(operation_type::adc, 0b10001000, 0),
 	register_implied(operation_type::sub, 0b10010000, 0),
@@ -216,25 +211,25 @@ const instruction instructions[] = {
 	register_implied(operation_type::inc_reg, 0b00000100, 3),
 	register_implied(operation_type::dec_reg, 0b00000101, 3),
 
-	immediate_implied(operation_type::add, 0xC6),
-	immediate_implied(operation_type::adc, 0xCE),
-	immediate_implied(operation_type::sub, 0xD6),
-	immediate_implied(operation_type::sbc, 0xDE),
-	immediate_implied(operation_type::and_8, 0xE6),
-	immediate_implied(operation_type::or_8, 0xF6),
-	immediate_implied(operation_type::xor_8, 0xEE),
-	immediate_implied(operation_type::cp, 0xFE),
+	{ operation_type::add, {0xC6}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::adc, {0xCE}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::sub, {0xD6}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::sbc, {0xDE}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::and_8, {0xE6}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::or_8, {0xF6}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::xor_8, {0xEE}, addressing_mode::immediate, addressing_mode::implied },
+	{ operation_type::cp, {0xFE}, addressing_mode::immediate, addressing_mode::implied },
 
-	indirect_hl_implied(operation_type::add, 0x86),
-	indirect_hl_implied(operation_type::adc, 0x8E),
-	indirect_hl_implied(operation_type::sub, 0x96),
-	indirect_hl_implied(operation_type::sbc, 0x9E),
-	indirect_hl_implied(operation_type::and_8, 0xA6),
-	indirect_hl_implied(operation_type::or_8, 0xB6),
-	indirect_hl_implied(operation_type::xor_8, 0xAE),
-	indirect_hl_implied(operation_type::cp, 0xBE),
-	indirect_indirect(operation_type::inc_at, 0x34, addressing_mode::indirect_hl),
-	indirect_indirect(operation_type::dec_at, 0x35, addressing_mode::indirect_hl),
+	{ operation_type::add, {0x86}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::adc, {0x8E}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::sub, {0x96}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::sbc, {0x9E}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::and_8, {0xA6}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::or_8, {0xB6}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::xor_8, {0xAE}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::cp, {0xBE}, addressing_mode::indirect_hl, addressing_mode::implied },
+	{ operation_type::inc_at, {0x34}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+	{ operation_type::dec_at, {0x35}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
 
 	indexed_implied(operation_type::add, 0x86),
 	indexed_implied(operation_type::adc, 0x8E),

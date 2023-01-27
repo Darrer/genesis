@@ -130,7 +130,7 @@ public:
 			break;
 
 		default:
-			throw std::runtime_error("exec_inst error: unsupported operation " + inst.op_type);
+			throw std::runtime_error("exec_inst error: unsupported operation " + std::to_string(inst.op_type));
 		}
 
 		dec.advance_pc(inst);

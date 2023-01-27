@@ -14,8 +14,6 @@ namespace genesis::z80
 #define unsupported_addresing_mode(addr_mode) \
 	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " + std::to_string(addr_mode))
 
-class cpu;
-
 class decoder
 {
 public:
