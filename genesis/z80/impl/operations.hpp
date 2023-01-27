@@ -14,7 +14,7 @@ namespace genesis::z80
 class operations
 {
 public:
-	operations(z80::cpu& cpu) : mem(cpu.memory()), regs(cpu.registers())
+	operations(z80::cpu& cpu) : mem(cpu.memory()), regs(cpu.registers()), cpu(cpu)
 	{
 	}
 
@@ -139,6 +139,12 @@ public:
 	inline void ei()
 	{
 		// TODO
+	}
+
+	/* Input and Output Group */
+	inline void out(std::uint8_t n)
+	{
+		cpu.io_ports().out(n, regs.main_set.A);
 	}
 
 	/* 8-Bit Arithmetic Group */
@@ -376,6 +382,13 @@ public:
 		mem.write(addr, val);
 	}
 
+	/* 16-Bit Arithmetic Group */
+	inline void inc_reg_16(std::int16_t& reg)
+	{
+		// TODO: uint or int?
+		++reg;
+	}
+
 private:
 	/* utils */
 	std::uint8_t static check_parity(int n)
@@ -395,6 +408,7 @@ private:
 private:
 	z80::memory& mem;
 	z80::cpu_registers& regs;
+	z80::cpu& cpu;
 };
 
 } // genesis namespace

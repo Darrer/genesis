@@ -32,6 +32,9 @@ enum operation_type : std::uint8_t
 	ld_16_at,
 	push,
 
+	/* 16-Bit Arithmetic Group */
+	inc_reg_16,
+
 	/* Call and Return Group */
 	call,
 	call_cc,
@@ -45,6 +48,9 @@ enum operation_type : std::uint8_t
 	/* CPU Control Groups */
 	di,
 	ei,
+
+	/* Input and Output Group */
+	out,
 };
 
 enum addressing_mode : std::uint8_t
@@ -150,6 +156,11 @@ enum register_type : std::uint8_t
 	{op, { opcode | (register_type::H << reg_offset) }, addressing_mode::register_h, dest}, \
 	{op, { opcode | (register_type::L << reg_offset) }, addressing_mode::register_l, dest}
 
+#define ss_ss(op, opcode, reg_offset) \
+	{op, {opcode | (0b00 << reg_offset)}, addressing_mode::register_bc, addressing_mode::register_bc}, \
+	{op, {opcode | (0b01 << reg_offset)}, addressing_mode::register_de, addressing_mode::register_de}, \
+	{op, {opcode | (0b10 << reg_offset)}, addressing_mode::register_hl, addressing_mode::register_hl}, \
+	{op, {opcode | (0b11 << reg_offset)}, addressing_mode::register_sp, addressing_mode::register_sp}
 
 /* register source */
 
@@ -242,6 +253,9 @@ const instruction instructions[] = {
 	indexed_indexed(operation_type::inc_at, 0x34),
 	indexed_indexed(operation_type::dec_at, 0x35),
 
+	/* 16-Bit Arithmetic Group */
+	ss_ss(operation_type::inc_reg_16, 0b00000011, 4),
+
 	/* 8-Bit Load Group */
 	register_register(operation_type::ld_reg, 0b01000000),
 	indexed_register(operation_type::ld_reg, 0b01000110),
@@ -288,6 +302,9 @@ const instruction instructions[] = {
 	/* CPU Control Groups */
 	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::ei, {0xFB}, addressing_mode::none, addressing_mode::none },
+
+	/* Input and Output Group */
+	{ operation_type::out, {0xD3}, addressing_mode::immediate, addressing_mode::none },
 };
 
 }

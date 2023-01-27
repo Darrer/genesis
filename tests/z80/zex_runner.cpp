@@ -4,9 +4,19 @@
 #include <gtest/gtest.h>
 
 #include "z80/cpu.h"
+#include "z80/io_ports.hpp"
 #include "string_utils.hpp"
 
 using namespace genesis;
+
+class test_io_ports : public z80::io_ports
+{
+public:
+	void out(std::uint8_t /*dev*/, std::uint8_t data) override
+	{
+		std::cout << data;
+	}
+};
 
 void load_at(z80::memory& mem, z80::memory::address base, const std::string& bin_path)
 {
@@ -32,7 +42,8 @@ void patch_zex(z80::memory& mem)
 {
 	mem.write(0x1601, 0xC9); // RET
 
-	mem.write(0x10, 0xC9); // RET
+	mem.write(0x10, 0x01D3); // OUT (1), A
+	mem.write(0x12, 0xC9);   // RET
 }
 
 void log_pc(z80::cpu& cpu)
@@ -47,7 +58,7 @@ void log_pc(z80::cpu& cpu)
 
 void run_test(const std::string& test_path)
 {
-	auto cpu = z80::cpu(std::make_shared<z80::memory>());
+	auto cpu = z80::cpu(std::make_shared<z80::memory>(), std::make_shared<test_io_ports>());
 
 	const std::uint16_t start_address = 0x8000;
 
@@ -56,14 +67,25 @@ void run_test(const std::string& test_path)
 
 	cpu.registers().PC = start_address;
 
+	std::cout << "Start test!" << std::endl;
+
 	while(true)
 	{
-		log_pc(cpu);
-		cpu.execute_one();
+		// log_pc(cpu);
+		try
+		{
+			cpu.execute_one();
+		}
+		catch(...)
+		{
+			std::cout << std::endl;
+			throw;
+		}
 	}
 }
 
 TEST(Z80, ZEXDOC)
 {
 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
+	// failed at inc	de
 }

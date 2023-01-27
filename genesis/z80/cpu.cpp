@@ -7,7 +7,8 @@
 namespace genesis::z80
 {
 
-cpu::cpu(std::shared_ptr<z80::memory> memory) : mem(memory)
+cpu::cpu(std::shared_ptr<z80::memory> memory, std::shared_ptr<z80::io_ports> io_ports)
+	: mem(memory), ports(io_ports)
 {
 }
 

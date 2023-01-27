@@ -82,6 +82,11 @@ public:
 			ops.dec_at(dec.decode_address(inst.source, inst));
 			break;
 
+		/* 8-Bit Arithmetic Group */
+		case operation_type::inc_reg_16:
+			ops.inc_reg_16(dec.decode_reg_16(inst.source));
+			break;
+
 		/* 8/16-Bit Load Group */
 		case operation_type::ld_reg:
 			ops.ld_reg(dec.decode_byte(inst.source, inst), dec.decode_reg_8(inst.destination));
@@ -127,6 +132,11 @@ public:
 			break;
 		case operation_type::ei:
 			ops.ei();
+			break;
+
+		/* Input and Output Group */
+		case operation_type::out:
+			ops.out(dec.decode_byte(inst.source, inst));
 			break;
 
 		default:

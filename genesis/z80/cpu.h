@@ -3,6 +3,7 @@
 
 #include "cpu_registers.hpp"
 #include "memory.hpp"
+#include "io_ports.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -18,7 +19,7 @@ using opcode = std::uint8_t;
 class cpu
 {
 public:
-	cpu(std::shared_ptr<z80::memory> memory);
+	cpu(std::shared_ptr<z80::memory> memory, std::shared_ptr<z80::io_ports> io_ports = nullptr);
 
 	inline cpu_registers& registers()
 	{
@@ -30,10 +31,16 @@ public:
 		return *mem;
 	}
 
+	inline io_ports& io_ports()
+	{
+		return *ports;
+	}
+
 	void execute_one();
 
 private:
 	std::shared_ptr<z80::memory> mem;
+	std::shared_ptr<z80::io_ports> ports;
 	cpu_registers regs;
 };
 
