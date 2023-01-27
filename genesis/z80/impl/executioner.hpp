@@ -1,16 +1,12 @@
 #ifndef __EXECUTIONER_HPP__
 #define __EXECUTIONER_HPP__
 
-#include "../cpu.h"
-#include "operations.hpp"
+#include "z80/cpu.h"
 #include "string_utils.hpp"
 
 #include "instructions.hpp"
-
-#include <cassert>
-#include <iostream>
-
 #include "decoder.hpp"
+#include "operations.hpp"
 
 
 namespace genesis::z80
@@ -19,7 +15,11 @@ namespace genesis::z80
 class executioner
 {
 public:
-	static void execute_one(z80::cpu& cpu)
+	executioner(z80::cpu& cpu) : cpu(cpu), dec(z80::decoder(cpu))
+	{
+	}
+
+	void execute_one()
 	{
 		auto& mem = cpu.memory();
 		auto& regs = cpu.registers();
@@ -31,19 +31,17 @@ public:
 		{
 			if(opcode == inst.opcodes[0] && (inst.opcodes[1] == 0x0 || inst.opcodes[1] == opcode2))
 			{
-				exec_inst(cpu, inst);
+				exec_inst(inst);
 				return;
 			}
 		}
 
-		throw std::runtime_error("executioner::execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
+		throw std::runtime_error("execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
 			") at " + su::hex_str(regs.PC));
 	}
 
-	static void exec_inst(z80::cpu& cpu, const z80::instruction& inst)
+	void exec_inst(const z80::instruction& inst)
 	{
-		z80::decoder dec = z80::decoder(cpu);
-
 		auto& mem = cpu.memory();
 		auto& regs = cpu.registers();
 
@@ -140,6 +138,10 @@ public:
 
 		dec.advance_pc(inst);
 	}
+
+private:
+	z80::cpu& cpu;
+	z80::decoder dec;
 };
 
 }

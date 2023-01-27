@@ -1,8 +1,12 @@
 #ifndef __OPERATIONS_HPP__
 #define __OPERATIONS_HPP__
 
-#include "../cpu.h"
+#include "z80/cpu.h"
+
 #include <cstdint>
+
+#include <iostream>
+#include "string_utils.hpp"
 
 namespace genesis::z80
 {

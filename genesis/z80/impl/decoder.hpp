@@ -3,8 +3,8 @@
 
 #include <cstdint>
 
-#include "../cpu_registers.hpp"
-#include "../cpu.h"
+#include "z80/cpu_registers.hpp"
+#include "z80/cpu.h"
 #include "instructions.hpp"
 
 
@@ -13,6 +13,8 @@ namespace genesis::z80
 
 #define unsupported_addresing_mode(addr_mode) \
 	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " + std::to_string(addr_mode))
+
+class cpu;
 
 class decoder
 {

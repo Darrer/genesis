@@ -1,7 +1,7 @@
 #ifndef __INSTRUCTIONS_HPP__
 #define __INSTRUCTIONS_HPP__
 
-#include "../cpu.h"
+#include "z80/cpu.h"
 
 #include <cstdint>
 #include <array>
