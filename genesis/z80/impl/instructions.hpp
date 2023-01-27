@@ -31,7 +31,9 @@ enum operation_type : std::uint8_t
 	ld_16_at,
 	push,
 
+	/* Call and Return Group */
 	call,
+	call_cc,
 	ret,
 
 	/* Jump Group */
@@ -281,6 +283,7 @@ const instruction instructions[] = {
 	/* Call and Return Group */
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
 	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
+	{ operation_type::call_cc, {0xC4}, addressing_mode::immediate_ext, addressing_mode::none },
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },

@@ -208,6 +208,12 @@ public:
 		}
 	}
 
+	std::uint8_t decode_cc(const instruction& inst)
+	{
+		// NOTE: always assume constant cc offset for all instructions
+		return (inst.opcodes[0] & 0b00111000) >> 3;
+	}
+
 	void advance_pc(const instruction& inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t

@@ -108,10 +108,13 @@ public:
 		case operation_type::call:
 			operations::call(dec.decode_address(inst.source, inst), regs, mem);
 			return;
+		case operation_type::call_cc:
+			operations::call_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst), regs, mem);
+			return;
 		case operation_type::ret:
 			operations::ret(regs, mem);
 			return;
-		
+
 		/* Jump Group */
 		case operation_type::jp:
 			operations::jp(dec.decode_address(inst.source, inst), regs);

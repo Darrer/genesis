@@ -58,6 +58,47 @@ public:
 		regs.PC = addr;
 	}
 
+	inline static bool check_cc(std::uint8_t cc, const z80::cpu_registers& regs)
+	{
+		auto& flags = regs.main_set.flags;
+		switch(cc)
+		{
+			case 0b000:
+				return flags.Z == 0;
+			case 0b001:
+				return flags.Z != 0;
+			case 0b010:
+				return flags.C == 0;
+			case 0b011:
+				return flags.C != 0;
+			case 0b100:
+				return flags.PV != 0;
+			case 0b101:
+				return flags.PV == 0;
+			case 0b110:
+				return flags.S == 0;
+			case 0b111:
+				return flags.S != 0;
+			default:
+				throw std::runtime_error("internal error: unsupported cc" + std::to_string(cc));
+		}
+	}
+
+	inline static void call_cc(std::uint8_t cc, z80::memory::address addr, z80::cpu_registers& regs, z80::memory& mem)
+	{
+		regs.PC += 3; // always assume call instruction is 3 byte long
+		if(check_cc(cc, regs))
+		{
+			push(regs.PC, regs, mem);
+			regs.PC = addr;
+			std::cout << "call_cc: going to " << su::hex_str(regs.PC) << std::endl;
+		}
+		else
+		{
+			std::cout << "call_cc: not going anywhere cc: " << (int)cc << ", Z = " << (int)regs.main_set.flags.Z << std::endl;
+		}
+	}
+
 	inline static void ret(z80::cpu_registers& regs, z80::memory& mem)
 	{
 		pop((std::int16_t&)regs.PC, regs, mem);
@@ -334,7 +375,7 @@ public:
 
 
 	/* utils */
-	static std::uint8_t check_parity(int n) 
+	static std::uint8_t check_parity(int n)
 	{
 		int b;
 		b = n ^ (n >> 1); 

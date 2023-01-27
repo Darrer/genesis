@@ -31,6 +31,8 @@ void load_at(z80::memory& mem, z80::memory::address base, const std::string& bin
 void patch_zex(z80::memory& mem)
 {
 	mem.write(0x1601, 0xC9); // RET
+
+	mem.write(0x10, 0xC9); // RET
 }
 
 void log_pc(z80::cpu& cpu)
