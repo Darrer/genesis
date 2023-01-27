@@ -14,20 +14,24 @@ namespace genesis::z80
 class operations
 {
 public:
+	operations(z80::cpu& cpu) : mem(cpu.memory()), regs(cpu.registers())
+	{
+	}
+
 	/* 8/16-Bit Load Group */
 	template<class T>
-	inline static void ld_reg(T src, T& dest)
+	inline void ld_reg(T src, T& dest)
 	{
 		dest = src;
 	}
 
 	template<class T>
-	inline static void ld_at(T src, z80::memory::address dest_addr, z80::memory& mem)
+	inline void ld_at(T src, z80::memory::address dest_addr)
 	{
 		mem.write(dest_addr, src);
 	}
 
-	inline static void ld_ir(std::int8_t src, z80::cpu_registers& regs)
+	inline void ld_ir(std::int8_t src)
 	{
 		regs.main_set.A = src;
 
@@ -42,79 +46,74 @@ public:
 		flags.PV = 0;
 	}
 
-	inline static void push(std::int16_t src, z80::cpu_registers& regs, z80::memory& mem)
+	inline void push(std::int16_t src)
 	{
 		regs.SP -= sizeof(src);
 		mem.write(regs.SP, src);
 	}
 
-	inline static void pop(std::int16_t& dest, z80::cpu_registers& regs, z80::memory& mem)
+	inline void pop(std::int16_t& dest)
 	{
 		dest = mem.read<std::int16_t>(regs.SP);
 		regs.SP += sizeof(dest);
 	}
 
 	/* Call and Return Group */
-	inline static void call(z80::memory::address addr, z80::cpu_registers& regs, z80::memory& mem)
+	inline void call(z80::memory::address addr)
 	{
 		regs.PC += 3; // always assume call instruction is 3 byte long
-		push(regs.PC, regs, mem);
+		push(regs.PC);
 		regs.PC = addr;
 	}
 
-	inline static bool check_cc(std::uint8_t cc, const z80::cpu_registers& regs)
+	inline bool check_cc(std::uint8_t cc)
 	{
 		auto& flags = regs.main_set.flags;
 		switch(cc)
 		{
-			case 0b000:
-				return flags.Z == 0;
-			case 0b001:
-				return flags.Z != 0;
-			case 0b010:
-				return flags.C == 0;
-			case 0b011:
-				return flags.C != 0;
-			case 0b100:
-				return flags.PV != 0;
-			case 0b101:
-				return flags.PV == 0;
-			case 0b110:
-				return flags.S == 0;
-			case 0b111:
-				return flags.S != 0;
-			default:
-				throw std::runtime_error("internal error: unsupported cc" + std::to_string(cc));
+		case 0b000:
+			return flags.Z == 0;
+		case 0b001:
+			return flags.Z != 0;
+		case 0b010:
+			return flags.C == 0;
+		case 0b011:
+			return flags.C != 0;
+		case 0b100:
+			return flags.PV != 0;
+		case 0b101:
+			return flags.PV == 0;
+		case 0b110:
+			return flags.S == 0;
+		case 0b111:
+			return flags.S != 0;
+		default:
+			throw std::runtime_error("internal error: unsupported cc" + std::to_string(cc));
 		}
 	}
 
-	inline static void call_cc(std::uint8_t cc, z80::memory::address addr, z80::cpu_registers& regs, z80::memory& mem)
+	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
 		regs.PC += 3; // always assume call instruction is 3 byte long
-		if(check_cc(cc, regs))
+		if(check_cc(cc))
 		{
-			push(regs.PC, regs, mem);
+			push(regs.PC);
 			regs.PC = addr;
-			std::cout << "call_cc: going to " << su::hex_str(regs.PC) << std::endl;
-		}
-		else
-		{
-			std::cout << "call_cc: not going anywhere cc: " << (int)cc << ", Z = " << (int)regs.main_set.flags.Z << std::endl;
 		}
 	}
 
-	inline static void ret(z80::cpu_registers& regs, z80::memory& mem)
+	inline void ret()
 	{
-		pop((std::int16_t&)regs.PC, regs, mem);
+		pop((std::int16_t&)regs.PC);
 	}
 
 	/* Jump Group */
-	inline static void jp(z80::memory::address addr, z80::cpu_registers& regs)
+	inline void jp(z80::memory::address addr)
 	{
 		regs.PC = addr;
 	}
 
-	inline static void jr_z(std::int8_t offset, z80::cpu_registers& regs)
+	inline void jr_z(std::int8_t offset)
 	{
 		if(regs.main_set.flags.Z)
 		{
@@ -126,24 +125,24 @@ public:
 		}
 	}
 
-	inline static void jr(std::int8_t offset, z80::cpu_registers& regs)
+	inline void jr(std::int8_t offset)
 	{
 		regs.PC += offset + 2;
 	}
 
 	/* CPU Control Groups */
-	inline static void di()
+	inline void di()
 	{
 		// TODO
 	}
 
-	inline static void ei()
+	inline void ei()
 	{
 		// TODO
 	}
 
 	/* 8-Bit Arithmetic Group */
-	inline static void add(z80::cpu_registers& regs, std::int8_t b)
+	inline void add(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -167,7 +166,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void adc(z80::cpu_registers& regs, std::int8_t b)
+	inline void adc(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -192,7 +191,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void sub(z80::cpu_registers& regs, std::int8_t b)
+	inline void sub(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -216,7 +215,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void sbc(z80::cpu_registers& regs, std::int8_t b)
+	inline void sbc(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -241,7 +240,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void and_8(z80::cpu_registers& regs, std::int8_t b)
+	inline void and_8(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -259,7 +258,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void or_8(z80::cpu_registers& regs, std::int8_t b)
+	inline void or_8(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -277,7 +276,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void xor_8(z80::cpu_registers& regs, std::int8_t b)
+	inline void xor_8(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -295,7 +294,7 @@ public:
 		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
 	}
 
-	inline static void cp(z80::cpu_registers& regs, std::int8_t b)
+	inline void cp(std::int8_t b)
 	{
 		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
 		std::uint8_t _b = (std::uint8_t)b;
@@ -313,7 +312,7 @@ public:
 		flags.Z = (regs.main_set.A == b) ? 1 : 0;
 	}
 
-	inline static void inc_reg(z80::cpu_registers& regs, std::int8_t& r)
+	inline void inc_reg(std::int8_t& r)
 	{
 		auto& flags = regs.main_set.flags;
 
@@ -327,7 +326,7 @@ public:
 		flags.S = r < 0 ? 1 : 0;
 	}
 
-	inline static void inc_at(z80::cpu_registers& regs, z80::memory::address addr, z80::memory& mem)
+	inline void inc_at(z80::memory::address addr)
 	{
 		std::uint8_t val = mem.read<std::uint8_t>(addr);
 
@@ -345,7 +344,7 @@ public:
 		mem.write(addr, val);
 	}
 
-	inline static void dec_reg(z80::cpu_registers& regs, std::int8_t& r)
+	inline void dec_reg(std::int8_t& r)
 	{
 		auto& flags = regs.main_set.flags;
 
@@ -359,7 +358,7 @@ public:
 		flags.S = r < 0 ? 1 : 0;
 	}
 
-	inline static void dec_at(z80::cpu_registers& regs, z80::memory::address addr, z80::memory& mem)
+	inline void dec_at(z80::memory::address addr)
 	{
 		auto val = mem.read<std::int8_t>(addr);
 
@@ -377,9 +376,9 @@ public:
 		mem.write(addr, val);
 	}
 
-
+private:
 	/* utils */
-	static std::uint8_t check_parity(int n)
+	std::uint8_t static check_parity(int n)
 	{
 		int b;
 		b = n ^ (n >> 1); 
@@ -392,6 +391,10 @@ public:
 		else
 			return 0;
 	}
+
+private:
+	z80::memory& mem;
+	z80::cpu_registers& regs;
 };
 
 } // genesis namespace

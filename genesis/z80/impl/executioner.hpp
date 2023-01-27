@@ -15,7 +15,7 @@ namespace genesis::z80
 class executioner
 {
 public:
-	executioner(z80::cpu& cpu) : cpu(cpu), dec(z80::decoder(cpu))
+	executioner(z80::cpu& cpu) : cpu(cpu), dec(z80::decoder(cpu)), ops(z80::operations(cpu))
 	{
 	}
 
@@ -42,94 +42,91 @@ public:
 
 	void exec_inst(const z80::instruction& inst)
 	{
-		auto& mem = cpu.memory();
-		auto& regs = cpu.registers();
-
 		switch(inst.op_type)
 		{
 		/* 8-Bit Arithmetic Group */
 		case operation_type::add:
-			operations::add(regs, dec.decode_byte(inst.source, inst));
+			ops.add(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::adc:
-			operations::adc(regs, dec.decode_byte(inst.source, inst));
+			ops.adc(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::sub:
-			operations::sub(regs, dec.decode_byte(inst.source, inst));
+			ops.sub(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::sbc:
-			operations::sbc(regs, dec.decode_byte(inst.source, inst));
+			ops.sbc(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::and_8:
-			operations::and_8(regs, dec.decode_byte(inst.source, inst));
+			ops.and_8(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::or_8:
-			operations::or_8(regs, dec.decode_byte(inst.source, inst));
+			ops.or_8(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::xor_8:
-			operations::xor_8(regs, dec.decode_byte(inst.source, inst));
+			ops.xor_8(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::cp:
-			operations::cp(regs, dec.decode_byte(inst.source, inst));
+			ops.cp(dec.decode_byte(inst.source, inst));
 			break;
 		case operation_type::inc_reg:
-			operations::inc_reg(regs, dec.decode_reg_8(inst.source));
+			ops.inc_reg(dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::dec_reg:
-			operations::dec_reg(regs, dec.decode_reg_8(inst.source));
+			ops.dec_reg(dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::inc_at:
-			operations::inc_at(regs, dec.decode_address(inst.source, inst), mem);
+			ops.inc_at(dec.decode_address(inst.source, inst));
 			break;
 		case operation_type::dec_at:
-			operations::dec_at(regs, dec.decode_address(inst.source, inst), mem);
+			ops.dec_at(dec.decode_address(inst.source, inst));
 			break;
 
 		/* 8/16-Bit Load Group */
 		case operation_type::ld_reg:
-			operations::ld_reg(dec.decode_byte(inst.source, inst), dec.decode_reg_8(inst.destination));
+			ops.ld_reg(dec.decode_byte(inst.source, inst), dec.decode_reg_8(inst.destination));
 			break;
 		case operation_type::ld_at:
-			operations::ld_at(dec.decode_byte(inst.source, inst), dec.decode_address(inst.destination, inst), mem);
+			ops.ld_at(dec.decode_byte(inst.source, inst), dec.decode_address(inst.destination, inst));
 			break;
 		case operation_type::ld_ir:
-			operations::ld_ir(dec.decode_reg_8(inst.source), regs);
+			ops.ld_ir(dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::ld_16_reg:
-			operations::ld_reg(dec.decode_2_bytes(inst.source, inst), dec.decode_reg_16(inst.destination));
+			ops.ld_reg(dec.decode_2_bytes(inst.source, inst), dec.decode_reg_16(inst.destination));
 			break;
 		case operation_type::push:
-			operations::push(dec.decode_2_bytes(inst.source, inst), regs, mem);
+			ops.push(dec.decode_2_bytes(inst.source, inst));
 			break;
 
 		/* Call and Return Group */
 		case operation_type::call:
-			operations::call(dec.decode_address(inst.source, inst), regs, mem);
+			ops.call(dec.decode_address(inst.source, inst));
 			return;
 		case operation_type::call_cc:
-			operations::call_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst), regs, mem);
+			ops.call_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
 			return;
 		case operation_type::ret:
-			operations::ret(regs, mem);
+			ops.ret();
 			return;
 
 		/* Jump Group */
 		case operation_type::jp:
-			operations::jp(dec.decode_address(inst.source, inst), regs);
+			ops.jp(dec.decode_address(inst.source, inst));
 			return;
 		case operation_type::jr_z:
-			operations::jr_z(dec.decode_byte(inst.source, inst), regs);
+			ops.jr_z(dec.decode_byte(inst.source, inst));
 			return;
 		case operation_type::jr:
-			operations::jr(dec.decode_byte(inst.source, inst), regs);
+			ops.jr(dec.decode_byte(inst.source, inst));
 			return;
 
 		/* CPU Control Groups */
 		case operation_type::di:
-			operations::di();
+			ops.di();
 			break;
 		case operation_type::ei:
-			operations::ei();
+			ops.ei();
 			break;
 
 		default:
@@ -142,6 +139,7 @@ public:
 private:
 	z80::cpu& cpu;
 	z80::decoder dec;
+	z80::operations ops;
 };
 
 }
