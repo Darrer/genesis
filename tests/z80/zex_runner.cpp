@@ -84,6 +84,7 @@ void run_test(const std::string& test_path)
 	patch_zex(cpu.memory());
 
 	cpu.registers().PC = start_address;
+	unsigned long long total = 0;
 
 	while(true)
 	{
@@ -91,9 +92,11 @@ void run_test(const std::string& test_path)
 		try
 		{
 			cpu.execute_one();
+			++total;
 		}
 		catch(...)
 		{
+			std::cout << "Total executed: " << total << std::endl;
 			log_io_ports(*ports);
 			throw;
 		}

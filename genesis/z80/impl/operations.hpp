@@ -26,6 +26,11 @@ public:
 		dest = src;
 	}
 
+	inline void ld_reg_from(std::int16_t& dest, z80::memory::address addr)
+	{
+		dest = mem.read<std::int16_t>(addr);
+	}
+
 	template<class T>
 	inline void ld_at(T src, z80::memory::address dest_addr)
 	{
@@ -409,6 +414,40 @@ public:
 		flags.N = 0;
 
 		regs.main_set.HL = _hl + _src;
+	}
+
+	inline void adc_hl(std::int16_t src)
+	{
+		// TODO:
+		std::uint16_t _hl = regs.main_set.HL;
+		std::uint16_t _src = src;
+		std::uint16_t c = regs.main_set.flags.C;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
+		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+
+		flags.N = 0;
+
+		regs.main_set.HL = _hl + _src + c;
+	}
+
+	inline void sbc_hl(std::int16_t src)
+	{
+		// TODO:
+		std::uint16_t _hl = regs.main_set.HL;
+		std::uint16_t _src = src;
+		std::uint16_t c = regs.main_set.flags.C;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
+		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+
+		flags.N = 0;
+
+		regs.main_set.HL = _hl - _src - c;
 	}
 
 	inline void inc_reg_16(std::int16_t& reg)

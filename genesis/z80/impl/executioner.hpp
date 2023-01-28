@@ -87,6 +87,12 @@ private:
 		case operation_type::add_hl:
 			ops.add_hl(dec.decode_reg_16(inst.source));
 			break;
+		case operation_type::adc_hl:
+			ops.adc_hl(dec.decode_reg_16(inst.source));
+			break;
+		case operation_type::sbc_hl:
+			ops.sbc_hl(dec.decode_reg_16(inst.source));
+			break;
 		case operation_type::inc_reg_16:
 			ops.inc_reg_16(dec.decode_reg_16(inst.source));
 			break;
@@ -101,11 +107,17 @@ private:
 		case operation_type::ld_at:
 			ops.ld_at(dec.decode_byte(inst.source, inst), dec.decode_address(inst.destination, inst));
 			break;
+		case operation_type::ld_16_at:
+			ops.ld_at(dec.decode_2_bytes(inst.source, inst), dec.decode_address(inst.destination, inst));
+			break;
 		case operation_type::ld_ir:
 			ops.ld_ir(dec.decode_reg_8(inst.source));
 			break;
 		case operation_type::ld_16_reg:
 			ops.ld_reg(dec.decode_2_bytes(inst.source, inst), dec.decode_reg_16(inst.destination));
+			break;
+		case operation_type::ld_16_reg_from:
+			ops.ld_reg_from(dec.decode_reg_16(inst.destination), dec.decode_address(inst.source, inst));
 			break;
 		case operation_type::push:
 			ops.push(dec.decode_2_bytes(inst.source, inst));
@@ -145,6 +157,8 @@ private:
 			break;
 		case operation_type::ei:
 			ops.ei();
+			break;
+		case operation_type::nop:
 			break;
 
 		/* Input and Output Group */

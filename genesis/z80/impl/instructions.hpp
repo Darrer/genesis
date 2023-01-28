@@ -28,6 +28,8 @@ enum operation_type : std::uint8_t
 
 	/* 16-Bit Arithmetic Group */
 	add_hl,
+	adc_hl,
+	sbc_hl,
 	inc_reg_16,
 	dec_reg_16,
 
@@ -36,6 +38,7 @@ enum operation_type : std::uint8_t
 	ld_at,
 	ld_ir,
 	ld_16_reg,
+	ld_16_reg_from,
 	ld_16_at,
 	push,
 	pop,
@@ -54,6 +57,7 @@ enum operation_type : std::uint8_t
 	/* CPU Control Groups */
 	di,
 	ei,
+	nop,
 
 	/* Input and Output Group */
 	out,
@@ -285,6 +289,16 @@ const instruction instructions[] = {
 	{ operation_type::add_hl, {0x29}, addressing_mode::register_hl, addressing_mode::implied },
 	{ operation_type::add_hl, {0x39}, addressing_mode::register_sp, addressing_mode::implied },
 
+	{ operation_type::adc_hl, {0xED, 0x4A}, addressing_mode::register_bc, addressing_mode::implied },
+	{ operation_type::adc_hl, {0xED, 0x5A}, addressing_mode::register_de, addressing_mode::implied },
+	{ operation_type::adc_hl, {0xED, 0x6A}, addressing_mode::register_hl, addressing_mode::implied },
+	{ operation_type::adc_hl, {0xED, 0x7A}, addressing_mode::register_sp, addressing_mode::implied },
+
+	{ operation_type::sbc_hl, {0xED, 0x42}, addressing_mode::register_bc, addressing_mode::implied },
+	{ operation_type::sbc_hl, {0xED, 0x52}, addressing_mode::register_de, addressing_mode::implied },
+	{ operation_type::sbc_hl, {0xED, 0x62}, addressing_mode::register_hl, addressing_mode::implied },
+	{ operation_type::sbc_hl, {0xED, 0x72}, addressing_mode::register_sp, addressing_mode::implied },
+
 	ss_ss(operation_type::inc_reg_16, 0b00000011, 4),
 	ss_ss(operation_type::dec_reg_16, 0b00001011, 4),
 
@@ -307,6 +321,12 @@ const instruction instructions[] = {
 	{ operation_type::ld_at, {0x12}, addressing_mode::register_a, addressing_mode::indirect_de },
 	{ operation_type::ld_at, {0x32}, addressing_mode::register_a, addressing_mode::immediate_ext },
 
+	{ operation_type::ld_16_at, {0xED, 0x43}, addressing_mode::register_bc, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x53}, addressing_mode::register_de, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x63}, addressing_mode::register_hl, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x73}, addressing_mode::register_sp, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0x22}, addressing_mode::register_hl, addressing_mode::immediate_ext},
+
 	{ operation_type::ld_ir, {0xED, 0x57}, addressing_mode::register_i, addressing_mode::implied },
 	{ operation_type::ld_ir, {0xED, 0x5F}, addressing_mode::register_r, addressing_mode::implied },
 
@@ -315,10 +335,17 @@ const instruction instructions[] = {
 	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::register_hl, addressing_mode::register_sp },
 	{ operation_type::ld_16_reg, {0xFD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_iy },
 
+	{ operation_type::ld_16_reg_from, {0xED, 0x4B}, addressing_mode::immediate_ext, addressing_mode::register_bc },
+	{ operation_type::ld_16_reg_from, {0xED, 0x5B}, addressing_mode::immediate_ext, addressing_mode::register_de },
+	{ operation_type::ld_16_reg_from, {0xED, 0x6B}, addressing_mode::immediate_ext, addressing_mode::register_hl },
+	{ operation_type::ld_16_reg_from, {0xED, 0x7B}, addressing_mode::immediate_ext, addressing_mode::register_sp },
+	{ operation_type::ld_16_reg_from, {0x2A}, addressing_mode::immediate_ext, addressing_mode::register_hl },
+
 	{ operation_type::push, {0xC5}, addressing_mode::register_bc, addressing_mode::implied },
 	{ operation_type::push, {0xD5}, addressing_mode::register_de, addressing_mode::implied },
 	{ operation_type::push, {0xE5}, addressing_mode::register_hl, addressing_mode::implied },
 	{ operation_type::push, {0xF5}, addressing_mode::register_af, addressing_mode::implied },
+	{ operation_type::push, {0xDD, 0xE5}, addressing_mode::register_ix, addressing_mode::implied },
 	{ operation_type::push, {0xFD, 0xE5}, addressing_mode::register_iy, addressing_mode::implied },
 
 	{ operation_type::pop, {0xC1}, addressing_mode::implied, addressing_mode::register_bc },
@@ -326,11 +353,13 @@ const instruction instructions[] = {
 	{ operation_type::pop, {0xE1}, addressing_mode::implied, addressing_mode::register_hl },
 	{ operation_type::pop, {0xF1}, addressing_mode::implied, addressing_mode::register_af },
 	{ operation_type::pop, {0xFD, 0xE1}, addressing_mode::implied, addressing_mode::register_iy },
+	{ operation_type::pop, {0xDD, 0xE1}, addressing_mode::implied, addressing_mode::register_ix },
 
 	/* Call and Return Group */
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
 	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
-	{ operation_type::call_cc, {0xC4}, addressing_mode::immediate_ext, addressing_mode::none },
+	cc_inst(operation_type::call_cc, 0b11000100, addressing_mode::immediate_ext, addressing_mode::none),
+	// { operation_type::call_cc, {0xC4}, addressing_mode::immediate_ext, addressing_mode::none },
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
@@ -341,6 +370,7 @@ const instruction instructions[] = {
 	/* CPU Control Groups */
 	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::ei, {0xFB}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::nop, {0x00}, addressing_mode::none, addressing_mode::none },
 
 	/* Input and Output Group */
 	{ operation_type::out, {0xD3}, addressing_mode::immediate, addressing_mode::none },
