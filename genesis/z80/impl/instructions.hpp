@@ -47,6 +47,7 @@ enum operation_type : std::uint8_t
 	call,
 	call_cc,
 	ret,
+	ret_cc,
 
 	/* Jump Group */
 	jp,
@@ -359,7 +360,7 @@ const instruction instructions[] = {
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
 	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
 	cc_inst(operation_type::call_cc, 0b11000100, addressing_mode::immediate_ext, addressing_mode::none),
-	// { operation_type::call_cc, {0xC4}, addressing_mode::immediate_ext, addressing_mode::none },
+	cc_inst(operation_type::ret_cc, 0b11000000, addressing_mode::implied, addressing_mode::none),
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },

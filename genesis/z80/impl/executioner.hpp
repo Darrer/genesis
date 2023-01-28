@@ -136,6 +136,9 @@ private:
 		case operation_type::ret:
 			ops.ret();
 			return;
+		case operation_type::ret_cc:
+			ops.ret_cc(dec.decode_cc(inst));
+			return;
 
 		/* Jump Group */
 		case operation_type::jp:

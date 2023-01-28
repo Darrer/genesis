@@ -4,6 +4,7 @@
 #include "z80/cpu.h"
 
 #include <cstdint>
+#include <iostream>
 #include <bit>
 
 #include <iostream>
@@ -67,6 +68,7 @@ public:
 	/* Call and Return Group */
 	inline void call(z80::memory::address addr)
 	{
+		std::cout << "call" << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		push(regs.PC);
 		regs.PC = addr;
@@ -100,6 +102,7 @@ public:
 
 	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
+		std::cout << "call_cc cc: " << su::bin_str(cc) << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		if(check_cc(cc))
 		{
@@ -110,7 +113,21 @@ public:
 
 	inline void ret()
 	{
+		std::cout << "ret" << std::endl;
 		pop((std::int16_t&)regs.PC);
+	}
+
+	inline void ret_cc(std::uint8_t cc)
+	{
+		std::cout << "ret_cc " << su::bin_str(cc) << std::endl;
+		if(check_cc(cc))
+		{
+			ret();
+		}
+		else
+		{
+			regs.PC += 1;
+		}
 	}
 
 	/* Jump Group */
@@ -310,6 +327,7 @@ public:
 		flags.H = flags.N = flags.C = 0;
 
 		regs.main_set.A = _a ^ _b;
+		std::cout << "xor" << std::endl;
 
 		// check Parity/Overflow Flag (P/V)
 		flags.PV = check_parity(regs.main_set.A);
@@ -377,6 +395,7 @@ public:
 		flags.H = (r & 0x0f) == 0 ? 1 : 0;
 		
 		--r;
+		std::cout << "Dec r = " << (int)r << std::endl;
 
 		flags.Z = r == 0 ? 1 : 0;
 		flags.S = r < 0 ? 1 : 0;
@@ -452,14 +471,12 @@ public:
 
 	inline void inc_reg_16(std::int16_t& reg)
 	{
-		// TODO: uint or int?
-		++reg;
+		reg = (std::uint16_t) reg + 1;
 	}
 
 	inline void dec_reg_16(std::int16_t& reg)
 	{
-		// TODO: uint or int?
-		--reg;
+		reg = (std::uint16_t) reg - 1;
 	}
 
 	/* Exchange, Block Transfer, and Search Group */
