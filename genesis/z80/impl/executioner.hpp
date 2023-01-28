@@ -40,6 +40,7 @@ public:
 			") at " + su::hex_str(regs.PC));
 	}
 
+private:
 	void exec_inst(const z80::instruction& inst)
 	{
 		switch(inst.op_type)
