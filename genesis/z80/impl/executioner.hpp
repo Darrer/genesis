@@ -162,6 +162,18 @@ private:
 		case operation_type::exx:
 			ops.exx();
 			break;
+		case operation_type::ldir:
+			ops.ldir();
+			return;
+
+		/* Rotate and Shift Group */
+		case operation_type::rlca:
+			ops.rlca();
+			break;
+
+		case operation_type::rrca:
+			ops.rrca();
+			break;
 
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + std::to_string(inst.op_type));

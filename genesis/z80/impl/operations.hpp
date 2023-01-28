@@ -4,6 +4,7 @@
 #include "z80/cpu.h"
 
 #include <cstdint>
+#include <bit>
 
 #include <iostream>
 #include "string_utils.hpp"
@@ -438,6 +439,49 @@ public:
 		std::swap(regs.main_set.BC, regs.alt_set.BC);
 		std::swap(regs.main_set.DE, regs.alt_set.DE);
 		std::swap(regs.main_set.HL, regs.alt_set.HL);
+	}
+
+	inline void ldir()
+	{
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.PV = 0; // TODO: not sure what to do with this flag
+
+		// write (HL) -> (DE)
+		std::uint8_t data = mem.read<std::uint8_t>(regs.main_set.HL);
+		mem.write(regs.main_set.DE, data);
+
+		// update registers
+		regs.main_set.HL++;
+		regs.main_set.DE++;
+		regs.main_set.BC--;
+
+		// check if need to repeat
+		if(regs.main_set.BC == 0)
+		{
+			regs.PC += 2;
+			return;
+		}
+
+		// do not change PC, repeat instruction instead
+	}
+
+	/* Rotate and Shift Group */
+	inline void rlca()
+	{
+		std::uint8_t val = regs.main_set.A;
+		regs.main_set.A = std::rotl(val, 1);
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.C = val >= 128  ? 1 : 0;
+	}
+
+	inline void rrca()
+	{
+		std::uint8_t val = regs.main_set.A;
+		regs.main_set.A = std::rotr(val, 1);
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.C = val % 2;
 	}
 
 private:

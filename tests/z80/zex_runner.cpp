@@ -14,6 +14,11 @@ class test_io_ports : public z80::io_ports
 public:
 	void out(std::uint8_t /*dev*/, std::uint8_t data) override
 	{
+		if(data == 13)
+		{
+			data = '\n';
+		}
+
 		buffer << data;
 	}
 

@@ -62,6 +62,11 @@ enum operation_type : std::uint8_t
 	ex_de_hl,
 	ex_af_afs,
 	exx,
+	ldir,
+
+	/* Rotate and Shift Group */
+	rlca,
+	rrca,
 };
 
 enum addressing_mode : std::uint8_t
@@ -344,6 +349,11 @@ const instruction instructions[] = {
 	{ operation_type::ex_de_hl, {0xEB}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::ex_af_afs, {0x08}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::exx, {0xD9}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::ldir, {0xED, 0xB0}, addressing_mode::implied, addressing_mode::implied },
+
+	/* Rotate and Shift Group */
+	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
 };
 
 }
