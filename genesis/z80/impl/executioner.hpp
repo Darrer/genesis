@@ -83,9 +83,15 @@ private:
 			ops.dec_at(dec.decode_address(inst.source, inst));
 			break;
 
-		/* 8-Bit Arithmetic Group */
+		/* 16-Bit Arithmetic Group */
+		case operation_type::add_hl:
+			ops.add_hl(dec.decode_reg_16(inst.source));
+			break;
 		case operation_type::inc_reg_16:
 			ops.inc_reg_16(dec.decode_reg_16(inst.source));
+			break;
+		case operation_type::dec_reg_16:
+			ops.dec_reg_16(dec.decode_reg_16(inst.source));
 			break;
 
 		/* 8/16-Bit Load Group */
@@ -104,6 +110,9 @@ private:
 		case operation_type::push:
 			ops.push(dec.decode_2_bytes(inst.source, inst));
 			break;
+		case operation_type::pop:
+			ops.pop(dec.decode_reg_16(inst.destination));
+			break;
 
 		/* Call and Return Group */
 		case operation_type::call:
@@ -119,6 +128,9 @@ private:
 		/* Jump Group */
 		case operation_type::jp:
 			ops.jp(dec.decode_address(inst.source, inst));
+			return;
+		case operation_type::jp_cc:
+			ops.jp_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
 			return;
 		case operation_type::jr_z:
 			ops.jr_z(dec.decode_byte(inst.source, inst));
@@ -138,6 +150,17 @@ private:
 		/* Input and Output Group */
 		case operation_type::out:
 			ops.out(dec.decode_byte(inst.source, inst));
+			break;
+
+		/* Exchange, Block Transfer, and Search Group */
+		case operation_type::ex_de_hl:
+			ops.ex_de_hl();
+			break;
+		case operation_type::ex_af_afs:
+			ops.ex_af_afs();
+			break;
+		case operation_type::exx:
+			ops.exx();
 			break;
 
 		default:

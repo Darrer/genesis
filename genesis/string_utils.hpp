@@ -17,7 +17,7 @@ std::string hex_str(T t, size_t wide = sizeof(T) * 2)
 {
 	std::stringstream ss;
 	ss << "0x";
-	ss << std::hex << std::setfill('0') << std::setw(wide) << (long long)t;
+	ss << std::uppercase << std::hex << std::setfill('0') << std::setw(wide) << (long long)t;
 	return ss.str();
 }
 

@@ -25,15 +25,20 @@ enum operation_type : std::uint8_t
 	inc_at,
 	dec_reg,
 	dec_at,
+
+	/* 16-Bit Arithmetic Group */
+	add_hl,
+	inc_reg_16,
+	dec_reg_16,
+
+	/* 8/16-Bit Load Group */
 	ld_reg,
 	ld_at,
 	ld_ir,
 	ld_16_reg,
 	ld_16_at,
 	push,
-
-	/* 16-Bit Arithmetic Group */
-	inc_reg_16,
+	pop,
 
 	/* Call and Return Group */
 	call,
@@ -42,6 +47,7 @@ enum operation_type : std::uint8_t
 
 	/* Jump Group */
 	jp,
+	jp_cc,
 	jr_z,
 	jr,
 
@@ -51,6 +57,11 @@ enum operation_type : std::uint8_t
 
 	/* Input and Output Group */
 	out,
+
+	/* Exchange, Block Transfer, and Search Group */
+	ex_de_hl,
+	ex_af_afs,
+	exx,
 };
 
 enum addressing_mode : std::uint8_t
@@ -162,6 +173,16 @@ enum register_type : std::uint8_t
 	{op, {opcode | (0b10 << reg_offset)}, addressing_mode::register_hl, addressing_mode::register_hl}, \
 	{op, {opcode | (0b11 << reg_offset)}, addressing_mode::register_sp, addressing_mode::register_sp}
 
+#define cc_inst(op, opcode, src, dest) \
+	{op, {opcode | (0b000 << 3)}, src, dest}, \
+	{op, {opcode | (0b001 << 3)}, src, dest}, \
+	{op, {opcode | (0b010 << 3)}, src, dest}, \
+	{op, {opcode | (0b011 << 3)}, src, dest}, \
+	{op, {opcode | (0b100 << 3)}, src, dest}, \
+	{op, {opcode | (0b101 << 3)}, src, dest}, \
+	{op, {opcode | (0b110 << 3)}, src, dest}, \
+	{op, {opcode | (0b111 << 3)}, src, dest}
+
 /* register source */
 
 #define register_implied(op, opcode, reg_offset) source_register(op, opcode, reg_offset, addressing_mode::implied)
@@ -254,7 +275,13 @@ const instruction instructions[] = {
 	indexed_indexed(operation_type::dec_at, 0x35),
 
 	/* 16-Bit Arithmetic Group */
+	{ operation_type::add_hl, {0x09}, addressing_mode::register_bc, addressing_mode::implied },
+	{ operation_type::add_hl, {0x19}, addressing_mode::register_de, addressing_mode::implied },
+	{ operation_type::add_hl, {0x29}, addressing_mode::register_hl, addressing_mode::implied },
+	{ operation_type::add_hl, {0x39}, addressing_mode::register_sp, addressing_mode::implied },
+
 	ss_ss(operation_type::inc_reg_16, 0b00000011, 4),
+	ss_ss(operation_type::dec_reg_16, 0b00001011, 4),
 
 	/* 8-Bit Load Group */
 	register_register(operation_type::ld_reg, 0b01000000),
@@ -289,6 +316,12 @@ const instruction instructions[] = {
 	{ operation_type::push, {0xF5}, addressing_mode::register_af, addressing_mode::implied },
 	{ operation_type::push, {0xFD, 0xE5}, addressing_mode::register_iy, addressing_mode::implied },
 
+	{ operation_type::pop, {0xC1}, addressing_mode::implied, addressing_mode::register_bc },
+	{ operation_type::pop, {0xD1}, addressing_mode::implied, addressing_mode::register_de },
+	{ operation_type::pop, {0xE1}, addressing_mode::implied, addressing_mode::register_hl },
+	{ operation_type::pop, {0xF1}, addressing_mode::implied, addressing_mode::register_af },
+	{ operation_type::pop, {0xFD, 0xE1}, addressing_mode::implied, addressing_mode::register_iy },
+
 	/* Call and Return Group */
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
 	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
@@ -296,6 +329,7 @@ const instruction instructions[] = {
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
+	cc_inst(operation_type::jp_cc, 0b11000010, addressing_mode::immediate_ext, addressing_mode::none),
 	{ operation_type::jr_z, {0x28}, addressing_mode::immediate, addressing_mode::none },
 	{ operation_type::jr, {0x18}, addressing_mode::immediate, addressing_mode::none },
 
@@ -305,6 +339,11 @@ const instruction instructions[] = {
 
 	/* Input and Output Group */
 	{ operation_type::out, {0xD3}, addressing_mode::immediate, addressing_mode::none },
+
+	/* Exchange, Block Transfer, and Search Group */
+	{ operation_type::ex_de_hl, {0xEB}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::ex_af_afs, {0x08}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::exx, {0xD9}, addressing_mode::implied, addressing_mode::implied },
 };
 
 }

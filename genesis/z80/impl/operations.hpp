@@ -80,9 +80,9 @@ public:
 		case 0b011:
 			return flags.C != 0;
 		case 0b100:
-			return flags.PV != 0;
-		case 0b101:
 			return flags.PV == 0;
+		case 0b101:
+			return flags.PV != 0;
 		case 0b110:
 			return flags.S == 0;
 		case 0b111:
@@ -111,6 +111,18 @@ public:
 	inline void jp(z80::memory::address addr)
 	{
 		regs.PC = addr;
+	}
+
+	inline void jp_cc(std::uint8_t cc, z80::memory::address addr)
+	{
+		if(check_cc(cc))
+		{
+			regs.PC = addr;
+		}
+		else
+		{
+			regs.PC += 3;
+		}
 	}
 
 	inline void jr_z(std::int8_t offset)
@@ -383,10 +395,49 @@ public:
 	}
 
 	/* 16-Bit Arithmetic Group */
+	inline void add_hl(std::int16_t src)
+	{
+		std::uint16_t _hl = regs.main_set.HL;
+		std::uint16_t _src = src;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
+		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+
+		flags.N = 0;
+
+		regs.main_set.HL = _hl + _src;
+	}
+
 	inline void inc_reg_16(std::int16_t& reg)
 	{
 		// TODO: uint or int?
 		++reg;
+	}
+
+	inline void dec_reg_16(std::int16_t& reg)
+	{
+		// TODO: uint or int?
+		--reg;
+	}
+
+	/* Exchange, Block Transfer, and Search Group */
+	inline void ex_de_hl()
+	{
+		std::swap(regs.main_set.DE, regs.main_set.HL);
+	}
+
+	inline void ex_af_afs()
+	{
+		std::swap(regs.main_set.AF, regs.alt_set.AF);
+	}
+
+	inline void exx()
+	{
+		std::swap(regs.main_set.BC, regs.alt_set.BC);
+		std::swap(regs.main_set.DE, regs.alt_set.DE);
+		std::swap(regs.main_set.HL, regs.alt_set.HL);
 	}
 
 private:
