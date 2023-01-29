@@ -85,8 +85,8 @@ private:
 			break;
 
 		/* 16-Bit Arithmetic Group */
-		case operation_type::add_hl:
-			ops.add_hl(dec.decode_reg_16(inst.source));
+		case operation_type::add_16:
+			ops.add_16(dec.decode_reg_16(inst.source), dec.decode_reg_16(inst.destination));
 			break;
 		case operation_type::adc_hl:
 			ops.adc_hl(dec.decode_reg_16(inst.source));

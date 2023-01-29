@@ -27,7 +27,7 @@ enum operation_type : std::uint8_t
 	dec_at,
 
 	/* 16-Bit Arithmetic Group */
-	add_hl,
+	add_16,
 	adc_hl,
 	sbc_hl,
 	inc_reg_16,
@@ -289,10 +289,20 @@ const instruction instructions[] = {
 	indexed_indexed(operation_type::dec_at, 0x35),
 
 	/* 16-Bit Arithmetic Group */
-	{ operation_type::add_hl, {0x09}, addressing_mode::register_bc, addressing_mode::implied },
-	{ operation_type::add_hl, {0x19}, addressing_mode::register_de, addressing_mode::implied },
-	{ operation_type::add_hl, {0x29}, addressing_mode::register_hl, addressing_mode::implied },
-	{ operation_type::add_hl, {0x39}, addressing_mode::register_sp, addressing_mode::implied },
+	{ operation_type::add_16, {0x09}, addressing_mode::register_bc, addressing_mode::register_hl },
+	{ operation_type::add_16, {0x19}, addressing_mode::register_de, addressing_mode::register_hl },
+	{ operation_type::add_16, {0x29}, addressing_mode::register_hl, addressing_mode::register_hl },
+	{ operation_type::add_16, {0x39}, addressing_mode::register_sp, addressing_mode::register_hl },
+
+	{ operation_type::add_16, {0xDD, 0x09}, addressing_mode::register_bc, addressing_mode::register_ix },
+	{ operation_type::add_16, {0xDD, 0x19}, addressing_mode::register_de, addressing_mode::register_ix },
+	{ operation_type::add_16, {0xDD, 0x29}, addressing_mode::register_ix, addressing_mode::register_ix },
+	{ operation_type::add_16, {0xDD, 0x39}, addressing_mode::register_sp, addressing_mode::register_ix },
+
+	{ operation_type::add_16, {0xFD, 0x09}, addressing_mode::register_bc, addressing_mode::register_iy },
+	{ operation_type::add_16, {0xFD, 0x19}, addressing_mode::register_de, addressing_mode::register_iy },
+	{ operation_type::add_16, {0xFD, 0x29}, addressing_mode::register_iy, addressing_mode::register_iy },
+	{ operation_type::add_16, {0xFD, 0x39}, addressing_mode::register_sp, addressing_mode::register_iy },
 
 	{ operation_type::adc_hl, {0xED, 0x4A}, addressing_mode::register_bc, addressing_mode::implied },
 	{ operation_type::adc_hl, {0xED, 0x5A}, addressing_mode::register_de, addressing_mode::implied },

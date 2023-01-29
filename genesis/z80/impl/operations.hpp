@@ -464,9 +464,9 @@ public:
 	}
 
 	/* 16-Bit Arithmetic Group */
-	inline void add_hl(std::int16_t src)
+	inline void add_16(std::int16_t src, std::int16_t& dest)
 	{
-		std::uint16_t _hl = regs.main_set.HL;
+		std::uint16_t _hl = dest;
 		std::uint16_t _src = src;
 
 		auto& flags = regs.main_set.flags;
@@ -476,7 +476,7 @@ public:
 
 		flags.N = 0;
 
-		regs.main_set.HL = _hl + _src;
+		dest = _hl + _src;
 	}
 
 	inline void adc_hl(std::int16_t src)
