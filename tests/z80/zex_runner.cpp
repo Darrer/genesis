@@ -19,6 +19,7 @@ public:
 			data = '\n';
 		}
 
+		std::cout << data;
 		buffer << data;
 	}
 
@@ -33,9 +34,11 @@ void log_pc(z80::cpu& cpu)
 	auto pc = cpu.registers().PC;
 	auto op1 = cpu.memory().read<std::uint8_t>(pc);
 	auto op2 = cpu.memory().read<std::uint8_t>(pc + 1);
+	auto op3 = cpu.memory().read<std::uint8_t>(pc + 2);
 
 	std::cout << "PC: " << su::hex_str(pc) << ' ';
-	std::cout << "(" << su::hex_str(op1) << ", " << su::hex_str(op2) << ")" << std::endl;
+	std::cout << "(" << su::hex_str(op1) << ", " << su::hex_str(op2)
+		<< ", " << su::hex_str(op3) << ")" << std::endl;
 }
 
 void log_io_ports(test_io_ports& ports)
@@ -88,9 +91,12 @@ void run_test(const std::string& test_path)
 
 	while(true)
 	{
-		log_pc(cpu);
 		try
 		{
+			// log_pc(cpu);
+			// std::cout << "\rTotal: " << total << "    ";
+			// if(total % 1'000'000 == 0)
+			// 	std::cout << std::endl << "Total: " << total << std::endl;
 			cpu.execute_one();
 			++total;
 		}
@@ -106,4 +112,6 @@ void run_test(const std::string& test_path)
 TEST(Z80, ZEXDOC)
 {
 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
+	// unsupported opcode(0xD7) at 0x9CFF
+	// run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
 }

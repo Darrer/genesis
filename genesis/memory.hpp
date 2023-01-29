@@ -2,6 +2,7 @@
 #define __MEMORY_HPP__
 
 #include "endian.hpp"
+#include "string_utils.hpp"
 
 #include <array>
 #include <cstddef>
@@ -23,6 +24,9 @@ public:
 					  "address type must be big enough to address capacity!");
 
 		static_assert(byte_order == std::endian::little || byte_order == std::endian::big);
+
+		for(auto& b : mem)
+			b = (std::byte)0xFF;
 	}
 
 	template <class T>
@@ -74,7 +78,7 @@ private:
 	inline void check_addr(address addr, size_t size)
 	{
 		if (addr + size >= capacity || addr < 0)
-			throw std::runtime_error("memory check: wrong address");
+			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) + ") read: " + std::to_string(size));
 	}
 
 private:

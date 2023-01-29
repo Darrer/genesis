@@ -24,6 +24,7 @@ public:
 	template<class T>
 	inline void ld_reg(T src, T& dest)
 	{
+		static_assert(sizeof(T) <= 2);
 		dest = src;
 	}
 
@@ -35,6 +36,7 @@ public:
 	template<class T>
 	inline void ld_at(T src, z80::memory::address dest_addr)
 	{
+		static_assert(sizeof(T) <= 2);
 		mem.write(dest_addr, src);
 	}
 
@@ -68,7 +70,7 @@ public:
 	/* Call and Return Group */
 	inline void call(z80::memory::address addr)
 	{
-		std::cout << "call" << std::endl;
+		// std::cout << "call" << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		push(regs.PC);
 		regs.PC = addr;
@@ -82,27 +84,27 @@ public:
 		case 0b000:
 			return flags.Z == 0;
 		case 0b001:
-			return flags.Z != 0;
+			return flags.Z == 1;
 		case 0b010:
 			return flags.C == 0;
 		case 0b011:
-			return flags.C != 0;
+			return flags.C == 1;
 		case 0b100:
 			return flags.PV == 0;
 		case 0b101:
-			return flags.PV != 0;
+			return flags.PV == 1;
 		case 0b110:
 			return flags.S == 0;
 		case 0b111:
-			return flags.S != 0;
+			return flags.S == 1;
 		default:
-			throw std::runtime_error("internal error: unsupported cc" + std::to_string(cc));
+			throw std::runtime_error("check_cc internal error: unsupported cc" + std::to_string(cc));
 		}
 	}
 
 	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
-		std::cout << "call_cc cc: " << su::bin_str(cc) << std::endl;
+		// std::cout << "call_cc cc: " << su::bin_str(cc) << " " << su::hex_str(addr)  << "; " << std::boolalpha << check_cc(cc) << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		if(check_cc(cc))
 		{
@@ -111,15 +113,22 @@ public:
 		}
 	}
 
+	inline void rst(std::uint8_t cc)
+	{
+		regs.PC += 1;
+		push(regs.PC);
+		regs.PC = cc * 0x8;
+	}
+
 	inline void ret()
 	{
-		std::cout << "ret" << std::endl;
 		pop((std::int16_t&)regs.PC);
+		// std::cout << "ret to " << su::hex_str(regs.PC) << std::endl;
 	}
 
 	inline void ret_cc(std::uint8_t cc)
 	{
-		std::cout << "ret_cc " << su::bin_str(cc) << std::endl;
+		// std::cout << "ret_cc " << su::bin_str(cc) << "; " << std::boolalpha << check_cc(cc) << std::endl;
 		if(check_cc(cc))
 		{
 			ret();
@@ -140,7 +149,7 @@ public:
 	{
 		if(check_cc(cc))
 		{
-			regs.PC = addr;
+			jp(addr);
 		}
 		else
 		{
@@ -152,7 +161,43 @@ public:
 	{
 		if(regs.main_set.flags.Z)
 		{
-			regs.PC += offset + 2;
+			jr(offset);
+		}
+		else
+		{
+			regs.PC += 2;
+		}
+	}
+
+	inline void jr_c(std::int8_t offset)
+	{
+		if(regs.main_set.flags.C)
+		{
+			jr(offset);
+		}
+		else
+		{
+			regs.PC += 2;
+		}
+	}
+
+	inline void jr_nz(std::int8_t offset)
+	{
+		if(regs.main_set.flags.Z == 0)
+		{
+			jr(offset);
+		}
+		else
+		{
+			regs.PC += 2;
+		}
+	}
+
+	inline void jr_nc(std::int8_t offset)
+	{
+		if(regs.main_set.flags.C == 0)
+		{
+			jr(offset);
 		}
 		else
 		{
@@ -288,7 +333,8 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = flags.N = flags.C = 0;
+		flags.N = flags.C = 0;
+		flags.H = 1;
 
 		regs.main_set.A = _a & _b;
 
@@ -327,7 +373,6 @@ public:
 		flags.H = flags.N = flags.C = 0;
 
 		regs.main_set.A = _a ^ _b;
-		std::cout << "xor" << std::endl;
 
 		// check Parity/Overflow Flag (P/V)
 		flags.PV = check_parity(regs.main_set.A);
@@ -361,8 +406,8 @@ public:
 		flags.N = 0;
 		flags.PV = r == 127 ? 1 : 0;
 		flags.H = (r & 0x0f) == 0x0f ? 1 : 0;
-		
-		r = ((std::uint8_t) r) + 1;
+
+		r++;
 
 		flags.Z = r == 0 ? 1 : 0;
 		flags.S = r < 0 ? 1 : 0;
@@ -390,12 +435,11 @@ public:
 	{
 		auto& flags = regs.main_set.flags;
 
-		flags.N = 0;
+		flags.N = 1;
 		flags.PV = r == -128 ? 1 : 0;
 		flags.H = (r & 0x0f) == 0 ? 1 : 0;
 		
 		--r;
-		std::cout << "Dec r = " << (int)r << std::endl;
 
 		flags.Z = r == 0 ? 1 : 0;
 		flags.S = r < 0 ? 1 : 0;
@@ -407,7 +451,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.N = 0;
+		flags.N = 1;
 		flags.PV = val == -128 ? 1 : 0;
 		flags.H = (val & 0x0f) == 0 ? 1 : 0;
 		
@@ -450,6 +494,9 @@ public:
 		flags.N = 0;
 
 		regs.main_set.HL = _hl + _src + c;
+
+		flags.S = regs.main_set.HL < 0 ? 1 : 0;
+		flags.Z = regs.main_set.HL == 0 ? 1 : 0;
 	}
 
 	inline void sbc_hl(std::int16_t src)
@@ -464,19 +511,22 @@ public:
 		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
 		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
 
-		flags.N = 0;
+		flags.N = 1;
 
 		regs.main_set.HL = _hl - _src - c;
+
+		flags.S = regs.main_set.HL < 0 ? 1 : 0;
+		flags.Z = regs.main_set.HL == 0 ? 1 : 0;
 	}
 
 	inline void inc_reg_16(std::int16_t& reg)
 	{
-		reg = (std::uint16_t) reg + 1;
+		reg = (std::uint16_t)reg + 1;
 	}
 
 	inline void dec_reg_16(std::int16_t& reg)
 	{
-		reg = (std::uint16_t) reg - 1;
+		reg = (std::uint16_t)reg - 1;
 	}
 
 	/* Exchange, Block Transfer, and Search Group */
@@ -528,6 +578,7 @@ public:
 		regs.main_set.A = std::rotl(val, 1);
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		// regs.main_set.flags.C = val & 0b10000000;
 		regs.main_set.flags.C = val >= 128  ? 1 : 0;
 	}
 
@@ -537,7 +588,8 @@ public:
 		regs.main_set.A = std::rotr(val, 1);
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
-		regs.main_set.flags.C = val % 2;
+		regs.main_set.flags.C = val % 2 == 0 ? 0 : 1;
+		// regs.main_set.flags.C = val & 1;
 	}
 
 private:

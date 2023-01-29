@@ -36,6 +36,7 @@ public:
 			}
 		}
 
+		// TODO: log 2 bytes
 		throw std::runtime_error("execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
 			") at " + su::hex_str(regs.PC));
 	}
@@ -120,7 +121,7 @@ private:
 			ops.ld_reg_from(dec.decode_reg_16(inst.destination), dec.decode_address(inst.source, inst));
 			break;
 		case operation_type::push:
-			ops.push(dec.decode_2_bytes(inst.source, inst));
+			ops.push(dec.decode_reg_16(inst.source));
 			break;
 		case operation_type::pop:
 			ops.pop(dec.decode_reg_16(inst.destination));
@@ -132,6 +133,9 @@ private:
 			return;
 		case operation_type::call_cc:
 			ops.call_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
+			return;
+		case operation_type::rst:
+			ops.rst(dec.decode_cc(inst));
 			return;
 		case operation_type::ret:
 			ops.ret();
@@ -147,11 +151,20 @@ private:
 		case operation_type::jp_cc:
 			ops.jp_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
 			return;
+		case operation_type::jr:
+			ops.jr(dec.decode_byte(inst.source, inst));
+			return;
 		case operation_type::jr_z:
 			ops.jr_z(dec.decode_byte(inst.source, inst));
 			return;
-		case operation_type::jr:
-			ops.jr(dec.decode_byte(inst.source, inst));
+		case operation_type::jr_nz:
+			ops.jr_nz(dec.decode_byte(inst.source, inst));
+			return;
+		case operation_type::jr_c:
+			ops.jr_c(dec.decode_byte(inst.source, inst));
+			return;
+		case operation_type::jr_nc:
+			ops.jr_nc(dec.decode_byte(inst.source, inst));
 			return;
 
 		/* CPU Control Groups */

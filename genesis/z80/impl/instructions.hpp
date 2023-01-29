@@ -46,6 +46,7 @@ enum operation_type : std::uint8_t
 	/* Call and Return Group */
 	call,
 	call_cc,
+	rst,
 	ret,
 	ret_cc,
 
@@ -53,6 +54,9 @@ enum operation_type : std::uint8_t
 	jp,
 	jp_cc,
 	jr_z,
+	jr_nz,
+	jr_c,
+	jr_nc,
 	jr,
 
 	/* CPU Control Groups */
@@ -353,19 +357,24 @@ const instruction instructions[] = {
 	{ operation_type::pop, {0xD1}, addressing_mode::implied, addressing_mode::register_de },
 	{ operation_type::pop, {0xE1}, addressing_mode::implied, addressing_mode::register_hl },
 	{ operation_type::pop, {0xF1}, addressing_mode::implied, addressing_mode::register_af },
-	{ operation_type::pop, {0xFD, 0xE1}, addressing_mode::implied, addressing_mode::register_iy },
 	{ operation_type::pop, {0xDD, 0xE1}, addressing_mode::implied, addressing_mode::register_ix },
+	{ operation_type::pop, {0xFD, 0xE1}, addressing_mode::implied, addressing_mode::register_iy },
 
 	/* Call and Return Group */
 	{ operation_type::call, {0xCD}, addressing_mode::immediate_ext, addressing_mode::none },
-	{ operation_type::ret, {0xC9}, addressing_mode::implied, addressing_mode::none },
 	cc_inst(operation_type::call_cc, 0b11000100, addressing_mode::immediate_ext, addressing_mode::none),
-	cc_inst(operation_type::ret_cc, 0b11000000, addressing_mode::implied, addressing_mode::none),
+	cc_inst(operation_type::rst, 0b11000111, addressing_mode::none, addressing_mode::none),
+	{ operation_type::ret, {0xC9}, addressing_mode::none, addressing_mode::none },
+	cc_inst(operation_type::ret_cc, 0b11000000, addressing_mode::none, addressing_mode::none),
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
+	{ operation_type::jp, {0xE9}, addressing_mode::indirect_hl, addressing_mode::none },
 	cc_inst(operation_type::jp_cc, 0b11000010, addressing_mode::immediate_ext, addressing_mode::none),
 	{ operation_type::jr_z, {0x28}, addressing_mode::immediate, addressing_mode::none },
+	{ operation_type::jr_nz, {0x20}, addressing_mode::immediate, addressing_mode::none },
+	{ operation_type::jr_c, {0x38}, addressing_mode::immediate, addressing_mode::none },
+	{ operation_type::jr_nc, {0x30}, addressing_mode::immediate, addressing_mode::none },
 	{ operation_type::jr, {0x18}, addressing_mode::immediate, addressing_mode::none },
 
 	/* CPU Control Groups */
@@ -385,6 +394,9 @@ const instruction instructions[] = {
 	/* Rotate and Shift Group */
 	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
+
+	// skip so far
+	// { operation_type::nop, {0xFD, 0x40}, addressing_mode::none, addressing_mode::none },
 };
 
 }
