@@ -481,15 +481,17 @@ public:
 
 	inline void adc_hl(std::int16_t src)
 	{
-		// TODO:
 		std::uint16_t _hl = regs.main_set.HL;
 		std::uint16_t _src = src;
 		std::uint16_t c = regs.main_set.flags.C;
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
-		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+		flags.H = ((_hl & 0xfff) + (_src & 0xfff) + c > 0xfff) ? 1 : 0;
+		flags.C = (unsigned long)_hl + (unsigned long)_src + (unsigned long)c > 0xfffful ? 1 : 0;
+
+		flags.PV = (long)regs.main_set.HL + (long)src + c > 32767
+			|| (long)regs.main_set.HL + (long)src + c < -32768 ? 1 : 0;
 
 		flags.N = 0;
 
@@ -501,15 +503,16 @@ public:
 
 	inline void sbc_hl(std::int16_t src)
 	{
-		// TODO:
 		std::uint16_t _hl = regs.main_set.HL;
 		std::uint16_t _src = src;
 		std::uint16_t c = regs.main_set.flags.C;
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
-		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+		flags.H = ((_src & 0xfff) + c > (_hl & 0xfff)) ? 1 : 0;
+		flags.C = ((long)_src + c > _hl) ? 1 : 0;
+		flags.PV = (long)regs.main_set.HL - (long)src - c > 32767
+			|| (long)regs.main_set.HL - (long)src - c < -32768 ? 1 : 0;
 
 		flags.N = 1;
 
