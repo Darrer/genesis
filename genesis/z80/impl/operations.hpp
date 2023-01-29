@@ -477,6 +477,10 @@ public:
 		flags.N = 0;
 
 		dest = _hl + _src;
+
+		std::uint8_t high = dest >> 8;
+		flags.X2 = (high & 0b00100000) >> 5;
+		flags.X1 = (high & 0b00001000) >> 3;
 	}
 
 	inline void adc_hl(std::int16_t src)
