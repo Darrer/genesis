@@ -4,7 +4,7 @@
 #include "z80/cpu.h"
 
 #include <cstdint>
-#include <iostream>
+#include <limits>
 #include <bit>
 
 #include <iostream>
@@ -70,7 +70,6 @@ public:
 	/* Call and Return Group */
 	inline void call(z80::memory::address addr)
 	{
-		// std::cout << "call" << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		push(regs.PC);
 		regs.PC = addr;
@@ -104,7 +103,6 @@ public:
 
 	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
-		// std::cout << "call_cc cc: " << su::bin_str(cc) << " " << su::hex_str(addr)  << "; " << std::boolalpha << check_cc(cc) << std::endl;
 		regs.PC += 3; // always assume call instruction is 3 byte long
 		if(check_cc(cc))
 		{
@@ -123,12 +121,10 @@ public:
 	inline void ret()
 	{
 		pop((std::int16_t&)regs.PC);
-		// std::cout << "ret to " << su::hex_str(regs.PC) << std::endl;
 	}
 
 	inline void ret_cc(std::uint8_t cc)
 	{
-		// std::cout << "ret_cc " << su::bin_str(cc) << "; " << std::boolalpha << check_cc(cc) << std::endl;
 		if(check_cc(cc))
 		{
 			ret();
@@ -235,21 +231,16 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		// check Half Carry Flag (H)
-		flags.H = ((_a & 0x0f) + (_b & 0x0f) > 0xf) ? 1 : 0;
+		flags.H = ((_a & 0xf) + (_b & 0xf) > 0xf) ? 1 : 0;
 
-		// check Parity/Overflow Flag (P/V)
-		flags.PV = (int)_a + (int)_b > 127 || (int)_a + (int)_b < -128 ? 1 : 0;
-
-		// check Carry Flag (C)
-		flags.C = (unsigned)_a + (unsigned)_b > 0xff ? 1 : 0;
+		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b);
+		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b);
 
 		flags.N = 0;
 
 		regs.main_set.A = _a + _b;
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void adc(std::int8_t b)
@@ -260,21 +251,16 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		// check Half Carry Flag (H)
-		flags.H = ((_a & 0x0f) + (_b & 0x0f) + _c > 0xf) ? 1 : 0;
+		flags.H = ((_a & 0xf) + (_b & 0xf) + _c > 0xf) ? 1 : 0;
 
-		// check Parity/Overflow Flag (P/V)
-		flags.PV = (int)_a + (int)_b + _c > 127 || (int)_a + (int)_b + _c < -128 ? 1 : 0;
-
-		// check Carry Flag (C)
-		flags.C = (unsigned)_a + (unsigned)_b + (unsigned)_c > 0xff ? 1 : 0;
+		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b, _c);
+		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b, _c);
 
 		flags.N = 0;
 
 		regs.main_set.A = _a + _b + _c;
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void sub(std::int8_t b)
@@ -284,21 +270,16 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		// check Half Carry Flag (H)
-		flags.H = (_b & 0x0f) > (_a & 0x0f) ? 1 : 0;
+		flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
 
-		// check Parity/Overflow Flag (P/V)
-		flags.PV = (int)_a - (int)_b > 127 || (int)_a - (int)_b < -128 ? 1 : 0;
-
-		// check Carry Flag (C)
-		flags.C = _b > _a  ? 1 : 0;
+		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
+		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
 
 		flags.N = 1;
 
 		regs.main_set.A = _a - _b;
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void sbc(std::int8_t b)
@@ -309,21 +290,15 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		// check Half Carry Flag (H)
-		flags.H = (_b & 0x0f) + _c > (_a & 0x0f) ? 1 : 0;
-
-		// check Parity/Overflow Flag (P/V)
-		flags.PV = (int)_a - (int)_b - _c > 127 || (int)_a - (int)_b - _c < -128 ? 1 : 0;
-
-		// check Carry Flag (C)
-		flags.C = _b + _c > _a  ? 1 : 0;
+		flags.H = (_b & 0xf) + _c > (_a & 0xf) ? 1 : 0;
+		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b, _c);
+		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b, _c);
 
 		flags.N = 1;
 
 		regs.main_set.A = _a - _b - _c;
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void and_8(std::int8_t b)
@@ -338,11 +313,9 @@ public:
 
 		regs.main_set.A = _a & _b;
 
-		// check Parity/Overflow Flag (P/V)
 		flags.PV = check_parity(regs.main_set.A);
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void or_8(std::int8_t b)
@@ -356,11 +329,9 @@ public:
 
 		regs.main_set.A = _a | _b;
 
-		// check Parity/Overflow Flag (P/V)
 		flags.PV = check_parity(regs.main_set.A);
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void xor_8(std::int8_t b)
@@ -374,11 +345,9 @@ public:
 
 		regs.main_set.A = _a ^ _b;
 
-		// check Parity/Overflow Flag (P/V)
 		flags.PV = check_parity(regs.main_set.A);
 
-		flags.S = (regs.main_set.A < 0) ? 1 : 0;
-		flags.Z = (regs.main_set.A == 0) ? 1 : 0;
+		set_sz_flags(regs.main_set.A);
 	}
 
 	inline void cp(std::int8_t b)
@@ -388,29 +357,29 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = (_b & 0x0f) > (_a & 0x0f) ? 1 : 0;
+		flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
 
-		flags.PV = (int)_a - (int)_b > 127 || (int)_a - (int)_b < -128 ? 1 : 0;
-
-		flags.S = (regs.main_set.A - b < 0) ? 1 : 0;
+		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
 
 		flags.N = 1;
-		flags.C = _b > _a  ? 1 : 0;
-		flags.Z = (regs.main_set.A == b) ? 1 : 0;
+		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
+
+		set_sz_flags(regs.main_set.A - b);
 	}
 
 	inline void inc_reg(std::int8_t& r)
 	{
 		auto& flags = regs.main_set.flags;
 
+		std::uint8_t _r = r;
+
 		flags.N = 0;
-		flags.PV = r == 127 ? 1 : 0;
-		flags.H = (r & 0x0f) == 0x0f ? 1 : 0;
+		flags.PV = _r == 127 ? 1 : 0;
+		flags.H = (_r & 0xf) == 0xf ? 1 : 0;
 
-		r++;
+		r = _r + 1;
 
-		flags.Z = r == 0 ? 1 : 0;
-		flags.S = r < 0 ? 1 : 0;
+		set_sz_flags(r);
 	}
 
 	inline void inc_at(z80::memory::address addr)
@@ -421,12 +390,11 @@ public:
 
 		flags.N = 0;
 		flags.PV = val == 127 ? 1 : 0;
-		flags.H = (val & 0x0f) == 0x0f ? 1 : 0;
+		flags.H = (val & 0xf) == 0xf ? 1 : 0;
 		
 		++val;
 
-		flags.Z = val == 0 ? 1 : 0;
-		flags.S = (std::int8_t)val < 0 ? 1 : 0;
+		set_sz_flags((std::int8_t)val);
 
 		mem.write(addr, val);
 	}
@@ -435,30 +403,30 @@ public:
 	{
 		auto& flags = regs.main_set.flags;
 
+		std::uint8_t _r = r;
+
 		flags.N = 1;
 		flags.PV = r == -128 ? 1 : 0;
-		flags.H = (r & 0x0f) == 0 ? 1 : 0;
-		
-		--r;
+		flags.H = (_r & 0xf) == 0 ? 1 : 0;
+	
+		r = _r - 1;
 
-		flags.Z = r == 0 ? 1 : 0;
-		flags.S = r < 0 ? 1 : 0;
+		set_sz_flags(r);
 	}
 
 	inline void dec_at(z80::memory::address addr)
 	{
-		auto val = mem.read<std::int8_t>(addr);
+		auto val = mem.read<std::uint8_t>(addr);
 
 		auto& flags = regs.main_set.flags;
 
 		flags.N = 1;
-		flags.PV = val == -128 ? 1 : 0;
-		flags.H = (val & 0x0f) == 0 ? 1 : 0;
+		flags.PV = (std::int8_t)val == -128 ? 1 : 0;
+		flags.H = (val & 0xf) == 0 ? 1 : 0;
 		
 		--val;
 
-		flags.Z = val == 0 ? 1 : 0;
-		flags.S = val < 0 ? 1 : 0;
+		set_sz_flags((std::int8_t)val);
 
 		mem.write(addr, val);
 	}
@@ -466,17 +434,17 @@ public:
 	/* 16-Bit Arithmetic Group */
 	inline void add_16(std::int16_t src, std::int16_t& dest)
 	{
-		std::uint16_t _hl = dest;
+		std::uint16_t _dest = dest;
 		std::uint16_t _src = src;
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_hl & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
-		flags.C = (unsigned long)_hl + (unsigned long)_src > 0xfffful ? 1 : 0;
+		flags.H = ((_dest & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
+		flags.C = check_carry<std::uint16_t>(dest, src);
 
 		flags.N = 0;
 
-		dest = _hl + _src;
+		dest = _dest + _src;
 
 		std::uint8_t high = dest >> 8;
 		flags.X2 = (high & 0b00100000) >> 5;
@@ -492,17 +460,15 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = ((_hl & 0xfff) + (_src & 0xfff) + c > 0xfff) ? 1 : 0;
-		flags.C = (unsigned long)_hl + (unsigned long)_src + (unsigned long)c > 0xfffful ? 1 : 0;
 
-		flags.PV = (long)regs.main_set.HL + (long)src + c > 32767
-			|| (long)regs.main_set.HL + (long)src + c < -32768 ? 1 : 0;
+		flags.C = check_carry<std::uint16_t>(regs.main_set.HL, src, c);
+		flags.PV = check_overflow_add<std::int16_t>(regs.main_set.HL, src, c);
 
 		flags.N = 0;
 
 		regs.main_set.HL = _hl + _src + c;
 
-		flags.S = regs.main_set.HL < 0 ? 1 : 0;
-		flags.Z = regs.main_set.HL == 0 ? 1 : 0;
+		set_sz_flags(regs.main_set.HL);
 	}
 
 	inline void sbc_hl(std::int16_t src)
@@ -513,17 +479,17 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
+		// TODO: c flag does not count here!!!
 		flags.H = ((_src & 0xfff) + c > (_hl & 0xfff)) ? 1 : 0;
-		flags.C = ((long)_src + c > _hl) ? 1 : 0;
-		flags.PV = (long)regs.main_set.HL - (long)src - c > 32767
-			|| (long)regs.main_set.HL - (long)src - c < -32768 ? 1 : 0;
+		flags.C = check_borrow<std::uint16_t>(regs.main_set.HL, src, c);
+
+		flags.PV = check_overflow_sub<std::int16_t>(regs.main_set.HL, src, c);
 
 		flags.N = 1;
 
 		regs.main_set.HL = _hl - _src - c;
 
-		flags.S = regs.main_set.HL < 0 ? 1 : 0;
-		flags.Z = regs.main_set.HL == 0 ? 1 : 0;
+		set_sz_flags(regs.main_set.HL);
 	}
 
 	inline void inc_reg_16(std::int16_t& reg)
@@ -600,9 +566,10 @@ public:
 	}
 
 private:
-	/* utils */
-	std::uint8_t static check_parity(int n)
+	/* flag helpers */
+	static std::uint8_t check_parity(std::uint8_t val)
 	{
+		int n = val;
 		int b;
 		b = n ^ (n >> 1); 
 		b = b ^ (b >> 2); 
@@ -610,9 +577,76 @@ private:
 		b = b ^ (b >> 8); 
 		b = b ^ (b >> 16); 
 		if (b & 1)
-			return 1;
-		else
 			return 0;
+		else
+			return 1;
+	}
+
+	template<class T, class T1, class T2>
+	static std::uint8_t check_overflow_add(T1 a, T2 b, std::uint8_t c = 0)
+	{
+		static_assert(sizeof(T1) <= 2 && sizeof(T2) <= 2);
+
+		long sum = (long)a + (long)b + c;
+
+		if(sum > std::numeric_limits<T>::max())
+			return 1;
+		
+		if(sum < std::numeric_limits<T>::min())
+			return 1;
+
+		return 0;
+	}
+
+	template<class T, class T1, class T2>
+	static std::uint8_t check_overflow_sub(T1 a, T2 b, std::uint8_t c = 0)
+	{
+		static_assert(sizeof(T1) <= 2 && sizeof(T2) <= 2);
+
+		long diff = (long)a - (long)b - c;
+
+		if(diff > std::numeric_limits<T>::max())
+			return 1;
+
+		if(diff < std::numeric_limits<T>::min())
+			return 1;
+
+		return 0;
+	}
+
+	template<class T>
+	static std::uint8_t check_carry(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+
+		long sum = (long)a + (long)b + c;
+
+		if(sum > std::numeric_limits<T>::max())
+			return 1;
+
+		return 0;
+	}
+
+	template<class T>
+	static std::uint8_t check_borrow(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+
+		long sum = (long)b + c;
+
+		if(sum > a)
+			return 1;
+
+		return 0;
+	}
+
+	template<class T>
+	void set_sz_flags(T res)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == true);
+
+		regs.main_set.flags.S = res < 0 ? 1 : 0;
+		regs.main_set.flags.Z = res == 0 ? 1 : 0;
 	}
 
 private:

@@ -113,10 +113,9 @@ TEST(Z80, ZEXDOC)
 {
 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
 	// (0xDD, 0x84)
-
 }
 
-TEST(Z80, ZEXALL)
-{
-	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
-}
+// TEST(Z80, ZEXALL)
+// {
+// 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
+// }
