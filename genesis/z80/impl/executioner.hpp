@@ -7,6 +7,7 @@
 #include "instructions.hpp"
 #include "decoder.hpp"
 #include "operations.hpp"
+#include "inst_finder.hpp"
 
 
 namespace genesis::z80
@@ -27,18 +28,9 @@ public:
 		z80::opcode opcode = mem.read<z80::opcode>(regs.PC);
 		z80::opcode opcode2 = mem.read<z80::opcode>(regs.PC + 1);
 
-		for(const auto& inst : instructions)
-		{
-			if(opcode == inst.opcodes[0] && (inst.opcodes[1] == 0x0 || inst.opcodes[1] == opcode2))
-			{
-				exec_inst(inst);
-				return;
-			}
-		}
-
-		// TODO: log 2 bytes
-		throw std::runtime_error("execute_one error, unsupported opcode(" + su::hex_str(opcode) + 
-			") at " + su::hex_str(regs.PC));
+		// auto inst = finder.linear_search(opcode, opcode2);
+		auto inst = finder.fast_search(opcode, opcode2);
+		exec_inst(inst);
 	}
 
 private:
@@ -216,6 +208,7 @@ private:
 	z80::cpu& cpu;
 	z80::decoder dec;
 	z80::operations ops;
+	z80::inst_finder finder;
 };
 
 }

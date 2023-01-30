@@ -22,6 +22,7 @@ PRIVATE
 	z80/impl/instructions.hpp
 	z80/impl/decoder.hpp
 	z80/impl/executioner.hpp
+	z80/impl/inst_finder.hpp
 )
 
 # executable based on core lib

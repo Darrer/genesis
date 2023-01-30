@@ -112,6 +112,11 @@ void run_test(const std::string& test_path)
 TEST(Z80, ZEXDOC)
 {
 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
-	// unsupported opcode(0xD7) at 0x9CFF
-	// run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
+	// (0xDD, 0x84)
+
+}
+
+TEST(Z80, ZEXALL)
+{
+	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
 }

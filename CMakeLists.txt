@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (MSVC)
 	add_compile_options(/W4)
 else()
-	add_compile_options(-Wall -Wextra -pedantic -O2)
+	add_compile_options(-Wall -Wextra -pedantic -O3)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
