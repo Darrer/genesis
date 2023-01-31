@@ -307,6 +307,7 @@ public:
 
 		flags.N = flags.C = 0;
 		flags.H = 1;
+		// flags.H = ((_a & 0b1000) & (_b & 0b1000)) >> 3;
 
 		regs.main_set.A = _a & _b;
 
@@ -322,7 +323,9 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = flags.N = flags.C = 0;
+		flags.N = flags.C = 0;
+		flags.H = 0;
+		// flags.H = ((_a & 0b1000) | (_b & 0b1000)) >> 3;
 
 		regs.main_set.A = _a | _b;
 
@@ -555,6 +558,24 @@ public:
 		// regs.main_set.flags.C = val & 1;
 	}
 
+	inline void neg()
+	{
+		auto& flags = regs.main_set.flags;
+		std::uint8_t a = regs.main_set.A;
+
+		// flags.C = a != 0 ? 1 : 0;
+		// flags.PV = a == 0x80 ? 1 : 0;
+
+		flags.C = check_borrow<std::uint8_t>(0, regs.main_set.A);
+		flags.PV = check_overflow_sub<std::int8_t>(0, regs.main_set.A);
+		flags.H = check_half_borrow<std::uint8_t>(0, regs.main_set.A);
+		flags.N = 1;
+
+		regs.main_set.A = (std::int8_t)0 - regs.main_set.A;
+
+		set_sz_flags(regs.main_set.A);
+	}
+
 private:
 	/* flag helpers */
 	static std::uint8_t check_parity(std::uint8_t val)
@@ -652,13 +673,35 @@ private:
 		static_assert(sizeof(T) <= 2);
 
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
-		long sum = (long)(b & mask) + c;
 
-		if(sum > (long)(a & mask))
-			return 1;
+		auto a1 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
+		{
+			// if and only if the upper nibble had to change as a result of the operation on the lower nibble.
+			T res = (T)(a & mask) - (T)(b & mask) - c;
+			T upper = res & (~mask);
+			if(upper != 0)
+				return 1;
+			return 0;
+		};
 
-		// flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
-		return 0;
+
+		auto a2 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
+		{
+			long sum = (long)(b & mask) + c;
+
+			if(sum > (long)(a & mask))
+				return 1;
+
+			return 0;
+		};
+
+		if(a1(a, b, c) != a2(a, b, c))
+		{
+			std::cout << "It makes differene!!!" << std::endl;
+		}
+
+
+		return a2(a, b, c);
 	}
 
 	template<class T>

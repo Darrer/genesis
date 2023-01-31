@@ -76,6 +76,8 @@ enum operation_type : std::uint8_t
 	/* Rotate and Shift Group */
 	rlca,
 	rrca,
+
+	neg,
 };
 
 enum addressing_mode : std::uint8_t
@@ -104,6 +106,11 @@ enum addressing_mode : std::uint8_t
 	register_sp,
 	register_ix,
 	register_iy,
+
+	register_ixh,
+	register_ixl,
+	register_iyh,
+	register_iyl,
 
 	// immediate
 	immediate,
@@ -244,6 +251,12 @@ enum register_type : std::uint8_t
 	destination_register_wide(op, 0xDD, opcode2, 3, addressing_mode::indexed_ix), \
 	destination_register_wide(op, 0xFD, opcode2, 3, addressing_mode::indexed_iy)
 
+#define ixhl_iyhl(op, opcode2, dest) \
+	{op, {0xDD, opcode2},     addressing_mode::register_ixh, dest }, \
+	{op, {0xDD, opcode2 + 1}, addressing_mode::register_ixl, dest }, \
+	{op, {0xFD, opcode2},     addressing_mode::register_iyh, dest }, \
+	{op, {0xFD, opcode2 + 1}, addressing_mode::register_iyl, dest }
+
 const instruction instructions[] = {
 	/* 8-Bit Arithmetic Group */
 	register_implied(operation_type::add, 0b10000000, 0),
@@ -256,6 +269,9 @@ const instruction instructions[] = {
 	register_implied(operation_type::cp, 0b10111000, 0),
 	register_implied(operation_type::inc_reg, 0b00000100, 3),
 	register_implied(operation_type::dec_reg, 0b00000101, 3),
+
+	// { operation_type::inc_reg, {0xDD, 0x24}, addressing_mode::register_r, addressing_mode::register_r },
+	// { operation_type::dec_reg, {0xDD, 0x25}, addressing_mode::register_r, addressing_mode::register_r },
 
 	{ operation_type::add, {0xC6}, addressing_mode::immediate, addressing_mode::implied },
 	{ operation_type::adc, {0xCE}, addressing_mode::immediate, addressing_mode::implied },
@@ -288,6 +304,27 @@ const instruction instructions[] = {
 	indexed_indexed(operation_type::inc_at, 0x34),
 	indexed_indexed(operation_type::dec_at, 0x35),
 
+	// XXX: didn't spend much time to test...
+	ixhl_iyhl(operation_type::add, 0x84, addressing_mode::implied),
+	ixhl_iyhl(operation_type::adc, 0x8C, addressing_mode::implied),
+	ixhl_iyhl(operation_type::sub, 0x94, addressing_mode::implied),
+	ixhl_iyhl(operation_type::sbc, 0x9C, addressing_mode::implied),
+	ixhl_iyhl(operation_type::and_8, 0xA4, addressing_mode::implied),
+	ixhl_iyhl(operation_type::xor_8, 0xAC, addressing_mode::implied),
+	ixhl_iyhl(operation_type::or_8, 0xB4, addressing_mode::implied),
+	ixhl_iyhl(operation_type::cp, 0xBC, addressing_mode::implied),
+
+	{ operation_type::inc_reg, {0xDD, 0x24}, addressing_mode::register_ixh, addressing_mode::register_ixh },
+	{ operation_type::dec_reg, {0xDD, 0x25}, addressing_mode::register_ixh, addressing_mode::register_ixh },
+	{ operation_type::inc_reg, {0xDD, 0x2C}, addressing_mode::register_ixl, addressing_mode::register_ixl },
+	{ operation_type::dec_reg, {0xDD, 0x2D}, addressing_mode::register_ixl, addressing_mode::register_ixl },
+
+	{ operation_type::inc_reg, {0xFD, 0x24}, addressing_mode::register_iyh, addressing_mode::register_iyh },
+	{ operation_type::dec_reg, {0xFD, 0x25}, addressing_mode::register_iyh, addressing_mode::register_iyh },
+	{ operation_type::inc_reg, {0xFD, 0x2C}, addressing_mode::register_iyl, addressing_mode::register_iyl },
+	{ operation_type::dec_reg, {0xFD, 0x2D}, addressing_mode::register_iyl, addressing_mode::register_iyl },
+
+
 	/* 16-Bit Arithmetic Group */
 	{ operation_type::add_16, {0x09}, addressing_mode::register_bc, addressing_mode::register_hl },
 	{ operation_type::add_16, {0x19}, addressing_mode::register_de, addressing_mode::register_hl },
@@ -315,7 +352,11 @@ const instruction instructions[] = {
 	{ operation_type::sbc_hl, {0xED, 0x72}, addressing_mode::register_sp, addressing_mode::implied },
 
 	ss_ss(operation_type::inc_reg_16, 0b00000011, 4),
+	{ operation_type::inc_reg_16, {0xDD, 0x23}, addressing_mode::register_ix, addressing_mode::register_ix },
+	{ operation_type::inc_reg_16, {0xFD, 0x23}, addressing_mode::register_iy, addressing_mode::register_iy },
 	ss_ss(operation_type::dec_reg_16, 0b00001011, 4),
+	{ operation_type::dec_reg_16, {0xDD, 0x2B}, addressing_mode::register_ix, addressing_mode::register_ix },
+	{ operation_type::dec_reg_16, {0xFD, 0x2B}, addressing_mode::register_iy, addressing_mode::register_iy },
 
 	/* 8-Bit Load Group */
 	register_register(operation_type::ld_reg, 0b01000000),
@@ -405,7 +446,9 @@ const instruction instructions[] = {
 	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
 
-	// skip so far
+	{ operation_type::neg, {0xED, 0x44}, addressing_mode::none, addressing_mode::implied },
+
+	/* Skip this commands */
 	// { operation_type::nop, {0xFD, 0x40}, addressing_mode::none, addressing_mode::none },
 };
 

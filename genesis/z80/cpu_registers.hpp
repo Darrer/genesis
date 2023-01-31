@@ -103,8 +103,28 @@ public:
 
 class cpu_registers
 {
+private:
+	union {
+		struct
+		{
+			std::int8_t ixl;
+			std::int8_t ixh;
+		} ix_lh;
+		std::int16_t ix;
+	};
+
+	union {
+		struct
+		{
+			std::int8_t iyl;
+			std::int8_t iyh;
+		} iy_lh;
+		std::int16_t iy;
+	};
 public:
-	cpu_registers()
+	cpu_registers() :
+		IXH(ix_lh.ixh), IXL(ix_lh.ixl), IX(ix),
+		IYH(iy_lh.iyh), IYL(iy_lh.iyl), IY(iy)
 	{
 		I = R = 0x0;
 		IX = IY = SP = PC = 0x0;
@@ -120,8 +140,13 @@ public:
 	std::int8_t I;
 	std::int8_t R;
 
-	std::int16_t IX;
-	std::int16_t IY;
+	std::int8_t& IXH;
+	std::int8_t& IXL;
+	std::int16_t& IX;
+
+	std::int8_t& IYH;
+	std::int8_t& IYL;
+	std::int16_t& IY;
 
 	std::int16_t SP;
 	std::uint16_t PC;

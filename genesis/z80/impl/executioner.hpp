@@ -197,6 +197,10 @@ private:
 			ops.rrca();
 			break;
 
+		case operation_type::neg:
+			ops.neg();
+			break;
+
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + std::to_string(inst.op_type));
 		}

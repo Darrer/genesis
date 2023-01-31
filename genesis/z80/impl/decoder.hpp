@@ -34,6 +34,10 @@ public:
 		case addressing_mode::register_l:
 		case addressing_mode::register_i:
 		case addressing_mode::register_r:
+		case addressing_mode::register_ixh:
+		case addressing_mode::register_ixl:
+		case addressing_mode::register_iyh:
+		case addressing_mode::register_iyl:
 			return decode_reg_8(addr_mode);
 
 		case addressing_mode::immediate:
@@ -122,6 +126,14 @@ public:
 			return regs.I;
 		case addressing_mode::register_r:
 			return regs.R;
+		case addressing_mode::register_ixh:
+			return regs.IXH;
+		case addressing_mode::register_ixl:
+			return regs.IXL;
+		case addressing_mode::register_iyh:
+			return regs.IYH;
+		case addressing_mode::register_iyl:
+			return regs.IYL;
 		default:
 			unsupported_addresing_mode(addr_mode);
 		}
@@ -236,6 +248,10 @@ public:
 			case addressing_mode::register_sp:
 			case addressing_mode::register_ix:
 			case addressing_mode::register_iy:
+			case addressing_mode::register_ixh:
+			case addressing_mode::register_ixl:
+			case addressing_mode::register_iyh:
+			case addressing_mode::register_iyl:
 			case addressing_mode::indirect_hl:
 			case addressing_mode::indirect_bc:
 			case addressing_mode::indirect_de:
