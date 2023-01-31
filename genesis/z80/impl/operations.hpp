@@ -231,8 +231,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_a & 0xf) + (_b & 0xf) > 0xf) ? 1 : 0;
-
+		flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, b);
 		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b);
 		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b);
 
@@ -251,8 +250,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_a & 0xf) + (_b & 0xf) + _c > 0xf) ? 1 : 0;
-
+		flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, b, _c);
 		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b, _c);
 		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b, _c);
 
@@ -270,8 +268,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
-
+		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b);
 		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
 		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
 
@@ -290,7 +287,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = (_b & 0xf) + _c > (_a & 0xf) ? 1 : 0;
+		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b, _c);
 		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b, _c);
 		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b, _c);
 
@@ -352,17 +349,12 @@ public:
 
 	inline void cp(std::int8_t b)
 	{
-		std::uint8_t _a = (std::uint8_t)regs.main_set.A;
-		std::uint8_t _b = (std::uint8_t)b;
-
 		auto& flags = regs.main_set.flags;
 
-		flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
-
+		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b);
 		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
-
-		flags.N = 1;
 		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
+		flags.N = 1;
 
 		set_sz_flags(regs.main_set.A - b);
 	}
@@ -439,7 +431,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_dest & 0xfff) + (_src & 0xfff) > 0xfff) ? 1 : 0;
+		flags.H = check_half_carry<std::uint16_t>(dest, src);
 		flags.C = check_carry<std::uint16_t>(dest, src);
 
 		flags.N = 0;
@@ -459,8 +451,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.H = ((_hl & 0xfff) + (_src & 0xfff) + c > 0xfff) ? 1 : 0;
-
+		flags.H = check_half_carry<std::uint16_t>(regs.main_set.HL, src, c);
 		flags.C = check_carry<std::uint16_t>(regs.main_set.HL, src, c);
 		flags.PV = check_overflow_add<std::int16_t>(regs.main_set.HL, src, c);
 
@@ -479,8 +470,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		// TODO: c flag does not count here!!!
-		flags.H = ((_src & 0xfff) + c > (_hl & 0xfff)) ? 1 : 0;
+		flags.H = check_half_borrow<std::uint16_t>(regs.main_set.HL, src, c);
 		flags.C = check_borrow<std::uint16_t>(regs.main_set.HL, src, c);
 
 		flags.PV = check_overflow_sub<std::int16_t>(regs.main_set.HL, src, c);
@@ -582,10 +572,10 @@ private:
 			return 1;
 	}
 
-	template<class T, class T1, class T2>
-	static std::uint8_t check_overflow_add(T1 a, T2 b, std::uint8_t c = 0)
+	template<class T>
+	static std::uint8_t check_overflow_add(T a, T b, std::uint8_t c = 0)
 	{
-		static_assert(sizeof(T1) <= 2 && sizeof(T2) <= 2);
+		static_assert(std::numeric_limits<T>::is_signed == true);
 
 		long sum = (long)a + (long)b + c;
 
@@ -598,10 +588,10 @@ private:
 		return 0;
 	}
 
-	template<class T, class T1, class T2>
-	static std::uint8_t check_overflow_sub(T1 a, T2 b, std::uint8_t c = 0)
+	template<class T>
+	static std::uint8_t check_overflow_sub(T a, T b, std::uint8_t c = 0)
 	{
-		static_assert(sizeof(T1) <= 2 && sizeof(T2) <= 2);
+		static_assert(std::numeric_limits<T>::is_signed == true);
 
 		long diff = (long)a - (long)b - c;
 
@@ -637,6 +627,37 @@ private:
 		if(sum > a)
 			return 1;
 
+		return 0;
+	}
+
+	template<class T>
+	static std::uint8_t check_half_carry(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+		static_assert(sizeof(T) <= 2);
+
+		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
+		long sum = (long)(a & mask) + (long)(b & mask) + c;
+
+		if(sum > mask)
+			return 1;
+
+		return 0;
+	}
+
+	template<class T>
+	static std::uint8_t check_half_borrow(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+		static_assert(sizeof(T) <= 2);
+
+		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
+		long sum = (long)(b & mask) + c;
+
+		if(sum > (long)(a & mask))
+			return 1;
+
+		// flags.H = (_b & 0xf) > (_a & 0xf) ? 1 : 0;
 		return 0;
 	}
 
