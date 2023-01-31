@@ -192,9 +192,14 @@ private:
 		case operation_type::rlca:
 			ops.rlca();
 			break;
-
 		case operation_type::rrca:
 			ops.rrca();
+			break;
+		case operation_type::rla:
+			ops.rla();
+			break;
+		case operation_type::rra:
+			ops.rra();
 			break;
 
 		case operation_type::neg:

@@ -544,8 +544,7 @@ public:
 		regs.main_set.A = std::rotl(val, 1);
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
-		// regs.main_set.flags.C = val & 0b10000000;
-		regs.main_set.flags.C = val >= 128  ? 1 : 0;
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
 	}
 
 	inline void rrca()
@@ -554,15 +553,32 @@ public:
 		regs.main_set.A = std::rotr(val, 1);
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
-		regs.main_set.flags.C = val % 2 == 0 ? 0 : 1;
-		// regs.main_set.flags.C = val & 1;
+		regs.main_set.flags.C = val & 1;
+	}
+
+	inline void rla()
+	{
+		std::uint8_t val = regs.main_set.A;
+		regs.main_set.A = (val << 1) | regs.main_set.flags.C;
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+	}
+
+	inline void rra()
+	{
+		std::uint8_t val = regs.main_set.A;
+		regs.main_set.A = (val >> 1) | (regs.main_set.flags.C << 7);
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.C = val & 1;
 	}
 
 	inline void neg()
 	{
 		auto& flags = regs.main_set.flags;
-		std::uint8_t a = regs.main_set.A;
 
+		// std::uint8_t a = regs.main_set.A;
 		// flags.C = a != 0 ? 1 : 0;
 		// flags.PV = a == 0x80 ? 1 : 0;
 

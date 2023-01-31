@@ -76,6 +76,8 @@ enum operation_type : std::uint8_t
 	/* Rotate and Shift Group */
 	rlca,
 	rrca,
+	rla,
+	rra,
 
 	neg,
 };
@@ -445,6 +447,8 @@ const instruction instructions[] = {
 	/* Rotate and Shift Group */
 	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::rra, {0x1F}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::rla, {0x17}, addressing_mode::implied, addressing_mode::implied },
 
 	{ operation_type::neg, {0xED, 0x44}, addressing_mode::none, addressing_mode::implied },
 
