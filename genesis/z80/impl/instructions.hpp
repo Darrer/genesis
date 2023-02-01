@@ -79,6 +79,9 @@ enum operation_type : std::uint8_t
 	rla,
 	rra,
 
+	/* Bit Set, Reset, and Test Group */
+	tst_bit,
+
 	neg,
 };
 
@@ -127,7 +130,12 @@ enum addressing_mode : std::uint8_t
 
 	// indexed
 	indexed_ix,
-	indexed_iy
+	indexed_iy,
+
+	// bit
+	bit,
+	immediate_bit,
+	
 };
 
 class instruction
@@ -190,6 +198,16 @@ enum register_type : std::uint8_t
 	{op, { opcode | (register_type::H << reg_offset) }, addressing_mode::register_h, dest}, \
 	{op, { opcode | (register_type::L << reg_offset) }, addressing_mode::register_l, dest}
 
+#define destination_bit(op, opcode1, opcode2, src) \
+	{op, {opcode1, opcode2 | (0b000 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b001 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b010 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b011 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b100 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b101 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b110 << 3)}, src, addressing_mode::bit}, \
+	{op, {opcode1, opcode2 | (0b111 << 3)}, src, addressing_mode::bit}
+
 #define ss_ss(op, opcode, reg_offset) \
 	{op, {opcode | (0b00 << reg_offset)}, addressing_mode::register_bc, addressing_mode::register_bc}, \
 	{op, {opcode | (0b01 << reg_offset)}, addressing_mode::register_de, addressing_mode::register_de}, \
@@ -222,6 +240,17 @@ enum register_type : std::uint8_t
 	source_register(op, opcode | (register_type::E << 3), 0, addressing_mode::register_e), \
 	source_register(op, opcode | (register_type::H << 3), 0, addressing_mode::register_h), \
 	source_register(op, opcode | (register_type::L << 3), 0, addressing_mode::register_l)
+
+#define register_bit(op, opcode1, opcode2) \
+	source_register_wide(op, opcode1, opcode2 | (0b000 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b001 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b010 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b011 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b100 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b101 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b110 << 3), 0, addressing_mode::bit), \
+	source_register_wide(op, opcode1, opcode2 | (0b111 << 3), 0, addressing_mode::bit)
+
 
 /* immediate source */
 
@@ -449,6 +478,12 @@ const instruction instructions[] = {
 	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rra, {0x1F}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rla, {0x17}, addressing_mode::implied, addressing_mode::implied },
+
+	/* Bit Set, Reset, and Test Group */
+	{ operation_type::tst_bit, {0xDD, 0xCB}, addressing_mode::indexed_ix, addressing_mode::immediate_bit },
+	{ operation_type::tst_bit, {0xFD, 0xCB}, addressing_mode::indexed_ix, addressing_mode::immediate_bit },
+	destination_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
+	register_bit(operation_type::tst_bit, 0xCB, 0b01000000),
 
 	{ operation_type::neg, {0xED, 0x44}, addressing_mode::none, addressing_mode::implied },
 

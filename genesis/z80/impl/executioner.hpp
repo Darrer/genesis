@@ -202,6 +202,11 @@ private:
 			ops.rra();
 			break;
 
+		/* Bit Set, Reset, and Test Group */
+		case operation_type::tst_bit:
+			ops.tst_bit(dec.decode_byte(inst.source, inst), dec.decode_bit(inst.destination, inst));
+			break;
+
 		case operation_type::neg:
 			ops.neg();
 			break;

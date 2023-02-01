@@ -574,6 +574,18 @@ public:
 		regs.main_set.flags.C = val & 1;
 	}
 
+	/* Bit Set, Reset, and Test Group */
+	inline void tst_bit(std::uint8_t src, std::uint8_t bit)
+	{
+		bool is_set = ((src >> bit) & 1) != 0;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.Z = is_set ? 0 : 1;
+		flags.H = 1;
+		flags.N = 0;
+	}
+
 	inline void neg()
 	{
 		auto& flags = regs.main_set.flags;

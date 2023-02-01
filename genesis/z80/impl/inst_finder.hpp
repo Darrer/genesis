@@ -19,6 +19,7 @@ private:
 		dd,
 		fd,
 		ed,
+		cb,
 		count,
 	};
 	constexpr static std::uint16_t no_index = 0xFFFF;
@@ -43,6 +44,9 @@ public:
 		case 0xED:
 			idx = get_idx(map_index::ed, op2);
 			break;
+		case 0xCB:
+			idx = get_idx(map_index::cb, op2);
+			break;
 		default:
 			idx = get_idx(map_index::single, op1);
 			break;
@@ -50,7 +54,7 @@ public:
 
 		if(idx == no_index)
 		{
-			return make_nop(op1, op2);
+			// return make_nop(op1, op2);
 			throw std::runtime_error("fast_search error: unsupported opcode: " + su::hex_str(op1) + ", " + su::hex_str(op2));
 		}
 
@@ -88,6 +92,7 @@ private:
 		case 0xDD:
 		case 0xFD:
 		case 0xED:
+		case 0xCB:
 			inst.opcodes = {op1, op2};
 			return inst;
 		
@@ -119,6 +124,9 @@ private:
 				break;
 			case 0xED:
 				store_idx(map_index::ed, i, inst.opcodes[1]);
+				break;
+			case 0xCB:
+				store_idx(map_index::cb, i, inst.opcodes[1]);
 				break;
 			default:
 				// so far assume it's 1 byte opcode

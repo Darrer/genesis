@@ -226,6 +226,19 @@ public:
 		return (inst.opcodes[0] & 0b00111000) >> 3;
 	}
 
+	std::uint8_t decode_bit(addressing_mode addr_mode, instruction inst)
+	{
+		switch (addr_mode)
+		{
+		case addressing_mode::bit:
+			return (inst.opcodes[1] & 0b00111000) >> 3;
+		case addressing_mode::immediate_bit:
+			return (decode_immediate<std::uint8_t>(inst) & 0b00111000) >> 3;
+		default:
+			unsupported_addresing_mode(addr_mode);
+		}
+	}
+
 	void advance_pc(const instruction& inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
@@ -259,11 +272,13 @@ public:
 			case addressing_mode::indirect_af:
 			case addressing_mode::implied:
 			case addressing_mode::none:
+			case addressing_mode::bit:
 				return 0;
 
 			case addressing_mode::immediate:
 			case addressing_mode::indexed_ix:
 			case addressing_mode::indexed_iy:
+			case addressing_mode::immediate_bit:
 				return 1;
 
 			case addressing_mode::immediate_ext:
@@ -301,7 +316,8 @@ private:
 
 	static bool is_immediate(addressing_mode addr_mode)
 	{
-		return addr_mode == addressing_mode::immediate || addr_mode == addressing_mode::immediate_ext;
+		return addr_mode == addressing_mode::immediate || addr_mode == addressing_mode::immediate_ext
+			|| addr_mode == addressing_mode::immediate_bit;
 	}
 private:
 	z80::memory& mem;
