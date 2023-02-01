@@ -574,6 +574,36 @@ public:
 		}
 	}
 
+	inline void cpi()
+	{
+		auto val = mem.read<std::int8_t>(regs.main_set.HL);
+		std::uint8_t c = regs.main_set.flags.C;
+		cp(val);
+
+		// describe in doc!
+		regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0;
+		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 1 : 0;
+
+		regs.main_set.flags.C = c;
+
+		inc_reg_16(regs.main_set.HL);
+		dec_reg_16(regs.main_set.BC);
+	}
+
+	inline void cpir()
+	{
+		cpi();
+		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		{
+			// instruction is terminated
+			regs.PC += 2;
+		}
+		else
+		{
+			// do not change PC - repeat instruction
+		}
+	}
+
 	/* Rotate and Shift Group */
 	inline void rlca()
 	{

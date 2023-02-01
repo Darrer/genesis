@@ -74,6 +74,8 @@ enum operation_type : std::uint8_t
 	ldir,
 	cpd,
 	cpdr,
+	cpi,
+	cpir,
 
 	/* Rotate and Shift Group */
 	rlca,
@@ -476,6 +478,8 @@ const instruction instructions[] = {
 	{ operation_type::ldir, {0xED, 0xB0}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::cpd, {0xED, 0xA9}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::cpdr, {0xED, 0xB9}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::cpi, {0xED, 0xA1}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::cpir, {0xED, 0xB1}, addressing_mode::implied, addressing_mode::implied },
 
 	/* Rotate and Shift Group */
 	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
