@@ -537,6 +537,43 @@ public:
 		// do not change PC, repeat instruction instead
 	}
 
+	inline void cpd()
+	{
+		auto val = mem.read<std::int8_t>(regs.main_set.HL);
+		std::uint8_t c = regs.main_set.flags.C;
+		cp(val);
+
+		// describe in doc!
+		regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0; // CRC:3eb93232
+		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 1 : 0; // CRC:3eb93232
+
+
+		// regs.main_set.flags.PV = regs.main_set.BC == 0 ? 1 : 0; // CRC:61574fb6
+		// regs.main_set.flags.PV = regs.main_set.BC == 1 ? 1 : 0; // CRC:3cb80b1a
+		// regs.main_set.flags.PV = check_overflow_sub<std::int16_t>(regs.main_set.BC, 1); // CRC:61574fb6
+		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 0 : 1; // CRC:3cb80b1a
+		regs.main_set.flags.C = c;
+
+		dec_reg_16(regs.main_set.HL);
+		dec_reg_16(regs.main_set.BC);
+
+		// regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0; // CRC:efb56a1e
+	}
+
+	inline void cpdr()
+	{
+		cpd();
+		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		{
+			// instruction is terminated
+			regs.PC += 2;
+		}
+		else
+		{
+			// do not change PC - repeat instruction
+		}
+	}
+
 	/* Rotate and Shift Group */
 	inline void rlca()
 	{
@@ -686,12 +723,32 @@ private:
 		static_assert(sizeof(T) <= 2);
 
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
-		long sum = (long)(a & mask) + (long)(b & mask) + c;
 
-		if(sum > mask)
-			return 1;
+		auto a1 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
+		{
+			long sum = (long)(a & mask) + (long)(b & mask) + c;
 
-		return 0;
+			if(sum > mask)
+				return 1;
+
+			return 0;
+		};
+
+		auto a2 = [mask](T a, T b) -> std::uint8_t
+		{
+			// return ((a&0xf) + (b&0xf))&0x10;
+			return (((a & 0xf) + (b & 0xf)) & 0x10) == 0x10 ? 1 : 0;
+		};
+
+		if(c == 0 && sizeof(T) == 1)
+		{
+			if(a1(a, b, c) != a2(a, b))
+			{
+				std::cout << "Half carry difference" << std::endl;
+			}
+		}
+
+		return a1(a, b, c);
 	}
 
 	template<class T>

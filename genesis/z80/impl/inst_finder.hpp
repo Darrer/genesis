@@ -157,6 +157,7 @@ private:
 	}
 
 private:
+	// isn't it too much for the stack?
 	using map = std::array<std::uint16_t, 0x100>;
 	std::array<map, map_index::count> maps;
 };

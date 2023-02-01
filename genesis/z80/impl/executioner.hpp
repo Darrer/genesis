@@ -187,6 +187,12 @@ private:
 		case operation_type::ldir:
 			ops.ldir();
 			return;
+		case operation_type::cpd:
+			ops.cpd();
+			break;
+		case operation_type::cpdr:
+			ops.cpdr();
+			return;
 
 		/* Rotate and Shift Group */
 		case operation_type::rlca:

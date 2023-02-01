@@ -72,6 +72,8 @@ enum operation_type : std::uint8_t
 	ex_af_afs,
 	exx,
 	ldir,
+	cpd,
+	cpdr,
 
 	/* Rotate and Shift Group */
 	rlca,
@@ -472,6 +474,8 @@ const instruction instructions[] = {
 	{ operation_type::ex_af_afs, {0x08}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::exx, {0xD9}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::ldir, {0xED, 0xB0}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::cpd, {0xED, 0xA9}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::cpdr, {0xED, 0xB9}, addressing_mode::implied, addressing_mode::implied },
 
 	/* Rotate and Shift Group */
 	{ operation_type::rlca, {0x07},	addressing_mode::implied, addressing_mode::implied },
