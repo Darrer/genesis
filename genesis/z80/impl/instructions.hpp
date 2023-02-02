@@ -409,6 +409,11 @@ const instruction instructions[] = {
 	{ operation_type::ld_reg, {0xED, 0x47}, addressing_mode::register_a, addressing_mode::register_i },
 	{ operation_type::ld_reg, {0xED, 0x4F}, addressing_mode::register_a, addressing_mode::register_r },
 
+	{ operation_type::ld_reg, {0xDD, 0x26}, addressing_mode::immediate, addressing_mode::register_ixh },
+	{ operation_type::ld_reg, {0xFD, 0x26}, addressing_mode::immediate, addressing_mode::register_iyh },
+	{ operation_type::ld_reg, {0xDD, 0x2E}, addressing_mode::immediate, addressing_mode::register_ixl },
+	{ operation_type::ld_reg, {0xFD, 0x2E}, addressing_mode::immediate, addressing_mode::register_iyl },
+
 	register_indirect_hl(operation_type::ld_at, 0b01110000, 0),
 	register_indexed(operation_type::ld_at, 0b01110000, 0),
 	immediate_indexed(operation_type::ld_at, 0x36),
@@ -417,25 +422,30 @@ const instruction instructions[] = {
 	{ operation_type::ld_at, {0x12}, addressing_mode::register_a, addressing_mode::indirect_de },
 	{ operation_type::ld_at, {0x32}, addressing_mode::register_a, addressing_mode::immediate_ext },
 
-	{ operation_type::ld_16_at, {0xED, 0x43}, addressing_mode::register_bc, addressing_mode::immediate_ext},
-	{ operation_type::ld_16_at, {0xED, 0x53}, addressing_mode::register_de, addressing_mode::immediate_ext},
-	{ operation_type::ld_16_at, {0xED, 0x63}, addressing_mode::register_hl, addressing_mode::immediate_ext},
-	{ operation_type::ld_16_at, {0xED, 0x73}, addressing_mode::register_sp, addressing_mode::immediate_ext},
-	{ operation_type::ld_16_at, {0x22}, addressing_mode::register_hl, addressing_mode::immediate_ext},
-
 	{ operation_type::ld_ir, {0xED, 0x57}, addressing_mode::register_i, addressing_mode::implied },
 	{ operation_type::ld_ir, {0xED, 0x5F}, addressing_mode::register_r, addressing_mode::implied },
 
 	/* 16-Bit Load Group */
 	indirect_dd_des(operation_type::ld_16_reg, 0b00000001, 4, addressing_mode::immediate_ext),
 	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::register_hl, addressing_mode::register_sp },
+	{ operation_type::ld_16_reg, {0xDD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_ix },
 	{ operation_type::ld_16_reg, {0xFD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_iy },
+
+	{ operation_type::ld_16_at, {0xED, 0x43}, addressing_mode::register_bc, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x53}, addressing_mode::register_de, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x63}, addressing_mode::register_hl, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xED, 0x73}, addressing_mode::register_sp, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0x22}, addressing_mode::register_hl, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xDD, 0x22}, addressing_mode::register_ix, addressing_mode::immediate_ext},
+	{ operation_type::ld_16_at, {0xFD, 0x22}, addressing_mode::register_iy, addressing_mode::immediate_ext},
 
 	{ operation_type::ld_16_reg_from, {0xED, 0x4B}, addressing_mode::immediate_ext, addressing_mode::register_bc },
 	{ operation_type::ld_16_reg_from, {0xED, 0x5B}, addressing_mode::immediate_ext, addressing_mode::register_de },
 	{ operation_type::ld_16_reg_from, {0xED, 0x6B}, addressing_mode::immediate_ext, addressing_mode::register_hl },
 	{ operation_type::ld_16_reg_from, {0xED, 0x7B}, addressing_mode::immediate_ext, addressing_mode::register_sp },
 	{ operation_type::ld_16_reg_from, {0x2A}, addressing_mode::immediate_ext, addressing_mode::register_hl },
+	{ operation_type::ld_16_reg_from, {0xDD, 0x2A}, addressing_mode::immediate_ext, addressing_mode::register_ix },
+	{ operation_type::ld_16_reg_from, {0xFD, 0x2A}, addressing_mode::immediate_ext, addressing_mode::register_iy },
 
 	{ operation_type::push, {0xC5}, addressing_mode::register_bc, addressing_mode::implied },
 	{ operation_type::push, {0xD5}, addressing_mode::register_de, addressing_mode::implied },
