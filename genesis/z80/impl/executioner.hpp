@@ -219,8 +219,21 @@ private:
 			ops.tst_bit(dec.decode_byte(inst.source, inst), dec.decode_bit(inst.destination, inst));
 			break;
 
+		/* General-Purpose Arithmetic */
+		case operation_type::daa:
+			ops.daa();
+			break;
+		case operation_type::cpl:
+			ops.cpl();
+			break;
 		case operation_type::neg:
 			ops.neg();
+			break;
+		case operation_type::ccf:
+			ops.ccf();
+			break;
+		case operation_type::scf:
+			ops.scf();
 			break;
 
 		default:

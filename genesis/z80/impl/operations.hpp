@@ -653,6 +653,43 @@ public:
 		flags.N = 0;
 	}
 
+	/* General-Purpose Arithmetic */
+	inline void daa()
+	{
+		std::uint8_t val = regs.main_set.A;
+		std::uint8_t sum = 0x0;
+
+		if((val & 0xF) > 9 || regs.main_set.flags.H == 1)
+		{
+			val += 0x06;
+			sum = 0x06;
+		}
+
+		if(((val >> 4) & 0xF) > 9 || regs.main_set.flags.C == 1)
+		{
+			val += 0x60;
+			sum += 0x60;
+			regs.main_set.flags.C = 1;
+		}
+		else
+		{
+			regs.main_set.flags.C = 0;
+		}
+
+		regs.main_set.flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, sum);
+
+		regs.main_set.A = val;
+
+		regs.main_set.flags.PV = check_parity(regs.main_set.A);
+		set_sz_flags(regs.main_set.A);
+	}
+
+	inline void cpl()
+	{
+		regs.main_set.A = ~regs.main_set.A;
+		regs.main_set.flags.H = regs.main_set.flags.N = 1;
+	}
+
 	inline void neg()
 	{
 		auto& flags = regs.main_set.flags;
@@ -669,6 +706,21 @@ public:
 		regs.main_set.A = (std::int8_t)0 - regs.main_set.A;
 
 		set_sz_flags(regs.main_set.A);
+	}
+
+	inline void ccf()
+	{
+		auto& flags = regs.main_set.flags;
+		flags.N = 0;
+		flags.H = flags.C;
+		flags.C = ~flags.C;
+	}
+
+	inline void scf()
+	{
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+		flags.C = 1;
 	}
 
 private:

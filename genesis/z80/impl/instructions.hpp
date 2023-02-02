@@ -86,7 +86,12 @@ enum operation_type : std::uint8_t
 	/* Bit Set, Reset, and Test Group */
 	tst_bit,
 
+	/* General-Purpose Arithmetic */
+	daa,
+	cpl,
 	neg,
+	ccf,
+	scf,
 };
 
 enum addressing_mode : std::uint8_t
@@ -493,7 +498,12 @@ const instruction instructions[] = {
 	destination_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
 	register_bit(operation_type::tst_bit, 0xCB, 0b01000000),
 
-	{ operation_type::neg, {0xED, 0x44}, addressing_mode::none, addressing_mode::implied },
+	/* General-Purpose Arithmetic */
+	{ operation_type::daa, {0x27}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::cpl, {0x2F}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x44}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::ccf, {0x3F}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::scf, {0x37}, addressing_mode::implied, addressing_mode::implied },
 
 	/* Skip this commands */
 	// { operation_type::nop, {0xFD, 0x40}, addressing_mode::none, addressing_mode::none },
