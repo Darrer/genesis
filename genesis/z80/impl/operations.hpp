@@ -359,7 +359,8 @@ public:
 		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
 		flags.N = 1;
 
-		set_sz_flags(regs.main_set.A - b);
+		std::int8_t diff = (std::uint8_t)regs.main_set.A - (std::uint8_t)b;
+		set_sz_flags(diff);
 	}
 
 	inline void inc_reg(std::int8_t& r)
@@ -539,25 +540,15 @@ public:
 
 	inline void cpd()
 	{
-		auto val = mem.read<std::int8_t>(regs.main_set.HL);
+		auto data = mem.read<std::uint8_t>(regs.main_set.HL);
 		std::uint8_t c = regs.main_set.flags.C;
-		cp(val);
+		cp(data);
 
-		// describe in doc!
-		regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0; // CRC:3eb93232
-		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 1 : 0; // CRC:3eb93232
-
-
-		// regs.main_set.flags.PV = regs.main_set.BC == 0 ? 1 : 0; // CRC:61574fb6
-		// regs.main_set.flags.PV = regs.main_set.BC == 1 ? 1 : 0; // CRC:3cb80b1a
-		// regs.main_set.flags.PV = check_overflow_sub<std::int16_t>(regs.main_set.BC, 1); // CRC:61574fb6
-		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 0 : 1; // CRC:3cb80b1a
+		regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0;
 		regs.main_set.flags.C = c;
 
 		dec_reg_16(regs.main_set.HL);
 		dec_reg_16(regs.main_set.BC);
-
-		// regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0; // CRC:efb56a1e
 	}
 
 	inline void cpdr()
@@ -576,14 +567,11 @@ public:
 
 	inline void cpi()
 	{
-		auto val = mem.read<std::int8_t>(regs.main_set.HL);
+		auto data = mem.read<std::int8_t>(regs.main_set.HL);
 		std::uint8_t c = regs.main_set.flags.C;
-		cp(val);
+		cp(data);
 
-		// describe in doc!
 		regs.main_set.flags.PV = regs.main_set.BC != 1 ? 1 : 0;
-		// regs.main_set.flags.PV = (std::uint16_t)regs.main_set.BC - (std::uint16_t)1 != 0 ? 1 : 0;
-
 		regs.main_set.flags.C = c;
 
 		inc_reg_16(regs.main_set.HL);
