@@ -604,6 +604,34 @@ public:
 		}
 	}
 
+	inline void ldd()
+	{
+		auto data = mem.read<std::int8_t>(regs.main_set.HL);
+		mem.write(regs.main_set.DE, data);
+
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+		flags.PV = regs.main_set.BC != 1 ? 1 : 0;
+
+		dec_reg_16(regs.main_set.HL);
+		dec_reg_16(regs.main_set.DE);
+		dec_reg_16(regs.main_set.BC);
+	}
+
+	inline void lddr()
+	{
+		ldd();
+		if(regs.main_set.BC == 0)
+		{
+			// instruction is terminated
+			regs.PC += 2;
+		}
+		else
+		{
+			// do not change PC - repeat instruction
+		}
+	}
+
 	/* Rotate and Shift Group */
 	inline void rlca()
 	{

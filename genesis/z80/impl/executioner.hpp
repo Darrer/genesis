@@ -199,6 +199,12 @@ private:
 		case operation_type::cpir:
 			ops.cpir();
 			return;
+		case operation_type::ldd:
+			ops.ldd();
+			break;
+		case operation_type::lddr:
+			ops.lddr();
+			return;
 
 		/* Rotate and Shift Group */
 		case operation_type::rlca:
