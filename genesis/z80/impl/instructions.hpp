@@ -297,6 +297,28 @@ enum register_type : std::uint8_t
 	{op, {0xFD, opcode2},     addressing_mode::register_iyh, dest }, \
 	{op, {0xFD, opcode2 + 1}, addressing_mode::register_iyl, dest }
 
+#define ld_dd_reg_reg(op, opcode2, dest) \
+	{op, {0xDD, (opcode2 | 0b000)}, addressing_mode::register_b, dest}, \
+	{op, {0xDD, (opcode2 | 0b001)}, addressing_mode::register_c, dest}, \
+	{op, {0xDD, (opcode2 | 0b010)}, addressing_mode::register_d, dest}, \
+	{op, {0xDD, (opcode2 | 0b011)}, addressing_mode::register_e, dest}, \
+	{op, {0xDD, (opcode2 | 0b100)}, addressing_mode::register_ixh, dest}, \
+	{op, {0xDD, (opcode2 | 0b101)}, addressing_mode::register_ixl, dest}, \
+	{op, {0xDD, (opcode2 | 0b111)}, addressing_mode::register_a, dest}
+
+#define ld_fd_reg_reg(op, opcode2, dest) \
+	{op, {0xFD, (opcode2 | 0b000)}, addressing_mode::register_b, dest}, \
+	{op, {0xFD, (opcode2 | 0b001)}, addressing_mode::register_c, dest}, \
+	{op, {0xFD, (opcode2 | 0b010)}, addressing_mode::register_d, dest}, \
+	{op, {0xFD, (opcode2 | 0b011)}, addressing_mode::register_e, dest}, \
+	{op, {0xFD, (opcode2 | 0b100)}, addressing_mode::register_iyh, dest}, \
+	{op, {0xFD, (opcode2 | 0b101)}, addressing_mode::register_iyl, dest}, \
+	{op, {0xFD, (opcode2 | 0b111)}, addressing_mode::register_a, dest}
+
+#define ld_reg_reg(op, opcode2, dest) \
+	ld_dd_reg_reg(op, opcode2, dest), \
+	ld_fd_reg_reg(op, opcode2, dest)
+
 const instruction instructions[] = {
 	/* 8-Bit Arithmetic Group */
 	register_implied(operation_type::add, 0b10000000, 0),
@@ -413,6 +435,17 @@ const instruction instructions[] = {
 	{ operation_type::ld_reg, {0xFD, 0x26}, addressing_mode::immediate, addressing_mode::register_iyh },
 	{ operation_type::ld_reg, {0xDD, 0x2E}, addressing_mode::immediate, addressing_mode::register_ixl },
 	{ operation_type::ld_reg, {0xFD, 0x2E}, addressing_mode::immediate, addressing_mode::register_iyl },
+
+	ld_reg_reg(operation_type::ld_reg, 0x40, addressing_mode::register_b),
+	ld_reg_reg(operation_type::ld_reg, 0x48, addressing_mode::register_c),
+	ld_reg_reg(operation_type::ld_reg, 0x50, addressing_mode::register_d),
+	ld_reg_reg(operation_type::ld_reg, 0x58, addressing_mode::register_e),
+	ld_reg_reg(operation_type::ld_reg, 0x78, addressing_mode::register_a),
+
+	ld_dd_reg_reg(operation_type::ld_reg, 0x60, addressing_mode::register_ixh),
+	ld_dd_reg_reg(operation_type::ld_reg, 0x68, addressing_mode::register_ixl),
+	ld_fd_reg_reg(operation_type::ld_reg, 0x60, addressing_mode::register_iyh),
+	ld_fd_reg_reg(operation_type::ld_reg, 0x68, addressing_mode::register_iyl),
 
 	register_indirect_hl(operation_type::ld_at, 0b01110000, 0),
 	register_indexed(operation_type::ld_at, 0b01110000, 0),
