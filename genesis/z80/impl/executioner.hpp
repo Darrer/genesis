@@ -222,6 +222,12 @@ private:
 		case operation_type::rra:
 			ops.rra();
 			break;
+		case operation_type::rld:
+			ops.rld();
+			break;
+		case operation_type::rrd:
+			ops.rrd();
+			break;
 
 		/* Bit Set, Reset, and Test Group */
 		case operation_type::tst_bit:

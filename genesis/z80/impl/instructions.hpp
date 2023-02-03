@@ -85,6 +85,8 @@ enum operation_type : std::uint8_t
 	rrca,
 	rla,
 	rra,
+	rld,
+	rrd,
 
 	/* Bit Set, Reset, and Test Group */
 	tst_bit,
@@ -540,6 +542,8 @@ const instruction instructions[] = {
 	{ operation_type::rrca, {0x0F},	addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rra, {0x1F}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rla, {0x17}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::rld, {0xED, 0x6F}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::rrd, {0xED, 0x67}, addressing_mode::implied, addressing_mode::implied },
 
 	/* Bit Set, Reset, and Test Group */
 	{ operation_type::tst_bit, {0xDD, 0xCB}, addressing_mode::indexed_ix, addressing_mode::immediate_bit },

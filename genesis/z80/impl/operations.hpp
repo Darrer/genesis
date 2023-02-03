@@ -661,6 +661,42 @@ public:
 		regs.main_set.flags.C = val & 1;
 	}
 
+	inline void rld()
+	{
+		auto data = mem.read<std::uint8_t>(regs.main_set.HL);
+		std::uint8_t a = regs.main_set.A;
+
+		regs.main_set.A = (a & 0xF0) | (data >> 4); // copy 4 high bits of HL -> 4 low bits of A
+		data = data << 4; // copy 4 low bits of HL -> 4 high bits of HL
+		data = (a & 0xF) | data; // copy 4 low bits of A -> 4 low bits of HL
+
+		mem.write(regs.main_set.HL, data);
+
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+		flags.PV = check_parity(regs.main_set.A);
+
+		set_sz_flags(regs.main_set.A);
+	}
+
+	inline void rrd()
+	{
+		auto data = mem.read<std::uint8_t>(regs.main_set.HL);
+		std::uint8_t a = regs.main_set.A;
+
+		regs.main_set.A = (a & 0xF0) | (data & 0xF); // copy 4 low bits of HL -> 4 low bits of A
+		data = data >> 4; // copy 4 high bits of HL -> 4 low bits of HL
+		data |= (a & 0xF) << 4; // copy 4 low bits of A -> 4 high bits of HL
+
+		mem.write(regs.main_set.HL, data);
+
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+		flags.PV = check_parity(regs.main_set.A);
+
+		set_sz_flags(regs.main_set.A);
+	}
+
 	/* Bit Set, Reset, and Test Group */
 	inline void tst_bit(std::uint8_t src, std::uint8_t bit)
 	{
