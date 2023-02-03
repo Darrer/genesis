@@ -184,6 +184,9 @@ private:
 		case operation_type::exx:
 			ops.exx();
 			break;
+		case operation_type::ldi:
+			ops.ldi();
+			break;
 		case operation_type::ldir:
 			ops.ldir();
 			return;

@@ -21,7 +21,7 @@ public:
 	{
 	}
 
-	std::int8_t decode_byte(addressing_mode addr_mode, const instruction& inst)
+	std::int8_t decode_byte(addressing_mode addr_mode, const instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -58,7 +58,7 @@ public:
 		}
 	}
 
-	std::int16_t decode_2_bytes(addressing_mode addr_mode, const instruction& inst)
+	std::int16_t decode_2_bytes(addressing_mode addr_mode, const instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -79,7 +79,7 @@ public:
 		}
 	}
 
-	z80::memory::address decode_address(addressing_mode addr_mode, const instruction& inst)
+	z80::memory::address decode_address(addressing_mode addr_mode, const instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -163,7 +163,7 @@ public:
 	}
 
 	template<class T = std::int8_t>
-	T decode_immediate(const instruction& inst)
+	T decode_immediate(const instruction inst)
 	{
 		static_assert(sizeof(T) <= 2);
 
@@ -181,7 +181,7 @@ public:
 		return mem.read<T>(addr);
 	}
 
-	std::int16_t decode_immediate_ext(const instruction& inst)
+	std::int16_t decode_immediate_ext(const instruction inst)
 	{
 		return decode_immediate<std::int16_t>(inst);
 	}
@@ -220,7 +220,7 @@ public:
 		}
 	}
 
-	std::uint8_t decode_cc(const instruction& inst)
+	std::uint8_t decode_cc(const instruction inst)
 	{
 		// NOTE: always assume constant cc offset for all instructions
 		return (inst.opcodes[0] & 0b00111000) >> 3;
@@ -239,7 +239,7 @@ public:
 		}
 	}
 
-	void advance_pc(const instruction& inst)
+	void advance_pc(const instruction inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
 		{

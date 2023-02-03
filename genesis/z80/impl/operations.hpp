@@ -514,28 +514,32 @@ public:
 		std::swap(regs.main_set.HL, regs.alt_set.HL);
 	}
 
-	inline void ldir()
+	inline void ldi()
 	{
-		regs.main_set.flags.H = regs.main_set.flags.N = 0;
-		regs.main_set.flags.PV = 0; // TODO: not sure what to do with this flag
-
-		// write (HL) -> (DE)
-		std::uint8_t data = mem.read<std::uint8_t>(regs.main_set.HL);
+		auto data = mem.read<std::int8_t>(regs.main_set.HL);
 		mem.write(regs.main_set.DE, data);
 
-		// update registers
-		regs.main_set.HL++;
-		regs.main_set.DE++;
-		regs.main_set.BC--;
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+		flags.PV = regs.main_set.BC != 1 ? 1 : 0;
 
-		// check if need to repeat
+		inc_reg_16(regs.main_set.HL);
+		inc_reg_16(regs.main_set.DE);
+		dec_reg_16(regs.main_set.BC);
+	}
+
+	inline void ldir()
+	{
+		ldi();
 		if(regs.main_set.BC == 0)
 		{
+			// instruction is terminated
 			regs.PC += 2;
-			return;
 		}
-
-		// do not change PC, repeat instruction instead
+		else
+		{
+			// do not change PC - repeat instruction
+		}
 	}
 
 	inline void cpd()
