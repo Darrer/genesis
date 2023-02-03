@@ -697,6 +697,154 @@ public:
 		set_sz_flags(regs.main_set.A);
 	}
 
+	inline void rlc(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = std::rotl(val, 1);
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = (val & 0b10000000) >> 7;
+		flags.PV = check_parity(reg);
+
+		set_sz_flags(reg);
+	}
+
+	inline void rlc_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		rlc(data);
+		mem.write(addr, data);
+	}
+
+	inline void rl(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = (val << 1) | regs.main_set.flags.C;
+
+		auto& flags = regs.main_set.flags;
+		flags.H = flags.N = 0;
+
+		flags.C = (val & 0b10000000) >> 7;
+		flags.PV = check_parity(reg);
+
+		set_sz_flags(reg);
+	}
+
+	inline void rl_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		rl(data);
+		mem.write(addr, data);
+	}
+
+	inline void rrc(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = std::rotr(val, 1);
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = val & 1;
+
+		flags.PV = check_parity(reg);
+		set_sz_flags(reg);
+	}
+
+	inline void rrc_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		rrc(data);
+		mem.write(addr, data);
+	}
+
+	inline void rr(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = (val >> 1) | (regs.main_set.flags.C << 7);
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = val & 1;
+
+		flags.PV = check_parity(reg);
+		set_sz_flags(reg);
+	}
+
+	inline void rr_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		rr(data);
+		mem.write(addr, data);
+	}
+
+	inline void sla(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = reg << 1;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = (val & 0b10000000) >> 7;
+
+		flags.PV = check_parity(reg);
+		set_sz_flags(reg);
+	}
+
+	inline void sla_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		sla(data);
+		mem.write(addr, data);
+	}
+
+	inline void sra(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		reg = reg >> 1;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = val & 1;
+
+		flags.PV = check_parity(reg);
+		set_sz_flags(reg);
+	}
+
+	inline void sra_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		sra(data);
+		mem.write(addr, data);
+	}
+
+	inline void srl(std::int8_t& reg)
+	{
+		std::uint8_t val = reg;
+		val = val >> 1;
+		reg = val & 0b01111111;
+
+		auto& flags = regs.main_set.flags;
+
+		flags.H = flags.N = 0;
+		flags.C = val & 1;
+
+		flags.PV = check_parity(reg);
+		set_sz_flags(reg);
+	}
+
+	inline void srl_at(z80::memory::address addr)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		srl(data);
+		mem.write(addr, data);
+	}
+
 	/* Bit Set, Reset, and Test Group */
 	inline void tst_bit(std::uint8_t src, std::uint8_t bit)
 	{
@@ -707,6 +855,30 @@ public:
 		flags.Z = is_set ? 0 : 1;
 		flags.H = 1;
 		flags.N = 0;
+	}
+
+	inline void set_bit(std::int8_t& dest, std::uint8_t bit)
+	{
+		dest |= (1 << bit);
+	}
+
+	inline void set_bit_at(z80::memory::address addr, std::uint8_t bit)
+	{
+		auto data = mem.read<std::uint8_t>(addr);
+		data |= (1 << bit);
+		mem.write(addr, data);
+	}
+
+	inline void res_bit(std::int8_t& dest, std::uint8_t bit)
+	{
+		dest &= ~(1 << bit);
+	}
+
+	inline void res_bit_at(z80::memory::address addr, std::uint8_t bit)
+	{
+		auto data = mem.read<std::uint8_t>(addr);
+		data &= ~(1 << bit);
+		mem.write(addr, data);
 	}
 
 	/* General-Purpose Arithmetic */
