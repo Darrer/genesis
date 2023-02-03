@@ -87,9 +87,28 @@ enum operation_type : std::uint8_t
 	rra,
 	rld,
 	rrd,
+	rlc,
+	rlc_at,
+	rrc,
+	rrc_at,
+	rl,
+	rl_at,
+	rr,
+	rr_at,
+	sla,
+	sla_at,
+	sra,
+	sra_at,
+	srl,
+	srl_at,
 
 	/* Bit Set, Reset, and Test Group */
 	tst_bit,
+	set_bit,
+	set_bit_at,
+	res_bit,
+	res_bit_at,
+	bit_group,
 
 	/* General-Purpose Arithmetic */
 	daa,
@@ -212,15 +231,15 @@ enum register_type : std::uint8_t
 	{op, { opcode | (register_type::H << reg_offset) }, addressing_mode::register_h, dest}, \
 	{op, { opcode | (register_type::L << reg_offset) }, addressing_mode::register_l, dest}
 
-#define destination_bit(op, opcode1, opcode2, src) \
-	{op, {opcode1, opcode2 | (0b000 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b001 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b010 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b011 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b100 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b101 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b110 << 3)}, src, addressing_mode::bit}, \
-	{op, {opcode1, opcode2 | (0b111 << 3)}, src, addressing_mode::bit}
+#define source_bit(op, opcode1, opcode2, dest) \
+	{op, {opcode1, opcode2 | (0b000 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b001 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b010 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b011 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b100 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b101 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b110 << 3)}, addressing_mode::bit, dest}, \
+	{op, {opcode1, opcode2 | (0b111 << 3)}, addressing_mode::bit, dest}
 
 #define ss_ss(op, opcode, reg_offset) \
 	{op, {opcode | (0b00 << reg_offset)}, addressing_mode::register_bc, addressing_mode::register_bc}, \
@@ -255,15 +274,15 @@ enum register_type : std::uint8_t
 	source_register(op, opcode | (register_type::H << 3), 0, addressing_mode::register_h), \
 	source_register(op, opcode | (register_type::L << 3), 0, addressing_mode::register_l)
 
-#define register_bit(op, opcode1, opcode2) \
-	source_register_wide(op, opcode1, opcode2 | (0b000 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b001 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b010 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b011 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b100 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b101 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b110 << 3), 0, addressing_mode::bit), \
-	source_register_wide(op, opcode1, opcode2 | (0b111 << 3), 0, addressing_mode::bit)
+#define bit_register(op, opcode1, opcode2) \
+	destination_register_wide(op, opcode1, opcode2 | (0b000 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b001 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b010 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b011 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b100 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b101 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b110 << 3), 0, addressing_mode::bit), \
+	destination_register_wide(op, opcode1, opcode2 | (0b111 << 3), 0, addressing_mode::bit)
 
 
 /* immediate source */
@@ -545,11 +564,40 @@ const instruction instructions[] = {
 	{ operation_type::rld, {0xED, 0x6F}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::rrd, {0xED, 0x67}, addressing_mode::implied, addressing_mode::implied },
 
+	destination_register_wide(operation_type::rlc, 0xCB, 0x0, 0, addressing_mode::implied),
+	{ operation_type::rlc_at, {0xCB, 0x06}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::rl, 0xCB, 0b00010000, 0, addressing_mode::implied),
+	{ operation_type::rl_at, {0xCB, 0x16}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::rrc, 0xCB, 0b00001000, 0, addressing_mode::implied),
+	{ operation_type::rrc_at, {0xCB, 0x0E}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::rr, 0xCB, 0b00011000, 0, addressing_mode::implied),
+	{ operation_type::rr_at, {0xCB, 0x1E}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::sla, 0xCB, 0b00100000, 0, addressing_mode::implied),
+	{ operation_type::sla_at, {0xCB, 0x26}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::sra, 0xCB, 0b00101000, 0, addressing_mode::implied),
+	{ operation_type::sra_at, {0xCB, 0x2E}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
+	destination_register_wide(operation_type::srl, 0xCB, 0b00111000, 0, addressing_mode::implied),
+	{ operation_type::srl_at, {0xCB, 0x3E}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
 	/* Bit Set, Reset, and Test Group */
-	{ operation_type::tst_bit, {0xDD, 0xCB}, addressing_mode::indexed_ix, addressing_mode::immediate_bit },
-	{ operation_type::tst_bit, {0xFD, 0xCB}, addressing_mode::indexed_ix, addressing_mode::immediate_bit },
-	destination_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
-	register_bit(operation_type::tst_bit, 0xCB, 0b01000000),
+	bit_register(operation_type::tst_bit, 0xCB, 0b01000000),
+	source_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
+
+	bit_register(operation_type::set_bit, 0xCB, 0b11000000),
+	source_bit(operation_type::set_bit_at, 0xCB, 0b11000110, addressing_mode::indirect_hl),
+
+	bit_register(operation_type::res_bit, 0xCB, 0b10000000),
+	source_bit(operation_type::res_bit_at, 0xCB, 0b10000110, addressing_mode::indirect_hl),
+
+	// 2 highest bits in immediate byte contains actual operation type, so group such instructions
+	{ operation_type::bit_group, {0xDD, 0xCB}, addressing_mode::immediate_bit, addressing_mode::indexed_ix },
+	{ operation_type::bit_group, {0xFD, 0xCB}, addressing_mode::immediate_bit, addressing_mode::indexed_iy },
 
 	/* General-Purpose Arithmetic */
 	{ operation_type::daa, {0x27}, addressing_mode::implied, addressing_mode::implied },

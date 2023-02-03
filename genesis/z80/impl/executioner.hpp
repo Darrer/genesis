@@ -228,11 +228,90 @@ private:
 		case operation_type::rrd:
 			ops.rrd();
 			break;
+		case operation_type::rlc:
+			ops.rlc(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::rlc_at:
+			ops.rlc_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::rrc:
+			ops.rrc(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::rrc_at:
+			ops.rrc_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::rl:
+			ops.rl(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::rl_at:
+			ops.rl_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::rr:
+			ops.rr(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::rr_at:
+			ops.rr_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::sla:
+			ops.sla(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::sla_at:
+			ops.sla_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::sra:
+			ops.sra(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::sra_at:
+			ops.sra_at(dec.decode_address(inst.destination, inst));
+			break;
+		case operation_type::srl:
+			ops.srl(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::srl_at:
+			ops.srl_at(dec.decode_address(inst.destination, inst));
+			break;
 
 		/* Bit Set, Reset, and Test Group */
 		case operation_type::tst_bit:
-			ops.tst_bit(dec.decode_byte(inst.source, inst), dec.decode_bit(inst.destination, inst));
+			ops.tst_bit(dec.decode_byte(inst.destination, inst), dec.decode_bit(inst.source, inst));
 			break;
+		case operation_type::set_bit:
+			ops.set_bit(dec.decode_reg_8(inst.destination), dec.decode_bit(inst.source, inst));
+			break;
+		case operation_type::set_bit_at:
+			ops.set_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
+			break;
+		case operation_type::res_bit:
+			ops.res_bit(dec.decode_reg_8(inst.destination), dec.decode_bit(inst.source, inst));
+			break;
+		case operation_type::res_bit_at:
+			ops.res_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
+			break;
+		case operation_type::bit_group:
+		{
+			auto addr = dec.decode_address(inst.destination, inst);
+			auto bit = dec.decode_bit(inst.source, inst);
+
+			std::uint8_t sub_op = dec.decode_immediate<std::uint8_t>(inst);
+			sub_op = sub_op & 0b11000111; // remove bits number
+
+			switch (sub_op >> 6)
+			{
+			case 0b01:
+				ops.tst_bit(dec.decode_byte(inst.destination, inst), bit);
+				break;
+			case 0b11:
+				ops.set_bit_at(addr, bit);
+				break;
+			case 0b10:
+				ops.res_bit_at(addr, bit);
+				break;
+			case 0b00:
+				// the other sub group
+				break;
+			}
+			break;
+		}
 
 		/* General-Purpose Arithmetic */
 		case operation_type::daa:
