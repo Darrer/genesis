@@ -700,6 +700,12 @@ public:
 		set_sz_flags(regs.main_set.A);
 	}
 
+	/* Naming pattern
+	 	r - rotate
+		l/r - left/right
+		(c) - circular
+	*/
+
 	inline void rlc(std::int8_t& src)
 	{
 		std::uint8_t val = src;
@@ -776,6 +782,12 @@ public:
 			dest->get() = data;
 	}
 
+	/* Naming pattern
+	 	s - shift
+		l/r - left/right
+		a/l - arithmetical/logical
+	*/
+
 	inline void sla(std::int8_t& src)
 	{
 		std::uint8_t val = src;
@@ -817,7 +829,7 @@ public:
 	inline void srl(std::int8_t& src)
 	{
 		std::uint8_t val = src;
-		src = (val >> 1);
+		src = val >> 1;
 
 		regs.main_set.flags.C = val & 1;
 		set_rotate_shift_flags(src);
@@ -833,10 +845,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void sll(std::int8_t& reg)
+	inline void sll(std::int8_t& src)
 	{
-		sla(reg);
-		reg |= 1;
+		std::uint8_t val = src;
+		src = (src << 1) | 1;
+
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void sll_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
