@@ -101,6 +101,8 @@ enum operation_type : std::uint8_t
 	sra_at,
 	srl,
 	srl_at,
+	sll,
+	sll_at,
 
 	/* Bit Set, Reset, and Test Group */
 	tst_bit,
@@ -390,7 +392,6 @@ const instruction instructions[] = {
 	indexed_indexed(operation_type::inc_at, 0x34),
 	indexed_indexed(operation_type::dec_at, 0x35),
 
-	// XXX: didn't spend much time to test...
 	ixhl_iyhl(operation_type::add, 0x84, addressing_mode::implied),
 	ixhl_iyhl(operation_type::adc, 0x8C, addressing_mode::implied),
 	ixhl_iyhl(operation_type::sub, 0x94, addressing_mode::implied),
@@ -585,6 +586,9 @@ const instruction instructions[] = {
 	destination_register_wide(operation_type::srl, 0xCB, 0b00111000, 0, addressing_mode::implied),
 	{ operation_type::srl_at, {0xCB, 0x3E}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
 
+	destination_register_wide(operation_type::sll, 0xCB, 0b00110000, 0, addressing_mode::implied),
+	{ operation_type::sll_at, {0xCB, 0x36}, addressing_mode::indirect_hl, addressing_mode::indirect_hl },
+
 	/* Bit Set, Reset, and Test Group */
 	bit_register(operation_type::tst_bit, 0xCB, 0b01000000),
 	source_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
@@ -595,7 +599,7 @@ const instruction instructions[] = {
 	bit_register(operation_type::res_bit, 0xCB, 0b10000000),
 	source_bit(operation_type::res_bit_at, 0xCB, 0b10000110, addressing_mode::indirect_hl),
 
-	// 2 highest bits in immediate byte contains actual operation type, so group such instructions
+	// 2 highest bits in immediate byte contains actual operation type, so group up such instructions
 	{ operation_type::bit_group, {0xDD, 0xCB}, addressing_mode::immediate_bit, addressing_mode::indexed_ix },
 	{ operation_type::bit_group, {0xFD, 0xCB}, addressing_mode::immediate_bit, addressing_mode::indexed_iy },
 

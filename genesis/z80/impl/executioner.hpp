@@ -34,7 +34,7 @@ public:
 	}
 
 private:
-	void exec_inst(const z80::instruction& inst)
+	void exec_inst(z80::instruction inst)
 	{
 		switch(inst.op_type)
 		{
@@ -270,6 +270,12 @@ private:
 		case operation_type::srl_at:
 			ops.srl_at(dec.decode_address(inst.destination, inst));
 			break;
+		case operation_type::sll:
+			ops.sll(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::sll_at:
+			ops.sll_at(dec.decode_address(inst.destination, inst));
+			break;
 
 		/* Bit Set, Reset, and Test Group */
 		case operation_type::tst_bit:
@@ -288,30 +294,8 @@ private:
 			ops.res_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
 			break;
 		case operation_type::bit_group:
-		{
-			auto addr = dec.decode_address(inst.destination, inst);
-			auto bit = dec.decode_bit(inst.source, inst);
-
-			std::uint8_t sub_op = dec.decode_immediate<std::uint8_t>(inst);
-			sub_op = sub_op & 0b11000111; // remove bits number
-
-			switch (sub_op >> 6)
-			{
-			case 0b01:
-				ops.tst_bit(dec.decode_byte(inst.destination, inst), bit);
-				break;
-			case 0b11:
-				ops.set_bit_at(addr, bit);
-				break;
-			case 0b10:
-				ops.res_bit_at(addr, bit);
-				break;
-			case 0b00:
-				// the other sub group
-				break;
-			}
+			exec_bit_group(inst);
 			break;
-		}
 
 		/* General-Purpose Arithmetic */
 		case operation_type::daa:
@@ -335,6 +319,61 @@ private:
 		}
 
 		dec.advance_pc(inst);
+	}
+
+	void exec_bit_group(instruction inst)
+	{
+		std::uint8_t imm = dec.decode_immediate<std::uint8_t>(inst);
+
+		std::uint8_t bin_reg = imm & 0b00000111;
+		optional_reg_ref reg = std::nullopt;
+
+		if(bin_reg != 0b110)
+		{
+			reg = dec.decode_bit_reg(bin_reg);
+			orig_reg = reg->get();
+		}
+
+		auto op_type = dec.decode_bit_op(inst);
+		switch (op_type)
+		{
+		case operation_type::tst_bit:
+			ops.tst_bit(dec.decode_byte(inst.destination, inst), dec.decode_bit(inst.source, inst));
+			break;
+		case operation_type::set_bit_at:
+			ops.set_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst), reg);
+			break;
+		case operation_type::res_bit_at:
+			ops.res_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst), reg);
+			break;
+
+		case operation_type::rlc_at:
+			ops.rlc_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::rrc_at:
+			ops.rrc_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::rl_at:
+			ops.rl_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::rr_at:
+			ops.rr_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::sla_at:
+			ops.sla_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::sra_at:
+			ops.sra_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::srl_at:
+			ops.srl_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		case operation_type::sll_at:
+			ops.sll_at(dec.decode_address(inst.destination, inst), reg);
+			break;
+		default:
+			throw std::runtime_error("exec_bit_group error: unsupported operation " + std::to_string(op_type));
+		}
 	}
 
 private:

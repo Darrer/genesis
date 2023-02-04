@@ -3,6 +3,7 @@
 
 #include "z80/cpu.h"
 
+#include <optional>
 #include <cstdint>
 #include <limits>
 #include <bit>
@@ -12,6 +13,9 @@
 
 namespace genesis::z80
 {
+
+using optional_reg_ref = std::optional<std::reference_wrapper<std::int8_t>>;
+
 
 class operations
 {
@@ -711,11 +715,14 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void rlc_at(z80::memory::address addr)
+	inline void rlc_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		rlc(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void rl(std::int8_t& reg)
@@ -732,11 +739,14 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void rl_at(z80::memory::address addr)
+	inline void rl_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		rl(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void rrc(std::int8_t& reg)
@@ -753,11 +763,14 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void rrc_at(z80::memory::address addr)
+	inline void rrc_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		rrc(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void rr(std::int8_t& reg)
@@ -774,11 +787,14 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void rr_at(z80::memory::address addr)
+	inline void rr_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		rr(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void sla(std::int8_t& reg)
@@ -795,11 +811,14 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void sla_at(z80::memory::address addr)
+	inline void sla_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		sla(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void sra(std::int8_t& reg)
@@ -816,18 +835,20 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void sra_at(z80::memory::address addr)
+	inline void sra_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		sra(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void srl(std::int8_t& reg)
 	{
 		std::uint8_t val = reg;
-		val = val >> 1;
-		reg = val & 0b01111111;
+		reg = (val >> 1);// & 0b01111111;
 
 		auto& flags = regs.main_set.flags;
 
@@ -838,11 +859,30 @@ public:
 		set_sz_flags(reg);
 	}
 
-	inline void srl_at(z80::memory::address addr)
+	inline void srl_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::int8_t>(addr);
 		srl(data);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
+	}
+
+	inline void sll(std::int8_t& reg)
+	{
+		sla(reg);
+		reg |= 1;
+	}
+
+	inline void sll_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
+	{
+		auto data = mem.read<std::int8_t>(addr);
+		sll(data);
+		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	/* Bit Set, Reset, and Test Group */
@@ -862,11 +902,14 @@ public:
 		dest |= (1 << bit);
 	}
 
-	inline void set_bit_at(z80::memory::address addr, std::uint8_t bit)
+	inline void set_bit_at(z80::memory::address addr, std::uint8_t bit, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::uint8_t>(addr);
 		data |= (1 << bit);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	inline void res_bit(std::int8_t& dest, std::uint8_t bit)
@@ -874,11 +917,14 @@ public:
 		dest &= ~(1 << bit);
 	}
 
-	inline void res_bit_at(z80::memory::address addr, std::uint8_t bit)
+	inline void res_bit_at(z80::memory::address addr, std::uint8_t bit, optional_reg_ref dest = std::nullopt)
 	{
 		auto data = mem.read<std::uint8_t>(addr);
 		data &= ~(1 << bit);
 		mem.write(addr, data);
+
+		if(dest)
+			dest->get() = data;
 	}
 
 	/* General-Purpose Arithmetic */

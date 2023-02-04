@@ -239,6 +239,68 @@ public:
 		}
 	}
 
+	operation_type decode_bit_op(instruction inst)
+	{
+		auto data = decode_immediate<std::uint8_t>(inst);
+		switch (data >> 6)
+		{
+		case 0b01:
+			return operation_type::tst_bit;
+		case 0b11:
+			return operation_type::set_bit_at;
+		case 0b10:
+			return operation_type::res_bit_at;
+		case 0b00:
+		{
+			std::uint8_t op = (data & 0b00111000) >> 3;
+			switch (op)
+			{
+			case 0b000:
+				return operation_type::rlc_at;
+			case 0b001:
+				return operation_type::rrc_at;
+			case 0b010:
+				return operation_type::rl_at;
+			case 0b011:
+				return operation_type::rr_at;
+			case 0b100:
+				return operation_type::sla_at;
+			case 0b101:
+				return operation_type::sra_at;
+			case 0b110:
+				return operation_type::sll_at;
+			case 0b111:
+				return operation_type::srl_at;
+			}
+		}
+		}
+
+		throw std::runtime_error("decode_bit_op internal error: unreachable code");
+	}
+
+	std::int8_t& decode_bit_reg(std::uint8_t bit_reg)
+	{
+		switch (bit_reg)
+		{
+		case register_type::A:
+			return regs.main_set.A;
+		case register_type::B:
+			return regs.main_set.B;
+		case register_type::C:
+			return regs.main_set.C;
+		case register_type::D:
+			return regs.main_set.D;
+		case register_type::E:
+			return regs.main_set.E;
+		case register_type::H:
+			return regs.main_set.H;
+		case register_type::L:
+			return regs.main_set.L;
+		default:
+			throw std::runtime_error("decode_bit_reg error, unknown register " + su::bin_str(bit_reg));
+		}
+	}
+
 	void advance_pc(const instruction inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
