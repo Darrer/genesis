@@ -311,7 +311,6 @@ public:
 
 		flags.N = flags.C = 0;
 		flags.H = 1;
-		// flags.H = ((_a & 0b1000) & (_b & 0b1000)) >> 3;
 
 		regs.main_set.A = _a & _b;
 
@@ -818,7 +817,7 @@ public:
 	inline void srl(std::int8_t& src)
 	{
 		std::uint8_t val = src;
-		src = (val >> 1) & 0b01111111;
+		src = (val >> 1);
 
 		regs.main_set.flags.C = val & 1;
 		set_rotate_shift_flags(src);
@@ -933,10 +932,6 @@ public:
 	{
 		auto& flags = regs.main_set.flags;
 
-		// std::uint8_t a = regs.main_set.A;
-		// flags.C = a != 0 ? 1 : 0;
-		// flags.PV = a == 0x80 ? 1 : 0;
-
 		flags.C = check_borrow<std::uint8_t>(0, regs.main_set.A);
 		flags.PV = check_overflow_sub<std::int8_t>(0, regs.main_set.A);
 		flags.H = check_half_borrow<std::uint8_t>(0, regs.main_set.A);
@@ -1017,7 +1012,6 @@ private:
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
 		long sum = (long)a + (long)b + c;
-
 		if(sum > std::numeric_limits<T>::max())
 			return 1;
 
@@ -1030,7 +1024,6 @@ private:
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
 		long sum = (long)b + c;
-
 		if(sum > a)
 			return 1;
 
@@ -1045,31 +1038,11 @@ private:
 
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
-		auto a1 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
-		{
-			long sum = (long)(a & mask) + (long)(b & mask) + c;
+		long sum = (long)(a & mask) + (long)(b & mask) + c;
+		if(sum > mask)
+			return 1;
 
-			if(sum > mask)
-				return 1;
-
-			return 0;
-		};
-
-		auto a2 = [mask](T a, T b) -> std::uint8_t
-		{
-			// return ((a&0xf) + (b&0xf))&0x10;
-			return (((a & 0xf) + (b & 0xf)) & 0x10) == 0x10 ? 1 : 0;
-		};
-
-		if(c == 0 && sizeof(T) == 1)
-		{
-			if(a1(a, b, c) != a2(a, b))
-			{
-				std::cout << "Half carry difference" << std::endl;
-			}
-		}
-
-		return a1(a, b, c);
+		return 0;
 	}
 
 	template<class T>
@@ -1080,34 +1053,11 @@ private:
 
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
-		auto a1 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
-		{
-			// if and only if the upper nibble had to change as a result of the operation on the lower nibble.
-			T res = (T)(a & mask) - (T)(b & mask) - c;
-			T upper = res & (~mask);
-			if(upper != 0)
-				return 1;
-			return 0;
-		};
+		long sum = (long)(b & mask) + c;
+		if(sum > (long)(a & mask))
+			return 1;
 
-
-		auto a2 = [mask](T a, T b, std::uint8_t c) -> std::uint8_t
-		{
-			long sum = (long)(b & mask) + c;
-
-			if(sum > (long)(a & mask))
-				return 1;
-
-			return 0;
-		};
-
-		if(a1(a, b, c) != a2(a, b, c))
-		{
-			std::cout << "It makes differene!!!" << std::endl;
-		}
-
-
-		return a2(a, b, c);
+		return 0;
 	}
 
 	template<class T>
