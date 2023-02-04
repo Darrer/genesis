@@ -701,18 +701,13 @@ public:
 		set_sz_flags(regs.main_set.A);
 	}
 
-	inline void rlc(std::int8_t& reg)
+	inline void rlc(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = std::rotl(val, 1);
+		std::uint8_t val = src;
+		src = std::rotl(val, 1);
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = (val & 0b10000000) >> 7;
-		flags.PV = check_parity(reg);
-
-		set_sz_flags(reg);
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void rlc_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -725,18 +720,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void rl(std::int8_t& reg)
+	inline void rl(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = (val << 1) | regs.main_set.flags.C;
+		std::uint8_t val = src;
+		src = (val << 1) | regs.main_set.flags.C;
 
-		auto& flags = regs.main_set.flags;
-		flags.H = flags.N = 0;
-
-		flags.C = (val & 0b10000000) >> 7;
-		flags.PV = check_parity(reg);
-
-		set_sz_flags(reg);
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void rl_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -749,18 +739,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void rrc(std::int8_t& reg)
+	inline void rrc(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = std::rotr(val, 1);
+		std::uint8_t val = src;
+		src = std::rotr(val, 1);
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = val & 1;
-
-		flags.PV = check_parity(reg);
-		set_sz_flags(reg);
+		regs.main_set.flags.C = val & 1;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void rrc_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -773,18 +758,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void rr(std::int8_t& reg)
+	inline void rr(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = (val >> 1) | (regs.main_set.flags.C << 7);
+		std::uint8_t val = src;
+		src = (val >> 1) | (regs.main_set.flags.C << 7);
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = val & 1;
-
-		flags.PV = check_parity(reg);
-		set_sz_flags(reg);
+		regs.main_set.flags.C = val & 1;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void rr_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -797,18 +777,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void sla(std::int8_t& reg)
+	inline void sla(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = reg << 1;
+		std::uint8_t val = src;
+		src = src << 1;
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = (val & 0b10000000) >> 7;
-
-		flags.PV = check_parity(reg);
-		set_sz_flags(reg);
+		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void sla_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -821,18 +796,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void sra(std::int8_t& reg)
+	inline void sra(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = reg >> 1;
+		std::uint8_t val = src;
+		src = src >> 1;
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = val & 1;
-
-		flags.PV = check_parity(reg);
-		set_sz_flags(reg);
+		regs.main_set.flags.C = val & 1;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void sra_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -845,18 +815,13 @@ public:
 			dest->get() = data;
 	}
 
-	inline void srl(std::int8_t& reg)
+	inline void srl(std::int8_t& src)
 	{
-		std::uint8_t val = reg;
-		reg = (val >> 1);// & 0b01111111;
+		std::uint8_t val = src;
+		src = (val >> 1) & 0b01111111;
 
-		auto& flags = regs.main_set.flags;
-
-		flags.H = flags.N = 0;
-		flags.C = val & 1;
-
-		flags.PV = check_parity(reg);
-		set_sz_flags(reg);
+		regs.main_set.flags.C = val & 1;
+		set_rotate_shift_flags(src);
 	}
 
 	inline void srl_at(z80::memory::address addr, optional_reg_ref dest = std::nullopt)
@@ -1152,6 +1117,13 @@ private:
 
 		regs.main_set.flags.S = res < 0 ? 1 : 0;
 		regs.main_set.flags.Z = res == 0 ? 1 : 0;
+	}
+
+	void set_rotate_shift_flags(std::int8_t res)
+	{
+		set_sz_flags(res);
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		regs.main_set.flags.PV = check_parity(res);
 	}
 
 private:
