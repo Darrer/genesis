@@ -910,14 +910,14 @@ public:
 	inline void daa()
 	{
 		std::uint8_t val = regs.main_set.A;
+		std::uint8_t low = val & 0xF;
+		std::uint8_t high = val >> 4;
 		std::uint8_t corr = 0x0;
 
-		if((val & 0xF) > 9 || regs.main_set.flags.H == 1)
-		{
+		if(low > 9 || regs.main_set.flags.H)
 			corr = 0x06;
-		}
 
-		if((val >> 4) > 9 || regs.main_set.flags.C == 1 || ((val >> 4) >= 9 && (val & 0xF) > 9))
+		if(high > 9 || regs.main_set.flags.C || (high >= 9 && low > 9))
 		{
 			corr += 0x60;
 			regs.main_set.flags.C = 1;
