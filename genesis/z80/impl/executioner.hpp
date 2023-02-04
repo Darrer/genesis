@@ -331,7 +331,6 @@ private:
 		if(bin_reg != 0b110)
 		{
 			reg = dec.decode_bit_reg(bin_reg);
-			orig_reg = reg->get();
 		}
 
 		auto op_type = dec.decode_bit_op(inst);

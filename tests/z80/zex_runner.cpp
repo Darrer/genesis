@@ -20,13 +20,35 @@ public:
 		}
 
 		std::cout << data;
+
 		buffer << data;
+		one_line << data;
+
+		check_terminated();
+		if(data == '\n')
+		{
+			one_line.str(std::string());	
+		}
+	}
+
+	bool terminated()
+	{
+		return _terminated;
 	}
 
 	std::string data() { return buffer.str(); }
 
 private:
+	void check_terminated()
+	{
+		if(one_line.str().starts_with("Tests complete"))
+			_terminated = true;
+	}
+
+private:
+	std::stringstream one_line;
 	std::stringstream buffer;
+	bool _terminated = false;
 };
 
 void log_pc(z80::cpu& cpu)
@@ -89,7 +111,7 @@ void run_test(const std::string& test_path)
 	cpu.registers().PC = start_address;
 	unsigned long long total = 0;
 
-	while(true)
+	while(!ports->terminated())
 	{
 		try
 		{
@@ -102,8 +124,8 @@ void run_test(const std::string& test_path)
 		}
 		catch(...)
 		{
-			std::cout << "Total executed: " << total << std::endl;
-			log_io_ports(*ports);
+			std::cout << "\nTotal executed: " << total << std::endl;
+			// log_io_ports(*ports);
 			throw;
 		}
 	}
@@ -112,10 +134,9 @@ void run_test(const std::string& test_path)
 TEST(Z80, ZEXDOC)
 {
 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
-	// (0xDD, 0x84)
 }
 
-// TEST(Z80, ZEXALL)
-// {
-// 	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
-// }
+TEST(Z80, ZEXALL)
+{
+	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
+}
