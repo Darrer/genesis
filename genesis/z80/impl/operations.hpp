@@ -910,18 +910,16 @@ public:
 	inline void daa()
 	{
 		std::uint8_t val = regs.main_set.A;
-		std::uint8_t sum = 0x0;
+		std::uint8_t corr = 0x0;
 
 		if((val & 0xF) > 9 || regs.main_set.flags.H == 1)
 		{
-			val += 0x06;
-			sum = 0x06;
+			corr = 0x06;
 		}
 
-		if(((val >> 4) & 0xF) > 9 || regs.main_set.flags.C == 1)
+		if((val >> 4) > 9 || regs.main_set.flags.C == 1 || ((val >> 4) >= 9 && (val & 0xF) > 9))
 		{
-			val += 0x60;
-			sum += 0x60;
+			corr += 0x60;
 			regs.main_set.flags.C = 1;
 		}
 		else
@@ -929,9 +927,16 @@ public:
 			regs.main_set.flags.C = 0;
 		}
 
-		regs.main_set.flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, sum);
-
-		regs.main_set.A = val;
+		if(regs.main_set.flags.N)
+		{
+			regs.main_set.flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, corr);
+			regs.main_set.A = val - corr;
+		}
+		else
+		{
+			regs.main_set.flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, corr);
+			regs.main_set.A = val + corr;
+		}
 
 		regs.main_set.flags.PV = check_parity(regs.main_set.A);
 		set_sz_flags(regs.main_set.A);
