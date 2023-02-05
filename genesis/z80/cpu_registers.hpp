@@ -18,9 +18,9 @@ struct flags
 	std::uint8_t C : 1;
 	std::uint8_t N : 1;
 	std::uint8_t PV : 1;
-	std::uint8_t X1 : 1;
+	std::uint8_t X : 1;
 	std::uint8_t H : 1;
-	std::uint8_t X2 : 1;
+	std::uint8_t Y : 1;
 	std::uint8_t Z : 1;
 	std::uint8_t S : 1;
 };

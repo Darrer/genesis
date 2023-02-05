@@ -244,6 +244,7 @@ public:
 		regs.main_set.A = _a + _b;
 
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void adc(std::int8_t b)
@@ -263,6 +264,7 @@ public:
 		regs.main_set.A = _a + _b + _c;
 
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void sub(std::int8_t b)
@@ -281,6 +283,7 @@ public:
 		regs.main_set.A = _a - _b;
 
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void sbc(std::int8_t b)
@@ -300,6 +303,7 @@ public:
 		regs.main_set.A = _a - _b - _c;
 
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void and_8(std::int8_t b)
@@ -317,6 +321,7 @@ public:
 		set_parity(regs.main_set.A);
 
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void or_8(std::int8_t b)
@@ -328,12 +333,12 @@ public:
 
 		flags.N = flags.C = 0;
 		flags.H = 0;
-		// flags.H = ((_a & 0b1000) | (_b & 0b1000)) >> 3;
 
 		regs.main_set.A = _a | _b;
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void xor_8(std::int8_t b)
@@ -349,6 +354,7 @@ public:
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void cp(std::int8_t b)
@@ -362,6 +368,7 @@ public:
 
 		std::int8_t diff = (std::uint8_t)regs.main_set.A - (std::uint8_t)b;
 		set_sz(diff);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void inc_reg(std::int8_t& r)
@@ -377,22 +384,13 @@ public:
 		r = _r + 1;
 
 		set_sz(r);
+		set_yx(r);
 	}
 
 	inline void inc_at(z80::memory::address addr)
 	{
-		std::uint8_t val = mem.read<std::uint8_t>(addr);
-
-		auto& flags = regs.main_set.flags;
-
-		flags.N = 0;
-		flags.PV = val == 127 ? 1 : 0;
-		flags.H = (val & 0xf) == 0xf ? 1 : 0;
-		
-		++val;
-
-		set_sz((std::int8_t)val);
-
+		auto val = mem.read<std::int8_t>(addr);
+		inc_reg(val);
 		mem.write(addr, val);
 	}
 
@@ -409,22 +407,13 @@ public:
 		r = _r - 1;
 
 		set_sz(r);
+		set_yx(r);
 	}
 
 	inline void dec_at(z80::memory::address addr)
 	{
-		auto val = mem.read<std::uint8_t>(addr);
-
-		auto& flags = regs.main_set.flags;
-
-		flags.N = 1;
-		flags.PV = (std::int8_t)val == -128 ? 1 : 0;
-		flags.H = (val & 0xf) == 0 ? 1 : 0;
-		
-		--val;
-
-		set_sz((std::int8_t)val);
-
+		auto val = mem.read<std::int8_t>(addr);
+		dec_reg(val);
 		mem.write(addr, val);
 	}
 
@@ -444,8 +433,7 @@ public:
 		dest = _dest + _src;
 
 		std::uint8_t high = dest >> 8;
-		flags.X2 = (high & 0b00100000) >> 5;
-		flags.X1 = (high & 0b00001000) >> 3;
+		set_yx(high);
 	}
 
 	inline void adc_hl(std::int16_t src)
@@ -465,6 +453,7 @@ public:
 		regs.main_set.HL = _hl + _src + c;
 
 		set_sz(regs.main_set.HL);
+		set_yx(regs.main_set.H);
 	}
 
 	inline void sbc_hl(std::int16_t src)
@@ -485,6 +474,7 @@ public:
 		regs.main_set.HL = _hl - _src - c;
 
 		set_sz(regs.main_set.HL);
+		set_yx(regs.main_set.H);
 	}
 
 	inline void inc_reg_16(std::int16_t& reg)
@@ -554,6 +544,7 @@ public:
 
 		dec_reg_16(regs.main_set.HL);
 		dec_reg_16(regs.main_set.BC);
+		set_yx_cp(data);
 	}
 
 	inline void cpdr()
@@ -581,6 +572,7 @@ public:
 
 		inc_reg_16(regs.main_set.HL);
 		dec_reg_16(regs.main_set.BC);
+		set_yx_cp(data);
 	}
 
 	inline void cpir()
@@ -1090,6 +1082,19 @@ private:
 		b = b ^ (b >> 16);
 
 		regs.main_set.flags.PV = !(b & 1);
+	}
+
+	void set_yx(std::uint8_t res)
+	{
+		regs.main_set.flags.X = (res & 0b00001000) >> 3;
+		regs.main_set.flags.Y = (res & 0b00100000) >> 5;
+	}
+
+	void set_yx_cp(std::uint8_t hl)
+	{
+		std::uint8_t n = (std::uint8_t)regs.main_set.A - hl - (std::uint8_t)regs.main_set.flags.H;
+		regs.main_set.flags.X = (n & 0b00001000) >> 3;
+		regs.main_set.flags.Y = (n & 0b00000010) >> 1;
 	}
 
 private:
