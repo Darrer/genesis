@@ -32,3 +32,4 @@ gtest_discover_tests(${GENESIS_TESTS})
 
 # copy z80 executioner
 file(COPY z80/zex/zexdoc DESTINATION z80)
+file(COPY z80/zex/zexall DESTINATION z80)

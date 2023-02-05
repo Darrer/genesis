@@ -243,7 +243,7 @@ public:
 
 		regs.main_set.A = _a + _b;
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void adc(std::int8_t b)
@@ -262,7 +262,7 @@ public:
 
 		regs.main_set.A = _a + _b + _c;
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void sub(std::int8_t b)
@@ -280,7 +280,7 @@ public:
 
 		regs.main_set.A = _a - _b;
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void sbc(std::int8_t b)
@@ -299,7 +299,7 @@ public:
 
 		regs.main_set.A = _a - _b - _c;
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void and_8(std::int8_t b)
@@ -314,9 +314,9 @@ public:
 
 		regs.main_set.A = _a & _b;
 
-		flags.PV = check_parity(regs.main_set.A);
+		set_parity(regs.main_set.A);
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void or_8(std::int8_t b)
@@ -332,9 +332,8 @@ public:
 
 		regs.main_set.A = _a | _b;
 
-		flags.PV = check_parity(regs.main_set.A);
-
-		set_sz_flags(regs.main_set.A);
+		set_parity(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void xor_8(std::int8_t b)
@@ -348,9 +347,8 @@ public:
 
 		regs.main_set.A = _a ^ _b;
 
-		flags.PV = check_parity(regs.main_set.A);
-
-		set_sz_flags(regs.main_set.A);
+		set_parity(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void cp(std::int8_t b)
@@ -363,7 +361,7 @@ public:
 		flags.N = 1;
 
 		std::int8_t diff = (std::uint8_t)regs.main_set.A - (std::uint8_t)b;
-		set_sz_flags(diff);
+		set_sz(diff);
 	}
 
 	inline void inc_reg(std::int8_t& r)
@@ -378,7 +376,7 @@ public:
 
 		r = _r + 1;
 
-		set_sz_flags(r);
+		set_sz(r);
 	}
 
 	inline void inc_at(z80::memory::address addr)
@@ -393,7 +391,7 @@ public:
 		
 		++val;
 
-		set_sz_flags((std::int8_t)val);
+		set_sz((std::int8_t)val);
 
 		mem.write(addr, val);
 	}
@@ -410,7 +408,7 @@ public:
 	
 		r = _r - 1;
 
-		set_sz_flags(r);
+		set_sz(r);
 	}
 
 	inline void dec_at(z80::memory::address addr)
@@ -425,7 +423,7 @@ public:
 		
 		--val;
 
-		set_sz_flags((std::int8_t)val);
+		set_sz((std::int8_t)val);
 
 		mem.write(addr, val);
 	}
@@ -466,7 +464,7 @@ public:
 
 		regs.main_set.HL = _hl + _src + c;
 
-		set_sz_flags(regs.main_set.HL);
+		set_sz(regs.main_set.HL);
 	}
 
 	inline void sbc_hl(std::int16_t src)
@@ -486,7 +484,7 @@ public:
 
 		regs.main_set.HL = _hl - _src - c;
 
-		set_sz_flags(regs.main_set.HL);
+		set_sz(regs.main_set.HL);
 	}
 
 	inline void inc_reg_16(std::int16_t& reg)
@@ -677,9 +675,9 @@ public:
 
 		auto& flags = regs.main_set.flags;
 		flags.H = flags.N = 0;
-		flags.PV = check_parity(regs.main_set.A);
 
-		set_sz_flags(regs.main_set.A);
+		set_parity(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void rrd()
@@ -695,9 +693,9 @@ public:
 
 		auto& flags = regs.main_set.flags;
 		flags.H = flags.N = 0;
-		flags.PV = check_parity(regs.main_set.A);
 
-		set_sz_flags(regs.main_set.A);
+		set_parity(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	/* Naming pattern
@@ -938,8 +936,8 @@ public:
 			regs.main_set.A = val + corr;
 		}
 
-		regs.main_set.flags.PV = check_parity(regs.main_set.A);
-		set_sz_flags(regs.main_set.A);
+		set_parity(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void cpl()
@@ -959,7 +957,7 @@ public:
 
 		regs.main_set.A = (std::int8_t)0 - regs.main_set.A;
 
-		set_sz_flags(regs.main_set.A);
+		set_sz(regs.main_set.A);
 	}
 
 	inline void ccf()
@@ -979,21 +977,6 @@ public:
 
 private:
 	/* flag helpers */
-	static std::uint8_t check_parity(std::uint8_t val)
-	{
-		int n = val;
-		int b;
-		b = n ^ (n >> 1); 
-		b = b ^ (b >> 2); 
-		b = b ^ (b >> 4); 
-		b = b ^ (b >> 8); 
-		b = b ^ (b >> 16); 
-		if (b & 1)
-			return 0;
-		else
-			return 1;
-	}
-
 	template<class T>
 	static std::uint8_t check_overflow_add(T a, T b, std::uint8_t c = 0)
 	{
@@ -1081,7 +1064,7 @@ private:
 	}
 
 	template<class T>
-	void set_sz_flags(T res)
+	void set_sz(T res)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == true);
 
@@ -1091,9 +1074,22 @@ private:
 
 	void set_rotate_shift_flags(std::int8_t res)
 	{
-		set_sz_flags(res);
+		set_sz(res);
+		set_parity(res);
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
-		regs.main_set.flags.PV = check_parity(res);
+	}
+
+	void set_parity(std::uint8_t res)
+	{
+		int n = res;
+		int b;
+		b = n ^ (n >> 1);
+		b = b ^ (b >> 2);
+		b = b ^ (b >> 4);
+		b = b ^ (b >> 8);
+		b = b ^ (b >> 16);
+
+		regs.main_set.flags.PV = !(b & 1);
 	}
 
 private:
