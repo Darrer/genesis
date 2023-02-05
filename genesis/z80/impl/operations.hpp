@@ -244,7 +244,7 @@ public:
 		regs.main_set.A = _a + _b;
 
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void adc(std::int8_t b)
@@ -264,7 +264,7 @@ public:
 		regs.main_set.A = _a + _b + _c;
 
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void sub(std::int8_t b)
@@ -283,7 +283,7 @@ public:
 		regs.main_set.A = _a - _b;
 
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void sbc(std::int8_t b)
@@ -303,7 +303,7 @@ public:
 		regs.main_set.A = _a - _b - _c;
 
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void and_8(std::int8_t b)
@@ -321,7 +321,7 @@ public:
 		set_parity(regs.main_set.A);
 
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void or_8(std::int8_t b)
@@ -331,14 +331,13 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.N = flags.C = 0;
-		flags.H = 0;
+		flags.H = flags.N = flags.C = 0;
 
 		regs.main_set.A = _a | _b;
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void xor_8(std::int8_t b)
@@ -354,7 +353,7 @@ public:
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
-		set_yx(b);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void cp(std::int8_t b)
@@ -368,7 +367,7 @@ public:
 
 		std::int8_t diff = (std::uint8_t)regs.main_set.A - (std::uint8_t)b;
 		set_sz(diff);
-		set_yx(regs.main_set.A);
+		set_yx(b);
 	}
 
 	inline void inc_reg(std::int8_t& r)
@@ -517,6 +516,8 @@ public:
 		inc_reg_16(regs.main_set.HL);
 		inc_reg_16(regs.main_set.DE);
 		dec_reg_16(regs.main_set.BC);
+
+		set_yx_ld(data);
 	}
 
 	inline void ldir()
@@ -601,6 +602,8 @@ public:
 		dec_reg_16(regs.main_set.HL);
 		dec_reg_16(regs.main_set.DE);
 		dec_reg_16(regs.main_set.BC);
+
+		set_yx_ld(data);
 	}
 
 	inline void lddr()
@@ -625,6 +628,7 @@ public:
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
 		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void rrca()
@@ -634,6 +638,7 @@ public:
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
 		regs.main_set.flags.C = val & 1;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void rla()
@@ -643,6 +648,7 @@ public:
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
 		regs.main_set.flags.C = (val & 0b10000000) >> 7;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void rra()
@@ -652,6 +658,7 @@ public:
 
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
 		regs.main_set.flags.C = val & 1;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void rld()
@@ -670,6 +677,7 @@ public:
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void rrd()
@@ -688,6 +696,7 @@ public:
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
+		set_yx(regs.main_set.A);
 	}
 
 	/* Naming pattern
@@ -864,6 +873,11 @@ public:
 		flags.Z = is_set ? 0 : 1;
 		flags.H = 1;
 		flags.N = 0;
+
+		flags.S = bit == 7 && is_set;
+		flags.PV = flags.Z;
+		flags.Y = bit == 5 && is_set;
+		flags.X = bit == 3 && is_set;
 	}
 
 	inline void set_bit(std::int8_t& dest, std::uint8_t bit)
@@ -930,12 +944,14 @@ public:
 
 		set_parity(regs.main_set.A);
 		set_sz(regs.main_set.A);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void cpl()
 	{
 		regs.main_set.A = ~regs.main_set.A;
 		regs.main_set.flags.H = regs.main_set.flags.N = 1;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void neg()
@@ -950,6 +966,7 @@ public:
 		regs.main_set.A = (std::int8_t)0 - regs.main_set.A;
 
 		set_sz(regs.main_set.A);
+		set_yx(regs.main_set.A);
 	}
 
 	inline void ccf()
@@ -958,6 +975,7 @@ public:
 		flags.N = 0;
 		flags.H = flags.C;
 		flags.C = ~flags.C;
+		set_yx(regs.main_set.A);
 	}
 
 	inline void scf()
@@ -965,6 +983,7 @@ public:
 		auto& flags = regs.main_set.flags;
 		flags.H = flags.N = 0;
 		flags.C = 1;
+		set_yx(regs.main_set.A);
 	}
 
 private:
@@ -1067,6 +1086,7 @@ private:
 	void set_rotate_shift_flags(std::int8_t res)
 	{
 		set_sz(res);
+		set_yx(res);
 		set_parity(res);
 		regs.main_set.flags.H = regs.main_set.flags.N = 0;
 	}
@@ -1097,6 +1117,12 @@ private:
 		regs.main_set.flags.Y = (n & 0b00000010) >> 1;
 	}
 
+	void set_yx_ld(std::uint8_t hl)
+	{
+		std::uint8_t n = hl + (std::uint8_t)regs.main_set.A;
+		regs.main_set.flags.X = (n & 0b00001000) >> 3;
+		regs.main_set.flags.Y = (n & 0b00000010) >> 1;
+	}
 private:
 	z80::memory& mem;
 	z80::cpu_registers& regs;
