@@ -6,7 +6,7 @@ FetchContent_Declare(
 	googletest
 
 	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG release-1.10.0
+	GIT_TAG release-1.12.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -18,10 +18,9 @@ target_sources(${GENESIS_TESTS}
 PRIVATE
 	endian.cpp
 	rom.cpp
-
 	memory.cpp
+
 	z80/cpu_registers.cpp
-	z80/arithmetic_logic_unit.cpp
 	z80/zex_runner.cpp
 )
 
@@ -31,3 +30,5 @@ target_link_libraries(${GENESIS_TESTS} ${GENESIS_LIB})
 include(GoogleTest)
 gtest_discover_tests(${GENESIS_TESTS})
 
+# copy z80 executioner
+file(COPY z80/zex/zexdoc DESTINATION z80)

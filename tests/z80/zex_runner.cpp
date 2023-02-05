@@ -3,6 +3,8 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
+#include "../helper.hpp"
+
 #include "z80/cpu.h"
 #include "z80/io_ports.hpp"
 #include "string_utils.hpp"
@@ -15,19 +17,18 @@ public:
 	void out(std::uint8_t /*dev*/, std::uint8_t data) override
 	{
 		if(data == 13)
-		{
 			data = '\n';
-		}
 
-		std::cout << data;
+		if(data == '\n')
+			parse_line();
 
-		buffer << data;
 		one_line << data;
-
+		
 		check_terminated();
 		if(data == '\n')
 		{
-			one_line.str(std::string());	
+			std::cout << one_line.str();
+			one_line.str(std::string());
 		}
 	}
 
@@ -36,7 +37,9 @@ public:
 		return _terminated;
 	}
 
-	std::string data() { return buffer.str(); }
+	int succeded() { return num_succeded; }
+	int failed() { return num_failed; }
+
 
 private:
 	void check_terminated()
@@ -45,30 +48,24 @@ private:
 			_terminated = true;
 	}
 
+	void parse_line()
+	{
+		std::string str = one_line.str();
+		
+		if(str.ends_with("OK"))
+			++num_succeded;
+		
+		if(str.find("expected") != std::string::npos)
+			++num_failed;
+	}
+
 private:
 	std::stringstream one_line;
-	std::stringstream buffer;
 	bool _terminated = false;
+	int num_succeded = 0;
+	int num_failed = 0;
 };
 
-void log_pc(z80::cpu& cpu)
-{
-	auto pc = cpu.registers().PC;
-	auto op1 = cpu.memory().read<std::uint8_t>(pc);
-	auto op2 = cpu.memory().read<std::uint8_t>(pc + 1);
-	auto op3 = cpu.memory().read<std::uint8_t>(pc + 2);
-
-	std::cout << "PC: " << su::hex_str(pc) << ' ';
-	std::cout << "(" << su::hex_str(op1) << ", " << su::hex_str(op2)
-		<< ", " << su::hex_str(op3) << ")" << std::endl;
-}
-
-void log_io_ports(test_io_ports& ports)
-{
-	std::cout << std::endl << "=========== <Printed by exerciser:> ===========\n" << std::endl;
-	std::cout << ports.data() << std::endl;
-	std::cout << std::endl << "==================== <end> ====================" << std::endl;
-}
 
 void load_at(z80::memory& mem, z80::memory::address base, const std::string& bin_path)
 {
@@ -98,6 +95,12 @@ void patch_zex(z80::memory& mem)
 	mem.write(0x12, 0xC9);   // RET
 }
 
+void report_results(int cycles, int num_succeded, int num_failed)
+{
+	std::cout << "Z80 Test complete, succeeded: " << num_succeded << ", failed: " << num_failed
+		<< ", cycles: " << cycles << std::endl;
+}
+
 void run_test(const std::string& test_path)
 {
 	auto ports = std::make_shared<test_io_ports>();
@@ -115,28 +118,33 @@ void run_test(const std::string& test_path)
 	{
 		try
 		{
-			// log_pc(cpu);
-			// std::cout << "\rTotal: " << total << "    ";
-			// if(total % 1'000'000 == 0)
-			// 	std::cout << std::endl << "Total: " << total << std::endl;
 			cpu.execute_one();
 			++total;
 		}
 		catch(...)
 		{
-			std::cout << "\nTotal executed: " << total << std::endl;
-			// log_io_ports(*ports);
+			report_results(total, ports->succeded(), ports->failed());
 			throw;
 		}
 	}
+
+	report_results(total, ports->succeded(), ports->failed());
+
+	const int total_tests = 67;
+	ASSERT_EQ(0, ports->failed()) << "Some tests were failed!";
+	ASSERT_EQ(total_tests, ports->succeded()) << "Some tests were skipped";
 }
 
 TEST(Z80, ZEXDOC)
 {
-	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexdoc");
+	auto bin_path = get_exec_path() / "z80" / "zexdoc";
+	run_test(bin_path.string());
 }
 
 TEST(Z80, ZEXALL)
 {
-	run_test("C:\\Users\\darre\\Desktop\\repo\\genesis\\tests\\z80\\zex\\zexall");
+	GTEST_SKIP() << "Not implemented yet";
+
+	auto bin_path = get_exec_path() / "z80" / "zexall";
+	run_test(bin_path.string());
 }
