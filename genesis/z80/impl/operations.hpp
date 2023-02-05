@@ -876,8 +876,14 @@ public:
 
 		flags.S = bit == 7 && is_set;
 		flags.PV = flags.Z;
-		flags.Y = bit == 5 && is_set;
-		flags.X = bit == 3 && is_set;
+		set_yx(src);
+	}
+
+	inline void tst_bit_at(z80::memory::address addr, std::uint8_t bit)
+	{
+		auto data = mem.read<std::uint8_t>(addr);
+		tst_bit(data, bit);
+		set_yx(addr >> 8);
 	}
 
 	inline void set_bit(std::int8_t& dest, std::uint8_t bit)

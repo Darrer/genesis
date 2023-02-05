@@ -106,6 +106,7 @@ enum operation_type : std::uint8_t
 
 	/* Bit Set, Reset, and Test Group */
 	tst_bit,
+	tst_bit_at,
 	set_bit,
 	set_bit_at,
 	res_bit,
@@ -591,7 +592,7 @@ const instruction instructions[] = {
 
 	/* Bit Set, Reset, and Test Group */
 	bit_register(operation_type::tst_bit, 0xCB, 0b01000000),
-	source_bit(operation_type::tst_bit, 0xCB, 0b01000110, addressing_mode::indirect_hl),
+	source_bit(operation_type::tst_bit_at, 0xCB, 0b01000110, addressing_mode::indirect_hl),
 
 	bit_register(operation_type::set_bit, 0xCB, 0b11000000),
 	source_bit(operation_type::set_bit_at, 0xCB, 0b11000110, addressing_mode::indirect_hl),

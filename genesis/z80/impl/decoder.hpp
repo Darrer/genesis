@@ -245,7 +245,7 @@ public:
 		switch (data >> 6)
 		{
 		case 0b01:
-			return operation_type::tst_bit;
+			return operation_type::tst_bit_at;
 		case 0b11:
 			return operation_type::set_bit_at;
 		case 0b10:

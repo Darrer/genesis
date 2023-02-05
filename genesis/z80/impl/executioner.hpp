@@ -281,6 +281,9 @@ private:
 		case operation_type::tst_bit:
 			ops.tst_bit(dec.decode_byte(inst.destination, inst), dec.decode_bit(inst.source, inst));
 			break;
+		case operation_type::tst_bit_at:
+			ops.tst_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
+			break;
 		case operation_type::set_bit:
 			ops.set_bit(dec.decode_reg_8(inst.destination), dec.decode_bit(inst.source, inst));
 			break;
@@ -336,8 +339,8 @@ private:
 		auto op_type = dec.decode_bit_op(inst);
 		switch (op_type)
 		{
-		case operation_type::tst_bit:
-			ops.tst_bit(dec.decode_byte(inst.destination, inst), dec.decode_bit(inst.source, inst));
+		case operation_type::tst_bit_at:
+			ops.tst_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
 			break;
 		case operation_type::set_bit_at:
 			ops.set_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst), reg);
