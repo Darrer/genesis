@@ -54,7 +54,6 @@ public:
 
 		if(idx == no_index)
 		{
-			// return make_nop(op1, op2);
 			throw std::runtime_error("fast_search error: unsupported opcode: " + su::hex_str(op1) + ", " + su::hex_str(op2));
 		}
 
@@ -66,40 +65,6 @@ public:
 		}
 
 		return instructions[idx];
-	}
-
-	instruction linear_search(z80::opcode op1, z80::opcode op2)
-	{
-		
-		for(const auto& inst : instructions)
-		{
-			if(op1 == inst.opcodes[0] && (inst.opcodes[1] == 0x0 || inst.opcodes[1] == op2))
-			{
-				return inst;
-			}
-		}
-
-		throw std::runtime_error("linear_search error, unsupported opcode ("
-			+ su::hex_str(op1) + ", " + su::hex_str(op2) + ")");
-	}
-
-private:
-	instruction make_nop(z80::opcode op1, z80::opcode op2)
-	{
-		instruction inst = { operation_type::nop, {0x0}, addressing_mode::none, addressing_mode::none };
-		switch (op1)
-		{
-		case 0xDD:
-		case 0xFD:
-		case 0xED:
-		case 0xCB:
-			inst.opcodes = {op1, op2};
-			return inst;
-		
-		default:
-			inst.opcodes = {op1, 0x0};
-			return inst;
-		}
 	}
 
 private:

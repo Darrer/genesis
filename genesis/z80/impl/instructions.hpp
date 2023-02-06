@@ -161,8 +161,6 @@ enum addressing_mode : std::uint8_t
 	indirect_hl,
 	indirect_bc,
 	indirect_de,
-	indirect_sp, // do we need it?
-	indirect_af, // do we need it?
 
 	// indexed
 	indexed_ix,

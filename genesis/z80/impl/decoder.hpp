@@ -21,7 +21,7 @@ public:
 	{
 	}
 
-	std::int8_t decode_byte(addressing_mode addr_mode, const instruction inst)
+	std::int8_t decode_byte(addressing_mode addr_mode, instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -47,8 +47,6 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
-		case addressing_mode::indirect_sp:
-		case addressing_mode::indirect_af:
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
 			return mem.read<std::int8_t>(decode_address(addr_mode, inst));
@@ -58,7 +56,7 @@ public:
 		}
 	}
 
-	std::int16_t decode_2_bytes(addressing_mode addr_mode, const instruction inst)
+	std::int16_t decode_2_bytes(addressing_mode addr_mode, instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -79,7 +77,7 @@ public:
 		}
 	}
 
-	z80::memory::address decode_address(addressing_mode addr_mode, const instruction inst)
+	z80::memory::address decode_address(addressing_mode addr_mode, instruction inst)
 	{
 		switch(addr_mode)
 		{
@@ -89,8 +87,6 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
-		case addressing_mode::indirect_sp:
-		case addressing_mode::indirect_af:
 			return decode_indirect(addr_mode);
 
 		case addressing_mode::indexed_ix:
@@ -163,7 +159,7 @@ public:
 	}
 
 	template<class T = std::int8_t>
-	T decode_immediate(const instruction inst)
+	T decode_immediate(instruction inst)
 	{
 		static_assert(sizeof(T) <= 2);
 
@@ -181,7 +177,7 @@ public:
 		return mem.read<T>(addr);
 	}
 
-	std::int16_t decode_immediate_ext(const instruction inst)
+	std::int16_t decode_immediate_ext(instruction inst)
 	{
 		return decode_immediate<std::int16_t>(inst);
 	}
@@ -190,8 +186,6 @@ public:
 	{
 		switch (addr_mode)
 		{
-		case addressing_mode::indirect_af:
-			return regs.main_set.AF;
 		case addressing_mode::indirect_bc:
 			return regs.main_set.BC;
 		case addressing_mode::indirect_de:
@@ -220,7 +214,7 @@ public:
 		}
 	}
 
-	std::uint8_t decode_cc(const instruction inst)
+	std::uint8_t decode_cc(instruction inst)
 	{
 		// NOTE: always assume constant cc offset for all instructions
 		return (inst.opcodes[0] & 0b00111000) >> 3;
@@ -301,72 +295,29 @@ public:
 		}
 	}
 
-	void advance_pc(const instruction inst)
+	void advance_pc(instruction inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
 		{
 			switch (addr_mode)
 			{
-			case addressing_mode::register_a:
-			case addressing_mode::register_b:
-			case addressing_mode::register_c:
-			case addressing_mode::register_d:
-			case addressing_mode::register_e:
-			case addressing_mode::register_h:
-			case addressing_mode::register_l:
-			case addressing_mode::register_i:
-			case addressing_mode::register_r:
-			case addressing_mode::register_af:
-			case addressing_mode::register_bc:
-			case addressing_mode::register_de:
-			case addressing_mode::register_hl:
-			case addressing_mode::register_sp:
-			case addressing_mode::register_ix:
-			case addressing_mode::register_iy:
-			case addressing_mode::register_ixh:
-			case addressing_mode::register_ixl:
-			case addressing_mode::register_iyh:
-			case addressing_mode::register_iyl:
-			case addressing_mode::indirect_hl:
-			case addressing_mode::indirect_bc:
-			case addressing_mode::indirect_de:
-			case addressing_mode::indirect_sp:
-			case addressing_mode::indirect_af:
-			case addressing_mode::implied:
-			case addressing_mode::none:
-			case addressing_mode::bit:
-				return 0;
-
 			case addressing_mode::immediate:
 			case addressing_mode::indexed_ix:
 			case addressing_mode::indexed_iy:
 			case addressing_mode::immediate_bit:
 				return 1;
-
 			case addressing_mode::immediate_ext:
 				return 2;
 			default:
-				unsupported_addresing_mode(addr_mode);
+				return 0;
 			}
 		};
 
 		std::uint16_t inst_size = inst.opcodes[1] == 0x0 ? 1 : 2;
-		regs.PC += inst_size;
-
 		auto src_size = addressing_mode_size(inst.source);
 		auto dest_size = addressing_mode_size(inst.destination);
 
-		// we have to add operands' size if addressing mode is indexed and immediate 
-		if((is_indexed(inst.source) && is_immediate(inst.destination)) ||
-			(is_indexed(inst.destination) && is_immediate(inst.source)))
-		{
-			// in this case after opcode we have displacement (1 byte) and n/nn (1 or 2 bytes)
-			regs.PC += src_size + dest_size;
-		}
-		else
-		{
-			regs.PC += std::max(src_size, dest_size);
-		}
+		regs.PC += inst_size + src_size + dest_size;
 	}
 
 private:
@@ -374,12 +325,6 @@ private:
 	static bool is_indexed(addressing_mode addr_mode)
 	{
 		return addr_mode == addressing_mode::indexed_ix || addr_mode == addressing_mode::indexed_iy;
-	}
-
-	static bool is_immediate(addressing_mode addr_mode)
-	{
-		return addr_mode == addressing_mode::immediate || addr_mode == addressing_mode::immediate_ext
-			|| addr_mode == addressing_mode::immediate_bit;
 	}
 private:
 	z80::memory& mem;
