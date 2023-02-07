@@ -276,19 +276,19 @@ public:
 	{
 		switch (bit_reg)
 		{
-		case register_type::A:
+		case 0b111:
 			return regs.main_set.A;
-		case register_type::B:
+		case 0b000:
 			return regs.main_set.B;
-		case register_type::C:
+		case 0b001:
 			return regs.main_set.C;
-		case register_type::D:
+		case 0b010:
 			return regs.main_set.D;
-		case register_type::E:
+		case 0b011:
 			return regs.main_set.E;
-		case register_type::H:
+		case 0b100:
 			return regs.main_set.H;
-		case register_type::L:
+		case 0b101:
 			return regs.main_set.L;
 		default:
 			throw std::runtime_error("decode_bit_reg error, unknown register " + su::bin_str(bit_reg));
