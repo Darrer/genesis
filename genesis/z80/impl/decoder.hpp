@@ -47,6 +47,7 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
+		case addressing_mode::indirect_sp:
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy:
 			return mem.read<std::int8_t>(decode_address(addr_mode, inst));
@@ -87,6 +88,7 @@ public:
 		case addressing_mode::indirect_hl:
 		case addressing_mode::indirect_bc:
 		case addressing_mode::indirect_de:
+		case addressing_mode::indirect_sp:
 			return decode_indirect(addr_mode);
 
 		case addressing_mode::indexed_ix:
@@ -192,6 +194,8 @@ public:
 			return regs.main_set.DE;
 		case addressing_mode::indirect_hl:
 			return regs.main_set.HL;
+		case addressing_mode::indirect_sp:
+			return regs.SP;
 		default:
 			unsupported_addresing_mode(addr_mode);
 		}

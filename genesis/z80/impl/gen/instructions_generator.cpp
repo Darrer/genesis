@@ -308,6 +308,8 @@ instruction all_instructions[] = {
 	/* 16-Bit Load Group */
 	indirect_dd_des(operation_type::ld_16_reg, 0b00000001, 4, addressing_mode::immediate_ext),
 	{ operation_type::ld_16_reg, {0xF9}, addressing_mode::register_hl, addressing_mode::register_sp },
+	{ operation_type::ld_16_reg, {0xDD, 0xF9}, addressing_mode::register_ix, addressing_mode::register_sp },
+	{ operation_type::ld_16_reg, {0xFD, 0xF9}, addressing_mode::register_iy, addressing_mode::register_sp },
 	{ operation_type::ld_16_reg, {0xDD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_ix },
 	{ operation_type::ld_16_reg, {0xFD, 0x21}, addressing_mode::immediate_ext, addressing_mode::register_iy },
 
@@ -357,6 +359,7 @@ instruction all_instructions[] = {
 	{ operation_type::jr_c, {0x38}, addressing_mode::immediate, addressing_mode::none },
 	{ operation_type::jr_nc, {0x30}, addressing_mode::immediate, addressing_mode::none },
 	{ operation_type::jr, {0x18}, addressing_mode::immediate, addressing_mode::none },
+	{ operation_type::djnz, {0x10}, addressing_mode::immediate, addressing_mode::none },
 
 	/* CPU Control Groups */
 	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
@@ -370,6 +373,9 @@ instruction all_instructions[] = {
 	{ operation_type::ex_de_hl, {0xEB}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::ex_af_afs, {0x08}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::exx, {0xD9}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::ex_16_at, {0xE3}, addressing_mode::register_hl, addressing_mode::indirect_sp },
+	{ operation_type::ex_16_at, {0xDD, 0xE3}, addressing_mode::register_ix, addressing_mode::indirect_sp },
+	{ operation_type::ex_16_at, {0xFD, 0xE3}, addressing_mode::register_iy, addressing_mode::indirect_sp },
 	{ operation_type::ldi, {0xED, 0xA0}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::ldir, {0xED, 0xB0}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::cpd, {0xED, 0xA9}, addressing_mode::implied, addressing_mode::implied },

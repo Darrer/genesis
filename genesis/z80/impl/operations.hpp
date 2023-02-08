@@ -210,6 +210,19 @@ public:
 		regs.PC += offset + 2;
 	}
 
+	void djnz(std::int8_t offset)
+	{
+		dec_reg(regs.main_set.B);
+		if(regs.main_set.B != 0)
+		{
+			jr(offset);
+		}
+		else
+		{
+			regs.PC += 2;
+		}
+	}
+
 	/* CPU Control Groups */
 	inline void di()
 	{
@@ -502,6 +515,13 @@ public:
 		std::swap(regs.main_set.BC, regs.alt_set.BC);
 		std::swap(regs.main_set.DE, regs.alt_set.DE);
 		std::swap(regs.main_set.HL, regs.alt_set.HL);
+	}
+
+	void ex_16_at(std::int16_t& reg, z80::memory::address addr)
+	{
+		auto data = mem.read<std::int16_t>(addr);
+		mem.write(addr, reg);
+		reg = data;
 	}
 
 	inline void ldi()

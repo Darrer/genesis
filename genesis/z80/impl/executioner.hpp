@@ -158,6 +158,9 @@ private:
 		case operation_type::jr_nc:
 			ops.jr_nc(dec.decode_byte(inst.source, inst));
 			return;
+		case operation_type::djnz:
+			ops.djnz(dec.decode_byte(inst.source, inst));
+			return;
 
 		/* CPU Control Groups */
 		case operation_type::di:
@@ -183,6 +186,9 @@ private:
 			break;
 		case operation_type::exx:
 			ops.exx();
+			break;
+		case operation_type::ex_16_at:
+			ops.ex_16_at(dec.decode_reg_16(inst.source), dec.decode_address(inst.destination, inst));
 			break;
 		case operation_type::ldi:
 			ops.ldi();

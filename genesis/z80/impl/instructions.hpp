@@ -60,6 +60,7 @@ enum operation_type : std::uint8_t
 	jr_c,
 	jr_nc,
 	jr,
+	djnz,
 
 	/* CPU Control Groups */
 	di,
@@ -73,6 +74,7 @@ enum operation_type : std::uint8_t
 	ex_de_hl,
 	ex_af_afs,
 	exx,
+	ex_16_at,
 	ldi,
 	ldir,
 	cpd,
@@ -163,6 +165,7 @@ enum addressing_mode : std::uint8_t
 	indirect_hl,
 	indirect_bc,
 	indirect_de,
+	indirect_sp,
 
 	// indexed
 	indexed_ix,
