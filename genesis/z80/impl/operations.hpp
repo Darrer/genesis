@@ -224,7 +224,7 @@ public:
 
 	void djnz(std::int8_t offset)
 	{
-		dec_reg(regs.main_set.B);
+		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
 		if(regs.main_set.B != 0)
 		{
 			jr(offset);
