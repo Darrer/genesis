@@ -12,6 +12,7 @@ enum bus : std::uint8_t
 	INT, // maskable interrupt
 	NMI, // nonmaskable interrupt
 	HALT,
+	BUSREQ,
 
 	count,
 };
@@ -21,8 +22,7 @@ class cpu_bus
 public:
 	cpu_bus()
 	{
-		for(auto& i : bus_state)
-			i = 0x0;
+		bus_state.fill(0x0);
 		data = 0x0;
 	}
 

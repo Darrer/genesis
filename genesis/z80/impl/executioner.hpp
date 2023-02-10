@@ -459,6 +459,11 @@ private:
 			return false;
 		}
 
+		if(bus.is_set(bus::BUSREQ))
+		{
+			return false;
+		}
+
 		if(cpu.registers().IFF1 == 0)
 		{
 			// maskable interrupts are disabled

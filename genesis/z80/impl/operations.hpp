@@ -1059,14 +1059,14 @@ public:
 	{
 		cpu.bus().clear(bus::HALT);
 		di();
+		push(regs.PC);
+
+		data = data & 0b11111110;
 
 		// form a pointer to a vector table
-		data = data & 0b11111110;
 		memory::address addr = (std::uint8_t)regs.I;
 		addr = addr << 8;
 		addr = addr | data;
-
-		push(regs.PC);
 
 		// read interrupt routine address
 		regs.PC = mem.read<memory::address>(addr);
