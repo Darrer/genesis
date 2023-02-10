@@ -174,7 +174,7 @@ private:
 
 		/* Jump Group */
 		case operation_type::jp:
-			ops.jp(dec.decode_address(inst.source, inst));
+			ops.jp(dec.decode_2_bytes(inst.source, inst));
 			break;
 		case operation_type::jp_cc:
 			ops.jp_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));

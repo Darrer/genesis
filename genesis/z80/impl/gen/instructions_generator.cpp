@@ -352,7 +352,9 @@ instruction all_instructions[] = {
 
 	/* Jump Group */
 	{ operation_type::jp, {0xC3}, addressing_mode::immediate_ext, addressing_mode::none },
-	{ operation_type::jp, {0xE9}, addressing_mode::indirect_hl, addressing_mode::none },
+	{ operation_type::jp, {0xE9}, addressing_mode::register_hl, addressing_mode::none },
+	{ operation_type::jp, {0xDD, 0xE9}, addressing_mode::register_ix, addressing_mode::none },
+	{ operation_type::jp, {0xFD, 0xE9}, addressing_mode::register_iy, addressing_mode::none },
 	cc_inst(operation_type::jp_cc, 0b11000010, addressing_mode::immediate_ext, addressing_mode::none),
 	{ operation_type::jr_z, {0x28}, addressing_mode::immediate, addressing_mode::none },
 	{ operation_type::jr_nz, {0x20}, addressing_mode::immediate, addressing_mode::none },
