@@ -16,6 +16,7 @@ enum bus : std::uint8_t
 	NMI, // nonmaskable interrupt
 	HALT,
 	BUSREQ,
+	BUSACK,
 	RESET,
 
 	count,

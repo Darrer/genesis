@@ -33,8 +33,15 @@ public:
 
 		if(cpu.bus().is_set(bus::BUSREQ))
 		{
+			// accept request
+			cpu.bus().set(bus::BUSACK);
+
 			// asume setting BUSREQ will pause the CPU, should be good enough for our purposes
 			return;
+		}
+		else
+		{
+			cpu.bus().clear(bus::BUSACK);
 		}
 
 		if(cpu.bus().is_set(bus::HALT))
@@ -468,7 +475,7 @@ private:
 			ops.nonmaskable_interrupt();
 			// TODO: should we clear NMI? Or somehow indicate interrupt is processing
 			// otherwise we going to handle the same interrupt second time on the next cycle
-			throw std::runtime_error("check_interrupts nonmaskable interrupts are not implmeneted properly")
+			throw std::runtime_error("check_interrupts nonmaskable interrupts are not implmeneted properly");
 			return true;
 		}
 
