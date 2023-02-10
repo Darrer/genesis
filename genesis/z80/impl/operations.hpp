@@ -267,6 +267,9 @@ public:
 	}
 
 	/* Input and Output Group */
+
+	// NOTE: genesis does not use in/out, so this group is intentionally not implemented
+	// there is only OUT instruction to support output during executing tests.
 	inline void out(std::uint8_t n)
 	{
 		cpu.io_ports().out(n, regs.main_set.A);
