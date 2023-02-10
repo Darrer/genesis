@@ -481,8 +481,8 @@ int main()
 		if(a.op_type != b.op_type)
 			return a.op_type < b.op_type;
 
-		int width_a = a.opcodes[1] == 0 ? 1 : 2;
-		int width_b = b.opcodes[1] == 0 ? 1 : 2;
+		int width_a = long_instruction(a.opcodes[0]) ? 2 : 1;
+		int width_b = long_instruction(b.opcodes[0]) ? 2 : 1;
 
 		if(width_a != width_b)
 			return width_a < width_b;

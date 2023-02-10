@@ -166,7 +166,7 @@ public:
 		static_assert(sizeof(T) <= 2);
 
 		auto addr = regs.PC;
-		addr += inst.opcodes[1] == 0x0 ? 1 : 2;
+		addr += inst_size(inst);
 
 		// check if addressing mode indexed combined with addressing mode immediate
 		if(is_indexed(inst.source) || is_indexed(inst.destination))
@@ -317,11 +317,24 @@ public:
 			}
 		};
 
-		std::uint16_t inst_size = inst.opcodes[1] == 0x0 ? 1 : 2;
 		auto src_size = addressing_mode_size(inst.source);
 		auto dest_size = addressing_mode_size(inst.destination);
 
-		regs.PC += inst_size + src_size + dest_size;
+		regs.PC += inst_size(inst) + src_size + dest_size;
+	}
+
+	std::uint8_t inst_size(instruction inst)
+	{
+		switch (inst.opcodes[0])
+		{
+		case 0xDD:
+		case 0xFD:
+		case 0xED:
+		case 0xCB:
+			return 2;
+		default:
+			return 1;
+		}
 	}
 
 private:
