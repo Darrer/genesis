@@ -67,6 +67,8 @@ public:
 		int_mode = mode;
 	}
 
+	void reset();
+
 private:
 	std::unique_ptr<z80::executioner> exec;
 	std::shared_ptr<z80::memory> mem;

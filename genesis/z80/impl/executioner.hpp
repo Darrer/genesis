@@ -24,7 +24,19 @@ public:
 	{
 		if(check_interrupts())
 			return;
-		
+
+		if(cpu.bus().is_set(bus::RESET))
+		{
+			cpu.reset();
+			return;
+		}
+
+		if(cpu.bus().is_set(bus::BUSREQ))
+		{
+			// asume setting BUSREQ will pause the CPU, should be good enough for our purposes
+			return;
+		}
+
 		if(cpu.bus().is_set(bus::HALT))
 		{
 			// nothing to do
@@ -444,6 +456,13 @@ private:
 	bool check_interrupts()
 	{
 		auto& bus = cpu.bus();
+
+		if(bus.is_set(bus::BUSREQ))
+		{
+			// no interrupts if BUSREQ is set
+			return false;
+		}
+
 		if(bus.is_set(bus::NMI))
 		{
 			ops.nonmaskable_interrupt();
@@ -456,11 +475,6 @@ private:
 		if(interrupts_just_enabled)
 		{
 			// we have to execute 1 instruction after enabling interrupts
-			return false;
-		}
-
-		if(bus.is_set(bus::BUSREQ))
-		{
 			return false;
 		}
 

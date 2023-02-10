@@ -7,12 +7,16 @@
 namespace genesis::z80
 {
 
+// NOTE: here we assume 0 - reset, 1 - set
+// for some buses that does not true, but use it for now for simplicity
+
 enum bus : std::uint8_t
 {
 	INT, // maskable interrupt
 	NMI, // nonmaskable interrupt
 	HALT,
 	BUSREQ,
+	RESET,
 
 	count,
 };
