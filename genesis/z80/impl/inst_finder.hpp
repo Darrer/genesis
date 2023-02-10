@@ -30,6 +30,20 @@ public:
 		build_maps();
 	}
 
+	instruction fast_search(z80::opcode op1)
+	{
+		switch (op1)
+		{
+		case 0xDD:
+		case 0xFD:
+		case 0xED:
+		case 0xCB:
+			throw std::runtime_error("fast_search error: 2 byte instruction prefix was supplied");
+		}
+
+		return fast_search(op1, 0x00);
+	}
+
 	instruction fast_search(z80::opcode op1, z80::opcode op2)
 	{
 		std::uint16_t idx = no_index;

@@ -362,9 +362,13 @@ instruction all_instructions[] = {
 	{ operation_type::djnz, {0x10}, addressing_mode::immediate, addressing_mode::none },
 
 	/* CPU Control Groups */
+	{ operation_type::nop, {0x00}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::halt, {0x76}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::di, {0xF3}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::ei, {0xFB}, addressing_mode::none, addressing_mode::none },
-	{ operation_type::nop, {0x00}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::im0, {0xED, 0x46}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::im1, {0xED, 0x56}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::im2, {0xED, 0x5E}, addressing_mode::none, addressing_mode::none },
 
 	/* Input and Output Group */
 	{ operation_type::out, {0xD3}, addressing_mode::immediate, addressing_mode::none },

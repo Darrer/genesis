@@ -55,8 +55,7 @@ public:
 
 		flags.H = flags.N = 0;
 
-		// TODO: P/V should contain contents of IFF2
-		flags.PV = 0;
+		flags.PV = regs.IFF2;
 	}
 
 	inline void push(std::int16_t src)
@@ -224,14 +223,34 @@ public:
 	}
 
 	/* CPU Control Groups */
+	void halt()
+	{
+		cpu.bus().set(bus::HALT);
+	}
+
 	inline void di()
 	{
-		// TODO
+		regs.IFF1 = regs.IFF2 = 0;
 	}
 
 	inline void ei()
 	{
-		// TODO
+		regs.IFF1 = regs.IFF2 = 1;
+	}
+
+	void im0()
+	{
+		cpu.interrupt_mode(cpu_interrupt_mode::im0);
+	}
+
+	void im1()
+	{
+		cpu.interrupt_mode(cpu_interrupt_mode::im1);
+	}
+
+	void im2()
+	{
+		cpu.interrupt_mode(cpu_interrupt_mode::im2);
 	}
 
 	/* Input and Output Group */
@@ -1010,6 +1029,47 @@ public:
 		flags.H = flags.N = 0;
 		flags.C = 1;
 		set_yx(regs.main_set.A);
+	}
+
+	/* Interrupts */
+	void nonmaskable_interrupt()
+	{
+		cpu.bus().clear(bus::HALT);
+		regs.IFF1 = 0;
+		push(regs.PC);
+		regs.PC = 0x66;
+	}
+
+	void maskable_interrupt_m0()
+	{
+		cpu.bus().clear(bus::HALT);
+		di();
+		// someone else should also execute required instruction
+	}
+
+	void maskable_interrupt_m1()
+	{
+		cpu.bus().clear(bus::HALT);
+		di();
+		push(regs.PC);
+		regs.PC = 0x38;
+	}
+
+	void maskable_interrupt_m2(std::uint8_t data)
+	{
+		cpu.bus().clear(bus::HALT);
+		di();
+
+		// form a pointer to a vector table
+		data = data & 0b11111110;
+		memory::address addr = (std::uint8_t)regs.I;
+		addr = addr << 8;
+		addr = addr | data;
+
+		push(regs.PC);
+
+		// read interrupt routine address
+		regs.PC = mem.read<memory::address>(addr);
 	}
 
 private:

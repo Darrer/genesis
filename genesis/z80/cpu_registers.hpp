@@ -126,8 +126,9 @@ public:
 		IXH(ix_lh.ixh), IXL(ix_lh.ixl), IX(ix),
 		IYH(iy_lh.iyh), IYL(iy_lh.iyl), IY(iy)
 	{
-		I = R = 0x0;
 		IX = IY = SP = PC = 0x0;
+		I = R = 0x0;
+		IFF1 = IFF2 = 0;
 	}
 
 	/* general purpose & accumulator/flag registers */
@@ -150,6 +151,11 @@ public:
 
 	std::int16_t SP;
 	std::uint16_t PC;
+
+	/* Interrupt-related data */
+
+	std::uint8_t IFF1 : 1;
+	std::uint8_t IFF2 : 1;
 };
 
 } // namespace genesis::z80

@@ -62,11 +62,6 @@ enum operation_type : std::uint8_t
 	jr,
 	djnz,
 
-	/* CPU Control Groups */
-	di,
-	ei,
-	nop,
-
 	/* Input and Output Group */
 	out,
 
@@ -123,6 +118,15 @@ enum operation_type : std::uint8_t
 	neg,
 	ccf,
 	scf,
+
+	/* CPU Control Groups */
+	di,
+	ei,
+	nop,
+	halt,
+	im0,
+	im1,
+	im2,
 };
 
 enum addressing_mode : std::uint8_t

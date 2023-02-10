@@ -22,20 +22,37 @@ public:
 
 	void execute_one()
 	{
+		if(check_interrupts())
+			return;
+		
+		if(cpu.bus().is_set(bus::HALT))
+		{
+			// nothing to do
+			return;
+		}
+
 		auto& mem = cpu.memory();
 		auto& regs = cpu.registers();
 
 		z80::opcode opcode = mem.read<z80::opcode>(regs.PC);
 		z80::opcode opcode2 = mem.read<z80::opcode>(regs.PC + 1);
 
-		// auto inst = finder.linear_search(opcode, opcode2);
 		auto inst = finder.fast_search(opcode, opcode2);
-		exec_inst(inst);
+		exec_and_advance(inst);
 	}
 
 private:
-	void exec_inst(z80::instruction inst)
+	void exec_and_advance(z80::instruction inst)
 	{
+		exec(inst);
+		if(need_advance_pc(inst.op_type))
+			dec.advance_pc(inst);
+	}
+
+	void exec(z80::instruction inst)
+	{
+		interrupts_just_enabled = false;
+
 		switch(inst.op_type)
 		{
 		/* 8-Bit Arithmetic Group */
@@ -122,54 +139,67 @@ private:
 		/* Call and Return Group */
 		case operation_type::call:
 			ops.call(dec.decode_address(inst.source, inst));
-			return;
+			break;
 		case operation_type::call_cc:
 			ops.call_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
-			return;
+			break;
 		case operation_type::rst:
 			ops.rst(dec.decode_cc(inst));
-			return;
+			break;
 		case operation_type::ret:
 			ops.ret();
-			return;
+			break;
 		case operation_type::ret_cc:
 			ops.ret_cc(dec.decode_cc(inst));
-			return;
+			break;
 
 		/* Jump Group */
 		case operation_type::jp:
 			ops.jp(dec.decode_address(inst.source, inst));
-			return;
+			break;
 		case operation_type::jp_cc:
 			ops.jp_cc(dec.decode_cc(inst), dec.decode_address(inst.source, inst));
-			return;
+			break;
 		case operation_type::jr:
 			ops.jr(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 		case operation_type::jr_z:
 			ops.jr_z(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 		case operation_type::jr_nz:
 			ops.jr_nz(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 		case operation_type::jr_c:
 			ops.jr_c(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 		case operation_type::jr_nc:
 			ops.jr_nc(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 		case operation_type::djnz:
 			ops.djnz(dec.decode_byte(inst.source, inst));
-			return;
+			break;
 
 		/* CPU Control Groups */
+		case operation_type::nop:
+			break;
+		case operation_type::halt:
+			ops.halt();
+			break;
 		case operation_type::di:
 			ops.di();
 			break;
 		case operation_type::ei:
 			ops.ei();
+			interrupts_just_enabled = true;
 			break;
-		case operation_type::nop:
+		case operation_type::im0:
+			ops.im0();
+			break;
+		case operation_type::im1:
+			ops.im1();
+			break;
+		case operation_type::im2:
+			ops.im2();
 			break;
 
 		/* Input and Output Group */
@@ -195,25 +225,25 @@ private:
 			break;
 		case operation_type::ldir:
 			ops.ldir();
-			return;
+			break;
 		case operation_type::cpd:
 			ops.cpd();
 			break;
 		case operation_type::cpdr:
 			ops.cpdr();
-			return;
+			break;
 		case operation_type::cpi:
 			ops.cpi();
 			break;
 		case operation_type::cpir:
 			ops.cpir();
-			return;
+			break;
 		case operation_type::ldd:
 			ops.ldd();
 			break;
 		case operation_type::lddr:
 			ops.lddr();
-			return;
+			break;
 
 		/* Rotate and Shift Group */
 		case operation_type::rlca:
@@ -326,8 +356,6 @@ private:
 		default:
 			throw std::runtime_error("exec_inst error: unsupported operation " + std::to_string(inst.op_type));
 		}
-
-		dec.advance_pc(inst);
 	}
 
 	void exec_bit_group(instruction inst)
@@ -384,11 +412,98 @@ private:
 		}
 	}
 
+	// TODO: move to decoder?
+	bool need_advance_pc(operation_type op)
+	{
+		switch (op)
+		{
+		// these control PC itslef
+		case operation_type::call:
+		case operation_type::call_cc:
+		case operation_type::rst:
+		case operation_type::ret:
+		case operation_type::ret_cc:
+		case operation_type::jp:
+		case operation_type::jp_cc:
+		case operation_type::jr:
+		case operation_type::jr_z:
+		case operation_type::jr_nz:
+		case operation_type::jr_c:
+		case operation_type::jr_nc:
+		case operation_type::ldir:
+		case operation_type::cpdr:
+		case operation_type::cpir:
+		case operation_type::lddr:
+		case operation_type::djnz:
+			return false;
+		default:
+			return true;
+		}
+	}
+
+	bool check_interrupts()
+	{
+		auto& bus = cpu.bus();
+		if(bus.is_set(bus::NMI))
+		{
+			ops.nonmaskable_interrupt();
+			// TODO: should we clear NMI? Or somehow indicate interrupt is processing
+			// otherwise we going to handle the same interrupt second time on the next cycle
+			throw std::runtime_error("check_interrupts nonmaskable interrupts are not implmeneted properly")
+			return true;
+		}
+
+		if(interrupts_just_enabled)
+		{
+			// we have to execute 1 instruction after enabling interrupts
+			return false;
+		}
+
+		if(cpu.registers().IFF1 == 0)
+		{
+			// maskable interrupts are disabled
+			return false;
+		}
+		
+		if(bus.is_set(bus::INT))
+		{
+			// we had to accept interrupt first, then wait till get data,
+			// but for simplicity assume data already on the bus
+			exec_maskable_interrupt(bus.get_data());
+			return true;
+		}
+
+		return false;
+	}
+
+	void exec_maskable_interrupt(std::uint8_t data)
+	{
+		switch (cpu.interrupt_mode())
+		{
+		case cpu_interrupt_mode::im0:
+		{
+			ops.maskable_interrupt_m0();
+			instruction inst = finder.fast_search(data);
+			exec(inst);
+			break;
+		}
+		case cpu_interrupt_mode::im1:
+			ops.maskable_interrupt_m1();
+			break;
+		case cpu_interrupt_mode::im2:
+			ops.maskable_interrupt_m2(data);
+			break;
+		default:
+			throw std::runtime_error("exec_maskable_interrupt internal error: unknown interrupt mode");
+		}
+	}
+
 private:
 	z80::cpu& cpu;
 	z80::decoder dec;
 	z80::operations ops;
 	z80::inst_finder finder;
+	bool interrupts_just_enabled = false;
 };
 
 }
