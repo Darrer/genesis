@@ -80,6 +80,10 @@ const char* operation_type_str(genesis::z80::operation_type op)
 		return "operation_type::rst";
 	case operation_type::ret:
 		return "operation_type::ret";
+	case operation_type::reti:
+		return "operation_type::reti";
+	case operation_type::retn:
+		return "operation_type::retn";
 	case operation_type::ret_cc:
 		return "operation_type::ret_cc";
 	case operation_type::jp:
@@ -96,12 +100,22 @@ const char* operation_type_str(genesis::z80::operation_type op)
 		return "operation_type::jr_nc";
 	case operation_type::jr:
 		return "operation_type::jr";
+	case operation_type::djnz:
+		return "operation_type::djnz";
 	case operation_type::di:
 		return "operation_type::di";
 	case operation_type::ei:
 		return "operation_type::ei";
 	case operation_type::nop:
 		return "operation_type::nop";
+	case operation_type::halt:
+		return "operation_type::halt";
+	case operation_type::im0:
+		return "operation_type::im0";
+	case operation_type::im1:
+		return "operation_type::im1";
+	case operation_type::im2:
+		return "operation_type::im2";
 	case operation_type::out:
 		return "operation_type::out";
 	case operation_type::ex_de_hl:
@@ -110,6 +124,8 @@ const char* operation_type_str(genesis::z80::operation_type op)
 		return "operation_type::ex_af_afs";
 	case operation_type::exx:
 		return "operation_type::exx";
+	case operation_type::ex_16_at:
+		return "operation_type::ex_16_at";
 	case operation_type::ldi:
 		return "operation_type::ldi";
 	case operation_type::ldir:
@@ -258,6 +274,8 @@ const char* addressing_mode_str(genesis::z80::addressing_mode addr_mode)
 		return "addressing_mode::indirect_bc";
 	case addressing_mode::indirect_de:
 		return "addressing_mode::indirect_de";
+	case addressing_mode::indirect_sp:
+		return "addressing_mode::indirect_sp";
 	case addressing_mode::indexed_ix:
 		return "addressing_mode::indexed_ix";
 	case addressing_mode::indexed_iy:

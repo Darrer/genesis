@@ -143,8 +143,6 @@ TEST(Z80, ZEXDOC)
 
 TEST(Z80, ZEXALL)
 {
-	GTEST_SKIP() << "Not implemented yet";
-
 	auto bin_path = get_exec_path() / "z80" / "zexall";
 	run_test(bin_path.string());
 }

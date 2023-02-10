@@ -480,27 +480,20 @@ int main()
 	{
 		if(a.op_type != b.op_type)
 			return a.op_type < b.op_type;
-		
+
 		int width_a = a.opcodes[1] == 0 ? 1 : 2;
 		int width_b = b.opcodes[1] == 0 ? 1 : 2;
 
 		if(width_a != width_b)
 			return width_a < width_b;
+		
+		if(width_a == 2 && a.opcodes[0] != b.opcodes[0])
+			return a.opcodes[0] < b.opcodes[0];
 
 		if(a.source != b.source)
 			return a.source < b.source;
 		
 		return a.destination < b.destination;
-
-		// std::uint8_t o1 = a.opcodes[0];
-		// std::uint8_t o2 = b.opcodes[0];
-		// if(o1 == o2)
-		// {
-		// 	o1 = a.opcodes[1];
-		// 	o2 = b.opcodes[1];
-		// }
-		
-		// return o1 < o2;
 	});
 
 
