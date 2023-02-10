@@ -168,6 +168,12 @@ private:
 		case operation_type::ret:
 			ops.ret();
 			break;
+		case operation_type::reti:
+			ops.reti();
+			break;
+		case operation_type::retn:
+			ops.retn();
+			break;
 		case operation_type::ret_cc:
 			ops.ret_cc(dec.decode_cc(inst));
 			break;
@@ -441,6 +447,8 @@ private:
 		case operation_type::call_cc:
 		case operation_type::rst:
 		case operation_type::ret:
+		case operation_type::reti:
+		case operation_type::retn:
 		case operation_type::ret_cc:
 		case operation_type::jp:
 		case operation_type::jp_cc:

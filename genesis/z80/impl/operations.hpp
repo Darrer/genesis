@@ -126,6 +126,19 @@ public:
 		pop((std::int16_t&)regs.PC);
 	}
 
+	void reti()
+	{
+		ret();
+		// NOTE: current interrupt model does not support multiple/nested interrupts
+		// so there is no one to notify
+	}
+
+	void retn()
+	{
+		ret();
+		regs.IFF1 = regs.IFF2;
+	}
+
 	inline void ret_cc(std::uint8_t cc)
 	{
 		if(check_cc(cc))

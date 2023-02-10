@@ -348,6 +348,8 @@ instruction all_instructions[] = {
 	cc_inst(operation_type::call_cc, 0b11000100, addressing_mode::immediate_ext, addressing_mode::none),
 	cc_inst(operation_type::rst, 0b11000111, addressing_mode::none, addressing_mode::none),
 	{ operation_type::ret, {0xC9}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::reti, {0xED, 0x4D}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x45}, addressing_mode::none, addressing_mode::none },
 	cc_inst(operation_type::ret_cc, 0b11000000, addressing_mode::none, addressing_mode::none),
 
 	/* Jump Group */

@@ -50,6 +50,8 @@ enum operation_type : std::uint8_t
 	call_cc,
 	rst,
 	ret,
+	reti,
+	retn,
 	ret_cc,
 
 	/* Jump Group */
