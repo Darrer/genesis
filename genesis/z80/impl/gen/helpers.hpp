@@ -3,6 +3,8 @@
 
 #include "../instructions.hpp"
 
+#include <array>
+
 bool long_instruction(std::uint8_t op)
 {
 	switch (op)
@@ -19,200 +21,117 @@ bool long_instruction(std::uint8_t op)
 
 const char* operation_type_str(genesis::z80::operation_type op)
 {
-	using namespace genesis::z80;
-	switch(op)
-	{
-	case operation_type::add:
-		return "operation_type::add";
-	case operation_type::adc:
-		return "operation_type::adc";
-	case operation_type::sub:
-		return "operation_type::sub";
-	case operation_type::sbc:
-		return "operation_type::sbc";
-	case operation_type::and_8:
-		return "operation_type::and_8";
-	case operation_type::or_8:
-		return "operation_type::or_8";
-	case operation_type::xor_8:
-		return "operation_type::xor_8";
-	case operation_type::cp:
-		return "operation_type::cp";
-	case operation_type::inc_reg:
-		return "operation_type::inc_reg";
-	case operation_type::inc_at:
-		return "operation_type::inc_at";
-	case operation_type::dec_reg:
-		return "operation_type::dec_reg";
-	case operation_type::dec_at:
-		return "operation_type::dec_at";
-	case operation_type::add_16:
-		return "operation_type::add_16";
-	case operation_type::adc_hl:
-		return "operation_type::adc_hl";
-	case operation_type::sbc_hl:
-		return "operation_type::sbc_hl";
-	case operation_type::inc_reg_16:
-		return "operation_type::inc_reg_16";
-	case operation_type::dec_reg_16:
-		return "operation_type::dec_reg_16";
-	case operation_type::ld_reg:
-		return "operation_type::ld_reg";
-	case operation_type::ld_at:
-		return "operation_type::ld_at";
-	case operation_type::ld_ir:
-		return "operation_type::ld_ir";
-	case operation_type::ld_16_reg:
-		return "operation_type::ld_16_reg";
-	case operation_type::ld_16_reg_from:
-		return "operation_type::ld_16_reg_from";
-	case operation_type::ld_16_at:
-		return "operation_type::ld_16_at";
-	case operation_type::push:
-		return "operation_type::push";
-	case operation_type::pop:
-		return "operation_type::pop";
-	case operation_type::call:
-		return "operation_type::call";
-	case operation_type::call_cc:
-		return "operation_type::call_cc";
-	case operation_type::rst:
-		return "operation_type::rst";
-	case operation_type::ret:
-		return "operation_type::ret";
-	case operation_type::reti:
-		return "operation_type::reti";
-	case operation_type::retn:
-		return "operation_type::retn";
-	case operation_type::ret_cc:
-		return "operation_type::ret_cc";
-	case operation_type::jp:
-		return "operation_type::jp";
-	case operation_type::jp_cc:
-		return "operation_type::jp_cc";
-	case operation_type::jr_z:
-		return "operation_type::jr_z";
-	case operation_type::jr_nz:
-		return "operation_type::jr_nz";
-	case operation_type::jr_c:
-		return "operation_type::jr_c";
-	case operation_type::jr_nc:
-		return "operation_type::jr_nc";
-	case operation_type::jr:
-		return "operation_type::jr";
-	case operation_type::djnz:
-		return "operation_type::djnz";
-	case operation_type::di:
-		return "operation_type::di";
-	case operation_type::ei:
-		return "operation_type::ei";
-	case operation_type::nop:
-		return "operation_type::nop";
-	case operation_type::halt:
-		return "operation_type::halt";
-	case operation_type::im0:
-		return "operation_type::im0";
-	case operation_type::im1:
-		return "operation_type::im1";
-	case operation_type::im2:
-		return "operation_type::im2";
-	case operation_type::out:
-		return "operation_type::out";
-	case operation_type::ex_de_hl:
-		return "operation_type::ex_de_hl";
-	case operation_type::ex_af_afs:
-		return "operation_type::ex_af_afs";
-	case operation_type::exx:
-		return "operation_type::exx";
-	case operation_type::ex_16_at:
-		return "operation_type::ex_16_at";
-	case operation_type::ldi:
-		return "operation_type::ldi";
-	case operation_type::ldir:
-		return "operation_type::ldir";
-	case operation_type::cpd:
-		return "operation_type::cpd";
-	case operation_type::cpdr:
-		return "operation_type::cpdr";
-	case operation_type::cpi:
-		return "operation_type::cpi";
-	case operation_type::cpir:
-		return "operation_type::cpir";
-	case operation_type::ldd:
-		return "operation_type::ldd";
-	case operation_type::lddr:
-		return "operation_type::lddr";
-	case operation_type::rlca:
-		return "operation_type::rlca";
-	case operation_type::rrca:
-		return "operation_type::rrca";
-	case operation_type::rla:
-		return "operation_type::rla";
-	case operation_type::rra:
-		return "operation_type::rra";
-	case operation_type::rld:
-		return "operation_type::rld";
-	case operation_type::rrd:
-		return "operation_type::rrd";
-	case operation_type::rlc:
-		return "operation_type::rlc";
-	case operation_type::rlc_at:
-		return "operation_type::rlc_at";
-	case operation_type::rrc:
-		return "operation_type::rrc";
-	case operation_type::rrc_at:
-		return "operation_type::rrc_at";
-	case operation_type::rl:
-		return "operation_type::rl";
-	case operation_type::rl_at:
-		return "operation_type::rl_at";
-	case operation_type::rr:
-		return "operation_type::rr";
-	case operation_type::rr_at:
-		return "operation_type::rr_at";
-	case operation_type::sla:
-		return "operation_type::sla";
-	case operation_type::sla_at:
-		return "operation_type::sla_at";
-	case operation_type::sra:
-		return "operation_type::sra";
-	case operation_type::sra_at:
-		return "operation_type::sra_at";
-	case operation_type::srl:
-		return "operation_type::srl";
-	case operation_type::srl_at:
-		return "operation_type::srl_at";
-	case operation_type::sll:
-		return "operation_type::sll";
-	case operation_type::sll_at:
-		return "operation_type::sll_at";
-	case operation_type::tst_bit:
-		return "operation_type::tst_bit";
-	case operation_type::tst_bit_at:
-		return "operation_type::tst_bit_at";
-	case operation_type::set_bit:
-		return "operation_type::set_bit";
-	case operation_type::set_bit_at:
-		return "operation_type::set_bit_at";
-	case operation_type::res_bit:
-		return "operation_type::res_bit";
-	case operation_type::res_bit_at:
-		return "operation_type::res_bit_at";
-	case operation_type::bit_group:
-		return "operation_type::bit_group";
-	case operation_type::daa:
-		return "operation_type::daa";
-	case operation_type::cpl:
-		return "operation_type::cpl";
-	case operation_type::neg:
-		return "operation_type::neg";
-	case operation_type::ccf:
-		return "operation_type::ccf";
-	case operation_type::scf:
-		return "operation_type::scf";
-	default:
-		throw std::runtime_error("operation_type_str: unsupported operation_type!");
-	}
+	static std::array<const char*, 106> enum_str {
+		"operation_type::unknown",
+		"operation_type::add",
+		"operation_type::adc",
+		"operation_type::sub",
+		"operation_type::sbc",
+		"operation_type::and_8",
+		"operation_type::or_8",
+		"operation_type::xor_8",
+		"operation_type::cp",
+		"operation_type::inc_reg",
+		"operation_type::inc_at",
+		"operation_type::dec_reg",
+		"operation_type::dec_at",
+		"operation_type::add_16",
+		"operation_type::adc_hl",
+		"operation_type::sbc_hl",
+		"operation_type::inc_reg_16",
+		"operation_type::dec_reg_16",
+		"operation_type::ld_reg",
+		"operation_type::ld_at",
+		"operation_type::ld_ir",
+		"operation_type::ld_16_reg",
+		"operation_type::ld_16_reg_from",
+		"operation_type::ld_16_at",
+		"operation_type::push",
+		"operation_type::pop",
+		"operation_type::call",
+		"operation_type::call_cc",
+		"operation_type::rst",
+		"operation_type::ret",
+		"operation_type::reti",
+		"operation_type::retn",
+		"operation_type::ret_cc",
+		"operation_type::jp",
+		"operation_type::jp_cc",
+		"operation_type::jr_z",
+		"operation_type::jr_nz",
+		"operation_type::jr_c",
+		"operation_type::jr_nc",
+		"operation_type::jr",
+		"operation_type::djnz",
+		"operation_type::in",
+		"operation_type::in_reg",
+		"operation_type::ini",
+		"operation_type::inir",
+		"operation_type::ind",
+		"operation_type::indr",
+		"operation_type::out",
+		"operation_type::out_reg",
+		"operation_type::outi",
+		"operation_type::otir",
+		"operation_type::outd",
+		"operation_type::otdr",
+		"operation_type::ex_de_hl",
+		"operation_type::ex_af_afs",
+		"operation_type::exx",
+		"operation_type::ex_16_at",
+		"operation_type::ldi",
+		"operation_type::ldir",
+		"operation_type::cpd",
+		"operation_type::cpdr",
+		"operation_type::cpi",
+		"operation_type::cpir",
+		"operation_type::ldd",
+		"operation_type::lddr",
+		"operation_type::rlca",
+		"operation_type::rrca",
+		"operation_type::rla",
+		"operation_type::rra",
+		"operation_type::rld",
+		"operation_type::rrd",
+		"operation_type::rlc",
+		"operation_type::rlc_at",
+		"operation_type::rrc",
+		"operation_type::rrc_at",
+		"operation_type::rl",
+		"operation_type::rl_at",
+		"operation_type::rr",
+		"operation_type::rr_at",
+		"operation_type::sla",
+		"operation_type::sla_at",
+		"operation_type::sra",
+		"operation_type::sra_at",
+		"operation_type::srl",
+		"operation_type::srl_at",
+		"operation_type::sll",
+		"operation_type::sll_at",
+		"operation_type::tst_bit",
+		"operation_type::tst_bit_at",
+		"operation_type::set_bit",
+		"operation_type::set_bit_at",
+		"operation_type::res_bit",
+		"operation_type::res_bit_at",
+		"operation_type::bit_group",
+		"operation_type::daa",
+		"operation_type::cpl",
+		"operation_type::neg",
+		"operation_type::ccf",
+		"operation_type::scf",
+		"operation_type::di",
+		"operation_type::ei",
+		"operation_type::nop",
+		"operation_type::halt",
+		"operation_type::im0",
+		"operation_type::im1",
+		"operation_type::im2",
+	};
+
+	std::uint8_t val = op;
+	return enum_str.at(val);
 }
 
 const char* addressing_mode_str(genesis::z80::addressing_mode addr_mode)

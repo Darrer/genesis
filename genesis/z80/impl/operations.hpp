@@ -50,9 +50,7 @@ public:
 
 		auto& flags = regs.main_set.flags;
 
-		flags.S = src < 0 ? 1 : 0;
-		flags.Z = src == 0 ? 1 : 0;
-
+		set_sz(src);
 		flags.H = flags.N = 0;
 
 		flags.PV = regs.IFF2;
@@ -268,11 +266,133 @@ public:
 
 	/* Input and Output Group */
 
-	// NOTE: genesis does not use in/out, so this group is intentionally not implemented
-	// there is only OUT instruction to support output during executing tests.
-	inline void out(std::uint8_t n)
+	void in(std::uint8_t n)
 	{
-		cpu.io_ports().out(n, regs.main_set.A);
+		regs.main_set.A = cpu.io_ports().in(n, regs.main_set.A);
+	}
+
+	void in_reg(std::int8_t& reg)
+	{
+		std::int8_t input = cpu.io_ports().in(regs.main_set.C, regs.main_set.B);
+		reg = input;
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		set_parity(input);
+		set_sz(input);
+	}
+
+	void ini()
+	{
+		std::uint8_t input = cpu.io_ports().in(regs.main_set.C, regs.main_set.B);
+		mem.write(regs.main_set.HL, input);
+
+		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
+		inc_reg_16(regs.main_set.HL);
+
+		regs.main_set.flags.N = 1;
+		regs.main_set.flags.Z = regs.main_set.BC == 0;
+	}
+
+	void inir()
+	{
+		ini();
+		if(regs.main_set.B == 0)
+		{
+			// terminate instruction
+			regs.PC += 2;
+		}
+		else
+		{
+			// do nothing - repeat again
+		}
+	}
+
+	void ind()
+	{
+		std::uint8_t input = cpu.io_ports().in(regs.main_set.C, regs.main_set.B);
+		mem.write(regs.main_set.HL, input);
+
+		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
+		dec_reg_16(regs.main_set.HL);
+
+		regs.main_set.flags.N = 1;
+		regs.main_set.flags.Z = regs.main_set.BC == 0;
+	}
+
+	void indr()
+	{
+		ind();
+		if(regs.main_set.B == 0)
+		{
+			// terminate instruction
+			regs.PC += 2;
+		}
+		else
+		{
+			// do nothing - repeat again
+		}
+	}
+
+	void out(std::uint8_t n)
+	{
+		cpu.io_ports().out(n, regs.main_set.A, regs.main_set.A);
+	}
+
+	void out_reg(std::int8_t reg)
+	{
+		cpu.io_ports().out(regs.main_set.C, regs.main_set.B, reg);
+	}
+
+	void outi()
+	{
+		std::uint8_t data = mem.read<std::uint8_t>(regs.main_set.HL);
+		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
+		cpu.io_ports().out(regs.main_set.C, regs.main_set.B, data);
+		inc_reg_16(regs.main_set.HL);
+
+		regs.main_set.flags.N = 1;
+		regs.main_set.flags.Z = regs.main_set.BC == 0;
+	}
+
+	void otir()
+	{
+		outi();
+		regs.main_set.flags.Z = 1;
+		if(regs.main_set.B == 0)
+		{
+			// terminate instruction
+			regs.PC += 2;
+		}
+		else
+		{
+			// do nothing - repeat again
+		}
+	}
+
+	void outd()
+	{
+		std::uint8_t data = mem.read<std::uint8_t>(regs.main_set.HL);
+		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
+		cpu.io_ports().out(regs.main_set.C, regs.main_set.B, data);
+		dec_reg_16(regs.main_set.HL);
+
+		regs.main_set.flags.N = 1;
+		regs.main_set.flags.Z = regs.main_set.BC == 0;
+	}
+
+	void otdr()
+	{
+		outd();
+		regs.main_set.flags.Z = 1;
+		if(regs.main_set.B == 0)
+		{
+			// terminate instruction
+			regs.PC += 2;
+		}
+		else
+		{
+			// do nothing - repeat again
+		}
 	}
 
 	/* 8-Bit Arithmetic Group */

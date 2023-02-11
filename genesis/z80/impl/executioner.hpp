@@ -228,8 +228,41 @@ private:
 			break;
 
 		/* Input and Output Group */
+		case operation_type::in:
+			ops.in(dec.decode_byte(inst.source, inst));
+			break;
+		case operation_type::in_reg:
+			ops.in_reg(dec.decode_reg_8(inst.destination));
+			break;
+		case operation_type::ini:
+			ops.ini();
+			break;
+		case operation_type::inir:
+			ops.inir();
+			break;
+		case operation_type::ind:
+			ops.ind();
+			break;
+		case operation_type::indr:
+			ops.indr();
+			break;
 		case operation_type::out:
 			ops.out(dec.decode_byte(inst.source, inst));
+			break;
+		case operation_type::out_reg:
+			ops.out_reg(dec.decode_reg_8(inst.source));
+			break;
+		case operation_type::outi:
+			ops.outi();
+			break;
+		case operation_type::otir:
+			ops.otir();
+			break;
+		case operation_type::outd:
+			ops.outd();
+			break;
+		case operation_type::otdr:
+			ops.otdr();
 			break;
 
 		/* Exchange, Block Transfer, and Search Group */
@@ -462,6 +495,10 @@ private:
 		case operation_type::cpir:
 		case operation_type::lddr:
 		case operation_type::djnz:
+		case operation_type::inir:
+		case operation_type::indr:
+		case operation_type::otir:
+		case operation_type::otdr:
 			return false;
 		default:
 			return true;

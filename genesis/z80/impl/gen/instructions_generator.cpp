@@ -375,7 +375,19 @@ instruction all_instructions[] = {
 	{ operation_type::im2, {0xED, 0x5E}, addressing_mode::none, addressing_mode::none },
 
 	/* Input and Output Group */
+	{ operation_type::in, {0xDB}, addressing_mode::immediate, addressing_mode::none },
+	destination_register_wide(operation_type::in_reg, 0xED, 0b01000000, 3, addressing_mode::none),
+	{ operation_type::ini, {0xED, 0xA2}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::inir, {0xED, 0xB2}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::ind, {0xED, 0xAA}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::indr, {0xED, 0xBA}, addressing_mode::none, addressing_mode::none },
+
 	{ operation_type::out, {0xD3}, addressing_mode::immediate, addressing_mode::none },
+	source_register_wide(operation_type::out_reg, 0xED, 0b01000001, 3, addressing_mode::none),
+	{ operation_type::outi, {0xED, 0xA3}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::otir, {0xED, 0xB3}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::outd, {0xED, 0xAB}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::otdr, {0xED, 0xBB}, addressing_mode::none, addressing_mode::none },
 
 	/* Exchange, Block Transfer, and Search Group */
 	{ operation_type::ex_de_hl, {0xEB}, addressing_mode::implied, addressing_mode::implied },
