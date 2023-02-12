@@ -119,14 +119,14 @@ public:
 		regs.PC = cc * 0x8;
 	}
 
-	inline void ret()
+	void ret()
 	{
 		pop((std::int16_t&)regs.PC);
 	}
 
 	void reti()
 	{
-		ret();
+		retn();
 		// NOTE: current interrupt model does not support multiple/nested interrupts
 		// so there is no one to notify
 	}
@@ -299,7 +299,7 @@ public:
 		inc_reg_16(regs.main_set.HL);
 
 		regs.main_set.flags.N = 1;
-		regs.main_set.flags.Z = regs.main_set.BC == 0;
+		regs.main_set.flags.Z = regs.main_set.B == 0;
 	}
 
 	void inir()
@@ -325,7 +325,7 @@ public:
 		dec_reg_16(regs.main_set.HL);
 
 		regs.main_set.flags.N = 1;
-		regs.main_set.flags.Z = regs.main_set.BC == 0;
+		regs.main_set.flags.Z = regs.main_set.B == 0;
 	}
 
 	void indr()
@@ -360,7 +360,7 @@ public:
 		inc_reg_16(regs.main_set.HL);
 
 		regs.main_set.flags.N = 1;
-		regs.main_set.flags.Z = regs.main_set.BC == 0;
+		regs.main_set.flags.Z = regs.main_set.B == 0;
 	}
 
 	void otir()
@@ -386,7 +386,7 @@ public:
 		dec_reg_16(regs.main_set.HL);
 
 		regs.main_set.flags.N = 1;
-		regs.main_set.flags.Z = regs.main_set.BC == 0;
+		regs.main_set.flags.Z = regs.main_set.B == 0;
 	}
 
 	void otdr()

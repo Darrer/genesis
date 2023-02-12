@@ -350,6 +350,12 @@ instruction all_instructions[] = {
 	{ operation_type::ret, {0xC9}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::reti, {0xED, 0x4D}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::retn, {0xED, 0x45}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x65}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x6D}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x55}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x75}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x5D}, addressing_mode::none, addressing_mode::none },
+	{ operation_type::retn, {0xED, 0x7D}, addressing_mode::none, addressing_mode::none },
 	cc_inst(operation_type::ret_cc, 0b11000000, addressing_mode::none, addressing_mode::none),
 
 	/* Jump Group */
@@ -456,6 +462,13 @@ instruction all_instructions[] = {
 	{ operation_type::daa, {0x27}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::cpl, {0x2F}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::neg, {0xED, 0x44}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x64}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x4C}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x6C}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x54}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x74}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x5C}, addressing_mode::implied, addressing_mode::implied },
+	{ operation_type::neg, {0xED, 0x7C}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::ccf, {0x3F}, addressing_mode::implied, addressing_mode::implied },
 	{ operation_type::scf, {0x37}, addressing_mode::implied, addressing_mode::implied },
 };
@@ -482,7 +495,7 @@ void print_instruction(instruction inst)
 	std::cout << "}, ";
 
 	std::cout << addressing_mode_str(inst.source) << ", ";
-	std::cout << addressing_mode_str(inst.destination) << " }, " << std::endl;
+	std::cout << addressing_mode_str(inst.destination) << " }," << std::endl;
 }
 
 
