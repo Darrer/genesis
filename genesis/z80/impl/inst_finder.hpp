@@ -67,9 +67,7 @@ public:
 		}
 
 		if(idx == no_index)
-		{
-			throw std::runtime_error("fast_search error: unsupported opcode: " + su::hex_str(op1) + ", " + su::hex_str(op2));
-		}
+			return make_nop(op1, op2);
 
 		// self-check
 		auto inst = instructions[idx];
@@ -82,6 +80,11 @@ public:
 	}
 
 private:
+	instruction make_nop(z80::opcode op1, z80::opcode op2)
+	{
+		return { operation_type::nop, {op1, op2}, addressing_mode::none, addressing_mode::none };
+	}
+
 	void build_maps()
 	{
 		for(auto& map : maps)

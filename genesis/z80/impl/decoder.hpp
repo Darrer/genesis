@@ -323,7 +323,7 @@ public:
 		regs.PC += inst_size(inst) + src_size + dest_size;
 	}
 
-	std::uint8_t inst_size(instruction inst)
+	static std::uint8_t inst_size(instruction inst)
 	{
 		switch (inst.opcodes[0])
 		{
