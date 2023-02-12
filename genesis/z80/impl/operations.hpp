@@ -281,6 +281,15 @@ public:
 		set_sz(input);
 	}
 
+	void in_c()
+	{
+		std::int8_t input = cpu.io_ports().in(regs.main_set.C, regs.main_set.B);
+
+		regs.main_set.flags.H = regs.main_set.flags.N = 0;
+		set_parity(input);
+		set_sz(input);
+	}
+
 	void ini()
 	{
 		std::uint8_t input = cpu.io_ports().in(regs.main_set.C, regs.main_set.B);

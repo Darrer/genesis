@@ -21,7 +21,7 @@ bool long_instruction(std::uint8_t op)
 
 const char* operation_type_str(genesis::z80::operation_type op)
 {
-	static std::array<const char*, 106> enum_str {
+	static std::array<const char*, 107> enum_str {
 		"operation_type::unknown",
 		"operation_type::add",
 		"operation_type::adc",
@@ -65,6 +65,7 @@ const char* operation_type_str(genesis::z80::operation_type op)
 		"operation_type::djnz",
 		"operation_type::in",
 		"operation_type::in_reg",
+		"operation_type::in_c",
 		"operation_type::ini",
 		"operation_type::inir",
 		"operation_type::ind",

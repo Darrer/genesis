@@ -234,6 +234,9 @@ private:
 		case operation_type::in_reg:
 			ops.in_reg(dec.decode_reg_8(inst.destination));
 			break;
+		case operation_type::in_c:
+			ops.in_c();
+			break;
 		case operation_type::ini:
 			ops.ini();
 			break;

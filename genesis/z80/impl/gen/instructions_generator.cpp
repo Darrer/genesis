@@ -377,6 +377,7 @@ instruction all_instructions[] = {
 	/* Input and Output Group */
 	{ operation_type::in, {0xDB}, addressing_mode::immediate, addressing_mode::none },
 	destination_register_wide(operation_type::in_reg, 0xED, 0b01000000, 3, addressing_mode::none),
+	{ operation_type::in_c, {0xED, 0x70}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::ini, {0xED, 0xA2}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::inir, {0xED, 0xB2}, addressing_mode::none, addressing_mode::none },
 	{ operation_type::ind, {0xED, 0xAA}, addressing_mode::none, addressing_mode::none },
