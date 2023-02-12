@@ -198,6 +198,12 @@ TEST(Z80, ZEXALL)
 	run_zex(bin_path.string());
 }
 
+TEST(Z80, DOCTAP)
+{
+	auto tap_path = get_exec_path() / "z80" / "z80doc.tap";
+	run_tap(tap_path.string());
+}
+
 TEST(Z80, FULLTAP)
 {
 	auto tap_path = get_exec_path() / "z80" / "z80full.tap";
