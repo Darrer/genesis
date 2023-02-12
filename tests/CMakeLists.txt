@@ -21,7 +21,7 @@ PRIVATE
 	memory.cpp
 
 	z80/cpu_registers.cpp
-	z80/zex_runner.cpp
+	z80/tests_runner.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
@@ -30,6 +30,7 @@ target_link_libraries(${GENESIS_TESTS} ${GENESIS_LIB})
 include(GoogleTest)
 gtest_discover_tests(${GENESIS_TESTS})
 
-# copy z80 executioner
-file(COPY z80/zex/zexdoc DESTINATION z80)
-file(COPY z80/zex/zexall DESTINATION z80)
+# copy z80 exercisers
+file(COPY z80/exercisers/zexdoc DESTINATION z80)
+file(COPY z80/exercisers/zexall DESTINATION z80)
+file(COPY z80/exercisers/z80full.tap DESTINATION z80)
