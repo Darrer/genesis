@@ -1,8 +1,8 @@
 #ifndef __CPU_BUS_HPP__
 #define __CPU_BUS_HPP__
 
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 namespace genesis::z80
 {
@@ -62,6 +62,6 @@ private:
 	std::uint8_t data;
 };
 
-}
+} // namespace genesis::z80
 
 #endif // __CPU_BUS_HPP__

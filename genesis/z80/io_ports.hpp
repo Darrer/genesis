@@ -13,6 +13,6 @@ public:
 	virtual void out(std::uint8_t dev, std::uint8_t param, std::uint8_t data) = 0;
 };
 
-}
+} // namespace genesis::z80
 
 #endif // __IO_PORTS_HPP__

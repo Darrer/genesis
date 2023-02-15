@@ -19,8 +19,10 @@ PRIVATE
 	endian.cpp
 	rom.cpp
 	memory.cpp
+	helper.hpp
 
 	z80/cpu_registers.cpp
+	z80/tap_loader.hpp
 	z80/tests_runner.cpp
 )
 

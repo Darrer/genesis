@@ -1,8 +1,8 @@
 #ifndef __HELPER_HPP__
 #define __HELPER_HPP__
 
-#include <gtest/gtest.h>
 #include <filesystem>
+#include <gtest/gtest.h>
 
 
 std::filesystem::path get_exec_path()

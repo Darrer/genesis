@@ -7,8 +7,7 @@
 namespace genesis::z80
 {
 
-cpu::cpu(std::shared_ptr<z80::memory> memory, std::shared_ptr<z80::io_ports> io_ports)
-	: mem(memory), ports(io_ports)
+cpu::cpu(std::shared_ptr<z80::memory> memory, std::shared_ptr<z80::io_ports> io_ports) : mem(memory), ports(io_ports)
 {
 	reset();
 	exec = std::make_unique<z80::executioner>(*this);

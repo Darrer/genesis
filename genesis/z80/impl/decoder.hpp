@@ -1,18 +1,19 @@
 #ifndef __DECODER_HPP__
 #define __DECODER_HPP__
 
-#include <cstdint>
-
-#include "z80/cpu_registers.hpp"
-#include "z80/cpu.h"
 #include "instructions.hpp"
+#include "z80/cpu.h"
+#include "z80/cpu_registers.hpp"
+
+#include <cstdint>
 
 
 namespace genesis::z80
 {
 
-#define unsupported_addresing_mode(addr_mode) \
-	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " + std::to_string(addr_mode))
+#define unsupported_addresing_mode(addr_mode)                                                                          \
+	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " +               \
+							 std::to_string(addr_mode))
 
 class decoder
 {
@@ -23,7 +24,7 @@ public:
 
 	std::int8_t decode_byte(addressing_mode addr_mode, instruction inst)
 	{
-		switch(addr_mode)
+		switch (addr_mode)
 		{
 		case addressing_mode::register_a:
 		case addressing_mode::register_b:
@@ -59,7 +60,7 @@ public:
 
 	std::int16_t decode_2_bytes(addressing_mode addr_mode, instruction inst)
 	{
-		switch(addr_mode)
+		switch (addr_mode)
 		{
 		case addressing_mode::immediate_ext:
 			return decode_immediate_ext(inst);
@@ -80,7 +81,7 @@ public:
 
 	z80::memory::address decode_address(addressing_mode addr_mode, instruction inst)
 	{
-		switch(addr_mode)
+		switch (addr_mode)
 		{
 		case addressing_mode::immediate_ext:
 			return decode_immediate_ext(inst);
@@ -160,7 +161,7 @@ public:
 		}
 	}
 
-	template<class T = std::int8_t>
+	template <class T = std::int8_t>
 	T decode_immediate(instruction inst)
 	{
 		static_assert(sizeof(T) <= 2);
@@ -169,7 +170,7 @@ public:
 		addr += inst_size(inst);
 
 		// check if addressing mode indexed combined with addressing mode immediate
-		if(is_indexed(inst.source) || is_indexed(inst.destination))
+		if (is_indexed(inst.source) || is_indexed(inst.destination))
 		{
 			// in this case after opcode we have displacement for indexed
 			// and only then immediate operand
@@ -206,8 +207,7 @@ public:
 		switch (addr_mode)
 		{
 		case addressing_mode::indexed_ix:
-		case addressing_mode::indexed_iy:
-		{
+		case addressing_mode::indexed_iy: {
 			auto d = mem.read<std::int8_t>(regs.PC + 2);
 			z80::memory::address base = addr_mode == addressing_mode::indexed_ix ? regs.IX : regs.IY;
 
@@ -248,8 +248,7 @@ public:
 			return operation_type::set_bit_at;
 		case 0b10:
 			return operation_type::res_bit_at;
-		case 0b00:
-		{
+		case 0b00: {
 			std::uint8_t op = (data & 0b00111000) >> 3;
 			switch (op)
 			{
@@ -301,8 +300,7 @@ public:
 
 	void advance_pc(instruction inst)
 	{
-		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t
-		{
+		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t {
 			switch (addr_mode)
 			{
 			case addressing_mode::immediate:
@@ -343,11 +341,12 @@ private:
 	{
 		return addr_mode == addressing_mode::indexed_ix || addr_mode == addressing_mode::indexed_iy;
 	}
+
 private:
 	z80::memory& mem;
 	z80::cpu_registers& regs;
 };
 
-}
+} // namespace genesis::z80
 
 #endif // __DECODER_HPP__

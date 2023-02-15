@@ -14,9 +14,11 @@ PRIVATE
 	endian.hpp
 	memory.hpp
 
+	z80/cpu_bus.hpp
 	z80/cpu_registers.hpp
-	z80/cpu.h
 	z80/cpu.cpp
+	z80/cpu.h
+	z80/io_ports.hpp
 
 	z80/impl/operations.hpp
 	z80/impl/instructions.hpp

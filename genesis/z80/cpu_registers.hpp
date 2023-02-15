@@ -121,10 +121,9 @@ private:
 		} iy_lh;
 		std::int16_t iy;
 	};
+
 public:
-	cpu_registers() :
-		IXH(ix_lh.ixh), IXL(ix_lh.ixl), IX(ix),
-		IYH(iy_lh.iyh), IYL(iy_lh.iyl), IY(iy)
+	cpu_registers() : IXH(ix_lh.ixh), IXL(ix_lh.ixl), IX(ix), IYH(iy_lh.iyh), IYL(iy_lh.iyl), IY(iy)
 	{
 		IX = IY = SP = PC = 0x0;
 		I = R = 0x0;

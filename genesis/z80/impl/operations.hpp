@@ -1,15 +1,14 @@
 #ifndef __OPERATIONS_HPP__
 #define __OPERATIONS_HPP__
 
+#include "string_utils.hpp"
 #include "z80/cpu.h"
 
-#include <optional>
-#include <cstdint>
-#include <limits>
 #include <bit>
-
+#include <cstdint>
 #include <iostream>
-#include "string_utils.hpp"
+#include <limits>
+#include <optional>
 
 namespace genesis::z80
 {
@@ -25,7 +24,7 @@ public:
 	}
 
 	/* 8/16-Bit Load Group */
-	template<class T>
+	template <class T>
 	inline void ld_reg(T src, T& dest)
 	{
 		static_assert(sizeof(T) <= 2);
@@ -37,7 +36,7 @@ public:
 		dest = mem.read<std::int16_t>(addr);
 	}
 
-	template<class T>
+	template <class T>
 	inline void ld_at(T src, z80::memory::address dest_addr)
 	{
 		static_assert(sizeof(T) <= 2);
@@ -79,7 +78,7 @@ public:
 	inline bool check_cc(std::uint8_t cc)
 	{
 		auto& flags = regs.main_set.flags;
-		switch(cc)
+		switch (cc)
 		{
 		case 0b000:
 			return flags.Z == 0;
@@ -105,7 +104,7 @@ public:
 	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
 		regs.PC += 3; // always assume call instruction is 3 byte long
-		if(check_cc(cc))
+		if (check_cc(cc))
 		{
 			push(regs.PC);
 			regs.PC = addr;
@@ -139,7 +138,7 @@ public:
 
 	inline void ret_cc(std::uint8_t cc)
 	{
-		if(check_cc(cc))
+		if (check_cc(cc))
 		{
 			ret();
 		}
@@ -157,7 +156,7 @@ public:
 
 	inline void jp_cc(std::uint8_t cc, z80::memory::address addr)
 	{
-		if(check_cc(cc))
+		if (check_cc(cc))
 		{
 			jp(addr);
 		}
@@ -169,7 +168,7 @@ public:
 
 	inline void jr_z(std::int8_t offset)
 	{
-		if(regs.main_set.flags.Z)
+		if (regs.main_set.flags.Z)
 		{
 			jr(offset);
 		}
@@ -181,7 +180,7 @@ public:
 
 	inline void jr_c(std::int8_t offset)
 	{
-		if(regs.main_set.flags.C)
+		if (regs.main_set.flags.C)
 		{
 			jr(offset);
 		}
@@ -193,7 +192,7 @@ public:
 
 	inline void jr_nz(std::int8_t offset)
 	{
-		if(regs.main_set.flags.Z == 0)
+		if (regs.main_set.flags.Z == 0)
 		{
 			jr(offset);
 		}
@@ -205,7 +204,7 @@ public:
 
 	inline void jr_nc(std::int8_t offset)
 	{
-		if(regs.main_set.flags.C == 0)
+		if (regs.main_set.flags.C == 0)
 		{
 			jr(offset);
 		}
@@ -223,7 +222,7 @@ public:
 	void djnz(std::int8_t offset)
 	{
 		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
-		if(regs.main_set.B != 0)
+		if (regs.main_set.B != 0)
 		{
 			jr(offset);
 		}
@@ -305,7 +304,7 @@ public:
 	void inir()
 	{
 		ini();
-		if(regs.main_set.B == 0)
+		if (regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -331,7 +330,7 @@ public:
 	void indr()
 	{
 		ind();
-		if(regs.main_set.B == 0)
+		if (regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -367,7 +366,7 @@ public:
 	{
 		outi();
 		regs.main_set.flags.Z = 1;
-		if(regs.main_set.B == 0)
+		if (regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -393,7 +392,7 @@ public:
 	{
 		outd();
 		regs.main_set.flags.Z = 1;
-		if(regs.main_set.B == 0)
+		if (regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -579,7 +578,7 @@ public:
 		flags.N = 1;
 		flags.PV = r == -128 ? 1 : 0;
 		flags.H = (_r & 0xf) == 0 ? 1 : 0;
-	
+
 		r = _r - 1;
 
 		set_sz(r);
@@ -707,7 +706,7 @@ public:
 	inline void ldir()
 	{
 		ldi();
-		if(regs.main_set.BC == 0)
+		if (regs.main_set.BC == 0)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -735,7 +734,7 @@ public:
 	inline void cpdr()
 	{
 		cpd();
-		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		if (regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -763,7 +762,7 @@ public:
 	inline void cpir()
 	{
 		cpi();
-		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		if (regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -793,7 +792,7 @@ public:
 	inline void lddr()
 	{
 		ldd();
-		if(regs.main_set.BC == 0)
+		if (regs.main_set.BC == 0)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -851,8 +850,8 @@ public:
 		std::uint8_t a = regs.main_set.A;
 
 		regs.main_set.A = (a & 0xF0) | (data >> 4); // copy 4 high bits of HL -> 4 low bits of A
-		data = data << 4; // copy 4 low bits of HL -> 4 high bits of HL
-		data = (a & 0xF) | data; // copy 4 low bits of A -> 4 low bits of HL
+		data = data << 4;							// copy 4 low bits of HL -> 4 high bits of HL
+		data = (a & 0xF) | data;					// copy 4 low bits of A -> 4 low bits of HL
 
 		mem.write(regs.main_set.HL, data);
 
@@ -870,8 +869,8 @@ public:
 		std::uint8_t a = regs.main_set.A;
 
 		regs.main_set.A = (a & 0xF0) | (data & 0xF); // copy 4 low bits of HL -> 4 low bits of A
-		data = data >> 4; // copy 4 high bits of HL -> 4 low bits of HL
-		data |= (a & 0xF) << 4; // copy 4 low bits of A -> 4 high bits of HL
+		data = data >> 4;							 // copy 4 high bits of HL -> 4 low bits of HL
+		data |= (a & 0xF) << 4;						 // copy 4 low bits of A -> 4 high bits of HL
 
 		mem.write(regs.main_set.HL, data);
 
@@ -884,7 +883,7 @@ public:
 	}
 
 	/* Naming pattern
-	 	r - rotate
+		r - rotate
 		l/r - left/right
 		(c) - circular
 	*/
@@ -904,7 +903,7 @@ public:
 		rlc(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -923,7 +922,7 @@ public:
 		rl(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -942,7 +941,7 @@ public:
 		rrc(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -961,12 +960,12 @@ public:
 		rr(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
 	/* Naming pattern
-	 	s - shift
+		s - shift
 		l/r - left/right
 		a/l - arithmetical/logical
 	*/
@@ -986,7 +985,7 @@ public:
 		sla(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1005,7 +1004,7 @@ public:
 		sra(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1024,7 +1023,7 @@ public:
 		srl(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1043,7 +1042,7 @@ public:
 		sll(data);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1081,7 +1080,7 @@ public:
 		data |= (1 << bit);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1096,7 +1095,7 @@ public:
 		data &= ~(1 << bit);
 		mem.write(addr, data);
 
-		if(dest)
+		if (dest)
 			dest->get() = data;
 	}
 
@@ -1108,10 +1107,10 @@ public:
 		std::uint8_t high = val >> 4;
 		std::uint8_t corr = 0x0;
 
-		if(low > 9 || regs.main_set.flags.H)
+		if (low > 9 || regs.main_set.flags.H)
 			corr = 0x06;
 
-		if(high > 9 || regs.main_set.flags.C || (high >= 9 && low > 9))
+		if (high > 9 || regs.main_set.flags.C || (high >= 9 && low > 9))
 		{
 			corr += 0x60;
 			regs.main_set.flags.C = 1;
@@ -1121,7 +1120,7 @@ public:
 			regs.main_set.flags.C = 0;
 		}
 
-		if(regs.main_set.flags.N)
+		if (regs.main_set.flags.N)
 		{
 			regs.main_set.flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, corr);
 			regs.main_set.A = val - corr;
@@ -1219,63 +1218,63 @@ public:
 
 private:
 	/* flag helpers */
-	template<class T>
+	template <class T>
 	static std::uint8_t check_overflow_add(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == true);
 
 		long sum = (long)a + (long)b + c;
 
-		if(sum > std::numeric_limits<T>::max())
+		if (sum > std::numeric_limits<T>::max())
 			return 1;
-		
-		if(sum < std::numeric_limits<T>::min())
+
+		if (sum < std::numeric_limits<T>::min())
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	static std::uint8_t check_overflow_sub(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == true);
 
 		long diff = (long)a - (long)b - c;
 
-		if(diff > std::numeric_limits<T>::max())
+		if (diff > std::numeric_limits<T>::max())
 			return 1;
 
-		if(diff < std::numeric_limits<T>::min())
+		if (diff < std::numeric_limits<T>::min())
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	static std::uint8_t check_carry(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
 		long sum = (long)a + (long)b + c;
-		if(sum > std::numeric_limits<T>::max())
+		if (sum > std::numeric_limits<T>::max())
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	static std::uint8_t check_borrow(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
 		long sum = (long)b + c;
-		if(sum > a)
+		if (sum > a)
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	static std::uint8_t check_half_carry(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == false);
@@ -1284,13 +1283,13 @@ private:
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
 		long sum = (long)(a & mask) + (long)(b & mask) + c;
-		if(sum > mask)
+		if (sum > mask)
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	static std::uint8_t check_half_borrow(T a, T b, std::uint8_t c = 0)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == false);
@@ -1299,13 +1298,13 @@ private:
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
 		long sum = (long)(b & mask) + c;
-		if(sum > (long)(a & mask))
+		if (sum > (long)(a & mask))
 			return 1;
 
 		return 0;
 	}
 
-	template<class T>
+	template <class T>
 	void set_sz(T res)
 	{
 		static_assert(std::numeric_limits<T>::is_signed == true);
@@ -1354,12 +1353,13 @@ private:
 		regs.main_set.flags.X = (n & 0b00001000) >> 3;
 		regs.main_set.flags.Y = (n & 0b00000010) >> 1;
 	}
+
 private:
 	z80::memory& mem;
 	z80::cpu_registers& regs;
 	z80::cpu& cpu;
 };
 
-} // genesis namespace
+} // namespace genesis::z80
 
 #endif // __OPERATIONS_HPP__

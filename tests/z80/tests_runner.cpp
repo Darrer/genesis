@@ -1,14 +1,13 @@
-#include <string_view>
+#include "../helper.hpp"
+#include "string_utils.hpp"
+#include "tap_loader.hpp"
+#include "z80/cpu.h"
+#include "z80/io_ports.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
-
-#include "../helper.hpp"
-#include "tap_loader.hpp"
-
-#include "z80/cpu.h"
-#include "z80/io_ports.hpp"
-#include "string_utils.hpp"
+#include <string_view>
 
 using namespace genesis;
 
@@ -22,23 +21,24 @@ public:
 
 	void out(std::uint8_t dev, std::uint8_t /*param*/, std::uint8_t data) override
 	{
-		if(dev != 0x1) return;
+		if (dev != 0x1)
+			return;
 
 		data = map_char(data);
 
-		if(!need_to_print(data))
+		if (!need_to_print(data))
 			return;
 
-		if(data == 13) 
+		if (data == 13)
 			data = '\n';
 
-		if(data == '\n')
+		if (data == '\n')
 			parse_line();
 
 		one_line << data;
-		
+
 		check_terminated();
-		if(data == '\n')
+		if (data == '\n')
 		{
 			std::cout << one_line.str();
 			one_line.str(std::string());
@@ -50,8 +50,14 @@ public:
 		return _terminated;
 	}
 
-	int succeded() { return num_succeded; }
-	int failed() { return num_failed; }
+	int succeded()
+	{
+		return num_succeded;
+	}
+	int failed()
+	{
+		return num_failed;
+	}
 
 
 private:
@@ -68,7 +74,7 @@ private:
 			return '\n';
 
 		case 30: // record separator
-		case 26: // substitute 
+		case 26: // substitute
 			return ' ';
 
 		default:
@@ -78,22 +84,22 @@ private:
 
 	void check_terminated()
 	{
-		if(one_line.str().starts_with("Tests complete"))
+		if (one_line.str().starts_with("Tests complete"))
 			_terminated = true;
 
-		if(one_line.str().starts_with("Result:"))
+		if (one_line.str().starts_with("Result:"))
 			_terminated = true;
 	}
 
 	void parse_line()
 	{
 		std::string str = one_line.str();
-		std::transform(str.cbegin(), str.cend(), str.begin(), [](char ch) { return tolower(ch); } );
-		
-		if(str.ends_with("ok"))
+		std::transform(str.cbegin(), str.cend(), str.begin(), [](char ch) { return tolower(ch); });
+
+		if (str.ends_with("ok"))
 			++num_succeded;
-		
-		if(str.find("expected") != std::string::npos)
+
+		if (str.find("expected") != std::string::npos)
 			++num_failed;
 	}
 
@@ -108,22 +114,22 @@ private:
 void report_results(int cycles, int num_succeded, int num_failed)
 {
 	std::cout << "Z80 Test complete, succeeded: " << num_succeded << ", failed: " << num_failed
-		<< ", cycles: " << cycles << std::endl;
+			  << ", cycles: " << cycles << std::endl;
 }
 
 void run_test(z80::cpu& cpu, const int expected_total_tests)
 {
 	unsigned long long cycles = 0;
-	auto& ports =  static_cast<test_io_ports&>(cpu.io_ports());
+	auto& ports = static_cast<test_io_ports&>(cpu.io_ports());
 
-	while(!ports.terminated())
+	while (!ports.terminated())
 	{
 		try
 		{
 			cpu.execute_one();
 			++cycles;
 		}
-		catch(...)
+		catch (...)
 		{
 			report_results(cycles, ports.succeded(), ports.failed());
 			throw;
@@ -141,7 +147,7 @@ void patch_mem(z80::memory& mem)
 	mem.write(0x1601, 0xC9); // RET
 
 	mem.write(0x10, 0x01D3); // OUT (1), A
-	mem.write(0x12, 0xC9);   // RET
+	mem.write(0x12, 0xC9);	 // RET
 }
 
 void load_zex(z80::memory& mem, z80::memory::address base, const std::string& bin_path)

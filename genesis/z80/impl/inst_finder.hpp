@@ -1,10 +1,10 @@
 #ifndef __INST_FINDER_HPP__
 #define __INST_FINDER_HPP__
 
-#include <cstdint>
-#include <array>
-
 #include "instructions.hpp"
+
+#include <array>
+#include <cstdint>
 
 
 namespace genesis::z80
@@ -66,12 +66,12 @@ public:
 			break;
 		}
 
-		if(idx == no_index)
+		if (idx == no_index)
 			return make_nop(op1, op2);
 
 		// self-check
 		auto inst = instructions[idx];
-		if(op1 != inst.opcodes[0] || (inst.opcodes[1] != 0x0 && inst.opcodes[1] != op2))
+		if (op1 != inst.opcodes[0] || (inst.opcodes[1] != 0x0 && inst.opcodes[1] != op2))
 		{
 			throw std::runtime_error("internal error: self-check failed, we popped up a wrong instruction!");
 		}
@@ -82,18 +82,18 @@ public:
 private:
 	instruction make_nop(z80::opcode op1, z80::opcode op2)
 	{
-		return { operation_type::nop, {op1, op2}, addressing_mode::none, addressing_mode::none };
+		return {operation_type::nop, {op1, op2}, addressing_mode::none, addressing_mode::none};
 	}
 
 	void build_maps()
 	{
-		for(auto& map : maps)
+		for (auto& map : maps)
 		{
-			for(auto& idx : map)
+			for (auto& idx : map)
 				idx = no_index;
 		}
 
-		for(size_t i = 0; i < std::size(instructions); ++i)
+		for (size_t i = 0; i < std::size(instructions); ++i)
 		{
 			auto& inst = instructions[i];
 			switch (inst.opcodes[0])
@@ -112,7 +112,7 @@ private:
 				break;
 			default:
 				// so far assume it's 1 byte opcode
-				if(inst.opcodes[1] != 0x00)
+				if (inst.opcodes[1] != 0x00)
 				{
 					throw std::runtime_error("build_maps internal error: unknown 2 byte opcode");
 				}
@@ -124,9 +124,10 @@ private:
 	void store_idx(map_index map_idx, std::uint16_t inst_idx, z80::opcode op)
 	{
 		auto& map = maps[map_idx];
-		if(map[op] != no_index)
+		if (map[op] != no_index)
 		{
-			throw std::runtime_error("store_idx error: failed to save instruction index - the position is already taken (map " +
+			throw std::runtime_error(
+				"store_idx error: failed to save instruction index - the position is already taken (map " +
 				std::to_string(map_idx) + ", op2 " + std::to_string(op) + ")");
 		}
 
@@ -144,7 +145,7 @@ private:
 	std::array<map, map_index::count> maps;
 };
 
-}
+} // namespace genesis::z80
 
 
 #endif // __INST_FINDER_HPP__

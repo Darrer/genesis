@@ -1,8 +1,8 @@
 #ifndef __Z80_CPU_H__
 #define __Z80_CPU_H__
 
-#include "cpu_registers.hpp"
 #include "cpu_bus.hpp"
+#include "cpu_registers.hpp"
 #include "io_ports.hpp"
 #include "memory.hpp"
 
