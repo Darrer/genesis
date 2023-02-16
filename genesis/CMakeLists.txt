@@ -25,6 +25,10 @@ PRIVATE
 	z80/impl/decoder.hpp
 	z80/impl/executioner.hpp
 	z80/impl/inst_finder.hpp
+
+	m68k/cpu_registers.hpp
+	m68k/cpu.h
+	m68k/cpu.cpp
 )
 
 # executable based on core lib
