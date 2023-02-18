@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "tests_loader.hpp"
+#include "tests_loader.h"
 #include "m68k/cpu.h"
 
 using namespace genesis;
@@ -37,6 +37,14 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state)
 	auto& mem = cpu.memory();
 	for(const auto& ram : state.ram)
 		mem.write(ram.addres, ram.value);
+	
+	// TMP: we don't have prefetch queue yet, so write it to memory pointed by PC
+	std::uint32_t offset = 0x0;
+	for(auto val : state.prefetch)
+	{
+		mem.write(regs.PC + offset, val);
+		offset += sizeof(val);
+	}
 }
 
 bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
@@ -87,6 +95,8 @@ bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
 bool run_test(m68k::cpu& cpu, const test_case& test)
 {
 	set_preconditions(cpu, test.initial_state);
+
+	cpu.execute_one();
 	
 	bool succeded = check_postconditions(cpu, test.final_state);
 
@@ -99,6 +109,7 @@ void run_tests(m68k::cpu& cpu, const std::vector<test_case>& tests, std::string_
 
 	for(const auto& test : tests)
 	{
+		std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		ASSERT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
 	}

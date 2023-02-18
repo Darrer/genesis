@@ -22,6 +22,7 @@ struct cpu_state
 	std::uint16_t SR;
 	std::uint32_t PC;
 	
+	std::vector<std::uint16_t> prefetch;
 	ram_state ram;
 };
 

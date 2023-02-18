@@ -1,11 +1,8 @@
-#ifndef __M68K_TESTS_LOADER_HPP__
-#define __M68K_TESTS_LOADER_HPP__
+#include "tests_loader.h"
 
-#include "test_case.h"
-
-#include <string>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <iostream>
 
 
 using json = nlohmann::json;
@@ -30,6 +27,20 @@ ram_state parse_ram_state(json& ram)
 
 	rt.shrink_to_fit();
 	return rt;
+}
+
+std::vector<std::uint16_t> parse_prefetch(json& pref)
+{
+	if(!pref.is_array())
+		throw std::runtime_error("parse_prefetch error: expected to get an array");
+	
+	std::vector<std::uint16_t> prefetch;
+
+	for(auto& val : pref)
+		prefetch.push_back(val.get<std::uint16_t>());
+
+	prefetch.shrink_to_fit();
+	return prefetch;
 }
 
 cpu_state parse_cpu_state(json& state)
@@ -58,6 +69,7 @@ cpu_state parse_cpu_state(json& state)
 	ct.SR = state["sr"].get<std::uint16_t>();
 
 	ct.ram = parse_ram_state(state["ram"]);
+	ct.prefetch = parse_prefetch(state["prefetch"]);
 
 	return ct;
 }
@@ -74,7 +86,6 @@ test_case parse_test_case(json& test)
 
 	return tc;
 }
-
 
 std::vector<test_case> load_tests(std::string path_to_json_tests)
 {
@@ -97,5 +108,3 @@ std::vector<test_case> load_tests(std::string path_to_json_tests)
 	tests.shrink_to_fit();
 	return tests;
 }
-
-#endif // __M68K_TESTS_LOADER_HPP__

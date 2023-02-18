@@ -35,7 +35,8 @@ PRIVATE
 	z80/tests_runner.cpp
 
 	m68k/test_case.h
-	m68k/tests_loader.hpp
+	m68k/tests_loader.h
+	m68k/tests_loader.cpp
 	m68k/tests_runner.cpp
 )
 
