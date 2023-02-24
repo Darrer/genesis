@@ -42,8 +42,7 @@ public:
 
 	std::uint8_t letched_byte() const
 	{
-		if(!is_idle())
-			throw std::runtime_error("bus_manager::letched_byte error: cannot return data while in the middle of cycle");
+		assert_idle("letched_byte");
 
 		if(!_letched_byte.has_value())
 			throw std::runtime_error("bus_manager::letched_byte error: don't have letched byte");
@@ -53,18 +52,17 @@ public:
 
 	std::uint16_t letched_word() const
 	{
-		if(!is_idle())
-			throw std::runtime_error("bus_manager::letched_word error: cannot return data while in the middle of cycle");
+		assert_idle("letched_word");
 
 		if(!_letched_word.has_value())
 			throw std::runtime_error("bus_manager::letched_word error: don't have letched word");
-		
+
 		return _letched_word.value();
 	}
 
 	void init_read_byte(std::uint32_t address)
 	{
-		check_can_start_cycle("init_read_byte");
+		assert_idle("init_read_byte");
 
 		init_new_cycle(address, READ0);
 		byte_op = true;
@@ -72,7 +70,7 @@ public:
 
 	void init_read_word(std::uint32_t address)
 	{
-		check_can_start_cycle("init_read_word");
+		assert_idle("init_read_word");
 
 		init_new_cycle(address, READ0);
 		byte_op = false;
@@ -84,7 +82,7 @@ public:
 		static_assert(sizeof(T) <= 2);
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
-		check_can_start_cycle("init_write");
+		assert_idle("init_write");
 
 		init_new_cycle(address, WRITE0);
 		data_to_write = data;
@@ -196,12 +194,12 @@ private:
 		_letched_word.reset();
 	}
 
-	void check_can_start_cycle(std::string_view caller)
+	void assert_idle(std::string_view caller) const
 	{
 		if(!is_idle())
 		{
 			throw std::runtime_error("bus_manager::" + std::string(caller) +
-				" error: cannot start new cycle while in the middle of the other");
+				" error: cannot perform the operation while in the middle of cycle");
 		}
 	}
 
