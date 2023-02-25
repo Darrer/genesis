@@ -35,6 +35,7 @@ PRIVATE
 	z80/tests_runner.cpp
 
 	m68k/bus_manager.cpp
+	m68k/prefetch_queue.cpp
 	m68k/test_case.h
 	m68k/tests_loader.h
 	m68k/tests_loader.cpp
