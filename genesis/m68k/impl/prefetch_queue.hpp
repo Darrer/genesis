@@ -16,7 +16,8 @@ private:
 	{
 		IDLE,
 		FETCH_ONE,
-		FETCH_TWO
+		FETCH_TWO,
+		FETCH_IRC
 	};
 
 public:
@@ -51,6 +52,14 @@ public:
 		state = FETCH_TWO;
 	}
 
+	void init_fetch_irc()
+	{
+		assert_idle("init_fetch_irc");
+
+		busm.init_read_word(regs.PC);
+		state = FETCH_IRC;
+	}
+
 	void cycle()
 	{
 		switch (state)
@@ -68,6 +77,11 @@ public:
 			on_read_finished();
 			busm.init_read_word(regs.PC);
 			state = FETCH_ONE; break;
+		
+		case FETCH_IRC:
+			if(!busm.is_idle()) break;
+			on_read_finished(/* fill only IRC */ true);
+			state = IDLE; break;
 
 		default:
 			break;
@@ -75,11 +89,12 @@ public:
 	}
 
 private:
-	void on_read_finished()
+	void on_read_finished(bool irc_only = false)
 	{
-		IR = IRC;
+		if(!irc_only) IR = IRC;
 		IRC = busm.letched_word();
-		IRD = IR;
+		if(!irc_only) IRD = IR;
+
 		regs.PC += 2;
 	}
 

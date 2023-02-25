@@ -34,6 +34,12 @@ std::uint32_t fetch_one(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
 	return wait_idle(pq, busm);
 }
 
+std::uint32_t fetch_irc(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
+{
+	pq.init_fetch_irc();
+	return wait_idle(pq, busm);
+}
+
 std::uint32_t fetch_two(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
 {
 	pq.init_fetch_two();
@@ -46,6 +52,9 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 {
 	setup_test();
 
+	std::uint16_t old_irc = 42;
+	pq.IRC = old_irc;
+
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
 	mem->write(regs.PC, val);
@@ -55,6 +64,33 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
 	ASSERT_EQ(0x103, regs.PC);
 	ASSERT_EQ(val, pq.IRC);
+
+	// old irc should go to IR/IRD
+	ASSERT_EQ(old_irc, pq.IR);
+	ASSERT_EQ(old_irc, pq.IRD);
+}
+
+TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
+{
+	setup_test();
+
+	std::uint16_t old_ir = 24;
+	pq.IRC = 42;
+	pq.IR = pq.IRD = old_ir;
+
+	regs.PC = 0x101;
+	std::uint16_t val = 42240;
+	mem->write(regs.PC, val);
+
+	auto actual_fetch_cycles = fetch_irc(pq, busm);
+
+	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
+	ASSERT_EQ(0x103, regs.PC);
+	ASSERT_EQ(val, pq.IRC);
+
+	// these should not be changed
+	ASSERT_EQ(old_ir, pq.IR);
+	ASSERT_EQ(old_ir, pq.IRD);
 }
 
 TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
@@ -84,4 +120,5 @@ TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 
 	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_two(), std::runtime_error);
+	ASSERT_THROW(pq.init_fetch_irc(), std::runtime_error);
 }
