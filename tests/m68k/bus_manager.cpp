@@ -8,7 +8,7 @@ using namespace genesis;
 
 void prepare_mem(m68k::memory& mem, std::uint32_t base_addr, const auto& array)
 {
-	for(auto& val : array)
+	for(auto val : array)
 	{
 		mem.write(base_addr, val);
 		base_addr += sizeof(val);
@@ -63,32 +63,34 @@ void test_read(T test_values)
 	auto mem = std::make_shared<m68k::memory>();
 	m68k::bus_manager busm(bus, *mem);
 
-	std::uint32_t base = 0x100;
-	prepare_mem(*mem, base, test_values);
-
-	const std::uint32_t cycles_per_read = 4;
-
-	for(std::size_t i = 0; i < test_values.size(); ++i)
+	for(std::uint32_t base : {0x100, 0x101})
 	{
-		auto expected = test_values[i];
-		std::uint32_t addr = base + i * sizeof(expected);
+		prepare_mem(*mem, base, test_values);
 
-		std::uint32_t cycles = 0;
-		decltype(expected) actual = 0;
+		const std::uint32_t cycles_per_read = 4;
 
-		if constexpr (sizeof(expected) == 1)
+		for(std::size_t i = 0; i < test_values.size(); ++i)
 		{
-			cycles = read_byte(busm, addr);
-			actual = busm.letched_byte();
-		}
-		else
-		{
-			cycles = read_word(busm, addr);
-			actual = busm.letched_word();
-		}
+			auto expected = test_values[i];
+			std::uint32_t addr = base + i * sizeof(expected);
 
-		ASSERT_EQ(cycles_per_read, cycles);
-		ASSERT_EQ(expected, actual);
+			std::uint32_t cycles = 0;
+			decltype(expected) actual = 0;
+
+			if constexpr (sizeof(expected) == 1)
+			{
+				cycles = read_byte(busm, addr);
+				actual = busm.letched_byte();
+			}
+			else
+			{
+				cycles = read_word(busm, addr);
+				actual = busm.letched_word();
+			}
+
+			ASSERT_EQ(cycles_per_read, cycles);
+			ASSERT_EQ(expected, actual);
+		}
 	}
 }
 
@@ -99,27 +101,29 @@ void test_write(T values_to_write)
 	auto mem = std::make_shared<m68k::memory>();
 	m68k::bus_manager busm(bus, *mem);
 
-	std::uint32_t base = 0x100;
-	const std::uint32_t cycles_per_write = 4;
-
-	for(std::size_t i = 0; i < values_to_write.size(); ++i)
+	for(std::uint32_t base : {0x100, 0x101})
 	{
-		auto val = values_to_write[i];
-		std::uint32_t addr = base + i * sizeof(val);
+		const std::uint32_t cycles_per_write = 4;
 
-		auto cycles = write(busm, addr, val);
+		for(std::size_t i = 0; i < values_to_write.size(); ++i)
+		{
+			auto val = values_to_write[i];
+			std::uint32_t addr = base + i * sizeof(val);
 
-		ASSERT_EQ(cycles_per_write, cycles);
-	}
+			auto cycles = write(busm, addr, val);
 
-	// check mem
-	for(std::size_t i = 0; i < values_to_write.size(); ++i)
-	{
-		auto expected = values_to_write[i];
-		std::uint32_t addr = base + i * sizeof(expected);
-		auto actual = mem->read<decltype(expected)>(addr);
+			ASSERT_EQ(cycles_per_write, cycles);
+		}
 
-		ASSERT_EQ(expected, actual);
+		// check mem
+		for(std::size_t i = 0; i < values_to_write.size(); ++i)
+		{
+			auto expected = values_to_write[i];
+			std::uint32_t addr = base + i * sizeof(expected);
+			auto actual = mem->read<decltype(expected)>(addr);
+
+			ASSERT_EQ(expected, actual);
+		}
 	}
 }
 
@@ -171,12 +175,152 @@ TEST(M68K_BUS_MANAGER, LETCH_WRONG_DATA_THROW)
 	auto mem = std::make_shared<m68k::memory>();
 	m68k::bus_manager busm(bus, *mem);
 
-	// assert initial state
-	ASSERT_TRUE(busm.is_idle());
-
 	read_byte(busm, 0x101);
 	ASSERT_THROW(busm.letched_word(), std::runtime_error);
 
 	read_word(busm, 0x102);
 	ASSERT_THROW(busm.letched_byte(), std::runtime_error);
+}
+
+struct bus_state
+{
+	std::uint32_t address = 0;
+	std::uint16_t data = 0;
+	bool uds_is_set = false;
+	bool lds_is_set = false;
+};
+
+template<class T>
+bus_state read_and_track(std::uint32_t addr, T val_to_write)
+{
+	m68k::cpu_bus bus;
+	auto mem = std::make_shared<m68k::memory>();
+	m68k::bus_manager busm(bus, *mem);
+
+	mem->write(addr, val_to_write);
+
+	if constexpr (sizeof(T) == 1)
+		busm.init_read_byte(addr);
+	else
+		busm.init_read_word(addr);
+
+	std::uint32_t cycle = 0;
+	bus_state bs;
+
+	while (!busm.is_idle())
+	{
+		busm.cycle();
+		++cycle;
+
+		if(cycle == 1)
+			bs.address = bus.address();
+
+		if(cycle == 2)
+		{
+			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
+			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
+		}
+
+		if(cycle == 3)
+			bs.data = bus.data();
+	}
+
+	return bs;
+}
+
+template<class T>
+bus_state write_and_track(std::uint32_t addr, T val_to_write)
+{
+	m68k::cpu_bus bus;
+	auto mem = std::make_shared<m68k::memory>();
+	m68k::bus_manager busm(bus, *mem);
+
+	busm.init_write(addr, val_to_write);
+
+	std::uint32_t cycle = 0;
+	bus_state bs;
+
+	while (!busm.is_idle())
+	{
+		busm.cycle();
+		++cycle;
+
+		if(cycle == 1)
+			bs.address = bus.address();
+
+		if(cycle == 2)
+			bs.data = bus.data();
+
+		if(cycle == 3)
+		{
+			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
+			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
+		}
+	}
+
+	return bs;
+}
+
+TEST(M68K_BUS_MANAGER, READ_BYTE_BUS_TRANSITIONS)
+{
+	std::uint8_t data = 42;
+	auto bs = read_and_track(0x101, data);
+
+	ASSERT_EQ(0x101, bs.address);
+	ASSERT_EQ(data, bs.data & 0xFF);
+	ASSERT_FALSE(bs.uds_is_set);
+	ASSERT_TRUE(bs.lds_is_set);
+
+	bs = read_and_track(0x100, data);
+
+	ASSERT_EQ(0x100, bs.address);
+	ASSERT_EQ(data, bs.data >> 8);
+	ASSERT_TRUE(bs.uds_is_set);
+	ASSERT_FALSE(bs.lds_is_set);
+}
+
+TEST(M68K_BUS_MANAGER, WRITE_BYTE_BUS_TRANSITIONS)
+{
+	std::uint8_t data = 142;
+	auto bs = write_and_track(0x101, data);
+
+	ASSERT_EQ(0x101, bs.address);
+	ASSERT_EQ(data, bs.data & 0xFF);
+	ASSERT_FALSE(bs.uds_is_set);
+	ASSERT_TRUE(bs.lds_is_set);
+
+	bs = write_and_track(0x100, data);
+
+	ASSERT_EQ(0x100, bs.address);
+	ASSERT_EQ(data, bs.data >> 8);
+	ASSERT_TRUE(bs.uds_is_set);
+	ASSERT_FALSE(bs.lds_is_set);
+}
+
+TEST(M68K_BUS_MANAGER, READ_WORD_BUS_TRANSITIONS)
+{
+	std::uint16_t data = 42240;
+	for(auto addr : {0x100, 0x101})
+	{
+		auto bs = read_and_track(addr, data);
+
+		ASSERT_EQ(addr, bs.address);
+		ASSERT_EQ(data, bs.data);
+		ASSERT_TRUE(bs.uds_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+	}
+}
+
+TEST(M68K_BUS_MANAGER, WRITE_WORD_BUS_TRANSITIONS)
+{
+	std::uint16_t data = 42241;
+	for(auto addr : {0x100, 0x101})
+	{
+		auto bs = write_and_track(addr, data);
+
+		ASSERT_EQ(addr, bs.address);
+		ASSERT_EQ(data, bs.data);
+		ASSERT_TRUE(bs.uds_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+	}
 }
