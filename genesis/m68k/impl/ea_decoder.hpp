@@ -46,9 +46,7 @@ public:
 	operand(pointer ptr) : _ptr(ptr) { }
 
 	bool has_addr_reg() const { return _addr_reg.has_value(); }
-
 	bool has_data_reg() const { return _data_reg.has_value(); }
-
 	bool has_pointer() const { return _ptr.has_value(); }
 
 	address_register& addr_reg()
@@ -89,9 +87,9 @@ private:
 	enum decode_state
 	{
 		IDLE,
-		START,
-		WAIT_EX1,
-		DECODE_EXT1,
+		DECODE0,
+		PREFETCH_IRC,
+		READ_PTR,
 	};
 
 	struct brief_ext
@@ -115,12 +113,14 @@ public:
 
 	bool ready() const
 	{
-		return res.has_value();
+		// TODO: should we return result once it's available?
+		// Or should we wait till prefetch is over?
+		return res.has_value() && state == IDLE;
 	}
 
 	operand result()
 	{
-		if(!res.has_value())
+		if(!ready())
 			throw std::runtime_error("ea_decoder::result error: result is not available");
 
 		return res.value();
@@ -132,6 +132,7 @@ public:
 		state = IDLE;
 		res.reset();
 		reg = mode = size = 0;
+		dec_stage = 0;
 		ext1 = 0;
 	}
 
@@ -149,7 +150,6 @@ public:
 		mode = (ea >> 3) & 0x7;
 		this->size = size;
 
-		// check if can decode immediately
 		switch (mode)
 		{
 		case 0b000:
@@ -159,9 +159,21 @@ public:
 		case 0b001:
 			decode_001();
 			break;
+		
+		case 0b010:
+			decode_010();
+			break;
+		
+		case 0b011:
+			decode_011();
+			break;
+		
+		case 0b101:
+			decode_101();
+			break;
 
 		default:
-			state = START;
+			state = DECODE0;
 		}
 	}
 
@@ -172,33 +184,32 @@ public:
 		case IDLE:
 			break;
 
-		case START:
-			// TODO: need access to fetch queue here
-			busm.init_read_word(regs.PC);
-			state = WAIT_EX1; break;
-		
-		case WAIT_EX1:
+		case READ_PTR:
 			if(!busm.is_idle()) break;
+			save_pointer();
+			state = IDLE; break;
 
-			ext1 = busm.letched_word();
-			regs.PC += sizeof(ext1);
-			state = DECODE_EXT1;
+		case PREFETCH_IRC:
+			if(!pq.is_idle()) break;
+			state = DECODE0;
 			[[fallthrough]];
-		case DECODE_EXT1:
+
+		// need 1 extension word
+		case DECODE0:
 		{
 			switch (mode)
 			{
+			case 0b100:
+				decode_100();
+				break;
+
 			case 0b101:
-			{
 				decode_101();
-				state = IDLE; break;
-			}
+				break;
 
 			case 0b110:
-			{
 				decode_110();
-				state = IDLE; break;
-			}
+				break;
 
 			default:
 				state = IDLE;
@@ -214,7 +225,37 @@ public:
 	}
 
 private:
-	/* immediately decodeing */
+	void prefetch_irc()
+	{
+		pq.init_fetch_irc();
+		state = PREFETCH_IRC;
+	}
+
+	void read_pointer(std::uint32_t addr)
+	{
+		if(size == 1)
+			busm.init_read_byte(addr);
+		else if(size == 2)
+			busm.init_read_word(addr);
+		else
+			throw std::runtime_error("read long word is not implemented yet");
+		
+		ptr = addr;
+		state = READ_PTR;
+	}
+
+	void save_pointer()
+	{
+		if(size == 1)
+			res = { {ptr, busm.letched_byte() } };
+		else if(size == 2)
+			res = { {ptr, busm.letched_word() } };
+		else
+			throw std::runtime_error("read long word is not implemented yet");
+	}
+
+private:
+	/* immediately decoding */
 	void decode_000()
 	{
 		res = { regs.D(reg) };
@@ -225,24 +266,71 @@ private:
 		res = { regs.A(reg) };
 	}
 
-	/* neec 1 extension word to decode */
-	void decode_101()
-	{
-		std::int32_t addr = regs.A(reg).LW;
-		addr += (std::int16_t)ext1;
+	/* need 1 bus read cycle */
 
-		res = { regs.D0 };
+	// Address Register Indirect Mode 
+	void decode_010()
+	{
+		read_pointer(regs.A(reg).LW);
 	}
 
+	// Address Register Indirect with Postincrement Mode
+	void decode_011()
+	{
+		read_pointer(regs.A(reg).LW);
+		regs.A(reg).LW += size;
+	}
+
+	// Address Register Indirect with Predecrement Mode 
+	void decode_100()
+	{
+		switch (dec_stage++)
+		{
+		case 0: break;
+		case 1:
+			regs.A(reg).LW -= size;
+			read_pointer(regs.A(reg).LW);
+			break;
+		default: throw std::runtime_error("ea_decoder::decode_100 internal error: unknown stage");
+		}
+	}
+
+	// Address Register Indirect with Displacement Mode
+	void decode_101()
+	{
+		switch (dec_stage++)
+		{
+		case 0: 
+			regs.A(reg).LW += (std::int16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 1: 
+			read_pointer(regs.A(reg).LW);
+			break;
+		default: throw std::runtime_error("ea_decoder::decode_101 internal error: unknown stage");
+		}
+	}
+
+	// Address Register Indirect with Index (8-Bit Displacement) Mode 
 	void decode_110()
 	{
-		std::int32_t addr = regs.A(reg).LW;
-
-		brief_ext ext(ext1);
-		addr += (std::int32_t)(std::int8_t)ext.displacement;
-		addr += (std::int32_t)dec_brief_reg(ext);
-
-		res = { regs.D0 };
+		switch (dec_stage++)
+		{
+		case 0: break;
+		case 1:
+		{
+			brief_ext ext(pq.IRC);
+			regs.A(reg).LW += (std::int32_t)(std::int8_t)ext.displacement;
+			regs.A(reg).LW += (std::int32_t)dec_brief_reg(ext);
+			prefetch_irc();
+			break;
+		}
+		case 2:
+			read_pointer(regs.A(reg).LW);
+			break;
+		
+		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
+		}
 	}
 
 private:
@@ -272,10 +360,12 @@ private:
 	std::optional<operand> res;
 
 	decode_state state = IDLE;
+	std::uint8_t dec_stage = 0;
 	std::uint8_t mode = 0;
 	std::uint8_t reg = 0;
 	std::uint8_t size = 1;
 
+	std::uint32_t ptr = 0;
 	std::uint16_t ext1 = 0;
 };
 
