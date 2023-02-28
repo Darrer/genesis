@@ -320,15 +320,16 @@ private:
 		case 1:
 		{
 			brief_ext ext(pq.IRC);
-			regs.A(reg).LW += (std::int32_t)(std::int8_t)ext.displacement;
-			regs.A(reg).LW += (std::int32_t)dec_brief_reg(ext);
+			ptr = regs.A(reg).LW;
+			ptr += (std::int32_t)(std::int8_t)ext.displacement;
+			ptr += (std::int32_t)dec_brief_reg(ext);
 			prefetch_irc();
 			break;
 		}
 		case 2:
-			read_pointer(regs.A(reg).LW);
+			read_pointer(ptr);
 			break;
-		
+
 		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
 		}
 	}

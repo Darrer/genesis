@@ -15,7 +15,9 @@ namespace genesis::m68k
 using memory = genesis::memory<std::uint32_t, 0x1000000 /* 16 MiB */, std::endian::big>;
 
 class bus_manager;
+class ea_decoder;
 class prefetch_queue;
+class executioner;
 
 class cpu
 {
@@ -58,6 +60,8 @@ private:
 
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
+	std::unique_ptr<m68k::ea_decoder> decoder;
+	std::unique_ptr<m68k::executioner> exec;
 };
 
 
