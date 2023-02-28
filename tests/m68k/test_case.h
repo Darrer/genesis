@@ -4,10 +4,39 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <variant>
+
+enum trans_type : std::uint8_t
+{
+	IDLE,
+	READ,
+	WRITE,
+	READ_MODIFY_WRITE
+};
+
+struct idle_transition { std::uint32_t cycles = 0; };
+
+struct rw_transition
+{
+	std::uint32_t cycles = 0;
+	std::uint8_t func_code = 0;
+	std::uint32_t address = 0;
+	bool word_access = false;
+	std::uint16_t data = 0;
+};
+
+struct bus_transition
+{
+	bus_transition(idle_transition idle) : type(trans_type::IDLE), trans(idle) { }
+	bus_transition(trans_type type, rw_transition rw) : type(type), trans(rw) { }
+
+	trans_type type;
+	std::variant<idle_transition, rw_transition> trans;
+};
 
 struct addr_value_pair
 {
-	std::uint32_t addres;
+	std::uint32_t address;
 	std::uint8_t value;
 };
 
@@ -32,8 +61,7 @@ struct test_case
 	cpu_state initial_state;
 	cpu_state final_state;
 	std::uint16_t length = 0;
-
-	// transactions are not supported
+	std::vector<bus_transition> transitions;
 };
 
 #endif // __M68K_TEST_CASE_H__
