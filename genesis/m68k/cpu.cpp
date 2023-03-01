@@ -26,9 +26,9 @@ cpu::~cpu()
 void cpu::cycle()
 {
 	exec->cycle();
-	busm->cycle();
 	pq->cycle();
 	decoder->cycle();
+	busm->cycle();
 }
 
 std::uint32_t cpu::execute_one()

@@ -108,7 +108,7 @@ std::vector<bus_transition> parse_transitions(json& transitions)
 		{
 		case trans_type::IDLE:
 		{
-			res.push_back({idle_transition{cycles}});
+			res.push_back({cycles});
 			break;
 		}
 
@@ -126,8 +126,8 @@ std::vector<bus_transition> parse_transitions(json& transitions)
 			bool word_access = access_type == ".w";
 			std::uint16_t data = tr.at(5).get<std::uint16_t>();
 
-			rw_transition rw{cycles, func_code, addr, word_access, data};
-			res.push_back({type, rw});
+			rw_transition rw{func_code, addr, word_access, data};
+			res.push_back({type, cycles, rw});
 
 			break;
 		}

@@ -4,7 +4,8 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <variant>
+#include <optional>
+
 
 enum trans_type : std::uint8_t
 {
@@ -14,11 +15,8 @@ enum trans_type : std::uint8_t
 	READ_MODIFY_WRITE
 };
 
-struct idle_transition { std::uint32_t cycles = 0; };
-
 struct rw_transition
 {
-	std::uint32_t cycles = 0;
 	std::uint8_t func_code = 0;
 	std::uint32_t address = 0;
 	bool word_access = false;
@@ -27,11 +25,20 @@ struct rw_transition
 
 struct bus_transition
 {
-	bus_transition(idle_transition idle) : type(trans_type::IDLE), trans(idle) { }
-	bus_transition(trans_type type, rw_transition rw) : type(type), trans(rw) { }
+	bus_transition(std::uint16_t cycles) : cycles(cycles), type(trans_type::IDLE) { }
+	bus_transition(trans_type type, std::uint16_t cycles, rw_transition rw)
+		:  cycles(cycles), type(type), rw_data(rw) { }
 
+	const rw_transition& rw_trans() const
+	{
+		return rw_data.value();
+	}
+
+	std::uint16_t cycles = 0;
 	trans_type type;
-	std::variant<idle_transition, rw_transition> trans;
+
+private:
+	std::optional<rw_transition> rw_data;
 };
 
 struct addr_value_pair
