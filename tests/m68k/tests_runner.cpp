@@ -5,14 +5,7 @@
 #include "m68k/cpu.h"
 #include "m68k/impl/prefetch_queue.hpp"
 
-
 using namespace genesis;
-
-struct run_result
-{
-	std::uint32_t cycles = 0;
-	std::vector<bus_transition> transitions;
-};
 
 
 void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& final)
@@ -106,93 +99,9 @@ bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
 	check_eq(state.prefetch.at(0), pq.IRD);
 	check_eq(state.prefetch.at(1), pq.IRC);
 
-	// TOOD: check cycles
-	// TODO: check bus transitions
-
 	#undef check_eq
 
 	return !failed;
-}
-
-run_result execute(m68k::cpu& cpu, std::uint16_t cycles)
-{
-	using namespace m68k;
-
-	run_result res;
-
-	bool in_bus_cycle = false;
-	std::uint16_t cycles_in_curr_trans = 0;
-	rw_transition rw_trans;
-
-	std::uint16_t bonus_cycles = 10; // +2 bus cycles with 2 extra
-	bool in_bonus_cycles = false;
-
-	auto& busm = cpu.bus_manager();
-	auto& bus = cpu.bus();
-	while (cycles > 0)
-	{
-		cpu.cycle();
-		--cycles;
-		++res.cycles;
-		
-		++cycles_in_curr_trans;
-		if(in_bus_cycle)
-		{
-			if(busm.is_idle())
-			{
-				// bus transition is over
-				res.transitions.push_back({trans_type::READ, cycles_in_curr_trans, rw_trans});
-
-				in_bus_cycle = false;
-				cycles_in_curr_trans = 0;
-				rw_trans = rw_transition();
-			}
-			else
-			{
-				if(cycles_in_curr_trans == 3)
-				{
-					// most of the buses are set on 3rd cycle, so save required data here
-					rw_trans.address = bus.address();
-					rw_trans.data = bus.data();
-					rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
-					rw_trans.func_code = 0; // TODO
-
-					if(!rw_trans.word_access)
-						rw_trans.data = rw_trans.data & 0xFF;
-				}
-			}
-		}
-		else
-		{
-			if(!busm.is_idle())
-			{
-				// just started bus cycle
-				if(cycles_in_curr_trans - 1 != 0)
-					res.transitions.push_back({cycles_in_curr_trans - 1});
-
-				cycles_in_curr_trans = 1; // this cycle is the first bus cycle
-				in_bus_cycle = true;
-				rw_trans = rw_transition();
-			}
-		}
-
-		if(in_bonus_cycles && busm.is_idle())
-		{
-			break;
-		}
-
-		if(cycles == 0 && !busm.is_idle())
-		{
-			// we ate all cycles, but bus manager is still doing smth
-			// so there is a defenetly issue, add a few bonus cycles
-			// just to track bus transitions to report later
-			cycles += bonus_cycles;
-			bonus_cycles = 0;
-			in_bonus_cycles = true;
-		}
-	}
-
-	return res;
 }
 
 std::string bus_transition_to_str(const bus_transition& trans)
@@ -211,13 +120,13 @@ std::string bus_transition_to_str(const bus_transition& trans)
 	};
 
 	std::stringstream ss;
-	ss << "['" << trans_type_str(trans.type) << "'";
+	ss << "[" << trans_type_str(trans.type);
 	ss << ", " << (int)trans.cycles;
 
 	if(trans.type != trans_type::IDLE)
 	{
 		const rw_transition& rw = trans.rw_trans();
-		ss << ", " << (int)rw.func_code;
+		// ss << ", " << (int)rw.func_code; // TODO
 		ss << ", " << (int)rw.address;
 		ss << ", " << (rw.word_access ? ".w" : ".b");
 		ss << ", " << (int)rw.data;
@@ -229,22 +138,29 @@ std::string bus_transition_to_str(const bus_transition& trans)
 
 std::string transitions_to_str(std::vector<bus_transition> transitions)
 {
-	std::string res = "[";
+	std::stringstream ss;
+	ss << "[";
 
 	for(std::size_t i = 0; i < transitions.size(); ++i)
 	{
 		const auto& trans = transitions[i];
-		res += bus_transition_to_str(trans);
+		ss << bus_transition_to_str(trans);
 
 		if((i + 1) != transitions.size())
 		{
-			res += ", ";
+			ss << ", ";
 		}
 	}
 
-	res += "]";
-	return res;
+	ss << "]";
+	return ss.str();
 }
+
+struct run_result
+{
+	std::uint32_t cycles = 0;
+	std::vector<bus_transition> transitions;
+};
 
 bool check_transitions(const run_result& res, const std::vector<bus_transition>& expected_trans, std::uint16_t expected_cycles)
 {
@@ -257,16 +173,110 @@ bool check_transitions(const run_result& res, const std::vector<bus_transition>&
 	return res.cycles == expected_cycles && expected == actual;
 }
 
+void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycle)
+{
+	const std::uint16_t bonus_cycles = 10;
+	bool in_bonus_cycles = false;
+
+	while (cycles > 0)
+	{
+		cpu.cycle();
+		--cycles;
+		
+		if(on_cycle != nullptr)
+			on_cycle();
+		
+		if(cycles == 0 && !cpu.bus_manager().is_idle() && !in_bonus_cycles)
+		{
+			// we ate all cycles, but bus manager is still doing smth
+			// so there is a defenetly issue, add a few bonus cycles
+			// just to track bus transitions to report later
+			cycles += bonus_cycles;
+			in_bonus_cycles = true;
+		}
+
+		if(in_bonus_cycles && cpu.bus_manager().is_idle())
+		{
+			// bus manager is done, don't need to eat extra bonus cycles
+			break;
+		}
+	}
+}
+
+run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
+{
+	using namespace m68k;
+
+	run_result res;
+
+	bool in_bus_cycle = false;
+	std::uint16_t cycles_in_curr_trans = 0;
+	trans_type type = trans_type::IDLE;
+	rw_transition rw_trans;
+
+	auto& busm = cpu.bus_manager();
+	auto& bus = cpu.bus();
+
+	auto on_cycle = [&]()
+	{
+		++res.cycles;
+		++cycles_in_curr_trans;
+
+		// save data for rw transition
+		if(!busm.is_idle() && cycles_in_curr_trans == 3)
+		{
+			// most of the buses are set on 3rd cycle, so save required data here
+			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
+			rw_trans.address = bus.address();
+			rw_trans.data = bus.data();
+			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
+			rw_trans.func_code = 0; // TODO
+
+			if(!rw_trans.word_access)
+				rw_trans.data = rw_trans.data & 0xFF;
+		}
+
+
+		// transition bus cycle -> idle
+		if(busm.is_idle() && in_bus_cycle)
+		{
+			// push bus transition, assume data was saved
+			res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
+			in_bus_cycle = false;
+			cycles_in_curr_trans = 0;
+		}
+
+		// transition idle -> bus cycle
+		if(!busm.is_idle() && !in_bus_cycle)
+		{
+			// push idle transition
+			--cycles_in_curr_trans; // current cycle was a bus cycle, so need to substruct 1 before push
+			if(cycles_in_curr_trans != 0)
+				res.transitions.push_back({cycles_in_curr_trans});
+
+			// start bus cycle
+			cycles_in_curr_trans = 1; // 1 as current cycle was a bus cycle
+			in_bus_cycle = true;
+			rw_trans = rw_transition();
+			type = trans_type::IDLE;
+		}
+	};
+
+	execute(cpu, cycles, on_cycle);
+
+	return res;
+}
+
 bool run_test(m68k::cpu& cpu, const test_case& test)
 {
 	set_preconditions(cpu, test.initial_state, test.final_state);
 
-	auto res = execute(cpu, test.length);
-	
-	bool succeded = check_postconditions(cpu, test.final_state);
-	succeded = succeded && check_transitions(res, test.transitions, test.length);
+	auto res = execute_and_track(cpu, test.length);
 
-	return succeded;
+	bool post = check_postconditions(cpu, test.final_state);
+	bool trans = check_transitions(res, test.transitions, test.length);
+
+	return post && trans;
 }
 
 void run_tests(m68k::cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
@@ -290,7 +300,7 @@ void load_and_run(std::string test_path)
 	auto tests = load_tests(test_path);
 	std::cout << test_name << ": loaded " << tests.size() << " tests" << std::endl;
 
-	auto cpu = m68k::cpu(std::make_shared<m68k::memory>());
+	auto cpu = m68k::make_cpu();
 	run_tests(cpu, tests, test_name);
 }
 
