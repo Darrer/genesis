@@ -20,11 +20,11 @@ std::uint32_t wait_idle(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
 	std::uint32_t cycles = 0;
 	while (!pq.is_idle() || !busm.is_idle())
 	{
-		busm.cycle();
 		pq.cycle();
+		busm.cycle();
 		++cycles;
 	}
-	
+
 	return cycles;
 }
 

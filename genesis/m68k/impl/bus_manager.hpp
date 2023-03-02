@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <functional>
 #include <limits>
 
 #include "m68k/cpu_bus.hpp"
@@ -14,6 +15,9 @@ namespace genesis::m68k
 
 class bus_manager
 {
+public:
+	using on_complete = std::function<void()>;
+
 private:
 	enum bus_cycle_state : std::uint8_t
 	{
@@ -60,31 +64,31 @@ public:
 		return _letched_word.value();
 	}
 
-	void init_read_byte(std::uint32_t address)
+	void init_read_byte(std::uint32_t address, on_complete cb = nullptr)
 	{
 		assert_idle("init_read_byte");
 
-		init_new_cycle(address, READ0);
+		init_new_cycle(address, READ0, cb);
 		byte_op = true;
 	}
 
-	void init_read_word(std::uint32_t address)
+	void init_read_word(std::uint32_t address, on_complete cb = nullptr)
 	{
 		assert_idle("init_read_word");
 
-		init_new_cycle(address, READ0);
+		init_new_cycle(address, READ0, cb);
 		byte_op = false;
 	}
 
 	template<class T>
-	void init_write(std::uint32_t address, T data)
+	void init_write(std::uint32_t address, T data, on_complete cb = nullptr)
 	{
 		static_assert(sizeof(T) <= 2);
 		static_assert(std::numeric_limits<T>::is_signed == false);
 
 		assert_idle("init_write");
 
-		init_new_cycle(address, WRITE0);
+		init_new_cycle(address, WRITE0, cb);
 		data_to_write = data;
 		byte_op = sizeof(T) == 1;
 	}
@@ -140,7 +144,7 @@ public:
 			bus.clear(bus::LDS);
 			bus.clear(bus::UDS);
 			bus.clear(bus::DTACK);
-			state = IDLE; break;
+			set_idle(); break;
 
 		/* bus write cycle */
 		case WRITE0:
@@ -174,7 +178,7 @@ public:
 			bus.clear(bus::LDS);
 			bus.set(bus::RW);
 			bus.clear(bus::DTACK);
-			state = IDLE; break;
+			set_idle(); break;
 
 		default:
 			throw std::runtime_error("bus_manager::cycle internal error: unknown state");
@@ -182,10 +186,11 @@ public:
 	}
 
 private:
-	void init_new_cycle(std::uint32_t addr, bus_cycle_state first_state)
+	void init_new_cycle(std::uint32_t addr, bus_cycle_state first_state, on_complete cb)
 	{
 		address = addr;
 		state = first_state;
+		on_complete_cb = cb;
 
 		// reset
 		data_to_write = 0;
@@ -201,6 +206,18 @@ private:
 			throw std::runtime_error("bus_manager::" + std::string(caller) +
 				" error: cannot perform the operation while in the middle of cycle");
 		}
+	}
+
+	void set_idle()
+	{
+		if(state == IDLE)
+			return;
+
+		state = IDLE;
+
+		if(on_complete_cb)
+			on_complete_cb();
+		on_complete_cb = nullptr; // to prevent extra calls
 	}
 
 	void set_data_strobe_bus()
@@ -243,6 +260,7 @@ private:
 
 	std::uint32_t address;
 	std::uint16_t data_to_write;
+	on_complete on_complete_cb = nullptr;
 
 	bool byte_op = false;
 	std::optional<std::uint8_t> _letched_byte;

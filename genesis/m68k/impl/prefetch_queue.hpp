@@ -40,7 +40,7 @@ public:
 	{
 		assert_idle("init_fetch_one");
 
-		busm.init_read_word(regs.PC);
+		busm.init_read_word(regs.PC, [&](){ on_complete(); });
 		state = FETCH_ONE;
 	}
 
@@ -56,7 +56,7 @@ public:
 	{
 		assert_idle("init_fetch_irc");
 
-		busm.init_read_word(regs.PC);
+		busm.init_read_word(regs.PC, [&](){ on_complete(); });
 		state = FETCH_IRC;
 	}
 
@@ -69,19 +69,17 @@ public:
 		
 		case FETCH_ONE:
 			if(!busm.is_idle()) break;
-			on_read_finished();
-			state = IDLE; break;
+			on_complete(); break;
 
 		case FETCH_TWO:
 			if(!busm.is_idle()) break;
 			on_read_finished();
-			busm.init_read_word(regs.PC);
+			busm.init_read_word(regs.PC, [&](){ on_complete(); });
 			state = FETCH_ONE; break;
-		
+
 		case FETCH_IRC:
 			if(!busm.is_idle()) break;
-			on_read_finished(/* fill only IRC */ true);
-			state = IDLE; break;
+			on_complete(); break;
 
 		default:
 			break;
@@ -89,6 +87,28 @@ public:
 	}
 
 private:
+	void on_complete()
+	{
+		if(!busm.is_idle())
+			throw std::runtime_error("prefetch_queue::on_complete internal error: bus manager must be idle");
+		
+		if(state == FETCH_ONE)
+		{
+			on_read_finished();
+		}
+		else if(state == FETCH_IRC)
+		{
+			on_read_finished(/* fill only IRC */ true);
+		}
+		else
+		{
+			state = IDLE;
+			throw std::runtime_error("prefetch_queue::on_complete internal error: unexpected state");
+		}
+
+		state = IDLE;
+	}
+
 	void on_read_finished(bool irc_only = false)
 	{
 		if(!irc_only) IR = IRC;

@@ -36,8 +36,8 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& 
 
 	// setup ram
 	auto& mem = cpu.memory();
-	for(const auto& ram : state.ram)
-		mem.write(ram.address, ram.value);
+	for(auto [addr, value] : state.ram)
+		mem.write(addr, value);
 
 	// setup prefetch queue
 	cpu.prefetch_queue().IR = cpu.prefetch_queue().IRD = state.prefetch.at(0);

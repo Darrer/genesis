@@ -26,8 +26,8 @@ cpu::~cpu()
 void cpu::cycle()
 {
 	exec->cycle();
-	pq->cycle();
 	decoder->cycle();
+	pq->cycle();
 	busm->cycle();
 }
 
