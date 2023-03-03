@@ -186,8 +186,8 @@ public:
 
 		case READ_PTR:
 			if(!busm.is_idle()) break;
-			save_pointer();
-			state = IDLE; break;
+			save_pointer_and_idle();
+			break;
 
 		case PREFETCH_IRC:
 			if(!pq.is_idle()) break;
@@ -231,20 +231,20 @@ private:
 		state = PREFETCH_IRC;
 	}
 
-	void read_pointer(std::uint32_t addr)
+	void read_pointer_and_idle(std::uint32_t addr)
 	{
 		if(size == 1)
-			busm.init_read_byte(addr);
+			busm.init_read_byte(addr, [&]() { save_pointer_and_idle(); } );
 		else if(size == 2)
-			busm.init_read_word(addr);
+			busm.init_read_word(addr, [&]() { save_pointer_and_idle(); });
 		else
 			throw std::runtime_error("read long word is not implemented yet");
-		
+
 		ptr = addr;
 		state = READ_PTR;
 	}
 
-	void save_pointer()
+	void save_pointer_and_idle()
 	{
 		if(size == 1)
 			res = { {ptr, busm.letched_byte() } };
@@ -252,6 +252,8 @@ private:
 			res = { {ptr, busm.letched_word() } };
 		else
 			throw std::runtime_error("read long word is not implemented yet");
+
+		state = IDLE;
 	}
 
 private:
@@ -271,13 +273,13 @@ private:
 	// Address Register Indirect Mode 
 	void decode_010()
 	{
-		read_pointer(regs.A(reg).LW);
+		read_pointer_and_idle(regs.A(reg).LW);
 	}
 
 	// Address Register Indirect with Postincrement Mode
 	void decode_011()
 	{
-		read_pointer(regs.A(reg).LW);
+		read_pointer_and_idle(regs.A(reg).LW);
 		regs.A(reg).LW += size;
 	}
 
@@ -287,9 +289,10 @@ private:
 		switch (dec_stage++)
 		{
 		case 0: break;
-		case 1:
+		case 1: break; // 2 IDLE cycles
+		case 2:
 			regs.A(reg).LW -= size;
-			read_pointer(regs.A(reg).LW);
+			read_pointer_and_idle(regs.A(reg).LW);
 			break;
 		default: throw std::runtime_error("ea_decoder::decode_100 internal error: unknown stage");
 		}
@@ -305,7 +308,7 @@ private:
 			prefetch_irc();
 			break;
 		case 1: 
-			read_pointer(regs.A(reg).LW);
+			read_pointer_and_idle(regs.A(reg).LW);
 			break;
 		default: throw std::runtime_error("ea_decoder::decode_101 internal error: unknown stage");
 		}
@@ -317,7 +320,8 @@ private:
 		switch (dec_stage++)
 		{
 		case 0: break;
-		case 1:
+		case 1: break; // 2 IDLE cycles
+		case 2:
 		{
 			brief_ext ext(pq.IRC);
 			ptr = regs.A(reg).LW;
@@ -326,8 +330,8 @@ private:
 			prefetch_irc();
 			break;
 		}
-		case 2:
-			read_pointer(ptr);
+		case 3:
+			read_pointer_and_idle(ptr);
 			break;
 
 		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");

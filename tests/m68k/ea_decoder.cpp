@@ -32,8 +32,8 @@ void decode(m68k::cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::uint8_t
 	dec.decode(ea, size);
 	while(!dec.ready())
 	{
-		cpu.bus_manager().cycle();
 		dec.cycle();
+		cpu.bus_manager().cycle();
 	}
 }
 
@@ -93,9 +93,9 @@ void check_timings(std::uint8_t ea_mode, std::uint8_t size,
 	bool in_read_cycle = false;
 	while (!dec.ready())
 	{
-		cpu.bus_manager().cycle();
-		cpu.prefetch_queue().cycle();
 		dec.cycle();
+		cpu.prefetch_queue().cycle();
+		cpu.bus_manager().cycle();
 
 		++cycles;
 
