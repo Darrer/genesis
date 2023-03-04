@@ -42,14 +42,14 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& 
 	// setup prefetch queue
 	cpu.prefetch_queue().IR = cpu.prefetch_queue().IRD = state.prefetch.at(0);
 	cpu.prefetch_queue().IRC = state.prefetch.at(1);
-	
+
 	// momory for prefetch queue is specified in final state
-	std::uint32_t offset = 0x0;
-	for(auto val : final.prefetch)
-	{
-		mem.write(regs.PC + offset, val);
-		offset += sizeof(val);
-	}
+	// std::uint32_t offset = 0x0;
+	// for(auto val : final.prefetch)
+	// {
+	// 	mem.write(regs.PC + offset, val);
+	// 	offset += sizeof(val);
+	// }
 }
 
 bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
@@ -186,18 +186,18 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 		if(on_cycle != nullptr)
 			on_cycle();
 		
-		if(cycles == 0 && !cpu.bus_manager().is_idle() && !in_bonus_cycles)
+		if(cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
 		{
-			// we ate all cycles, but bus manager is still doing smth
+			// we ate all cycles, but cpu is still doing smth
 			// so there is a defenetly issue, add a few bonus cycles
 			// just to track bus transitions to report later
 			cycles += bonus_cycles;
 			in_bonus_cycles = true;
 		}
 
-		if(in_bonus_cycles && cpu.bus_manager().is_idle())
+		if(in_bonus_cycles && cpu.is_idle())
 		{
-			// bus manager is done, don't need to eat extra bonus cycles
+			// cpu is idle now, don't need to eat extra bonus cycles
 			break;
 		}
 	}
@@ -228,12 +228,15 @@ run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
 			// most of the buses are set on 3rd cycle, so save required data here
 			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
 			rw_trans.address = bus.address();
-			rw_trans.data = bus.data();
 			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
 			rw_trans.func_code = 0; // TODO
 
-			if(!rw_trans.word_access)
-				rw_trans.data = rw_trans.data & 0xFF;
+			if(rw_trans.word_access)
+				rw_trans.data = bus.data();
+			else if(bus.is_set(bus::UDS))
+				rw_trans.data = bus.data() >> 8;
+			else
+				rw_trans.data = bus.data() & 0xFF;
 		}
 
 

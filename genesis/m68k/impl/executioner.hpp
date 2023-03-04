@@ -23,8 +23,8 @@ private:
 		WAIT_MEM_READ,
 		WAIT_MEM_WRITE,
 
-		PREFETCH_ONE,
-		WAIT_PREFETCH_ONE,
+		PREFETCHING,
+		PREFETCHING_AND_IDLE,
 	};
 
 public:
@@ -33,7 +33,19 @@ public:
 	{
 	}
 
-	bool is_idle() const { return ex_state == IDLE; }
+	bool is_idle() const
+	{
+		if(ex_state == IDLE)
+			return true;
+
+		if(ex_state == PREFETCHING_AND_IDLE)
+			return pq.is_idle(); // if prefetch is done we have nothing left to do
+
+		if(ex_state == WAIT_MEM_WRITE)
+			return busm.is_idle();
+
+		return false;
+	}
 
 	void cycle()
 	{
@@ -46,6 +58,7 @@ public:
 		case START_EXEC:
 			exec_stage = 0;
 			opcode = pq.IRD;
+			regs.PC += 2;
 
 			ex_state = EXECUTING;
 			[[fallthrough]];
@@ -66,19 +79,26 @@ public:
 		case WAIT_MEM_WRITE:
 		// TODO: here we lost 1 cycle
 			if(busm.is_idle())
+			{
 				ex_state = IDLE;
+				cycle(); // TODO: don't do recursion
+			}
 			break;
 
-		case PREFETCH_ONE:
-			pq.init_fetch_one();
-			ex_state = WAIT_PREFETCH_ONE;
-			break;
-
-		case WAIT_PREFETCH_ONE:
+		/* prefetch */
+		case PREFETCHING:
 			if(pq.is_idle())
 			{
 				ex_state = EXECUTING;
-				execute();
+				execute(); // TODO: don't call execute directly
+			}
+			break;
+
+		case PREFETCHING_AND_IDLE:
+			if(pq.is_idle())
+			{
+				ex_state = IDLE;
+				cycle(); // TODO: don't do recursion
 			}
 			break;
 
@@ -133,10 +153,16 @@ private:
 		ex_state = WAIT_MEM_WRITE;
 	}
 
-	void prefetch_one()
+	void prefetch_and_idle()
 	{
 		pq.init_fetch_one();
-		ex_state = WAIT_PREFETCH_ONE;
+		ex_state = PREFETCHING_AND_IDLE;
+	}
+
+	void prefetch()
+	{
+		pq.init_fetch_one();
+		ex_state = PREFETCHING;
 	}
 
 private:
@@ -171,11 +197,11 @@ private:
 			{
 				std::cout << "Writing result to register" << std::endl;
 				reg = res;
-				ex_state = IDLE;
+				prefetch_and_idle();
 			}
 			else
 			{
-				prefetch_one();
+				prefetch();
 			}
 
 			break;
@@ -196,7 +222,7 @@ private:
 	template<class T>
 	T add(T a, T b)
 	{
-		std::cout << "Add " << (int)a << " + " << (int)b << std::endl;
+		// std::cout << "Add " << (int)a << " + " << (int)b << std::endl;
 		return a + b;
 	}
 

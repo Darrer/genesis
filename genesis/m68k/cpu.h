@@ -51,6 +51,9 @@ public:
 	}
 
 	void cycle();
+
+	// NOTE: only for unit tests
+	bool is_idle() const;
 	std::uint32_t execute_one();
 
 private:

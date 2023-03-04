@@ -40,7 +40,7 @@ public:
 	{
 		assert_idle("init_fetch_one");
 
-		busm.init_read_word(regs.PC, [&](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
 		state = FETCH_ONE;
 	}
 
@@ -48,7 +48,7 @@ public:
 	{
 		assert_idle("init_fetch_two");
 
-		busm.init_read_word(regs.PC);
+		busm.init_read_word(regs.PC + 2);
 		state = FETCH_TWO;
 	}
 
@@ -56,7 +56,7 @@ public:
 	{
 		assert_idle("init_fetch_irc");
 
-		busm.init_read_word(regs.PC, [&](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
 		state = FETCH_IRC;
 	}
 
@@ -74,7 +74,7 @@ public:
 		case FETCH_TWO:
 			if(!busm.is_idle()) break;
 			on_read_finished();
-			busm.init_read_word(regs.PC, [&](){ on_complete(); });
+			busm.init_read_word(regs.PC + 4, [&](){ on_complete(); });
 			state = FETCH_ONE; break;
 
 		case FETCH_IRC:
@@ -115,7 +115,7 @@ private:
 		IRC = busm.letched_word();
 		if(!irc_only) IRD = IR;
 
-		regs.PC += 2;
+		// regs.PC += 2;
 	}
 
 	void assert_idle(std::string_view caller)

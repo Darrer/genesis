@@ -228,6 +228,7 @@ private:
 	void prefetch_irc()
 	{
 		pq.init_fetch_irc();
+		regs.PC += 2;
 		state = PREFETCH_IRC;
 	}
 
@@ -303,12 +304,12 @@ private:
 	{
 		switch (dec_stage++)
 		{
-		case 0: 
-			regs.A(reg).LW += (std::int16_t)pq.IRC;
+		case 0:
+			ptr = regs.A(reg).LW + (std::int16_t)pq.IRC;
 			prefetch_irc();
 			break;
-		case 1: 
-			read_pointer_and_idle(regs.A(reg).LW);
+		case 1:
+			read_pointer_and_idle(ptr);
 			break;
 		default: throw std::runtime_error("ea_decoder::decode_101 internal error: unknown stage");
 		}

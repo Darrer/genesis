@@ -31,9 +31,14 @@ void cpu::cycle()
 	busm->cycle();
 }
 
+bool cpu::is_idle() const
+{
+	return exec->is_idle() && pq->is_idle() && busm->is_idle();
+}
+
 std::uint32_t cpu::execute_one()
 {
-	if(!exec->is_idle())
+	if(!is_idle())
 		throw std::runtime_error("cpu::execute_one error: cannot execute one while in the middle of execution");
 
 	std::uint32_t cycles = 0;
@@ -41,7 +46,7 @@ std::uint32_t cpu::execute_one()
 	{
 		cycle();
 		++cycles;
-	} while (!exec->is_idle());
+	} while (!is_idle());
 
 	return cycles;
 }
