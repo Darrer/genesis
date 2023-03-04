@@ -36,6 +36,8 @@ public:
 		return state == IDLE;
 	}
 
+	// IR/IRD = IRC
+	// IRC = (regs.PC + 2)
 	void init_fetch_one()
 	{
 		assert_idle("init_fetch_one");
@@ -44,14 +46,18 @@ public:
 		state = FETCH_ONE;
 	}
 
+	// IR/IRD = (regs.PC)
+	// IRC = (regs.PC + 2)
 	void init_fetch_two()
 	{
 		assert_idle("init_fetch_two");
 
-		busm.init_read_word(regs.PC + 2);
+		busm.init_read_word(regs.PC);
 		state = FETCH_TWO;
 	}
 
+	// IR/IRD aren't changed
+	// IRC = (regs.PC + 2)
 	void init_fetch_irc()
 	{
 		assert_idle("init_fetch_irc");
@@ -68,18 +74,19 @@ public:
 			break;
 		
 		case FETCH_ONE:
-			if(!busm.is_idle()) break;
-			on_complete(); break;
+		case FETCH_IRC:
+			if(busm.is_idle())
+				on_complete();
+			break;
 
 		case FETCH_TWO:
-			if(!busm.is_idle()) break;
-			on_read_finished();
-			busm.init_read_word(regs.PC + 4, [&](){ on_complete(); });
-			state = FETCH_ONE; break;
-
-		case FETCH_IRC:
-			if(!busm.is_idle()) break;
-			on_complete(); break;
+			if(busm.is_idle())
+			{
+				on_read_finished();
+				busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
+				state = FETCH_ONE;
+			}
+			break;
 
 		default:
 			break;
@@ -98,7 +105,7 @@ private:
 		}
 		else if(state == FETCH_IRC)
 		{
-			on_read_finished(/* fill only IRC */ true);
+			on_read_finished(/* set only IRC */ true);
 		}
 		else
 		{
@@ -111,11 +118,9 @@ private:
 
 	void on_read_finished(bool irc_only = false)
 	{
-		if(!irc_only) IR = IRC;
+		if(!irc_only)
+			IRD = IR = IRC;
 		IRC = busm.letched_word();
-		if(!irc_only) IRD = IR;
-
-		// regs.PC += 2;
 	}
 
 	void assert_idle(std::string_view caller)

@@ -57,12 +57,12 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
-	mem->write(regs.PC, val);
+	mem->write(regs.PC + 2, val);
 
 	auto actual_fetch_cycles = fetch_one(pq, busm);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
-	ASSERT_EQ(0x103, regs.PC);
+	ASSERT_EQ(0x101, regs.PC);
 	ASSERT_EQ(val, pq.IRC);
 
 	// old irc should go to IR/IRD
@@ -80,12 +80,12 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
-	mem->write(regs.PC, val);
+	mem->write(regs.PC + 2, val);
 
 	auto actual_fetch_cycles = fetch_irc(pq, busm);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
-	ASSERT_EQ(0x103, regs.PC);
+	ASSERT_EQ(0x101, regs.PC);
 	ASSERT_EQ(val, pq.IRC);
 
 	// these should not be changed
@@ -106,7 +106,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
 	auto actual_fetch_cycles = fetch_two(pq, busm);
 
 	ASSERT_EQ(expected_fetch_cycles * 2, actual_fetch_cycles);
-	ASSERT_EQ(0x105, regs.PC);
+	ASSERT_EQ(0x101, regs.PC);
 	ASSERT_EQ(val, pq.IRD);
 	ASSERT_EQ(val, pq.IR);
 	ASSERT_EQ(val2, pq.IRC);
