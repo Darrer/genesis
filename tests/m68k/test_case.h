@@ -55,6 +55,7 @@ struct cpu_state
 	std::uint32_t A0, A1, A2, A3, A4, A5, A6;
 
 	std::uint32_t USP;
+	std::uint32_t SSP;
 	std::uint16_t SR;
 	std::uint32_t PC;
 	

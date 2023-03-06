@@ -68,6 +68,7 @@ cpu_state parse_cpu_state(json& state)
 	ct.A6 = state["a6"].get<std::uint32_t>();
 
 	ct.USP = state["usp"].get<std::uint32_t>();
+	ct.SSP = state["ssp"].get<std::uint32_t>();
 	ct.PC = state["pc"].get<std::uint32_t>();
 	ct.SR = state["sr"].get<std::uint16_t>();
 

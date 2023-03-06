@@ -77,13 +77,12 @@ TEST(M68K_EA_DECODER, MODE_001)
 	}
 }
 
-void check_timings(std::uint8_t ea_mode, std::uint8_t size,
+void check_timings(std::uint8_t ea, std::uint8_t size,
 	std::uint8_t expected_total_cycles, std::uint8_t expected_bus_read_cycles)
 {
 	setup_test();
 
 	auto& bus = cpu.bus();
-	std::uint8_t ea = ea_mode << 3;
 	cpu.registers().A0.LW = 0x101;
 	dec.decode(ea, size);
 
@@ -127,36 +126,54 @@ TEST(M68K_EA_DECODER_TIMINGS, MODE_000)
 TEST(M68K_EA_DECODER_TIMINGS, MODE_001)
 {
 	for(auto sz : {1, 2, 4})
-		check_timings(0b001, sz, 0, 0);
+		check_timings(0b001 << 3, sz, 0, 0);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_010)
 {
-	check_timings(0b010, 1, 4, 1);
-	check_timings(0b010, 2, 4, 1);
+	check_timings(0b010 << 3, 1, 4, 1);
+	check_timings(0b010 << 3, 2, 4, 1);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_011)
 {
-	check_timings(0b011, 1, 4, 1);
-	check_timings(0b011, 2, 4, 1);
+	check_timings(0b011 << 3, 1, 4, 1);
+	check_timings(0b011 << 3, 2, 4, 1);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_100)
 {
-	check_timings(0b100, 1, 6, 1);
-	check_timings(0b100, 2, 6, 1);
+	check_timings(0b100 << 3, 1, 6, 1);
+	check_timings(0b100 << 3, 2, 6, 1);
 }
 
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_101)
 {
-	check_timings(0b101, 1, 8, 2);
-	check_timings(0b101, 2, 8, 2);
+	check_timings(0b101 << 3, 1, 8, 2);
+	check_timings(0b101 << 3, 2, 8, 2);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_110)
 {
-	check_timings(0b110, 1, 10, 2);
-	check_timings(0b110, 2, 10, 2);
+	check_timings(0b110 << 3, 1, 10, 2);
+	check_timings(0b110 << 3, 2, 10, 2);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_000)
+{
+	check_timings(0b111000, 1, 8, 2);
+	check_timings(0b111000, 2, 8, 2);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_100)
+{
+	check_timings(0b111100, 1, 4, 1);
+	check_timings(0b111100, 2, 4, 1);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_001)
+{
+	check_timings(0b111001, 1, 12, 3);
+	check_timings(0b111001, 2, 12, 3);
 }

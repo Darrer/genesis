@@ -8,7 +8,7 @@
 using namespace genesis;
 
 
-void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& final)
+void set_preconditions(m68k::cpu& cpu, const cpu_state& state)
 {
 	// setup registers
 	auto& regs = cpu.registers();
@@ -31,7 +31,8 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& 
 	regs.A6.LW = state.A6;
 
 	regs.USP.LW = state.USP;
-	// regs.SR = state.SR; // skip for now
+	regs.SSP.LW = state.SSP;
+	// regs.SR = state.SR; // TODO: skip for now
 	regs.PC = state.PC;
 
 	// setup ram
@@ -42,14 +43,6 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state, const cpu_state& 
 	// setup prefetch queue
 	cpu.prefetch_queue().IR = cpu.prefetch_queue().IRD = state.prefetch.at(0);
 	cpu.prefetch_queue().IRC = state.prefetch.at(1);
-
-	// momory for prefetch queue is specified in final state
-	// std::uint32_t offset = 0x0;
-	// for(auto val : final.prefetch)
-	// {
-	// 	mem.write(regs.PC + offset, val);
-	// 	offset += sizeof(val);
-	// }
 }
 
 bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
@@ -185,7 +178,13 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 		
 		if(on_cycle != nullptr)
 			on_cycle();
-		
+
+		if(cpu.is_idle())
+		{
+			// cpu is idle now, execution is over
+			break;
+		}
+
 		if(cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
 		{
 			// we ate all cycles, but cpu is still doing smth
@@ -193,12 +192,6 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 			// just to track bus transitions to report later
 			cycles += bonus_cycles;
 			in_bonus_cycles = true;
-		}
-
-		if(in_bonus_cycles && cpu.is_idle())
-		{
-			// cpu is idle now, don't need to eat extra bonus cycles
-			break;
 		}
 	}
 }
@@ -272,7 +265,7 @@ run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
 
 bool run_test(m68k::cpu& cpu, const test_case& test)
 {
-	set_preconditions(cpu, test.initial_state, test.final_state);
+	set_preconditions(cpu, test.initial_state);
 
 	auto res = execute_and_track(cpu, test.length);
 

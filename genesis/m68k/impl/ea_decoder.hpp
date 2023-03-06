@@ -89,6 +89,7 @@ private:
 		IDLE,
 		DECODE0,
 		PREFETCH_IRC,
+		PREFETCH_IRC_AND_IDLE,
 		READ_PTR,
 	};
 
@@ -111,11 +112,22 @@ private:
 public:
 	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq) : busm(busm), regs(regs), pq(pq) { }
 
+	bool is_idle() const
+	{
+		if(state == IDLE)
+			return true;
+
+		if(state == PREFETCH_IRC_AND_IDLE && pq.is_idle())
+			return true;
+		
+		return false;
+	}
+
 	bool ready() const
 	{
 		// TODO: should we return result once it's available?
 		// Or should we wait till prefetch is over?
-		return res.has_value() && state == IDLE;
+		return res.has_value() && is_idle();
 	}
 
 	operand result()
@@ -138,9 +150,9 @@ public:
 
 	void decode(std::uint8_t ea, std::uint8_t size = 1)
 	{
-		if(state != IDLE)
+		if(!is_idle())
 			throw std::runtime_error("ea_decoder::decode error: cannot start new decoding till the previous request is finished");
-		
+
 		if(!busm.is_idle())
 			throw std::runtime_error("ea_decoder::decode error: cannot start decoding as bus_manager is busy");
 
@@ -189,6 +201,11 @@ public:
 			save_pointer_and_idle();
 			break;
 
+		case PREFETCH_IRC_AND_IDLE:
+			if(pq.is_idle())
+				state = IDLE; // TODO: lose 1 cycle here
+			break;
+
 		case PREFETCH_IRC:
 			if(!pq.is_idle()) break;
 			state = DECODE0;
@@ -211,6 +228,30 @@ public:
 				decode_110();
 				break;
 
+			case 0b111:
+			{
+			switch (reg)
+			{
+			case 0b000:
+				decode_111_000();
+				break;
+			
+			case 0b100:
+				decode_111_100();
+				break;
+			
+			case 0b001:
+				decode_111_001();
+				break;
+
+			default:
+				state = IDLE;
+				throw std::runtime_error("internal error: unknown ea mode 111 " + std::to_string(reg));
+			}
+
+				break;
+			}
+
 			default:
 				state = IDLE;
 				throw std::runtime_error("internal error: unknown ea mode " + std::to_string(mode));
@@ -220,6 +261,7 @@ public:
 		}
 
 		default:
+			state = IDLE;
 			throw std::runtime_error("ea_docoder::cycle internal error: unknown state");
 		}
 	}
@@ -230,6 +272,13 @@ private:
 		pq.init_fetch_irc();
 		regs.PC += 2;
 		state = PREFETCH_IRC;
+	}
+
+	void prefetch_and_idle()
+	{
+		pq.init_fetch_irc();
+		regs.PC += 2;
+		state = PREFETCH_IRC_AND_IDLE;
 	}
 
 	void read_pointer_and_idle(std::uint32_t addr)
@@ -292,7 +341,11 @@ private:
 		case 0: break;
 		case 1: break; // 2 IDLE cycles
 		case 2:
-			regs.A(reg).LW -= size;
+			// TODO: check
+			if(reg == 0b111 && size == 1)
+				regs.A(reg).LW -= 2; // to maintain alignment
+			else
+				regs.A(reg).LW -= size;
 			read_pointer_and_idle(regs.A(reg).LW);
 			break;
 		default: throw std::runtime_error("ea_decoder::decode_100 internal error: unknown stage");
@@ -336,6 +389,79 @@ private:
 			break;
 
 		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
+		}
+	}
+
+	// Absolute Short Addressing Mode 
+	void decode_111_000()
+	{
+		switch (dec_stage++)
+		{
+		case 0:
+			ptr = (std::int16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 1:
+			read_pointer_and_idle(ptr);
+			break;
+		default: throw std::runtime_error("ea_decoder::decode_111_000 internal error: unknown stage");
+		}
+	}
+
+	// Immediate Data 
+	void decode_111_100()
+	{
+		if(size != 1 && size != 2)
+			throw std::runtime_error("ea_decoder::decode_111_100 not implemented yet");
+
+		switch (dec_stage++)
+		{
+		case 0:
+			if(size == 1)
+				res = { {regs.PC, (std::uint8_t)(pq.IRC & 0xFF) } }; // TODO
+			else
+				res = { {regs.PC, pq.IRC } }; // TODO
+			prefetch_and_idle();
+			break;
+
+		default: throw std::runtime_error("ea_decoder::decode_111_100 internal error: unknown stage");
+		}
+	}
+
+
+	// Program Counter Indirect with Displacement Mode
+	void decode_111_010()
+	{
+		switch (dec_stage++)
+		{
+		case 0:
+			ptr = regs.PC + (std::int16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 1:
+			read_pointer_and_idle(ptr);
+			break;
+		default: throw std::runtime_error("ea_decoder::decode_111_010 internal error: unknown stage");
+		}
+	}
+
+	// Absolute Long Addressing Mode
+	void decode_111_001()
+	{
+		switch (dec_stage++)
+		{
+		case 0:
+			ptr = (std::uint16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 1:
+			ptr = (ptr << 16) | (std::uint16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 2:
+			read_pointer_and_idle(ptr);
+			break;
+		default: throw std::runtime_error("ea_decoder::decode_111_010 internal error: unknown stage");
 		}
 	}
 

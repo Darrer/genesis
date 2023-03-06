@@ -110,10 +110,14 @@ public:
 private:
 	void execute()
 	{
-		if((opcode >> 12) != 0b1101)
-			throw std::runtime_error("execute: not implemented yet");
-
-		exec_add();
+		if((opcode >> 12) == 0b1101)
+			exec_add();
+		else if((opcode >> 8) == 0b110)
+			exec_addi();
+		else if((opcode >> 12) == 0b0101)
+			exec_addq();
+		else
+			throw std::runtime_error("execute: not implemented yet " + std::to_string(opcode));
 	}
 
 private:
@@ -165,9 +169,19 @@ private:
 		ex_state = PREFETCHING;
 	}
 
+	void read_imm(/*std::size_t size = 1*/)
+	{
+		// TODO: support 2/4 size
+		imm = pq.IRC & 0xFF;
+		pq.init_fetch_irc();
+		regs.PC += 2;
+		ex_state = PREFETCHING;
+	}
+
 private:
 	void exec_add()
 	{
+		// std::cout << "exec_add" << std::endl;
 		switch (exec_stage++)
 		{
 		case 0:
@@ -195,7 +209,7 @@ private:
 			std::uint8_t opmode = (opcode >> 6) & 0x7;
 			if(opmode == 0b000)
 			{
-				std::cout << "Writing result to register" << std::endl;
+				// std::cout << "Writing result to register" << std::endl;
 				reg = res;
 				prefetch_and_idle();
 			}
@@ -214,6 +228,89 @@ private:
 
 		default:
 			throw std::runtime_error("executioner::exec_add internal error: unknown state");
+		}
+	}
+
+	void exec_addi()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			read_imm();
+			break;
+		
+		case 1:
+			decode_ea(pq.IRD & 0xFF, 1);
+			break;
+
+		case 2:
+		{
+			auto op = ea_dec.result();
+			if(op.has_pointer())
+			{
+				res = add((std::uint8_t)imm, op.pointer().value<std::uint8_t>());
+				prefetch();
+			}
+			else if(op.has_data_reg())
+			{
+				op.data_reg().B = add((std::uint8_t)imm, op.data_reg().B);
+				prefetch_and_idle();
+			}
+			else
+			{
+				throw std::runtime_error("internal error addi");
+			}
+
+			break;
+		}
+
+		case 3:
+			write_and_idle(ea_dec.result().pointer().address, res);
+			break;
+
+		default:
+			throw std::runtime_error("executioner::exec_addi internal error: unknown state");
+		}
+	}
+
+	void exec_addq()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			decode_ea(pq.IRD & 0xFF, 1);
+			break;
+
+		case 1:
+		{
+			std::uint8_t data = (opcode >> 9) & 0x7;
+			if(data == 0) data = 8;
+
+			auto op = ea_dec.result();
+			if(op.has_pointer())
+			{
+				res = add(data, op.pointer().value<std::uint8_t>());
+				prefetch();
+			}
+			else if(op.has_data_reg())
+			{
+				op.data_reg().B = add(data, op.data_reg().B);
+				prefetch_and_idle();
+			}
+			else
+			{
+				throw std::runtime_error("internal error addi");
+			}
+
+			break;
+		}
+
+		case 2:
+			write_and_idle(ea_dec.result().pointer().address, res);
+			break;
+
+		default:
+			throw std::runtime_error("executioner::exec_addq internal error: unknown state");
 		}
 	}
 
@@ -238,6 +335,8 @@ private:
 	std::uint16_t opcode = 0;
 	std::uint8_t res = 0;
 	std::uint8_t exec_stage;
+
+	std::uint32_t imm;
 };
 
 }

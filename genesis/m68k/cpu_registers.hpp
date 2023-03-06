@@ -48,7 +48,7 @@ static_assert(sizeof(status_register) == 2);
 class cpu_registers
 {
 public:
-	cpu_registers() :  USP(A7)
+	cpu_registers() :  SSP(A7) // TODO: A7 may point to either SSP or USP
 	{
 		D0.LW = D1.LW = D2.LW = D3.LW = D4.LW = D5.LW = D6.LW = D7.LW = 0x0;
 		A0.LW = A1.LW = A2.LW = A3.LW = A4.LW = A5.LW = A6.LW = A7.LW = 0x0;
@@ -56,6 +56,8 @@ public:
 
 		SR.C = SR.V = SR.Z = SR.N = SR.X = SR.U1 = SR.U2 = SR.U3 = 0x0;
 		SR.IPM = SR.U4 = SR.M = SR.S = SR.TR = 0x0;
+
+		USP.LW = SSP.LW = 0x0;
 	}
 
 	data_register& D(std::uint8_t reg)
@@ -92,7 +94,8 @@ public:
 
 	data_register D0, D1, D2, D3, D4, D5, D6, D7;
 	address_register A0, A1, A2, A3, A4, A5, A6, A7;
-	address_register& USP;
+	address_register USP;
+	address_register& SSP;
 
 	std::uint32_t PC;
 	status_register SR;
