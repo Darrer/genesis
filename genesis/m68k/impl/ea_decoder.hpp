@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <variant>
+#include <iostream>
 
 #include "bus_manager.hpp"
 #include "prefetch_queue.hpp"
@@ -162,6 +163,8 @@ public:
 		mode = (ea >> 3) & 0x7;
 		this->size = size;
 
+		// std::cout << "Decoding: " << su::bin_str(mode) << std::endl;
+
 		switch (mode)
 		{
 		case 0b000:
@@ -242,6 +245,14 @@ public:
 			
 			case 0b001:
 				decode_111_001();
+				break;
+
+			case 0b011:
+				decode_111_011();
+				break;
+
+			case 0b010:
+				decode_111_010();
 				break;
 
 			default:
@@ -358,7 +369,7 @@ private:
 		switch (dec_stage++)
 		{
 		case 0:
-			ptr = regs.A(reg).LW + (std::int16_t)pq.IRC;
+			ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
 			prefetch_irc();
 			break;
 		case 1:
@@ -445,6 +456,29 @@ private:
 		}
 	}
 
+	void decode_111_011()
+	{
+		switch (dec_stage++)
+		{
+		case 0: break;
+		case 1: break; // 2 IDLE cycles
+		case 2:
+		{
+			brief_ext ext(pq.IRC);
+			ptr = regs.PC;
+			ptr += (std::int32_t)(std::int8_t)ext.displacement;
+			ptr += (std::int32_t)dec_brief_reg(ext);
+			prefetch_irc();
+			break;
+		}
+		case 3:
+			read_pointer_and_idle(ptr);
+			break;
+
+		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
+		}
+	}
+
 	// Absolute Long Addressing Mode
 	void decode_111_001()
 	{
@@ -469,7 +503,9 @@ private:
 	std::int32_t dec_brief_reg(brief_ext ext)
 	{
 		// std::cout << "Scale value: " << (int)ext.scale << std::endl;
+		// Turns out scale is not supported by M68000
 		std::int32_t scale = 1 ; // 1 << ext.scale;
+		// std::uint32_t scale = ext.scale;
 
 		if(ext.wl)
 		{

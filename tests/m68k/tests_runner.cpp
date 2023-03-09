@@ -179,12 +179,6 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 		if(on_cycle != nullptr)
 			on_cycle();
 
-		if(cpu.is_idle())
-		{
-			// cpu is idle now, execution is over
-			break;
-		}
-
 		if(cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
 		{
 			// we ate all cycles, but cpu is still doing smth
@@ -192,6 +186,12 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 			// just to track bus transitions to report later
 			cycles += bonus_cycles;
 			in_bonus_cycles = true;
+		}
+
+		if(cpu.is_idle() /*&& in_bonus_cycles*/)
+		{
+			// don't eat extra bonuc cycles
+			break;
 		}
 	}
 }
@@ -260,6 +260,10 @@ run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
 
 	execute(cpu, cycles, on_cycle);
 
+	// push idle cycles
+	if(busm.is_idle() && cycles_in_curr_trans > 0)
+		res.transitions.push_back({cycles_in_curr_trans});
+
 	return res;
 }
 
@@ -281,6 +285,13 @@ void run_tests(m68k::cpu& cpu, const std::vector<test_case>& tests, std::string_
 
 	for(const auto& test : tests)
 	{
+		// TMP
+		// if(test.length >= 50)
+		// {
+		// 	std::cout << "Skipping " << test.name << std::endl;
+		// 	continue;
+		// }
+
 		std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		ASSERT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
@@ -303,5 +314,11 @@ void load_and_run(std::string test_path)
 TEST(M68K, ADD)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.b.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ADDW)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.w.json)";
 	load_and_run(path);
 }
