@@ -11,6 +11,7 @@ PRIVATE
 	rom_debug.hpp
 
 	string_utils.hpp
+	exception.hpp
 	endian.hpp
 	memory.hpp
 
