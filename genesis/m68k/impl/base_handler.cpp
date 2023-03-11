@@ -6,8 +6,6 @@
 enum handler_state : std::uint8_t
 {
 	IDLE,
-	EXECUTING,
-
 	READING,
 	WRITING,
 	WRITING_AND_IDLE,
@@ -50,7 +48,6 @@ void base_handler::cycle()
 	switch (state)
 	{
 	case IDLE:
-	case EXECUTING:
 		on_cycle();
 		break;
 
@@ -58,7 +55,7 @@ void base_handler::cycle()
 	case WRITING:
 		if(busm.is_idle())
 		{
-			state = EXECUTING;
+			state = IDLE;
 			on_cycle();
 		}
 		break;
@@ -74,7 +71,7 @@ void base_handler::cycle()
 	case PREFETCHING:
 		if(pq.is_idle())
 		{
-			state = EXECUTING;
+			state = IDLE;
 			on_cycle();
 		}
 		break;
@@ -131,12 +128,14 @@ void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
 	state = WRITING_AND_IDLE;
+	on_idle();
 }
 
 void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
 	state = WRITING_AND_IDLE;
+	on_idle();
 }
 
 void base_handler::write_long_and_idle(std::uint32_t /*addr*/, std::uint32_t /*data*/)
@@ -154,6 +153,7 @@ void base_handler::prefetch_and_idle()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING_AND_IDLE;
+	on_idle();
 }
 
 void base_handler::read_imm(std::uint8_t size)
@@ -167,7 +167,8 @@ void base_handler::read_imm(std::uint8_t size)
 	else
 		throw internal_error();
 
-	prefetch();
+	pq.init_fetch_irc();
+	state = PREFETCHING;
 	regs.PC += 2;
 }
 

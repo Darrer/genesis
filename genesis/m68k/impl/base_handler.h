@@ -43,7 +43,8 @@ protected:
 protected:
 	/* must be overridden by sub classes */
 
-	void on_cycle();
+	virtual void on_cycle() = 0;
+	virtual void on_idle() = 0;
 
 protected:
 	m68k::cpu_registers& regs;

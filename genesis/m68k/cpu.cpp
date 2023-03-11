@@ -1,12 +1,5 @@
 #include "cpu.h"
 
-#include "impl/bus_manager.hpp"
-#include "impl/prefetch_queue.hpp"
-#include "impl/ea_decoder.hpp"
-#include "impl/executioner.hpp"
-
-#include <iostream>
-
 
 namespace genesis::m68k
 {
@@ -15,8 +8,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 {
 	busm = std::make_unique<m68k::bus_manager>(_bus, *mem);
 	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
-	decoder = std::make_unique<m68k::ea_decoder>(*busm, regs, *pq);
-	exec = std::make_unique<executioner>(*this, *busm, *decoder);
+	inst_handler = std::make_unique<m68k::instruction_handler>(regs, *busm, *pq);
 }
 
 cpu::~cpu()
@@ -25,15 +17,14 @@ cpu::~cpu()
 
 void cpu::cycle()
 {
-	exec->cycle();
-	decoder->cycle();
+	inst_handler->cycle();
 	pq->cycle();
 	busm->cycle();
 }
 
 bool cpu::is_idle() const
 {
-	return exec->is_idle() && pq->is_idle() && busm->is_idle();
+	return inst_handler->is_idle() && pq->is_idle() && busm->is_idle();
 }
 
 std::uint32_t cpu::execute_one()

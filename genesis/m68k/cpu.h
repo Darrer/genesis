@@ -3,9 +3,10 @@
 
 #include "cpu_registers.hpp"
 #include "cpu_bus.hpp"
-#include "memory.hpp"
 
 #include "impl/bus_manager.hpp"
+#include "impl/prefetch_queue.hpp"
+#include "impl/instruction_handler.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -13,11 +14,6 @@
 
 namespace genesis::m68k
 {
-
-class bus_manager;
-class ea_decoder;
-class prefetch_queue;
-class executioner;
 
 class cpu
 {
@@ -63,8 +59,7 @@ private:
 
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
-	std::unique_ptr<m68k::ea_decoder> decoder;
-	std::unique_ptr<m68k::executioner> exec;
+	std::unique_ptr<m68k::instruction_handler> inst_handler;
 };
 
 

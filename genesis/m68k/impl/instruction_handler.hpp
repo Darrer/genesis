@@ -1,12 +1,13 @@
-#ifndef __M68K_EXECUTIONER_HPP__
-#define __M68K_EXECUTIONER_HPP__
+#ifndef __M68K_INSTRUCTION_HANDLER_HPP__
+#define __M68K_INSTRUCTION_HANDLER_HPP__
 
-#include <cstdint>
+#include "base_handler.h"
+#include "ea_decoder.hpp"
+
+#include "exception.hpp"
+
 #include <iostream>
 
-#include "prefetch_queue.hpp"
-#include "ea_decoder.hpp"
-#include "bus_manager.hpp"
 
 namespace genesis::m68k
 {
@@ -14,106 +15,78 @@ namespace genesis::m68k
 #define throw_invalid_opcode() \
 	throw std::runtime_error(std::string("executioner::") + __func__ + " error: invalid opcode")
 
-#define throw_internal_error() \
-	throw std::runtime_error(std::string("executioner::") + __func__ + " internal error")
-
-#define throw_not_implemented_yet() \
-	throw std::runtime_error(std::string("executioner::") + __func__ + " error: not implemented yet")
-
-class executioner
+class instruction_handler : public base_handler
 {
 private:
-	enum exec_state : std::uint8_t
+	enum inst_state : std::uint8_t
 	{
 		IDLE,
-		START_EXEC,
+		STARTING,
 		EXECUTING,
-		WAIT_EA_DECODING,
-		WAIT_MEM_READ,
-		WAIT_MEM_WRITE,
-
-		PREFETCHING,
-		PREFETCHING_AND_IDLE,
+		DECODING,
 	};
 
 public:
-	executioner(m68k::cpu& cpu, bus_manager& busm, ea_decoder& dec)
-		: cpu(cpu), regs(cpu.registers()), busm(busm), pq(cpu.prefetch_queue()), ea_dec(dec)
+	instruction_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
+		: base_handler(regs, busm, pq), dec(busm, regs, pq)
 	{
+		reset();
+	}
+
+	void reset()
+	{
+		state = IDLE;
+		opcode = 0;
+		exec_stage = 0;
+		res = 0;
+
+		base_handler::reset();
 	}
 
 	bool is_idle() const
 	{
-		if(ex_state == IDLE)
-			return true;
-
-		if(ex_state == PREFETCHING_AND_IDLE)
-			return pq.is_idle(); // if prefetch is done we have nothing left to do
-
-		if(ex_state == WAIT_MEM_WRITE)
-			return busm.is_idle();
-
-		return false;
+		return state == IDLE && base_handler::is_idle();
 	}
 
-	void cycle()
+protected:
+	void on_cycle() override
 	{
-		switch (ex_state)
+		switch (state)
 		{
 		case IDLE:
-			ex_state = START_EXEC;
+			state = STARTING;
 			[[fallthrough]];
 		
-		case START_EXEC:
-			exec_stage = 0;
+		case STARTING:
+			reset();
 			opcode = pq.IRD;
 			regs.PC += 2;
+			state = EXECUTING;
+			execute();
+			break;
 
-			ex_state = EXECUTING;
-			[[fallthrough]];
+		case DECODING:
+			if(dec.ready())
+			{
+				state = EXECUTING;
+				execute();
+			}
+			break;
 
 		case EXECUTING:
 			execute();
 			break;
 
-		case WAIT_EA_DECODING:
-			if(ea_dec.ready())
-			{
-				ex_state = EXECUTING;
-				execute();
-			}
-			break;
-
-		case WAIT_MEM_READ:
-		case WAIT_MEM_WRITE:
-		// TODO: here we lost 1 cycle
-			if(busm.is_idle())
-			{
-				ex_state = IDLE;
-				cycle(); // TODO: don't do recursion
-			}
-			break;
-
-		/* prefetch */
-		case PREFETCHING:
-			if(pq.is_idle())
-			{
-				ex_state = EXECUTING;
-				execute(); // TODO: don't call execute directly
-			}
-			break;
-
-		case PREFETCHING_AND_IDLE:
-			if(pq.is_idle())
-			{
-				ex_state = IDLE;
-				cycle(); // TODO: don't do recursion
-			}
-			break;
-
 		default:
-			throw std::runtime_error("executioner::cycle internal error: unknown state");
+			throw internal_error();
 		}
+
+		dec.cycle();
+	}
+
+	void on_idle() override
+	{
+		state = IDLE;
 	}
 
 private:
@@ -123,81 +96,15 @@ private:
 			exec_add();
 		else if((opcode >> 8) == 0b110)
 			exec_addi();
-		else if((opcode >> 12) == 0b0101)
+		else if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 0)
 			exec_addq();
 		else
-			throw std::runtime_error("execute: not implemented yet " + std::to_string(opcode));
+			throw not_implemented(std::to_string(opcode));
 	}
 
-private:
-	void decode_ea(std::uint8_t ea, std::size_t size = 1)
-	{
-		ea_dec.decode(ea, size);
-		if(ea_dec.ready())
-		{
-			// immediate decoding
-			ex_state = EXECUTING;
-			// TODO: need to repeat command
-			execute();
-		}
-		else
-		{
-			// wait till decoding is over
-			ex_state = WAIT_EA_DECODING;
-		}
-	}
-
-	void read_byte(std::uint32_t addr)
-	{
-		busm.init_read_byte(addr);
-		ex_state = WAIT_MEM_READ;
-	}
-
-	void read_word(std::uint32_t addr)
-	{
-		busm.init_read_word(addr);
-		ex_state = WAIT_MEM_READ;
-	}
-
-	template<class T>
-	void write_and_idle(std::uint32_t addr, T val)
-	{
-		busm.init_write(addr, val);
-		ex_state = WAIT_MEM_WRITE;
-	}
-
-	void prefetch_and_idle()
-	{
-		pq.init_fetch_one();
-		ex_state = PREFETCHING_AND_IDLE;
-	}
-
-	void prefetch()
-	{
-		pq.init_fetch_one();
-		ex_state = PREFETCHING;
-	}
-
-	void read_imm(std::uint8_t size)
-	{
-		if(size == 1)
-			imm = pq.IRC & 0xFF;
-		else if(size == 2)
-			imm = pq.IRC;
-		else if(size == 4)
-			throw_not_implemented_yet();
-		else
-			throw_internal_error();
-
-		pq.init_fetch_irc();
-		regs.PC += 2;
-		ex_state = PREFETCHING;
-	}
-
-private:
 	void exec_add()
 	{
-		std::cout << "exec_add" << std::endl;
+		// std::cout << "exec_add" << std::endl;
 
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
 		std::uint8_t size = 0;
@@ -219,7 +126,7 @@ private:
 		case 1:
 		{
 			auto& reg = regs.D((opcode >> 9) & 0x7);
-			auto op = ea_dec.result();
+			auto op = dec.result();
 
 			switch (opmode)
 			{
@@ -252,7 +159,7 @@ private:
 				else if(op.has_addr_reg())
 					res = add(reg.W, op.addr_reg().W);
 				else
-					throw_internal_error();
+					throw internal_error();
 				
 				if(opmode == 0b001)
 				{
@@ -268,11 +175,11 @@ private:
 			
 			case 0b010:
 			case 0b110:
-				throw_not_implemented_yet();
+				throw not_implemented();
 				break;
 
 			default:
-				throw_internal_error();
+				throw internal_error();
 			}
 
 			break;
@@ -283,31 +190,31 @@ private:
 			switch (opmode)
 			{
 			case 0b100:
-				write_and_idle<std::uint8_t>(ea_dec.result().pointer().address, res);
+				write_byte_and_idle(dec.result().pointer().address, res);
 				break;
 			
 			case 0b101:
-				write_and_idle<std::uint16_t>(ea_dec.result().pointer().address, res);
+				write_word_and_idle(dec.result().pointer().address, res);
 				break;
 
 			case 0b110:
-				throw_not_implemented_yet();
+				throw not_implemented();
 
 			default:
-				throw_internal_error();
+				throw internal_error();
 			}
 
 			break;
 		}
 
 		default:
-			throw_internal_error();
+			throw internal_error();
 		}
 	}
 
 	void exec_addi()
 	{
-		std::cout << "exec_addi" << std::endl;
+		// std::cout << "exec_addi" << std::endl;
 
 		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
 		if(size != 1 && size != 2 && size != 4)
@@ -325,7 +232,7 @@ private:
 
 		case 2:
 		{
-			auto op = ea_dec.result();
+			auto op = dec.result();
 
 			switch (size)
 			{
@@ -346,14 +253,14 @@ private:
 				else if(op.has_addr_reg())
 					op.addr_reg().W = add<std::uint16_t>(imm, op.addr_reg().W);
 				else
-					throw_internal_error();
+					throw internal_error();
 				break;
 
 			case 4:
-				throw_not_implemented_yet();
+				throw not_implemented();
 
 			default:
-				throw_internal_error();
+				throw internal_error();
 			}
 
 			if(op.has_pointer())
@@ -366,19 +273,19 @@ private:
 
 		case 3:
 		{
-			auto op = ea_dec.result();
+			auto op = dec.result();
 			if(op.has_pointer())
 			{
 				if(size == 1)
-					write_and_idle<std::uint8_t>(op.pointer().address, res);
+					write_byte_and_idle(op.pointer().address, res);
 				else if(size == 2)
-					write_and_idle<std::uint16_t>(op.pointer().address, res);
+					write_word_and_idle(op.pointer().address, res);
 				else
-					throw_not_implemented_yet();
+					throw not_implemented();
 			}
 			else
 			{
-				throw_internal_error();
+				throw internal_error();
 			}
 
 			break;
@@ -393,7 +300,7 @@ private:
 	{
 		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
 
-		std::cout << "exec_addq, size: " << (int)size << std::endl;
+		// std::cout << "exec_addq, size: " << (int)size << std::endl;
 
 		if(size != 1 && size != 2 && size != 4)
 			throw_invalid_opcode();
@@ -409,7 +316,7 @@ private:
 			std::uint8_t data = (opcode >> 9) & 0x7;
 			if(data == 0) data = 8;
 
-			auto op = ea_dec.result();
+			auto op = dec.result();
 
 			switch (size)
 			{
@@ -430,35 +337,35 @@ private:
 				else if(op.has_addr_reg())
 					op.addr_reg().W = add<std::uint16_t>(data, op.addr_reg().W);
 				else
-					throw_internal_error();
+					throw internal_error();
 				break;
 
 			case 4:
-				throw_not_implemented_yet();
+				throw not_implemented();
 
 			default:
-				throw_internal_error();
+				throw internal_error();
 			}
 
-			if(size == 1 || (op.has_data_reg() && size == 2))
-				prefetch_and_idle();
-			else
+			if(op.has_pointer() || (op.has_addr_reg() && size == 2))
 				prefetch();
+			else
+				prefetch_and_idle();
 
 			break;
 		}
 
 		case 2:
 		{
-			auto op = ea_dec.result();
+			auto op = dec.result();
 			if(op.has_pointer())
 			{
 				if(size == 1)
-					write_and_idle<std::uint8_t>(op.pointer().address, res);
+					write_byte_and_idle(op.pointer().address, res);
 				else if(size == 2)
-					write_and_idle<std::uint16_t>(op.pointer().address, res);
+					write_word_and_idle(op.pointer().address, res);
 				else
-					throw_not_implemented_yet();
+					throw not_implemented();
 			}
 			else
 			{
@@ -470,10 +377,10 @@ private:
 
 		case 3: break;
 		case 4: break;
-		case 5: ex_state = IDLE; break;
+		case 5: state = IDLE; break;
 
 		default:
-			throw_internal_error();
+			throw internal_error();
 		}
 	}
 
@@ -482,26 +389,35 @@ private:
 	template<class T>
 	T add(T a, T b)
 	{
-		// std::cout << "Add " << (int)a << " + " << (int)b << std::endl;
 		return a + b;
 	}
 
 private:
-	m68k::cpu& cpu;
+	void decode_ea(std::uint8_t ea, std::uint8_t size)
+	{
+		dec.decode(ea, size);
+		if(dec.ready())
+		{
+			// immediate decoding
+			execute();
+		}
+		else
+		{
+			// wait till decoding is over
+			state = DECODING;
+		}
+	}
 
-	cpu_registers& regs;
-	bus_manager& busm;
-	prefetch_queue& pq;
-	ea_decoder& ea_dec;
+private:
+	m68k::ea_decoder dec;
 
-	exec_state ex_state = IDLE;
 	std::uint16_t opcode = 0;
 	std::uint32_t res = 0;
 	std::uint8_t exec_stage;
 
-	std::uint32_t imm;
+	std::uint8_t state;
 };
 
 }
 
-#endif // __M68K_EXECUTIONER_HPP__
+#endif // __M68K_INSTRUCTION_HANDLER_HPP__
