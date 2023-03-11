@@ -11,7 +11,7 @@ namespace genesis
 
 namespace __impl
 {
-std::string build_msg(std::string_view error_type, std::string_view msg, const std::source_location &location)
+static std::string build_msg(std::string_view error_type, std::string_view msg, const std::source_location &location)
 {
 	std::stringstream ss;
 	ss << location.function_name() << " at " << location.line();

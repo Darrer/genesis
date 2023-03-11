@@ -15,16 +15,30 @@ enum trans_type : std::uint8_t
 	READ_MODIFY_WRITE
 };
 
-struct rw_transition
+class rw_transition
 {
+public:
 	std::uint8_t func_code = 0;
 	std::uint32_t address = 0;
 	bool word_access = false;
 	std::uint16_t data = 0;
+
+public:
+	bool operator==(const rw_transition& other) const
+	{
+		// NOTE: ignore func_code for now
+		return address == other.address && word_access == other.word_access && data == other.data;
+	}
+
+	bool operator!=(const rw_transition& other) const
+	{
+		return !(*this == other);
+	}
 };
 
-struct bus_transition
+class bus_transition
 {
+public:
 	bus_transition(std::uint16_t cycles) : cycles(cycles), type(trans_type::IDLE) { }
 	bus_transition(trans_type type, std::uint16_t cycles, rw_transition rw)
 		:  cycles(cycles), type(type), rw_data(rw) { }
@@ -36,6 +50,22 @@ struct bus_transition
 
 	std::uint16_t cycles = 0;
 	trans_type type;
+
+public:
+	bool operator==(const bus_transition& other) const
+	{
+		if(cycles != other.cycles || type != other.type)
+			return false;
+		
+		if(type == trans_type::IDLE)
+			return true;
+		return rw_data.value() == other.rw_data.value();
+	}
+
+	bool operator!=(const bus_transition& other) const
+	{
+		return !(*this == other);
+	}
 
 private:
 	std::optional<rw_transition> rw_data;

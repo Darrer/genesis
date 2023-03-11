@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <iostream>
+#include <chrono>
 
 #include "tests_loader.h"
 #include "m68k/cpu.h"
@@ -129,7 +130,7 @@ std::string bus_transition_to_str(const bus_transition& trans)
 	return ss.str();
 }
 
-std::string transitions_to_str(std::vector<bus_transition> transitions)
+std::string transitions_to_str(const std::vector<bus_transition>& transitions)
 {
 	std::stringstream ss;
 	ss << "[";
@@ -159,11 +160,16 @@ bool check_transitions(const run_result& res, const std::vector<bus_transition>&
 {
 	EXPECT_EQ(expected_cycles, res.cycles);
 
-	auto expected = transitions_to_str(expected_trans);
-	auto actual = transitions_to_str(res.transitions);
-	EXPECT_EQ(expected, actual);
+	if(expected_trans != res.transitions)
+	{
+		auto expected = transitions_to_str(expected_trans);
+		auto actual = transitions_to_str(res.transitions);
+		EXPECT_EQ(expected, actual);
 
-	return res.cycles == expected_cycles && expected == actual;
+		return false;
+	}
+
+	return res.cycles == expected_cycles;
 }
 
 void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycle)
@@ -283,21 +289,53 @@ void run_tests(m68k::cpu& cpu, const std::vector<test_case>& tests, std::string_
 {
 	ASSERT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
 
+	std::uint32_t total_cycles = 0;
+	auto start = std::chrono::high_resolution_clock::now();
+
+	std::uint32_t num_succeded = 0;
+
+	const std::uint32_t skip_limit = tests.size();
+	std::uint32_t skipped = 0;
 	for(const auto& test : tests)
 	{
-		// TMP
-		// if(test.length >= 50)
-		// {
-		// 	std::cout << "Skipping " << test.name << std::endl;
-		// 	continue;
-		// }
+		if(test.length >= 50 && skipped < skip_limit)
+		{
+			// std::cout << "Skipping " << test.name << std::endl;
+			++skipped;
+			continue;
+		}
 
-		std::cout << "Running " << test.name << std::endl;
+		// std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
+		total_cycles += test.length;
+
+		if(succeded)
+			++num_succeded;
+
 		ASSERT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
 	}
 
-	std::cout << test_name << ": succeded " << tests.size() << std::endl;
+	if(num_succeded == tests.size())
+	{
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+
+		const auto clock_rate = 16.67 /* MHz */ * 1'000'000;
+		auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
+
+		// as we're measuring not only cycles, but also tests-related code
+		// increase threshold value to account for that
+		cycle_time_threshold_ns *= 2; // arbitrary chosen
+
+		const auto ns_per_cycle = dur.count() / total_cycles;
+
+		ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
+
+		std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
+		std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
+	}
+
+	ASSERT_EQ(tests.size(), num_succeded);
 }
 
 void load_and_run(std::string test_path)
