@@ -179,3 +179,15 @@ TEST(M68K_EA_DECODER_TIMINGS, MODE_111_001)
 	check_timings(0b111001, 1, 12, 3);
 	check_timings(0b111001, 2, 12, 3);
 }
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_011)
+{
+	check_timings(0b111011, 1, 10, 2);
+	check_timings(0b111011, 2, 10, 2);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_010)
+{
+	check_timings(0b111010, 1, 8, 2);
+	check_timings(0b111010, 2, 8, 2);
+}
