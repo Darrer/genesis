@@ -6,12 +6,14 @@
 #include <functional>
 #include <limits>
 
+#include "memory.hpp"
 #include "m68k/cpu_bus.hpp"
-#include "m68k/cpu.h"
 
 
 namespace genesis::m68k
 {
+
+using memory = genesis::memory<std::uint32_t, 0x1000000 /* 16 MiB */, std::endian::big>;
 
 class bus_manager
 {

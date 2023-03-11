@@ -2,6 +2,8 @@
 #include <memory>
 
 #include "m68k/impl/ea_decoder.hpp"
+#include "m68k/cpu.h"
+
 
 #define setup_test() \
 	auto cpu = m68k::make_cpu(); \

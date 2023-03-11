@@ -5,14 +5,14 @@
 #include "cpu_bus.hpp"
 #include "memory.hpp"
 
+#include "impl/bus_manager.hpp"
+
 #include <cstdint>
 #include <memory>
 
 
 namespace genesis::m68k
 {
-
-using memory = genesis::memory<std::uint32_t, 0x1000000 /* 16 MiB */, std::endian::big>;
 
 class bus_manager;
 class ea_decoder;
