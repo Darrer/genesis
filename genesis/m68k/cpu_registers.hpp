@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdexcept>
 
+#include "exception.hpp"
 
 namespace genesis::m68k
 {
@@ -48,15 +49,12 @@ static_assert(sizeof(status_register) == 2);
 class cpu_registers
 {
 public:
-	cpu_registers() :  SSP(A7) // TODO: A7 may point to either SSP or USP
+	cpu_registers()
 	{
 		D0.LW = D1.LW = D2.LW = D3.LW = D4.LW = D5.LW = D6.LW = D7.LW = 0x0;
-		A0.LW = A1.LW = A2.LW = A3.LW = A4.LW = A5.LW = A6.LW = A7.LW = 0x0;
+		A0.LW = A1.LW = A2.LW = A3.LW = A4.LW = A5.LW = A6.LW = 0x0;
 		PC = 0x0;
-
-		SR.C = SR.V = SR.Z = SR.N = SR.X = SR.U1 = SR.U2 = SR.U3 = 0x0;
-		SR.IPM = SR.U4 = SR.M = SR.S = SR.TR = 0x0;
-
+		SR = 0x0;
 		USP.LW = SSP.LW = 0x0;
 	}
 
@@ -72,7 +70,7 @@ public:
 		case 5: return D5;
 		case 6: return D6;
 		case 7: return D7;
-		default: throw std::runtime_error("cpu_registers::D internal error: out of range");
+		default: throw internal_error();
 		}
 	}
 
@@ -87,18 +85,22 @@ public:
 		case 4: return A4;
 		case 5: return A5;
 		case 6: return A6;
-		case 7: return A7;
-		default: throw std::runtime_error("cpu_registers::A internal error: out of range");
+		case 7: return flags.S ? SSP : USP;
+		default: throw internal_error();
 		}
 	}
 
 	data_register D0, D1, D2, D3, D4, D5, D6, D7;
-	address_register A0, A1, A2, A3, A4, A5, A6, A7;
+	address_register A0, A1, A2, A3, A4, A5, A6;
 	address_register USP;
-	address_register& SSP;
+	address_register SSP;
 
 	std::uint32_t PC;
-	status_register SR;
+
+	union {
+		std::uint16_t SR;
+		status_register flags;
+	};
 };
 
 } // namespace genesis::m68k

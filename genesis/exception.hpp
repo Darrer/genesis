@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <string_view>
+#include <sstream>
 #include <source_location>
 
 

@@ -33,7 +33,7 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state)
 
 	regs.USP.LW = state.USP;
 	regs.SSP.LW = state.SSP;
-	// regs.SR = state.SR; // TODO: skip for now
+	regs.SR = state.SR;
 	regs.PC = state.PC;
 
 	// setup ram
