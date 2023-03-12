@@ -9,7 +9,6 @@
 #include "impl/instruction_handler.hpp"
 #include "impl/exception_handler.hpp"
 
-#include <cstdint>
 #include <memory>
 
 
@@ -22,40 +21,13 @@ public:
 	cpu(std::shared_ptr<m68k::memory> memory);
 	~cpu();
 
-	cpu_registers& registers()
-	{
-		return regs;
-	}
+	cpu_registers& registers() { return regs; }
+	cpu_bus& bus() { return _bus; }
 
-	cpu_bus& bus()
-	{
-		return _bus;
-	}
-
-	// TODO: remove from public interface
-	bus_manager& bus_manager()
-	{
-		return *busm;
-	}
-
-	// TODO: remove from public interface
-	prefetch_queue& prefetch_queue()
-	{
-		return *pq;
-	}
-
-	memory& memory()
-	{
-		return *mem;
-	}
-
+	bool is_idle() const;
 	void cycle();
 
-	// NOTE: only for unit tests
-	bool is_idle() const;
-	std::uint32_t execute_one();
-
-private:
+protected:
 	cpu_registers regs;
 	cpu_bus _bus;
 	std::shared_ptr<m68k::memory> mem;
@@ -63,14 +35,8 @@ private:
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
 	std::unique_ptr<m68k::instruction_handler> inst_handler;
+	std::unique_ptr<m68k::exception_handler> excp_handler;
 };
-
-
-[[maybe_unused]]
-static m68k::cpu make_cpu()
-{
-	return m68k::cpu(std::make_shared<m68k::memory>());
-}
 
 }
 

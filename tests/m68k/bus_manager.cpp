@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <array>
 
-#include "m68k/impl/bus_manager.hpp"
+#include "test_cpu.hpp"
 
 using namespace genesis;
 
@@ -59,13 +59,14 @@ std::array<std::uint16_t, 10> gen_test_words()
 template<class T>
 void test_read(T test_values)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
+
+	auto& busm = cpu.bus_manager();
+	auto& mem = cpu.memory();
 
 	for(std::uint32_t base : {0x100, 0x101})
 	{
-		prepare_mem(*mem, base, test_values);
+		prepare_mem(mem, base, test_values);
 
 		const std::uint32_t cycles_per_read = 4;
 
@@ -97,9 +98,10 @@ void test_read(T test_values)
 template<class T>
 void test_write(T values_to_write)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
+
+	auto& busm = cpu.bus_manager();
+	auto& mem = cpu.memory();
 
 	for(std::uint32_t base : {0x100, 0x101})
 	{
@@ -120,7 +122,7 @@ void test_write(T values_to_write)
 		{
 			auto expected = values_to_write[i];
 			std::uint32_t addr = base + i * sizeof(expected);
-			auto actual = mem->read<decltype(expected)>(addr);
+			auto actual = mem.read<decltype(expected)>(addr);
 
 			ASSERT_EQ(expected, actual);
 		}
@@ -150,9 +152,8 @@ TEST(M68K_BUS_MANAGER, WRITE_WORD)
 
 TEST(M68K_BUS_MANAGER, INTERRUPT_CYCLE_THROW)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
 
 	// assert initial state
 	ASSERT_TRUE(busm.is_idle());
@@ -171,9 +172,8 @@ TEST(M68K_BUS_MANAGER, INTERRUPT_CYCLE_THROW)
 
 TEST(M68K_BUS_MANAGER, LETCH_WRONG_DATA_THROW)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
 
 	read_byte(busm, 0x101);
 	ASSERT_THROW(busm.letched_word(), std::runtime_error);
@@ -193,11 +193,13 @@ struct bus_state
 template<class T>
 bus_state read_and_track(std::uint32_t addr, T val_to_write)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
 
-	mem->write(addr, val_to_write);
+	auto& bus = cpu.bus();
+	auto& busm = cpu.bus_manager();
+	auto& mem = cpu.memory();
+
+	mem.write(addr, val_to_write);
 
 	if constexpr (sizeof(T) == 1)
 		busm.init_read_byte(addr);
@@ -231,9 +233,10 @@ bus_state read_and_track(std::uint32_t addr, T val_to_write)
 template<class T>
 bus_state write_and_track(std::uint32_t addr, T val_to_write)
 {
-	m68k::cpu_bus bus;
-	auto mem = std::make_shared<m68k::memory>();
-	m68k::bus_manager busm(bus, *mem);
+	test::test_cpu cpu;
+
+	auto& bus = cpu.bus();
+	auto& busm = cpu.bus_manager();
 
 	busm.init_write(addr, val_to_write);
 

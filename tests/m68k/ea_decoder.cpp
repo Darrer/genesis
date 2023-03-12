@@ -2,17 +2,17 @@
 #include <memory>
 
 #include "m68k/impl/ea_decoder.hpp"
-#include "m68k/cpu.h"
+#include "test_cpu.hpp"
 
 
 #define setup_test() \
-	auto cpu = m68k::make_cpu(); \
+	genesis::test::test_cpu cpu; \
 	m68k::ea_decoder dec(cpu.bus_manager(), cpu.registers(), cpu.prefetch_queue())
 
 using namespace genesis;
 
 
-void decode(m68k::cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::uint8_t size,
+void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::uint8_t size,
 	std::initializer_list<std::uint8_t> mem_data)
 {
 	if(mem_data.size() == 0)

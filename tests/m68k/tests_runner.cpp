@@ -3,13 +3,13 @@
 #include <chrono>
 
 #include "tests_loader.h"
-#include "m68k/cpu.h"
-#include "m68k/impl/prefetch_queue.hpp"
+#include "test_cpu.hpp"
+
 
 using namespace genesis;
 
 
-void set_preconditions(m68k::cpu& cpu, const cpu_state& state)
+void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 {
 	// setup registers
 	auto& regs = cpu.registers();
@@ -46,7 +46,7 @@ void set_preconditions(m68k::cpu& cpu, const cpu_state& state)
 	cpu.prefetch_queue().IRC = state.prefetch.at(1);
 }
 
-bool check_postconditions(m68k::cpu& cpu, const cpu_state& state)
+bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 {
 	bool failed = false;
 
@@ -172,7 +172,7 @@ bool check_transitions(const run_result& res, const std::vector<bus_transition>&
 	return res.cycles == expected_cycles;
 }
 
-void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycle)
+void execute(test::test_cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycle)
 {
 	const std::uint16_t bonus_cycles = 10;
 	bool in_bonus_cycles = false;
@@ -202,7 +202,7 @@ void execute(m68k::cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycl
 	}
 }
 
-run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
+run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 {
 	using namespace m68k;
 
@@ -273,7 +273,7 @@ run_result execute_and_track(m68k::cpu& cpu, std::uint16_t cycles)
 	return res;
 }
 
-bool run_test(m68k::cpu& cpu, const test_case& test)
+bool run_test(test::test_cpu& cpu, const test_case& test)
 {
 	set_preconditions(cpu, test.initial_state);
 
@@ -285,7 +285,7 @@ bool run_test(m68k::cpu& cpu, const test_case& test)
 	return post && trans;
 }
 
-void run_tests(m68k::cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
+void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
 {
 	ASSERT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
 
@@ -345,7 +345,7 @@ void load_and_run(std::string test_path)
 	auto tests = load_tests(test_path);
 	std::cout << test_name << ": loaded " << tests.size() << " tests" << std::endl;
 
-	auto cpu = m68k::make_cpu();
+	test::test_cpu cpu;
 	run_tests(cpu, tests, test_name);
 }
 
