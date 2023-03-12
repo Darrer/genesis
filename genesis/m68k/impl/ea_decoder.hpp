@@ -15,30 +15,16 @@ namespace genesis::m68k
 class operand
 {
 public:
-	// if operand is an address, then the actual value is read during decoding process,
-	// so logically (and practically) it makes sense to store the operand's value together with the address
 	class pointer
 	{
 	public:
-		pointer(std::uint32_t addr, std::uint8_t byte) : address(addr) { _val = byte; }
-		pointer(std::uint32_t addr, std::uint16_t word) : address(addr) { _val = word; }
-		pointer(std::uint32_t addr, std::uint32_t long_word) : address(addr) { _val = long_word; }
+		// pointer(std::uint32_t addr, std::uint8_t value) : address(addr), value(value) { }
+		// pointer(std::uint32_t addr, std::uint16_t value) : address(addr), value(value) { }
+		// pointer(std::uint32_t addr, std::uint32_t value) : address(addr), value(value) { }
 
-		template<class T>
-		T value() const
-		{
-			static_assert(sizeof(T) <= 4);
-			static_assert(std::numeric_limits<T>::is_signed == false);
-
-			if(!std::holds_alternative<T>(_val))
-				throw std::runtime_error("operand::pointer::value error: specified type is missing");
-
-			return std::get<T>(_val);
-		}
-
+		// TODO: In some cases operand has a read-only address
 		std::uint32_t address;
-	private:
-		std::variant<std::uint8_t, std::uint16_t, std::uint32_t> _val;
+		std::uint32_t value;
 	};
 
 public:
@@ -46,13 +32,13 @@ public:
 	operand(data_register& _data_reg) : _data_reg(_data_reg) { }
 	operand(pointer ptr) : _ptr(ptr) { }
 
-	bool has_addr_reg() const { return _addr_reg.has_value(); }
-	bool has_data_reg() const { return _data_reg.has_value(); }
-	bool has_pointer() const { return _ptr.has_value(); }
+	bool is_addr_reg() const { return _addr_reg.has_value(); }
+	bool is_data_reg() const { return _data_reg.has_value(); }
+	bool is_pointer() const { return _ptr.has_value(); }
 
 	address_register& addr_reg()
 	{
-		if(!has_addr_reg())
+		if(!is_addr_reg())
 			throw std::runtime_error("operand::addr_reg error: cannot access address register");
 		
 		return _addr_reg.value().get();
@@ -60,7 +46,7 @@ public:
 
 	data_register& data_reg()
 	{
-		if(!has_data_reg())
+		if(!is_data_reg())
 			throw std::runtime_error("operand::data_reg error: cannot access data register");
 		
 		return _data_reg.value().get();
@@ -68,7 +54,7 @@ public:
 
 	pointer pointer() const
 	{
-		if(!has_pointer())
+		if(!is_pointer())
 			throw std::runtime_error("operand::pointer error: cannot access pointer");
 		
 		return _ptr.value();
@@ -103,8 +89,7 @@ private:
 		}
 
 		std::uint8_t displacement;
-		std::uint8_t _res : 1;
-		std::uint8_t scale : 2;
+		std::uint8_t _res : 3;
 		std::uint8_t wl : 1;
 		std::uint8_t reg : 3;
 		std::uint8_t da : 1;
@@ -391,7 +376,7 @@ private:
 			brief_ext ext(pq.IRC);
 			ptr = regs.A(reg).LW;
 			ptr += (std::int32_t)(std::int8_t)ext.displacement;
-			ptr += (std::int32_t)dec_brief_reg(ext);
+			ptr += dec_brief_reg(ext);
 			prefetch_irc();
 			break;
 		}
@@ -439,7 +424,6 @@ private:
 		}
 	}
 
-
 	// Program Counter Indirect with Displacement Mode
 	void decode_111_010()
 	{
@@ -456,6 +440,7 @@ private:
 		}
 	}
 
+	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
 	void decode_111_011()
 	{
 		switch (dec_stage++)
@@ -467,7 +452,7 @@ private:
 			brief_ext ext(pq.IRC);
 			ptr = regs.PC;
 			ptr += (std::int32_t)(std::int8_t)ext.displacement;
-			ptr += (std::int32_t)dec_brief_reg(ext);
+			ptr += dec_brief_reg(ext);
 			prefetch_irc();
 			break;
 		}
@@ -502,23 +487,9 @@ private:
 private:
 	std::int32_t dec_brief_reg(brief_ext ext)
 	{
-		// std::cout << "Scale value: " << (int)ext.scale << std::endl;
-		// Turns out scale is not supported by M68000
-		std::int32_t scale = 1 ; // 1 << ext.scale;
-		// std::uint32_t scale = ext.scale;
-
 		if(ext.wl)
-		{
-			std::int32_t res = ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
-			return res * scale;
-		}
-		else
-		{
-			std::int16_t w = ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W;
-			std::int32_t res = w;
-
-			return res * scale;
-		}
+			return ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
+		return (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
 	}
 
 private:

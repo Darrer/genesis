@@ -16,9 +16,14 @@ class base_handler
 public:
 	base_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
 
+	// TODO: make virtual
 	void reset();
 	bool is_idle() const;
 	void cycle();
+
+protected:
+	virtual void on_cycle() = 0;
+	virtual void set_idle() = 0;
 
 protected:
 	/* interface for sub classes */
@@ -27,10 +32,12 @@ protected:
 	void read_word(std::uint32_t addr);
 	void read_long(std::uint32_t addr);
 
+	// TODO: what about overloading?
 	void write_byte(std::uint32_t addr, std::uint8_t data);
 	void write_word(std::uint32_t addr, std::uint16_t data);
 	void write_long(std::uint32_t addr, std::uint32_t data);
 
+	void write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size);
 	void write_byte_and_idle(std::uint32_t addr, std::uint8_t data);
 	void write_word_and_idle(std::uint32_t addr, std::uint16_t data);
 	void write_long_and_idle(std::uint32_t addr, std::uint32_t data);
@@ -40,11 +47,8 @@ protected:
 
 	void read_imm(std::uint8_t size);
 
-protected:
-	/* must be overridden by sub classes */
-
-	virtual void on_cycle() = 0;
-	virtual void on_idle() = 0;
+	void wait(std::uint8_t cycles);
+	void wait_and_idle(std::uint8_t cycles);
 
 protected:
 	m68k::cpu_registers& regs;
@@ -55,6 +59,7 @@ protected:
 
 private:
 	std::uint8_t state;
+	std::uint8_t cycles_to_wait;
 };
 
 }

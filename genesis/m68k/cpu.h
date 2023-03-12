@@ -7,6 +7,7 @@
 #include "impl/bus_manager.hpp"
 #include "impl/prefetch_queue.hpp"
 #include "impl/instruction_handler.hpp"
+#include "impl/exception_handler.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -31,11 +32,13 @@ public:
 		return _bus;
 	}
 
+	// TODO: remove from public interface
 	bus_manager& bus_manager()
 	{
 		return *busm;
 	}
 
+	// TODO: remove from public interface
 	prefetch_queue& prefetch_queue()
 	{
 		return *pq;

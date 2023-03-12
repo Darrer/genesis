@@ -11,7 +11,8 @@ enum handler_state : std::uint8_t
 	WRITING_AND_IDLE,
 	PREFETCHING,
 	PREFETCHING_AND_IDLE,
-
+	WAITING,
+	WAITING_AND_IDLE,
 };
 
 namespace genesis::m68k
@@ -27,6 +28,7 @@ void base_handler::reset()
 {
 	state = IDLE;
 	imm = 0;
+	cycles_to_wait = 0;
 }
 
 bool base_handler::is_idle() const
@@ -39,6 +41,9 @@ bool base_handler::is_idle() const
 
 	if(state == PREFETCHING_AND_IDLE)
 		return pq.is_idle();
+
+	if(state == WAITING_AND_IDLE)
+		return cycles_to_wait == 0;
 
 	return false;
 }
@@ -53,13 +58,6 @@ void base_handler::cycle()
 
 	case READING:
 	case WRITING:
-		if(busm.is_idle())
-		{
-			state = IDLE;
-			on_cycle();
-		}
-		break;
-
 	case WRITING_AND_IDLE:
 		if(busm.is_idle())
 		{
@@ -69,18 +67,24 @@ void base_handler::cycle()
 		break;
 
 	case PREFETCHING:
+	case PREFETCHING_AND_IDLE:
 		if(pq.is_idle())
 		{
 			state = IDLE;
 			on_cycle();
 		}
 		break;
-	
-	case PREFETCHING_AND_IDLE:
-		if(pq.is_idle())
+
+	case WAITING:
+	case WAITING_AND_IDLE:
+		if(cycles_to_wait == 0)
 		{
 			state = IDLE;
 			on_cycle();
+		}
+		else
+		{
+			--cycles_to_wait;
 		}
 		break;
 
@@ -124,18 +128,28 @@ void base_handler::write_long(std::uint32_t /*addr*/, std::uint32_t /*data*/)
 	throw not_implemented();
 }
 
+void base_handler::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
+{
+	if(size == 1)
+		write_byte_and_idle(addr, data);
+	else if(size == 2)
+		write_word_and_idle(addr, data);
+	else
+		write_long_and_idle(addr, data);
+}
+
 void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
 	state = WRITING_AND_IDLE;
-	on_idle();
+	set_idle();
 }
 
 void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
 	state = WRITING_AND_IDLE;
-	on_idle();
+	set_idle();
 }
 
 void base_handler::write_long_and_idle(std::uint32_t /*addr*/, std::uint32_t /*data*/)
@@ -153,7 +167,7 @@ void base_handler::prefetch_and_idle()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING_AND_IDLE;
-	on_idle();
+	set_idle();
 }
 
 void base_handler::read_imm(std::uint8_t size)
@@ -162,14 +176,25 @@ void base_handler::read_imm(std::uint8_t size)
 		imm = pq.IRC & 0xFF;
 	else if(size == 2)
 		imm = pq.IRC;
-	else if(size == 4)
-		throw not_implemented();
 	else
-		throw internal_error();
+		throw not_implemented();
 
 	pq.init_fetch_irc();
 	state = PREFETCHING;
 	regs.PC += 2;
+}
+
+void base_handler::wait(std::uint8_t cycles)
+{
+	cycles_to_wait = cycles;
+	state = WAITING;
+}
+
+void base_handler::wait_and_idle(std::uint8_t cycles)
+{
+	cycles_to_wait = cycles;
+	state = WAITING_AND_IDLE;
+	set_idle();
 }
 
 }

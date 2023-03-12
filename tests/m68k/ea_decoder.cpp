@@ -53,9 +53,9 @@ TEST(M68K_EA_DECODER, MODE_000)
 		decode(cpu, dec, ea, 1, { 0x0 });
 		auto op = dec.result();
 
-		ASSERT_TRUE(op.has_data_reg());
-		ASSERT_FALSE(op.has_addr_reg());
-		ASSERT_FALSE(op.has_pointer());
+		ASSERT_TRUE(op.is_data_reg());
+		ASSERT_FALSE(op.is_addr_reg());
+		ASSERT_FALSE(op.is_pointer());
 		ASSERT_EQ(std::addressof(regs.D(i)), std::addressof(op.data_reg()));
 	}
 }
@@ -72,9 +72,9 @@ TEST(M68K_EA_DECODER, MODE_001)
 		decode(cpu, dec, ea, 1, { 0x0 });
 		auto op = dec.result();
 
-		ASSERT_TRUE(op.has_addr_reg());
-		ASSERT_FALSE(op.has_data_reg());
-		ASSERT_FALSE(op.has_pointer());
+		ASSERT_TRUE(op.is_addr_reg());
+		ASSERT_FALSE(op.is_data_reg());
+		ASSERT_FALSE(op.is_pointer());
 		ASSERT_EQ(std::addressof(regs.A(i)), std::addressof(op.addr_reg()));
 	}
 }

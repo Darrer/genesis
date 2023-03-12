@@ -84,7 +84,7 @@ protected:
 		dec.cycle();
 	}
 
-	void on_idle() override
+	void set_idle() override
 	{
 		state = IDLE;
 	}
@@ -106,15 +106,9 @@ private:
 	{
 		// std::cout << "exec_add" << std::endl;
 
-		const std::uint8_t opmode = (opcode >> 6) & 0x7;
-		std::uint8_t size = 0;
-		if(opmode == 0b000 || opmode == 0b100)
-			size = 1;
-		else if(opmode == 0b001 || opmode == 0b101)
-			size = 2;
-		else if(opmode == 0b010 || opmode == 0b110)
-			size = 4;
-		else
+		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
+
+		if(size != 1 && size != 2 && size != 4)
 			throw_invalid_opcode();
 
 		switch (exec_stage++)
@@ -128,87 +122,27 @@ private:
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
-			switch (opmode)
+			res = add(reg, op, size);
+
+			const std::uint8_t opmode = (opcode >> 6) & 0x7;
+			if(opmode == 0b000 || opmode == 0b001)
 			{
-			case 0b000:
-			case 0b100:
-				if(op.has_pointer())
-					res = add(reg.B, op.pointer().value<std::uint8_t>());
-				else if(op.has_data_reg())
-					res = add(reg.B, op.data_reg().B);
-				else
-					throw_invalid_opcode();
-
-				if(opmode == 0b000)
-				{
-					reg.B = (std::uint8_t)res;
-					prefetch_and_idle();
-				}
-				else
-				{
-					prefetch();
-				}
-				break;
-
-			case 0b001:
-			case 0b101:
-				if(op.has_pointer())
-					res = add(reg.W, op.pointer().value<std::uint16_t>());
-				else if(op.has_data_reg())
-					res = add(reg.W, op.data_reg().W);
-				else if(op.has_addr_reg())
-					res = add(reg.W, op.addr_reg().W);
-				else
-					throw internal_error();
-				
-				if(opmode == 0b001)
-				{
-					reg.W = (std::uint16_t)res;
-					prefetch_and_idle();
-				}
-				else
-				{
-					prefetch();
-				}
-
-				break;
-			
-			case 0b010:
-			case 0b110:
-				throw not_implemented();
-				break;
-
-			default:
-				throw internal_error();
+				store(reg, size, res);
+				prefetch_and_idle();
+			}
+			else
+			{
+				prefetch();
 			}
 
 			break;
 		}
 
 		case 2:
-		{
-			switch (opmode)
-			{
-			case 0b100:
-				write_byte_and_idle(dec.result().pointer().address, res);
-				break;
-			
-			case 0b101:
-				write_word_and_idle(dec.result().pointer().address, res);
-				break;
-
-			case 0b110:
-				throw not_implemented();
-
-			default:
-				throw internal_error();
-			}
-
+			write_and_idle(dec.result().pointer().address, res, size);
 			break;
-		}
 
-		default:
-			throw internal_error();
+		default: throw internal_error();
 		}
 	}
 
@@ -234,65 +168,26 @@ private:
 		{
 			auto op = dec.result();
 
-			switch (size)
+			res = add(imm, op, size);
+
+			if(op.is_pointer())
 			{
-			case 1:
-				if(op.has_pointer())
-					res = add<std::uint8_t>(imm, op.pointer().value<std::uint8_t>());
-				else if(op.has_data_reg())
-					op.data_reg().B = add<std::uint8_t>(imm, op.data_reg().B);
-				else
-					throw_invalid_opcode();
-				break;
-
-			case 2:
-				if(op.has_pointer())
-					res = add<std::uint16_t>(imm, op.pointer().value<std::uint16_t>());
-				else if(op.has_data_reg())
-					op.data_reg().W = add<std::uint16_t>(imm, op.data_reg().W);
-				else if(op.has_addr_reg())
-					op.addr_reg().W = add<std::uint16_t>(imm, op.addr_reg().W);
-				else
-					throw internal_error();
-				break;
-
-			case 4:
-				throw not_implemented();
-
-			default:
-				throw internal_error();
-			}
-
-			if(op.has_pointer())
 				prefetch();
+			}
 			else
+			{
+				store(op, size, res);
 				prefetch_and_idle();
+			}
 
 			break;
 		}
 
 		case 3:
-		{
-			auto op = dec.result();
-			if(op.has_pointer())
-			{
-				if(size == 1)
-					write_byte_and_idle(op.pointer().address, res);
-				else if(size == 2)
-					write_word_and_idle(op.pointer().address, res);
-				else
-					throw not_implemented();
-			}
-			else
-			{
-				throw internal_error();
-			}
-
+			write_and_idle(dec.result().pointer().address, res, size);
 			break;
-		}
 
-		default:
-			throw std::runtime_error("executioner::exec_addi internal error: unknown state");
+		default: throw internal_error();
 		}
 	}
 
@@ -318,39 +213,21 @@ private:
 
 			auto op = dec.result();
 
-			switch (size)
+			res = add(data, op, size);
+
+			if(op.is_pointer())
 			{
-			case 1:
-				if(op.has_pointer())
-					res = add(data, op.pointer().value<std::uint8_t>());
-				else if(op.has_data_reg())
-					op.data_reg().B = add(data, op.data_reg().B);
-				else
-					throw_invalid_opcode();
-				break;
-			
-			case 2:
-				if(op.has_pointer())
-					res = add<std::uint16_t>(data, op.pointer().value<std::uint16_t>());
-				else if(op.has_data_reg())
-					op.data_reg().W = add<std::uint16_t>(data, op.data_reg().W);
-				else if(op.has_addr_reg())
-					op.addr_reg().W = add<std::uint16_t>(data, op.addr_reg().W);
-				else
-					throw internal_error();
-				break;
-
-			case 4:
-				throw not_implemented();
-
-			default:
-				throw internal_error();
-			}
-
-			if(op.has_pointer() || (op.has_addr_reg() && size == 2))
 				prefetch();
+			}
 			else
-				prefetch_and_idle();
+			{
+				store(op, size, res);
+				if(op.is_addr_reg() && size == 2)
+					prefetch();
+				else
+					prefetch_and_idle();
+			
+			}
 
 			break;
 		}
@@ -358,38 +235,121 @@ private:
 		case 2:
 		{
 			auto op = dec.result();
-			if(op.has_pointer())
+			if(op.is_pointer())
 			{
-				if(size == 1)
-					write_byte_and_idle(op.pointer().address, res);
-				else if(size == 2)
-					write_word_and_idle(op.pointer().address, res);
-				else
-					throw not_implemented();
+				write_and_idle(op.pointer().address, res, size);
 			}
 			else
 			{
-				// wait 4 cycles
+				wait_and_idle(3); // wait 3 more cycles
 			}
 
 			break;
 		}
 
-		case 3: break;
-		case 4: break;
-		case 5: state = IDLE; break;
-
-		default:
-			throw internal_error();
+		default: throw internal_error();
 		}
 	}
 
 private:
-	// TODO: move away
-	template<class T>
-	T add(T a, T b)
+	std::uint32_t reg_value(data_register& reg, std::uint8_t size)
 	{
-		return a + b;
+		if(size == 1)
+			return reg.B;
+		else if(size == 2)
+			return reg.W;
+		else
+			return reg.LW;
+	}
+
+	std::uint32_t op_value(operand& op, std::uint8_t size)
+	{
+		if(size == 1)
+		{
+			if(op.is_data_reg())
+				return op.data_reg().B;
+			else if(op.is_addr_reg())
+				throw_invalid_opcode();
+			else if(op.is_pointer())
+				return op.pointer().value;
+		}
+		else if(size == 2)
+		{
+			if(op.is_data_reg())
+				return op.data_reg().W;
+			else if(op.is_addr_reg())
+				return op.addr_reg().W;
+			else if(op.is_pointer())
+				return op.pointer().value;
+		}
+		else if(size == 4)
+		{
+			if(op.is_data_reg())
+				return op.data_reg().LW;
+			else if(op.is_addr_reg())
+				return op.addr_reg().LW;
+			else if(op.is_pointer())
+				return op.pointer().value;
+		}
+
+		throw internal_error();
+	}
+
+	void store(data_register& d, std::uint8_t size, std::uint32_t res)
+	{
+		if(size == 1)
+		{
+			d.B = (std::uint8_t)res;
+		}
+		else if(size == 2)
+		{
+			d.W = (std::uint16_t)res;
+		}
+		else if(size == 4)
+		{
+			d.LW = res;
+		}
+		else
+		{
+			throw internal_error();
+		}
+	}
+
+	void store(operand& op, std::uint8_t size, std::uint32_t res)
+	{
+		if(size == 1)
+		{
+			if(op.is_data_reg())
+				op.data_reg().B = (std::uint8_t)res;
+			else
+				throw_invalid_opcode();
+		}
+		else if(size == 2)
+		{
+			if(op.is_data_reg())
+				op.data_reg().W = (std::uint16_t)res;
+			else if(op.is_addr_reg())
+				op.addr_reg().W = (std::uint16_t)res;
+		}
+		else if(size == 4)
+		{
+			if(op.is_data_reg())
+				op.data_reg().LW = res;
+			else if(op.is_addr_reg())
+				op.addr_reg().LW = res;
+		}
+
+		// throw internal_error();
+	}
+
+	std::uint32_t add(data_register& reg, operand& op, std::uint8_t size)
+	{
+		return reg_value(reg, size) + op_value(op, size);
+	}
+
+	std::uint32_t add(std::uint32_t val, operand& op, std::uint8_t size)
+	{
+		return val + op_value(op, size);
 	}
 
 private:

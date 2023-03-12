@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include <iostream>
 
 
 using json = nlohmann::json;
@@ -160,8 +159,6 @@ std::vector<test_case> load_tests(std::string path_to_json_tests)
 		throw std::runtime_error("load_tests error: failed to open " + path_to_json_tests);
 
 	json data = json::parse(fs);
-
-	std::cout << std::boolalpha << "is array: " << data.is_array() << ", size: " << data.size() << std::endl;
 
 	if(!data.is_array())
 		return {};

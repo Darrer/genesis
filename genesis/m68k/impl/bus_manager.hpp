@@ -13,6 +13,7 @@
 namespace genesis::m68k
 {
 
+// TODO: move away
 using memory = genesis::memory<std::uint32_t, 0x1000000 /* 16 MiB */, std::endian::big>;
 
 class bus_manager

@@ -48,7 +48,7 @@ public:
 		return rw_data.value();
 	}
 
-	std::uint16_t cycles = 0;
+	std::uint16_t cycles;
 	trans_type type;
 
 public:
