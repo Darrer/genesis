@@ -6,13 +6,9 @@
 enum handler_state : std::uint8_t
 {
 	IDLE,
-	READING,
-	WRITING,
-	WRITING_AND_IDLE,
+	WAITING_RW,
 	PREFETCHING,
-	PREFETCHING_AND_IDLE,
 	WAITING,
-	WAITING_AND_IDLE,
 };
 
 namespace genesis::m68k
@@ -33,19 +29,16 @@ void base_handler::reset()
 
 bool base_handler::is_idle() const
 {
-	if(state == IDLE)
-		return true;
-
-	if(state == WRITING_AND_IDLE)
+	if(state == WAITING_RW)
 		return busm.is_idle();
 
-	if(state == PREFETCHING_AND_IDLE)
+	if(state == PREFETCHING)
 		return pq.is_idle();
 
-	if(state == WAITING_AND_IDLE)
+	if(state == WAITING)
 		return cycles_to_wait == 0;
 
-	return false;
+	return state == IDLE;
 }
 
 void base_handler::cycle()
@@ -56,9 +49,7 @@ void base_handler::cycle()
 		on_cycle();
 		break;
 
-	case READING:
-	case WRITING:
-	case WRITING_AND_IDLE:
+	case WAITING_RW:
 		if(busm.is_idle())
 		{
 			state = IDLE;
@@ -67,7 +58,6 @@ void base_handler::cycle()
 		break;
 
 	case PREFETCHING:
-	case PREFETCHING_AND_IDLE:
 		if(pq.is_idle())
 		{
 			state = IDLE;
@@ -76,16 +66,8 @@ void base_handler::cycle()
 		break;
 
 	case WAITING:
-	case WAITING_AND_IDLE:
-		if(cycles_to_wait == 0)
-		{
+		if(--cycles_to_wait == 0)
 			state = IDLE;
-			on_cycle();
-		}
-		else
-		{
-			--cycles_to_wait;
-		}
 		break;
 
 	default:
@@ -97,13 +79,13 @@ void base_handler::cycle()
 void base_handler::read_byte(std::uint32_t addr)
 {
 	busm.init_read_byte(addr);
-	state = READING;
+	state = WAITING_RW;
 }
 
 void base_handler::read_word(std::uint32_t addr)
 {
 	busm.init_read_word(addr);
-	state = READING;
+	state = WAITING_RW;
 }
 
 void base_handler::read_long(std::uint32_t /*addr*/)
@@ -114,13 +96,13 @@ void base_handler::read_long(std::uint32_t /*addr*/)
 void base_handler::write_byte(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
-	state = WRITING;
+	state = WAITING_RW;
 }
 
 void base_handler::write_word(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
-	state = WRITING;
+	state = WAITING_RW;
 }
 
 void base_handler::write_long(std::uint32_t /*addr*/, std::uint32_t /*data*/)
@@ -141,14 +123,14 @@ void base_handler::write_and_idle(std::uint32_t addr, std::uint32_t data, std::u
 void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
-	state = WRITING_AND_IDLE;
+	state = WAITING_RW;
 	set_idle();
 }
 
 void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
-	state = WRITING_AND_IDLE;
+	state = WAITING_RW;
 	set_idle();
 }
 
@@ -166,7 +148,7 @@ void base_handler::prefetch()
 void base_handler::prefetch_and_idle()
 {
 	pq.init_fetch_one();
-	state = PREFETCHING_AND_IDLE;
+	state = PREFETCHING;
 	set_idle();
 }
 
@@ -193,7 +175,7 @@ void base_handler::wait(std::uint8_t cycles)
 void base_handler::wait_and_idle(std::uint8_t cycles)
 {
 	cycles_to_wait = cycles;
-	state = WAITING_AND_IDLE;
+	state = WAITING;
 	set_idle();
 }
 

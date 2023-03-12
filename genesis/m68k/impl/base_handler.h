@@ -16,10 +16,10 @@ class base_handler
 public:
 	base_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
 
-	// TODO: make virtual
-	void reset();
-	bool is_idle() const;
 	void cycle();
+
+	virtual void reset();
+	virtual bool is_idle() const;
 
 protected:
 	virtual void on_cycle() = 0;

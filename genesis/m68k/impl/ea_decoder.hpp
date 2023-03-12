@@ -15,9 +15,8 @@ namespace genesis::m68k
 class operand
 {
 public:
-	class pointer
+	struct pointer
 	{
-	public:
 		// pointer(std::uint32_t addr, std::uint8_t value) : address(addr), value(value) { }
 		// pointer(std::uint32_t addr, std::uint16_t value) : address(addr), value(value) { }
 		// pointer(std::uint32_t addr, std::uint32_t value) : address(addr), value(value) { }

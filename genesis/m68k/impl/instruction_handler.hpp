@@ -33,7 +33,7 @@ public:
 		reset();
 	}
 
-	void reset()
+	void reset() override
 	{
 		state = IDLE;
 		opcode = 0;
@@ -43,7 +43,7 @@ public:
 		base_handler::reset();
 	}
 
-	bool is_idle() const
+	bool is_idle() const override
 	{
 		return state == IDLE && base_handler::is_idle();
 	}
