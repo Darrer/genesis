@@ -222,7 +222,7 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 		++cycles_in_curr_trans;
 
 		// save data for rw transition
-		if(!busm.is_idle() && cycles_in_curr_trans == 3)
+		if(in_bus_cycle && cycles_in_curr_trans == 3)
 		{
 			// most of the buses are set on 3rd cycle, so save required data here
 			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
@@ -240,11 +240,14 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 
 
 		// transition bus cycle -> idle
-		if(busm.is_idle() && in_bus_cycle)
+		bool rw_over = (in_bus_cycle && cycles_in_curr_trans == 4);
+		// bus cycle is over
+		if(/*busm.is_idle() && in_bus_cycle */ rw_over)
 		{
 			// push bus transition, assume data was saved
 			res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
-			in_bus_cycle = false;
+			// in_bus_cycle = false;
+			in_bus_cycle = !busm.is_idle();
 			cycles_in_curr_trans = 0;
 		}
 
@@ -252,9 +255,12 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 		if(!busm.is_idle() && !in_bus_cycle)
 		{
 			// push idle transition
-			--cycles_in_curr_trans; // current cycle was a bus cycle, so need to substruct 1 before push
-			if(cycles_in_curr_trans != 0)
-				res.transitions.push_back({cycles_in_curr_trans});
+			if(cycles_in_curr_trans > 1)
+			{
+				--cycles_in_curr_trans; // current cycle was a bus cycle, so need to substruct 1 before push
+				if(cycles_in_curr_trans != 0)
+					res.transitions.push_back({cycles_in_curr_trans});
+			}
 
 			// start bus cycle
 			cycles_in_curr_trans = 1; // 1 as current cycle was a bus cycle
@@ -305,7 +311,7 @@ void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 			continue;
 		}
 
-		// std::cout << "Running " << test.name << std::endl;
+		std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		total_cycles += test.length;
 
@@ -358,5 +364,11 @@ TEST(M68K, ADD)
 TEST(M68K, ADDW)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.w.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ADDL)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.l.json)";
 	load_and_run(path);
 }

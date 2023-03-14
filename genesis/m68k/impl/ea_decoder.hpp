@@ -30,10 +30,12 @@ public:
 public:
 	operand(address_register& _addr_reg) : _addr_reg(_addr_reg) { }
 	operand(data_register& _data_reg) : _data_reg(_data_reg) { }
+	operand(std::uint32_t _imm) : _imm(_imm) { }
 	operand(pointer ptr) : _ptr(ptr) { }
 
 	bool is_addr_reg() const { return _addr_reg.has_value(); }
 	bool is_data_reg() const { return _data_reg.has_value(); }
+	bool is_imm() const { return _imm.has_value(); }
 	bool is_pointer() const { return _ptr.has_value(); }
 
 	address_register& addr_reg()
@@ -52,6 +54,14 @@ public:
 		return _data_reg.value().get();
 	}
 
+	std::uint32_t imm() const
+	{
+		if(!is_imm())
+			throw std::runtime_error("operand::imm error: cannot access immediate value");
+
+		return _imm.value();
+	}
+
 	pointer pointer() const
 	{
 		if(!is_pointer())
@@ -63,6 +73,7 @@ public:
 private:
 	std::optional<std::reference_wrapper<address_register>> _addr_reg;
 	std::optional<std::reference_wrapper<data_register>> _data_reg;
+	std::optional<std::uint32_t> _imm;
 	std::optional<class operand::pointer> _ptr;
 };
 
@@ -411,9 +422,8 @@ private:
 		switch (dec_stage++)
 		{
 		case 0:
-			// TODO: regs.PC must be read only here (and it's incorrect here)
 			state = IDLE;
-			read_imm(size, [&]() { res = { {regs.PC, imm } }; });
+			read_imm(size, [&]() { res = { imm }; });
 			break;
 		default: throw internal_error();
 		}

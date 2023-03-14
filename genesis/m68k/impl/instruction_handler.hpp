@@ -106,10 +106,7 @@ private:
 	{
 		// std::cout << "exec_add" << std::endl;
 
-		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
-
-		if(size != 1 && size != 2 && size != 4)
-			throw_invalid_opcode();
+		const std::uint8_t size = dec_size(opcode >> 6);
 
 		switch (exec_stage++)
 		{
@@ -125,10 +122,17 @@ private:
 			res = add(reg, op, size);
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
+			// std::cout << "opmode: " << su::bin_str(opmode) << std::endl;
 			if(opmode == 0b000 || opmode == 0b001)
 			{
 				store(reg, size, res);
 				prefetch_one_and_idle();
+			}
+			else if(opmode == 0b010)
+			{
+				store(reg, size, res);
+				prefetch_one();
+				exec_stage = 3;
 			}
 			else
 			{
@@ -142,6 +146,13 @@ private:
 			write_and_idle(dec.result().pointer().address, res, size);
 			break;
 
+		case 3:
+			if(dec.result().is_addr_reg() || dec.result().is_data_reg() || dec.result().is_imm())
+				wait_and_idle(3);
+			else
+				wait_and_idle(1);
+			break;
+
 		default: throw internal_error();
 		}
 	}
@@ -150,9 +161,7 @@ private:
 	{
 		// std::cout << "exec_addi" << std::endl;
 
-		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
-		if(size != 1 && size != 2 && size != 4)
-			throw_invalid_opcode();
+		const std::uint8_t size = dec_size(opcode >> 6);
 
 		switch (exec_stage++)
 		{
@@ -177,7 +186,16 @@ private:
 			else
 			{
 				store(op, size, res);
-				prefetch_one_and_idle();
+
+				if(size == 4)
+				{
+					prefetch_one();
+					exec_stage = 4;
+				}
+				else
+				{
+					prefetch_one_and_idle();
+				}
 			}
 
 			break;
@@ -187,18 +205,22 @@ private:
 			write_and_idle(dec.result().pointer().address, res, size);
 			break;
 
+		case 4:
+			if(dec.result().is_addr_reg() || dec.result().is_data_reg() || dec.result().is_imm())
+				wait_and_idle(3);
+			else
+				wait_and_idle(1);
+			break;
+
 		default: throw internal_error();
 		}
 	}
 
 	void exec_addq()
 	{
-		const std::uint8_t size = ((opcode >> 6) & 0b11) + 1;
+		const std::uint8_t size = dec_size(opcode >> 6);
 
-		// std::cout << "exec_addq, size: " << (int)size << std::endl;
-
-		if(size != 1 && size != 2 && size != 4)
-			throw_invalid_opcode();
+		// std::cout << "exec_addq" << std::endl;
 
 		switch (exec_stage++)
 		{
@@ -222,7 +244,9 @@ private:
 			else
 			{
 				store(op, size, res);
-				if(op.is_addr_reg() && size == 2)
+				if(size == 4)
+					prefetch_one();
+				else if(size == 2 && !op.is_data_reg())
 					prefetch_one();
 				else
 					prefetch_one_and_idle();
@@ -238,9 +262,15 @@ private:
 			{
 				write_and_idle(op.pointer().address, res, size);
 			}
-			else
+			// TODO: it looks like writing to address register also takes 4 extra cycles (not 2 as handled here)
+			// however, there are 2 extra cycles in the test, so keep it 2 so far.
+			else if(op.is_data_reg() || op.is_imm() || (size == 2 && !op.is_data_reg()))
 			{
 				wait_and_idle(3); // wait 3 more cycles
+			}
+			else
+			{
+				wait_and_idle(1);
 			}
 
 			break;
@@ -248,6 +278,16 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	std::uint8_t dec_size(std::uint8_t size)
+	{
+		size = size & 0b11;
+		if(size == 0) return 1;
+		if(size == 1) return 2;
+		if(size == 2) return 4;
+
+		throw_invalid_opcode();
 	}
 
 private:
@@ -269,6 +309,8 @@ private:
 				return op.data_reg().B;
 			else if(op.is_addr_reg())
 				throw_invalid_opcode();
+			else if(op.is_imm())
+				return op.imm();
 			else if(op.is_pointer())
 				return op.pointer().value;
 		}
@@ -278,6 +320,8 @@ private:
 				return op.data_reg().W;
 			else if(op.is_addr_reg())
 				return op.addr_reg().W;
+			else if(op.is_imm())
+				return op.imm();
 			else if(op.is_pointer())
 				return op.pointer().value;
 		}
@@ -287,6 +331,8 @@ private:
 				return op.data_reg().LW;
 			else if(op.is_addr_reg())
 				return op.addr_reg().LW;
+			else if(op.is_imm())
+				return op.imm();
 			else if(op.is_pointer())
 				return op.pointer().value;
 		}

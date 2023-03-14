@@ -153,6 +153,7 @@ void base_handler::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 		};
 
 		busm.init_read_word(regs.PC, on_complete);
+		state = WAITING_RW;
 	}
 	else
 	{
@@ -178,9 +179,17 @@ void base_handler::write_word(std::uint32_t addr, std::uint16_t data)
 	state = WAITING_RW;
 }
 
-void base_handler::write_long(std::uint32_t /*addr*/, std::uint32_t /*data*/)
+void base_handler::write_long(std::uint32_t addr, std::uint32_t data)
 {
-	throw not_implemented();
+	auto write_msw = [this, addr, data]()
+	{
+		std::uint16_t msw = data >> 16;
+		busm.init_write(addr, msw);
+	};
+
+	std::uint16_t lsw = data & 0xFFFF;
+	busm.init_write(addr + 2, lsw, write_msw);
+	state = WAITING_RW;
 }
 
 void base_handler::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
@@ -207,9 +216,10 @@ void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 	set_idle();
 }
 
-void base_handler::write_long_and_idle(std::uint32_t /*addr*/, std::uint32_t /*data*/)
+void base_handler::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
 {
-	throw not_implemented();
+	write_long(addr, data);
+	set_idle();
 }
 
 void base_handler::prefetch_one()
