@@ -68,6 +68,10 @@ protected:
 
 	void wait(std::uint8_t cycles);
 	void wait_and_idle(std::uint8_t cycles);
+	void wait_after_idle(std::uint8_t cycles);
+
+private:
+	void call_on_cycle();
 
 protected:
 	m68k::cpu_registers& regs;
@@ -80,6 +84,9 @@ protected:
 private:
 	std::uint8_t state;
 	std::uint8_t cycles_to_wait;
+
+	bool need_wait = false;
+	std::uint8_t cycles_after_idle = 0;
 };
 
 }

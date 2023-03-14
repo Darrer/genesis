@@ -3,6 +3,7 @@
 
 #include "base_handler.h"
 #include "ea_decoder.hpp"
+#include "timings.hpp"
 
 #include "exception.hpp"
 
@@ -122,17 +123,14 @@ private:
 			res = add(reg, op, size);
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
+
+			wait_after_idle(timings::add(opmode, op));
+
 			// std::cout << "opmode: " << su::bin_str(opmode) << std::endl;
-			if(opmode == 0b000 || opmode == 0b001)
+			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
 			{
 				store(reg, size, res);
 				prefetch_one_and_idle();
-			}
-			else if(opmode == 0b010)
-			{
-				store(reg, size, res);
-				prefetch_one();
-				exec_stage = 3;
 			}
 			else
 			{
@@ -144,13 +142,6 @@ private:
 
 		case 2:
 			write_and_idle(dec.result().pointer().address, res, size);
-			break;
-
-		case 3:
-			if(dec.result().is_addr_reg() || dec.result().is_data_reg() || dec.result().is_imm())
-				wait_and_idle(3);
-			else
-				wait_and_idle(1);
 			break;
 
 		default: throw internal_error();
@@ -179,6 +170,8 @@ private:
 
 			res = add(imm, op, size);
 
+			wait_after_idle(timings::addi(size, op));
+
 			if(op.is_pointer())
 			{
 				prefetch_one();
@@ -186,16 +179,7 @@ private:
 			else
 			{
 				store(op, size, res);
-
-				if(size == 4)
-				{
-					prefetch_one();
-					exec_stage = 4;
-				}
-				else
-				{
-					prefetch_one_and_idle();
-				}
+				prefetch_one_and_idle();
 			}
 
 			break;
@@ -203,13 +187,6 @@ private:
 
 		case 3:
 			write_and_idle(dec.result().pointer().address, res, size);
-			break;
-
-		case 4:
-			if(dec.result().is_addr_reg() || dec.result().is_data_reg() || dec.result().is_imm())
-				wait_and_idle(3);
-			else
-				wait_and_idle(1);
 			break;
 
 		default: throw internal_error();
@@ -237,6 +214,8 @@ private:
 
 			res = add(data, op, size);
 
+			wait_after_idle(timings::addq(size, op));
+
 			if(op.is_pointer())
 			{
 				prefetch_one();
@@ -244,37 +223,15 @@ private:
 			else
 			{
 				store(op, size, res);
-				if(size == 4)
-					prefetch_one();
-				else if(size == 2 && !op.is_data_reg())
-					prefetch_one();
-				else
-					prefetch_one_and_idle();
+				prefetch_one_and_idle();
 			}
 
 			break;
 		}
 
 		case 2:
-		{
-			auto op = dec.result();
-			if(op.is_pointer())
-			{
-				write_and_idle(op.pointer().address, res, size);
-			}
-			// TODO: it looks like writing to address register also takes 4 extra cycles (not 2 as handled here)
-			// however, there are 2 extra cycles in the test, so keep it 2 so far.
-			else if(op.is_data_reg() || op.is_imm() || (size == 2 && !op.is_data_reg()))
-			{
-				wait_and_idle(3); // wait 3 more cycles
-			}
-			else
-			{
-				wait_and_idle(1);
-			}
-
+			write_and_idle(dec.result().pointer().address, res, size);
 			break;
-		}
 
 		default: throw internal_error();
 		}
@@ -419,6 +376,7 @@ private:
 	std::uint16_t opcode = 0;
 	std::uint32_t res = 0;
 	std::uint8_t exec_stage;
+	std::uint8_t wait = 0;
 
 	std::uint8_t state;
 };

@@ -27,10 +27,15 @@ void base_handler::reset()
 	imm = 0;
 	data = 0;
 	cycles_to_wait = 0;
+	cycles_after_idle = 0;
+	need_wait = false;
 }
 
 bool base_handler::is_idle() const
 {
+	if(state != IDLE && cycles_after_idle != 0)
+		return false;
+
 	if(state == WAITING_RW)
 		return busm.is_idle();
 
@@ -40,7 +45,10 @@ bool base_handler::is_idle() const
 	if(state == WAITING)
 		return cycles_to_wait == 0;
 
-	return state == IDLE;
+	if(state == IDLE)
+		return cycles_after_idle == 0;
+
+	return false;
 }
 
 void base_handler::cycle()
@@ -48,14 +56,14 @@ void base_handler::cycle()
 	switch (state)
 	{
 	case IDLE:
-		on_cycle();
+		call_on_cycle();
 		break;
 
 	case WAITING_RW:
 		if(busm.is_idle())
 		{
 			state = IDLE;
-			on_cycle();
+			call_on_cycle();
 		}
 		break;
 
@@ -63,7 +71,7 @@ void base_handler::cycle()
 		if(pq.is_idle())
 		{
 			state = IDLE;
-			on_cycle();
+			call_on_cycle();
 		}
 		break;
 
@@ -78,6 +86,20 @@ void base_handler::cycle()
 
 }
 
+void base_handler::call_on_cycle()
+{
+	if(state == IDLE && need_wait && cycles_after_idle > 0)
+	{
+		--cycles_after_idle;
+		if(cycles_after_idle == 0)
+			need_wait = false;
+	}
+	else
+	{
+		on_cycle();
+	}
+}
+
 void base_handler::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
 {
 	if(size == 1)
@@ -88,6 +110,7 @@ void base_handler::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_mana
 		read_long(addr, cb);
 
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
@@ -207,6 +230,7 @@ void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 	busm.init_write(addr, data);
 	state = WAITING_RW;
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
@@ -214,12 +238,14 @@ void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 	busm.init_write(addr, data);
 	state = WAITING_RW;
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
 {
 	write_long(addr, data);
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::prefetch_one()
@@ -246,6 +272,7 @@ void base_handler::prefetch_one_and_idle()
 	pq.init_fetch_one();
 	state = PREFETCHING;
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::prefetch_two_and_idle()
@@ -253,12 +280,14 @@ void base_handler::prefetch_two_and_idle()
 	pq.init_fetch_two();
 	state = PREFETCHING;
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::prefetch_irc_and_idle()
 {
 	prefetch_irc();
 	set_idle();
+	need_wait = true;
 }
 
 void base_handler::wait(std::uint8_t cycles)
@@ -269,9 +298,19 @@ void base_handler::wait(std::uint8_t cycles)
 
 void base_handler::wait_and_idle(std::uint8_t cycles)
 {
-	cycles_to_wait = cycles;
+	if(cycles <= 1)
+		throw internal_error();
+
+	cycles_to_wait = cycles - 1; // assume the current cycle is already spent
 	state = WAITING;
 	set_idle();
+	need_wait = true;
+}
+
+void base_handler::wait_after_idle(std::uint8_t cycles)
+{
+	need_wait = false;
+	cycles_after_idle = cycles;
 }
 
 }
