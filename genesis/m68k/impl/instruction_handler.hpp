@@ -128,11 +128,11 @@ private:
 			if(opmode == 0b000 || opmode == 0b001)
 			{
 				store(reg, size, res);
-				prefetch_and_idle();
+				prefetch_one_and_idle();
 			}
 			else
 			{
-				prefetch();
+				prefetch_one();
 			}
 
 			break;
@@ -172,12 +172,12 @@ private:
 
 			if(op.is_pointer())
 			{
-				prefetch();
+				prefetch_one();
 			}
 			else
 			{
 				store(op, size, res);
-				prefetch_and_idle();
+				prefetch_one_and_idle();
 			}
 
 			break;
@@ -217,16 +217,15 @@ private:
 
 			if(op.is_pointer())
 			{
-				prefetch();
+				prefetch_one();
 			}
 			else
 			{
 				store(op, size, res);
 				if(op.is_addr_reg() && size == 2)
-					prefetch();
+					prefetch_one();
 				else
-					prefetch_and_idle();
-			
+					prefetch_one_and_idle();
 			}
 
 			break;

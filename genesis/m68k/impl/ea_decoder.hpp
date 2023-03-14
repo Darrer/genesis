@@ -2,12 +2,13 @@
 #define __M68K_EA_DECODER_HPP__
 
 #include <cstdint>
-#include <variant>
 #include <iostream>
 
 #include "bus_manager.hpp"
 #include "prefetch_queue.hpp"
 #include "m68k/cpu_registers.hpp"
+
+#include "base_handler.h"
 
 namespace genesis::m68k
 {
@@ -67,16 +68,13 @@ private:
 
 
 // effective address decoder
-class ea_decoder
+class ea_decoder : public base_handler
 {
 private:
 	enum decode_state
 	{
 		IDLE,
-		DECODE0,
-		PREFETCH_IRC,
-		PREFETCH_IRC_AND_IDLE,
-		READ_PTR,
+		DECODING,
 	};
 
 	struct brief_ext
@@ -95,23 +93,18 @@ private:
 	};
 
 public:
-	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq) : busm(busm), regs(regs), pq(pq) { }
+	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq) 
+		: base_handler(regs, busm, pq) { }
 
-	bool is_idle() const
+	bool is_idle() const override
 	{
-		if(state == IDLE)
-			return true;
-
-		if(state == PREFETCH_IRC_AND_IDLE && pq.is_idle())
-			return true;
-		
-		return false;
+		return state == IDLE && base_handler::is_idle();
 	}
 
 	bool ready() const
 	{
 		// TODO: should we return result once it's available?
-		// Or should we wait till prefetch is over?
+		// Or should we wait till prefetch_irc is over?
 		return res.has_value() && is_idle();
 	}
 
@@ -125,15 +118,15 @@ public:
 
 	void reset()
 	{
-		// TODO: what if we started read bus cycle?
 		state = IDLE;
 		res.reset();
 		reg = mode = size = 0;
 		dec_stage = 0;
-		ext1 = 0;
+
+		base_handler::reset();
 	}
 
-	void decode(std::uint8_t ea, std::uint8_t size = 1)
+	void decode(std::uint8_t ea, std::uint8_t size)
 	{
 		if(!is_idle())
 			throw std::runtime_error("ea_decoder::decode error: cannot start new decoding till the previous request is finished");
@@ -141,13 +134,15 @@ public:
 		if(!busm.is_idle())
 			throw std::runtime_error("ea_decoder::decode error: cannot start decoding as bus_manager is busy");
 
+		// assume size is alwyas valid, that's why throw internal error
+		if(size != 1 && size != 2 && size != 4)
+			throw internal_error();
+
 		reset();
 
 		reg = ea & 0x7;
 		mode = (ea >> 3) & 0x7;
 		this->size = size;
-
-		// std::cout << "Decoding: " << su::bin_str(mode) << std::endl;
 
 		switch (mode)
 		{
@@ -158,147 +153,101 @@ public:
 		case 0b001:
 			decode_001();
 			break;
-		
-		case 0b010:
-			decode_010();
-			break;
-		
-		case 0b011:
-			decode_011();
-			break;
-		
-		case 0b101:
-			decode_101();
-			break;
 
 		default:
-			state = DECODE0;
+			state = DECODING;
 		}
 	}
 
-	void cycle()
+protected:
+	void on_cycle() override
 	{
 		switch (state)
 		{
 		case IDLE:
 			break;
 
-		case READ_PTR:
-			if(!busm.is_idle()) break;
-			save_pointer_and_idle();
+		case DECODING:
+			decoding();
 			break;
 
-		case PREFETCH_IRC_AND_IDLE:
-			if(pq.is_idle())
-				state = IDLE; // TODO: lose 1 cycle here
-			break;
+		default: throw internal_error();
+		}
+	}
 
-		case PREFETCH_IRC:
-			if(!pq.is_idle()) break;
-			state = DECODE0;
-			[[fallthrough]];
+	void set_idle() override
+	{
+		state = IDLE;
+	}
 
-		// need 1 extension word
-		case DECODE0:
+private:
+	void decoding()
+	{
+		switch (mode)
 		{
-			switch (mode)
-			{
-			case 0b100:
-				decode_100();
-				break;
+		case 0b010:
+			decode_010();
+			break;
 
-			case 0b101:
-				decode_101();
-				break;
+		case 0b011:
+			decode_011();
+			break;
 
-			case 0b110:
-				decode_110();
-				break;
+		case 0b100:
+			decode_100();
+			break;
 
-			case 0b111:
-			{
-			switch (reg)
-			{
-			case 0b000:
-				decode_111_000();
-				break;
-			
-			case 0b100:
-				decode_111_100();
-				break;
-			
-			case 0b001:
-				decode_111_001();
-				break;
+		case 0b101:
+			decode_101();
+			break;
 
-			case 0b011:
-				decode_111_011();
-				break;
+		case 0b110:
+			decode_110();
+			break;
 
-			case 0b010:
-				decode_111_010();
-				break;
+		case 0b111:
+		{
+		switch (reg)
+		{
+		case 0b000:
+			decode_111_000();
+			break;
 
-			default:
-				state = IDLE;
-				throw std::runtime_error("internal error: unknown ea mode 111 " + std::to_string(reg));
-			}
+		case 0b001:
+			decode_111_001();
+			break;
 
-				break;
-			}
+		case 0b010:
+			decode_111_010();
+			break;
 
-			default:
-				state = IDLE;
-				throw std::runtime_error("internal error: unknown ea mode " + std::to_string(mode));
-			}
+		case 0b011:
+			decode_111_011();
+			break;
 
+		case 0b100:
+			decode_111_100();
+			break;
+
+		default:
+			state = IDLE;
+			throw std::runtime_error("internal error: unknown ea mode 111 " + std::to_string(reg));
+		}
 			break;
 		}
 
 		default:
 			state = IDLE;
-			throw std::runtime_error("ea_docoder::cycle internal error: unknown state");
+			throw internal_error();
 		}
 	}
 
 private:
-	void prefetch_irc()
-	{
-		pq.init_fetch_irc();
-		regs.PC += 2;
-		state = PREFETCH_IRC;
-	}
-
-	void prefetch_and_idle()
-	{
-		pq.init_fetch_irc();
-		regs.PC += 2;
-		state = PREFETCH_IRC_AND_IDLE;
-	}
-
 	void read_pointer_and_idle(std::uint32_t addr)
 	{
-		if(size == 1)
-			busm.init_read_byte(addr, [&]() { save_pointer_and_idle(); } );
-		else if(size == 2)
-			busm.init_read_word(addr, [&]() { save_pointer_and_idle(); });
-		else
-			throw std::runtime_error("read long word is not implemented yet");
+		auto cb = [this, addr]() { res = { { addr, data } }; };
 
-		ptr = addr;
-		state = READ_PTR;
-	}
-
-	void save_pointer_and_idle()
-	{
-		if(size == 1)
-			res = { {ptr, busm.letched_byte() } };
-		else if(size == 2)
-			res = { {ptr, busm.letched_word() } };
-		else
-			throw std::runtime_error("read long word is not implemented yet");
-
-		state = IDLE;
+		read_and_idle(addr, size, cb);
 	}
 
 private:
@@ -325,7 +274,11 @@ private:
 	void decode_011()
 	{
 		read_pointer_and_idle(regs.A(reg).LW);
-		regs.A(reg).LW += size;
+
+		if(reg == 0b111 && size == 1)
+			regs.A(reg).LW += 2;
+		else
+			regs.A(reg).LW += size;
 	}
 
 	// Address Register Indirect with Predecrement Mode 
@@ -343,7 +296,7 @@ private:
 				regs.A(reg).LW -= size;
 			read_pointer_and_idle(regs.A(reg).LW);
 			break;
-		default: throw std::runtime_error("ea_decoder::decode_100 internal error: unknown stage");
+		default: throw internal_error();
 		}
 	}
 
@@ -359,7 +312,7 @@ private:
 		case 1:
 			read_pointer_and_idle(ptr);
 			break;
-		default: throw std::runtime_error("ea_decoder::decode_101 internal error: unknown stage");
+		default: throw internal_error();
 		}
 	}
 
@@ -371,19 +324,13 @@ private:
 		case 0: break;
 		case 1: break; // 2 IDLE cycles
 		case 2:
-		{
-			brief_ext ext(pq.IRC);
-			ptr = regs.A(reg).LW;
-			ptr += (std::int32_t)(std::int8_t)ext.displacement;
-			ptr += dec_brief_reg(ext);
+			ptr = dec_brief_reg(regs.A(reg).LW);
 			prefetch_irc();
 			break;
-		}
 		case 3:
 			read_pointer_and_idle(ptr);
 			break;
-
-		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
+		default: throw internal_error();
 		}
 	}
 
@@ -399,67 +346,7 @@ private:
 		case 1:
 			read_pointer_and_idle(ptr);
 			break;
-		default: throw std::runtime_error("ea_decoder::decode_111_000 internal error: unknown stage");
-		}
-	}
-
-	// Immediate Data 
-	void decode_111_100()
-	{
-		if(size != 1 && size != 2)
-			throw std::runtime_error("ea_decoder::decode_111_100 not implemented yet");
-
-		switch (dec_stage++)
-		{
-		case 0:
-			if(size == 1)
-				res = { {regs.PC, (std::uint8_t)(pq.IRC & 0xFF) } }; // TODO
-			else
-				res = { {regs.PC, pq.IRC } }; // TODO
-			prefetch_and_idle();
-			break;
-
-		default: throw std::runtime_error("ea_decoder::decode_111_100 internal error: unknown stage");
-		}
-	}
-
-	// Program Counter Indirect with Displacement Mode
-	void decode_111_010()
-	{
-		switch (dec_stage++)
-		{
-		case 0:
-			ptr = regs.PC + (std::int16_t)pq.IRC;
-			prefetch_irc();
-			break;
-		case 1:
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw std::runtime_error("ea_decoder::decode_111_010 internal error: unknown stage");
-		}
-	}
-
-	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
-	void decode_111_011()
-	{
-		switch (dec_stage++)
-		{
-		case 0: break;
-		case 1: break; // 2 IDLE cycles
-		case 2:
-		{
-			brief_ext ext(pq.IRC);
-			ptr = regs.PC;
-			ptr += (std::int32_t)(std::int8_t)ext.displacement;
-			ptr += dec_brief_reg(ext);
-			prefetch_irc();
-			break;
-		}
-		case 3:
-			read_pointer_and_idle(ptr);
-			break;
-
-		default: throw std::runtime_error("ea_decoder::decode_110 internal error: unknown stage");
+		default: throw internal_error();
 		}
 	}
 
@@ -479,32 +366,85 @@ private:
 		case 2:
 			read_pointer_and_idle(ptr);
 			break;
-		default: throw std::runtime_error("ea_decoder::decode_111_010 internal error: unknown stage");
+		default: throw internal_error();
+		}
+	}
+
+	// Program Counter Indirect with Displacement Mode
+	void decode_111_010()
+	{
+		switch (dec_stage++)
+		{
+		case 0:
+			ptr = regs.PC + (std::int16_t)pq.IRC;
+			prefetch_irc();
+			break;
+		case 1:
+			read_pointer_and_idle(ptr);
+			break;
+		default: throw internal_error();
+		}
+	}
+
+	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
+	void decode_111_011()
+	{
+		switch (dec_stage++)
+		{
+		case 0: break;
+		case 1: break; // 2 IDLE cycles
+		case 2:
+			ptr = dec_brief_reg(regs.PC);
+			prefetch_irc();
+			break;
+		case 3:
+			read_pointer_and_idle(ptr);
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	// Immediate Data 
+	void decode_111_100()
+	{
+		switch (dec_stage++)
+		{
+		case 0:
+			// TODO: regs.PC must be read only here (and it's incorrect here)
+			state = IDLE;
+			read_imm(size, [&]() { res = { {regs.PC, imm } }; });
+			break;
+		default: throw internal_error();
 		}
 	}
 
 private:
-	std::int32_t dec_brief_reg(brief_ext ext)
+	std::int32_t dec_brief_reg(std::uint32_t base)
 	{
+		brief_ext ext(pq.IRC);
+		base += (std::int32_t)(std::int8_t)ext.displacement;
+
+		std::uint32_t offset = 0;
 		if(ext.wl)
-			return ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
-		return (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
+			offset = ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
+		else
+			offset = (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
+		
+		base += offset;
+		return base;
 	}
 
 private:
-	bus_manager& busm;
-	cpu_registers& regs;
-	prefetch_queue& pq;
 	std::optional<operand> res;
 
 	decode_state state = IDLE;
 	std::uint8_t dec_stage = 0;
 	std::uint8_t mode = 0;
 	std::uint8_t reg = 0;
-	std::uint8_t size = 1;
+	std::uint8_t size = 0;
 
 	std::uint32_t ptr = 0;
-	std::uint16_t ext1 = 0;
 };
 
 }

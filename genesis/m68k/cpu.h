@@ -3,6 +3,7 @@
 
 #include "cpu_registers.hpp"
 #include "cpu_bus.hpp"
+#include "cpu_memory.h"
 
 #include "impl/bus_manager.hpp"
 #include "impl/prefetch_queue.hpp"

@@ -2,6 +2,7 @@
 
 #include "exception.hpp"
 
+#include <iostream>
 
 enum handler_state : std::uint8_t
 {
@@ -24,6 +25,7 @@ void base_handler::reset()
 {
 	state = IDLE;
 	imm = 0;
+	data = 0;
 	cycles_to_wait = 0;
 }
 
@@ -76,21 +78,92 @@ void base_handler::cycle()
 
 }
 
-void base_handler::read_byte(std::uint32_t addr)
+void base_handler::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
 {
-	busm.init_read_byte(addr);
+	if(size == 1)
+		read_byte(addr, cb);
+	else if(size == 2)
+		read_word(addr, cb);
+	else
+		read_long(addr, cb);
+
+	set_idle();
+}
+
+void base_handler::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
+{
+	auto on_complete = [this, cb]()
+	{
+		data = busm.letched_byte();
+		if(cb) cb();
+	};
+
+	busm.init_read_byte(addr, on_complete);
 	state = WAITING_RW;
 }
 
-void base_handler::read_word(std::uint32_t addr)
+void base_handler::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 {
-	busm.init_read_word(addr);
+	auto on_complete = [this, cb]()
+	{
+		data = busm.letched_word();
+		if(cb) cb();
+	};
+
+	busm.init_read_word(addr, on_complete);
 	state = WAITING_RW;
 }
 
-void base_handler::read_long(std::uint32_t /*addr*/)
+void base_handler::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 {
-	throw not_implemented();
+	auto on_read_lsw = [this, cb]()
+	{
+		data = data | busm.letched_word();
+		if(cb) cb();
+	};
+
+	auto on_read_msw = [this, addr, on_read_lsw]()
+	{
+		// we read MSW
+		data = busm.letched_word();
+
+		// assume it's little-endian
+		data = data << 16;
+
+		// read LSW
+		busm.init_read_word(addr + 2, on_read_lsw);
+	};
+
+	busm.init_read_word(addr, on_read_msw);
+	state = WAITING_RW;
+}
+
+void base_handler::read_imm(std::uint8_t size, bus_manager::on_complete cb)
+{
+	if(size == 4)
+	{
+		imm = (std::uint32_t)pq.IRC << 16;
+		regs.PC += 2;
+
+		auto on_complete = [this, cb]()
+		{
+			imm = imm | busm.letched_word();
+			if(cb) cb(); // data is available, good to cb
+			prefetch_irc();
+		};
+
+		busm.init_read_word(regs.PC, on_complete);
+	}
+	else
+	{
+		if(size == 1)
+			imm = pq.IRC & 0xFF;
+		else // size == 2
+			imm = pq.IRC;
+		
+		if(cb) cb();
+		prefetch_irc();
+	}
 }
 
 void base_handler::write_byte(std::uint32_t addr, std::uint8_t data)
@@ -139,31 +212,43 @@ void base_handler::write_long_and_idle(std::uint32_t /*addr*/, std::uint32_t /*d
 	throw not_implemented();
 }
 
-void base_handler::prefetch()
+void base_handler::prefetch_one()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING;
 }
 
-void base_handler::prefetch_and_idle()
+void base_handler::prefetch_two()
+{
+	pq.init_fetch_two();
+	state = PREFETCHING;
+}
+
+void base_handler::prefetch_irc()
+{
+	pq.init_fetch_irc();
+	regs.PC += 2;
+	state = PREFETCHING;
+}
+
+void base_handler::prefetch_one_and_idle()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING;
 	set_idle();
 }
 
-void base_handler::read_imm(std::uint8_t size)
+void base_handler::prefetch_two_and_idle()
 {
-	if(size == 1)
-		imm = pq.IRC & 0xFF;
-	else if(size == 2)
-		imm = pq.IRC;
-	else
-		throw not_implemented();
-
-	pq.init_fetch_irc();
+	pq.init_fetch_two();
 	state = PREFETCHING;
-	regs.PC += 2;
+	set_idle();
+}
+
+void base_handler::prefetch_irc_and_idle()
+{
+	prefetch_irc();
+	set_idle();
 }
 
 void base_handler::wait(std::uint8_t cycles)

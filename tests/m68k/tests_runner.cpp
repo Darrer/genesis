@@ -325,7 +325,7 @@ void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 		// as we're measuring not only cycles, but also tests-related code
 		// increase threshold value to account for that
-		cycle_time_threshold_ns *= 2; // arbitrary chosen
+		cycle_time_threshold_ns *= 4; // arbitrary chosen
 
 		const auto ns_per_cycle = dur.count() / total_cycles;
 

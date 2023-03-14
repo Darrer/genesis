@@ -15,11 +15,21 @@ class base_handler
 {
 public:
 	base_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
+	virtual ~base_handler() { }
 
 	void cycle();
 
 	virtual void reset();
+
+	// make final, not virtual
 	virtual bool is_idle() const;
+
+	// add protected method:
+	// idle() --> to go to IDLE state
+	// start_executing() --> to go to executing (!IDLE) state
+	// bool has_work()????
+	// on_idle
+	// on_executing
 
 protected:
 	virtual void on_cycle() = 0;
@@ -28,9 +38,15 @@ protected:
 protected:
 	/* interface for sub classes */
 
-	void read_byte(std::uint32_t addr);
-	void read_word(std::uint32_t addr);
-	void read_long(std::uint32_t addr);
+	// using on_read_complete = std::function<void(std::uint32_t /*addr*/, std::uint32_t /*data*/)>;
+
+	void read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
+
+	void read_byte(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
+	void read_word(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
+	void read_long(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
+
+	void read_imm(std::uint8_t size, bus_manager::on_complete cb = nullptr);
 
 	// TODO: what about overloading?
 	void write_byte(std::uint32_t addr, std::uint8_t data);
@@ -42,10 +58,13 @@ protected:
 	void write_word_and_idle(std::uint32_t addr, std::uint16_t data);
 	void write_long_and_idle(std::uint32_t addr, std::uint32_t data);
 
-	void prefetch();
-	void prefetch_and_idle();
+	void prefetch_one();
+	void prefetch_two();
+	void prefetch_irc();
 
-	void read_imm(std::uint8_t size);
+	void prefetch_one_and_idle();
+	void prefetch_two_and_idle();
+	void prefetch_irc_and_idle();
 
 	void wait(std::uint8_t cycles);
 	void wait_and_idle(std::uint8_t cycles);
@@ -56,6 +75,7 @@ protected:
 	m68k::prefetch_queue& pq;
 
 	std::uint32_t imm;
+	std::uint32_t data;
 
 private:
 	std::uint8_t state;

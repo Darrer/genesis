@@ -135,59 +135,68 @@ TEST(M68K_EA_DECODER_TIMINGS, MODE_010)
 {
 	check_timings(0b010 << 3, 1, 4, 1);
 	check_timings(0b010 << 3, 2, 4, 1);
+	check_timings(0b010 << 3, 4, 8, 2);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_011)
 {
 	check_timings(0b011 << 3, 1, 4, 1);
 	check_timings(0b011 << 3, 2, 4, 1);
+	check_timings(0b011 << 3, 4, 8, 2);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_100)
 {
 	check_timings(0b100 << 3, 1, 6, 1);
 	check_timings(0b100 << 3, 2, 6, 1);
+	check_timings(0b100 << 3, 4, 10, 2);
 }
-
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_101)
 {
 	check_timings(0b101 << 3, 1, 8, 2);
 	check_timings(0b101 << 3, 2, 8, 2);
+	check_timings(0b101 << 3, 4, 12, 3);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_110)
 {
 	check_timings(0b110 << 3, 1, 10, 2);
 	check_timings(0b110 << 3, 2, 10, 2);
+	check_timings(0b110 << 3, 4, 14, 3);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_111_000)
 {
 	check_timings(0b111000, 1, 8, 2);
 	check_timings(0b111000, 2, 8, 2);
-}
-
-TEST(M68K_EA_DECODER_TIMINGS, MODE_111_100)
-{
-	check_timings(0b111100, 1, 4, 1);
-	check_timings(0b111100, 2, 4, 1);
+	check_timings(0b111000, 4, 12, 3);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_111_001)
 {
 	check_timings(0b111001, 1, 12, 3);
 	check_timings(0b111001, 2, 12, 3);
-}
-
-TEST(M68K_EA_DECODER_TIMINGS, MODE_111_011)
-{
-	check_timings(0b111011, 1, 10, 2);
-	check_timings(0b111011, 2, 10, 2);
+	check_timings(0b111001, 4, 16, 4);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_111_010)
 {
 	check_timings(0b111010, 1, 8, 2);
 	check_timings(0b111010, 2, 8, 2);
+	check_timings(0b111010, 4, 12, 3);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_011)
+{
+	check_timings(0b111011, 1, 10, 2);
+	check_timings(0b111011, 2, 10, 2);
+	check_timings(0b111011, 4, 14, 3);
+}
+
+TEST(M68K_EA_DECODER_TIMINGS, MODE_111_100)
+{
+	check_timings(0b111100, 1, 4, 1);
+	check_timings(0b111100, 2, 4, 1);
+	check_timings(0b111100, 4, 8, 2);
 }

@@ -215,9 +215,10 @@ private:
 
 		state = IDLE;
 
-		if(on_complete_cb)
-			on_complete_cb();
+		auto cb = on_complete_cb; // to allow chaining
 		on_complete_cb = nullptr; // to prevent extra calls
+
+		if(cb) cb();
 	}
 
 	void set_data_strobe_bus()
