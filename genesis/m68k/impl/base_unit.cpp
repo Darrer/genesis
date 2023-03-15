@@ -7,6 +7,7 @@
 enum handler_state : std::uint8_t
 {
 	IDLE,
+	EXECUTING,
 	WAITING_RW,
 	PREFETCHING,
 	WAITING,
@@ -18,7 +19,7 @@ namespace genesis::m68k
 base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq):
 	regs(regs), busm(busm), pq(pq)
 {
-	reset();
+	base_unit::reset();
 }
 
 void base_unit::reset()
@@ -28,76 +29,80 @@ void base_unit::reset()
 	data = 0;
 	cycles_to_wait = 0;
 	cycles_after_idle = 0;
-	need_wait = false;
+	go_idle = false;
 }
 
 bool base_unit::is_idle() const
 {
-	if(state != IDLE && cycles_after_idle != 0)
+	if(cycles_after_idle > 0)
 		return false;
 
-	if(state == WAITING_RW)
+	if(state == WAITING_RW && go_idle)
 		return busm.is_idle();
 
-	if(state == PREFETCHING)
+	if(state == PREFETCHING && go_idle)
 		return pq.is_idle();
 
-	if(state == WAITING)
+	if(state == WAITING && go_idle)
 		return cycles_to_wait == 0;
 
-	if(state == IDLE)
-		return cycles_after_idle == 0;
-
-	return false;
+	return state == IDLE;
 }
 
 void base_unit::cycle()
 {
-	switch (state)
+	if(state == WAITING_RW)
 	{
-	case IDLE:
-		call_on_cycle();
-		break;
+		if(!busm.is_idle())
+			return;
 
-	case WAITING_RW:
-		if(busm.is_idle())
-		{
-			state = IDLE;
-			call_on_cycle();
-		}
-		break;
-
-	case PREFETCHING:
-		if(pq.is_idle())
-		{
-			state = IDLE;
-			call_on_cycle();
-		}
-		break;
-
-	case WAITING:
-		if(--cycles_to_wait == 0)
-			state = IDLE;
-		break;
-
-	default:
-		throw internal_error();
+		state = go_idle ? IDLE : EXECUTING;
 	}
 
-}
-
-void base_unit::call_on_cycle()
-{
-	if(state == IDLE && need_wait && cycles_after_idle > 0)
+	if(state == PREFETCHING)
 	{
-		--cycles_after_idle;
-		if(cycles_after_idle == 0)
-			need_wait = false;
+		if(!pq.is_idle())
+			return;
+
+		state = go_idle ? IDLE : EXECUTING;
 	}
-	else
+	
+	if(state == WAITING)
+	{
+		if(cycles_to_wait > 0)
+		{
+			--cycles_to_wait;
+			return;
+		}
+
+		state = go_idle ? IDLE : EXECUTING;
+	}
+
+	if(state == IDLE)
+	{
+		if(cycles_after_idle > 0)
+		{
+			--cycles_after_idle;
+			return;
+		}
+
+		reset();
+		state = EXECUTING;
+	}
+
+	if(state == EXECUTING)
 	{
 		on_cycle();
+		return;
 	}
+
+	// unreachable
+	throw internal_error();
+}
+
+void base_unit::idle()
+{
+	state = IDLE;
 }
 
 void base_unit::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
@@ -109,8 +114,7 @@ void base_unit::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager
 	else
 		read_long(addr, cb);
 
-	set_idle();
-	need_wait = true;
+	go_idle = true;
 }
 
 void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
@@ -139,6 +143,7 @@ void base_unit::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 
 void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 {
+	// TODO: due to this chaining we occupy bus for 8 cycles
 	auto on_read_lsw = [this, cb]()
 	{
 		data = data | busm.letched_word();
@@ -190,6 +195,12 @@ void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 	}
 }
 
+void base_unit::read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb)
+{
+	read_imm(size, cb);
+	go_idle = true;
+}
+
 void base_unit::write_byte(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
@@ -227,25 +238,20 @@ void base_unit::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint
 
 void base_unit::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 {
-	busm.init_write(addr, data);
-	state = WAITING_RW;
-	set_idle();
-	need_wait = true;
+	write_byte(addr, data);
+	go_idle = true;
 }
 
 void base_unit::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 {
-	busm.init_write(addr, data);
-	state = WAITING_RW;
-	set_idle();
-	need_wait = true;
+	write_word(addr, data);
+	go_idle = true;
 }
 
 void base_unit::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
 {
 	write_long(addr, data);
-	set_idle();
-	need_wait = true;
+	go_idle = true;
 }
 
 void base_unit::prefetch_one()
@@ -269,47 +275,36 @@ void base_unit::prefetch_irc()
 
 void base_unit::prefetch_one_and_idle()
 {
-	pq.init_fetch_one();
-	state = PREFETCHING;
-	set_idle();
-	need_wait = true;
+	prefetch_one();
+	go_idle = true;
 }
 
 void base_unit::prefetch_two_and_idle()
 {
-	pq.init_fetch_two();
-	state = PREFETCHING;
-	set_idle();
-	need_wait = true;
+	prefetch_two();
+	go_idle = true;
 }
 
 void base_unit::prefetch_irc_and_idle()
 {
 	prefetch_irc();
-	set_idle();
-	need_wait = true;
+	go_idle = true;
 }
 
 void base_unit::wait(std::uint8_t cycles)
 {
-	cycles_to_wait = cycles;
+	cycles_to_wait = cycles - 1; // assume current cycle is already spent
 	state = WAITING;
 }
 
 void base_unit::wait_and_idle(std::uint8_t cycles)
 {
-	if(cycles <= 1)
-		throw internal_error();
-
-	cycles_to_wait = cycles - 1; // assume the current cycle is already spent
-	state = WAITING;
-	set_idle();
-	need_wait = true;
+	wait(cycles);
+	go_idle = true;
 }
 
 void base_unit::wait_after_idle(std::uint8_t cycles)
 {
-	need_wait = false;
 	cycles_after_idle = cycles;
 }
 

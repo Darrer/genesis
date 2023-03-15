@@ -22,7 +22,6 @@ private:
 	enum inst_state : std::uint8_t
 	{
 		IDLE,
-		STARTING,
 		EXECUTING,
 		DECODING,
 	};
@@ -34,19 +33,15 @@ public:
 		reset();
 	}
 
+	// rename to on_idle
 	void reset() override
 	{
 		state = IDLE;
-		opcode = 0;
 		exec_stage = 0;
 		res = 0;
+		dec.reset();
 
 		base_unit::reset();
-	}
-
-	bool is_idle() const override
-	{
-		return state == IDLE && base_unit::is_idle();
 	}
 
 protected:
@@ -55,11 +50,6 @@ protected:
 		switch (state)
 		{
 		case IDLE:
-			state = STARTING;
-			[[fallthrough]];
-
-		case STARTING:
-			reset();
 			opcode = pq.IRD;
 			regs.PC += 2;
 			state = EXECUTING;
@@ -82,12 +72,8 @@ protected:
 			throw internal_error();
 		}
 
-		dec.cycle();
-	}
-
-	void set_idle() override
-	{
-		state = IDLE;
+		if(state == DECODING)
+			dec.cycle();
 	}
 
 private:

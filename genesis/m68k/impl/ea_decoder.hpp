@@ -18,11 +18,6 @@ class operand
 public:
 	struct pointer
 	{
-		// pointer(std::uint32_t addr, std::uint8_t value) : address(addr), value(value) { }
-		// pointer(std::uint32_t addr, std::uint16_t value) : address(addr), value(value) { }
-		// pointer(std::uint32_t addr, std::uint32_t value) : address(addr), value(value) { }
-
-		// TODO: In some cases operand has a read-only address
 		std::uint32_t address;
 		std::uint32_t value;
 	};
@@ -40,33 +35,29 @@ public:
 
 	address_register& addr_reg()
 	{
-		if(!is_addr_reg())
-			throw std::runtime_error("operand::addr_reg error: cannot access address register");
-		
+		if(!is_addr_reg()) throw internal_error();
+
 		return _addr_reg.value().get();
 	}
 
 	data_register& data_reg()
 	{
-		if(!is_data_reg())
-			throw std::runtime_error("operand::data_reg error: cannot access data register");
-		
+		if(!is_data_reg()) throw internal_error();
+
 		return _data_reg.value().get();
 	}
 
 	std::uint32_t imm() const
 	{
-		if(!is_imm())
-			throw std::runtime_error("operand::imm error: cannot access immediate value");
+		if(!is_imm()) throw internal_error();
 
 		return _imm.value();
 	}
 
 	pointer pointer() const
 	{
-		if(!is_pointer())
-			throw std::runtime_error("operand::pointer error: cannot access pointer");
-		
+		if(!is_pointer()) throw internal_error();
+
 		return _ptr.value();
 	}
 
@@ -82,12 +73,6 @@ private:
 class ea_decoder : public base_unit
 {
 private:
-	enum decode_state
-	{
-		IDLE,
-		DECODING,
-	};
-
 	struct brief_ext
 	{
 		brief_ext(std::uint16_t raw)
@@ -104,56 +89,31 @@ private:
 	};
 
 public:
-	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq) 
+	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq)
 		: base_unit(regs, busm, pq) { }
-
-	bool is_idle() const override
-	{
-		return state == IDLE && base_unit::is_idle();
-	}
 
 	bool ready() const
 	{
-		// TODO: should we return result once it's available?
-		// Or should we wait till prefetch_irc is over?
 		return res.has_value() && is_idle();
 	}
 
 	operand result()
 	{
-		if(!ready())
-			throw std::runtime_error("ea_decoder::result error: result is not available");
+		if(!ready()) throw internal_error();
 
 		return res.value();
 	}
 
-	void reset()
-	{
-		state = IDLE;
-		res.reset();
-		reg = mode = size = 0;
-		dec_stage = 0;
-
-		base_unit::reset();
-	}
-
 	void decode(std::uint8_t ea, std::uint8_t size)
 	{
-		if(!is_idle())
-			throw std::runtime_error("ea_decoder::decode error: cannot start new decoding till the previous request is finished");
-
-		if(!busm.is_idle())
-			throw std::runtime_error("ea_decoder::decode error: cannot start decoding as bus_manager is busy");
-
-		// assume size is alwyas valid, that's why throw internal error
-		if(size != 1 && size != 2 && size != 4)
+		if(!is_idle() || !busm.is_idle())
 			throw internal_error();
 
-		reset();
-
+		res.reset();
 		reg = ea & 0x7;
 		mode = (ea >> 3) & 0x7;
 		this->size = size;
+		dec_stage = 0;
 
 		switch (mode)
 		{
@@ -164,31 +124,19 @@ public:
 		case 0b001:
 			decode_001();
 			break;
-
-		default:
-			state = DECODING;
 		}
 	}
 
 protected:
 	void on_cycle() override
 	{
-		switch (state)
+		if(res.has_value())
 		{
-		case IDLE:
-			break;
-
-		case DECODING:
-			decoding();
-			break;
-
-		default: throw internal_error();
+			// we're not expected to be called after decoding is over
+			throw internal_error();
 		}
-	}
 
-	void set_idle() override
-	{
-		state = IDLE;
+		decoding();
 	}
 
 private:
@@ -241,15 +189,12 @@ private:
 			break;
 
 		default:
-			state = IDLE;
-			throw std::runtime_error("internal error: unknown ea mode 111 " + std::to_string(reg));
+			throw not_implemented("111 " + std::to_string(reg));
 		}
 			break;
 		}
 
-		default:
-			state = IDLE;
-			throw internal_error();
+		default: throw internal_error();
 		}
 	}
 
@@ -297,9 +242,8 @@ private:
 	{
 		switch (dec_stage++)
 		{
-		case 0: break;
-		case 1: break; // 2 IDLE cycles
-		case 2:
+		case 0: wait(2); break;
+		case 1:
 			// TODO: check
 			if(reg == 0b111 && size == 1)
 				regs.A(reg).LW -= 2; // to maintain alignment
@@ -332,13 +276,12 @@ private:
 	{
 		switch (dec_stage++)
 		{
-		case 0: break;
-		case 1: break; // 2 IDLE cycles
-		case 2:
+		case 0: wait(2); break;
+		case 1:
 			ptr = dec_brief_reg(regs.A(reg).LW);
 			prefetch_irc();
 			break;
-		case 3:
+		case 2:
 			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();
@@ -367,15 +310,10 @@ private:
 		switch (dec_stage++)
 		{
 		case 0:
-			ptr = (std::uint16_t)pq.IRC;
-			prefetch_irc();
+			read_imm(4 /* long word */);
 			break;
 		case 1:
-			ptr = (ptr << 16) | (std::uint16_t)pq.IRC;
-			prefetch_irc();
-			break;
-		case 2:
-			read_pointer_and_idle(ptr);
+			read_pointer_and_idle(imm);
 			break;
 		default: throw internal_error();
 		}
@@ -391,6 +329,7 @@ private:
 			prefetch_irc();
 			break;
 		case 1:
+			// TODO: check if ptr is read only here
 			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();
@@ -402,16 +341,14 @@ private:
 	{
 		switch (dec_stage++)
 		{
-		case 0: break;
-		case 1: break; // 2 IDLE cycles
-		case 2:
+		case 0: wait(2); break;
+		case 1:
 			ptr = dec_brief_reg(regs.PC);
 			prefetch_irc();
 			break;
-		case 3:
+		case 2:
 			read_pointer_and_idle(ptr);
 			break;
-
 		default: throw internal_error();
 		}
 	}
@@ -419,42 +356,32 @@ private:
 	// Immediate Data 
 	void decode_111_100()
 	{
-		switch (dec_stage++)
-		{
-		case 0:
-			state = IDLE;
-			read_imm(size, [&]() { res = { imm }; });
-			break;
-		default: throw internal_error();
-		}
+		read_imm_and_idle(size, [&]() { res = { imm }; });	
 	}
 
 private:
-	std::int32_t dec_brief_reg(std::uint32_t base)
+	std::uint32_t dec_brief_reg(std::uint32_t base)
 	{
 		brief_ext ext(pq.IRC);
 		base += (std::int32_t)(std::int8_t)ext.displacement;
 
-		std::uint32_t offset = 0;
 		if(ext.wl)
-			offset = ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
+			base += ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
 		else
-			offset = (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
-		
-		base += offset;
+			base += (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
+
 		return base;
 	}
 
 private:
 	std::optional<operand> res;
 
-	decode_state state = IDLE;
-	std::uint8_t dec_stage = 0;
-	std::uint8_t mode = 0;
-	std::uint8_t reg = 0;
-	std::uint8_t size = 0;
+	std::uint8_t dec_stage;
+	std::uint8_t mode;
+	std::uint8_t reg;
+	std::uint8_t size;
 
-	std::uint32_t ptr = 0;
+	std::uint32_t ptr;
 };
 
 }

@@ -18,35 +18,24 @@ public:
 	virtual ~base_unit() { }
 
 	void cycle();
-
+	bool is_idle() const;
 	virtual void reset();
-
-	// make final, not virtual
-	virtual bool is_idle() const;
-
-	// add protected method:
-	// idle() --> to go to IDLE state
-	// start_executing() --> to go to executing (!IDLE) state
-	// bool has_work()????
-	// on_idle
-	// on_executing
 
 protected:
 	virtual void on_cycle() = 0;
-	virtual void set_idle() = 0;
 
 protected:
 	/* interface for sub classes */
 
-	// using on_read_complete = std::function<void(std::uint32_t /*addr*/, std::uint32_t /*data*/)>;
+	void idle();
 
 	void read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
-
 	void read_byte(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_word(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_long(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 
 	void read_imm(std::uint8_t size, bus_manager::on_complete cb = nullptr);
+	void read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb = nullptr);
 
 	// TODO: what about overloading?
 	void write_byte(std::uint32_t addr, std::uint8_t data);
@@ -70,9 +59,6 @@ protected:
 	void wait_and_idle(std::uint8_t cycles);
 	void wait_after_idle(std::uint8_t cycles);
 
-private:
-	void call_on_cycle();
-
 protected:
 	m68k::cpu_registers& regs;
 	m68k::bus_manager& busm;
@@ -84,9 +70,8 @@ protected:
 private:
 	std::uint8_t state;
 	std::uint8_t cycles_to_wait;
-
-	bool need_wait = false;
 	std::uint8_t cycles_after_idle = 0;
+	bool go_idle;
 };
 
 }
