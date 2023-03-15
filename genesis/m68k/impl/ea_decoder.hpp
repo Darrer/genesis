@@ -8,7 +8,7 @@
 #include "prefetch_queue.hpp"
 #include "m68k/cpu_registers.hpp"
 
-#include "base_handler.h"
+#include "base_unit.h"
 
 namespace genesis::m68k
 {
@@ -79,7 +79,7 @@ private:
 
 
 // effective address decoder
-class ea_decoder : public base_handler
+class ea_decoder : public base_unit
 {
 private:
 	enum decode_state
@@ -105,11 +105,11 @@ private:
 
 public:
 	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq) 
-		: base_handler(regs, busm, pq) { }
+		: base_unit(regs, busm, pq) { }
 
 	bool is_idle() const override
 	{
-		return state == IDLE && base_handler::is_idle();
+		return state == IDLE && base_unit::is_idle();
 	}
 
 	bool ready() const
@@ -134,7 +134,7 @@ public:
 		reg = mode = size = 0;
 		dec_stage = 0;
 
-		base_handler::reset();
+		base_unit::reset();
 	}
 
 	void decode(std::uint8_t ea, std::uint8_t size)

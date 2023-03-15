@@ -1,7 +1,7 @@
 #ifndef __M68K_INSTRUCTION_HANDLER_HPP__
 #define __M68K_INSTRUCTION_HANDLER_HPP__
 
-#include "base_handler.h"
+#include "base_unit.h"
 #include "ea_decoder.hpp"
 #include "timings.hpp"
 
@@ -16,7 +16,7 @@ namespace genesis::m68k
 #define throw_invalid_opcode() \
 	throw std::runtime_error(std::string("executioner::") + __func__ + " error: invalid opcode")
 
-class instruction_handler : public base_handler
+class instruction_handler : public base_unit
 {
 private:
 	enum inst_state : std::uint8_t
@@ -29,7 +29,7 @@ private:
 
 public:
 	instruction_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
-		: base_handler(regs, busm, pq), dec(busm, regs, pq)
+		: base_unit(regs, busm, pq), dec(busm, regs, pq)
 	{
 		reset();
 	}
@@ -41,12 +41,12 @@ public:
 		exec_stage = 0;
 		res = 0;
 
-		base_handler::reset();
+		base_unit::reset();
 	}
 
 	bool is_idle() const override
 	{
-		return state == IDLE && base_handler::is_idle();
+		return state == IDLE && base_unit::is_idle();
 	}
 
 protected:
@@ -57,7 +57,7 @@ protected:
 		case IDLE:
 			state = STARTING;
 			[[fallthrough]];
-		
+
 		case STARTING:
 			reset();
 			opcode = pq.IRD;
@@ -376,7 +376,6 @@ private:
 	std::uint16_t opcode = 0;
 	std::uint32_t res = 0;
 	std::uint8_t exec_stage;
-	std::uint8_t wait = 0;
 
 	std::uint8_t state;
 };

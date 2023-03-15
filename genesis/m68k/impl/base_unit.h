@@ -1,5 +1,5 @@
-#ifndef __M68K_BASE_HANDLER_H__
-#define __M68K_BASE_HANDLER_H__
+#ifndef __M68K_BASE_UNIT_H__
+#define __M68K_BASE_UNIT_H__
 
 #include <cstdint>
 
@@ -11,11 +11,11 @@
 namespace genesis::m68k
 {
 
-class base_handler
+class base_unit
 {
 public:
-	base_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
-	virtual ~base_handler() { }
+	base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
+	virtual ~base_unit() { }
 
 	void cycle();
 
@@ -91,4 +91,4 @@ private:
 
 }
 
-#endif //__M68K_BASE_HANDLER_H__
+#endif //__M68K_BASE_UNIT_H__

@@ -1,4 +1,4 @@
-#include "base_handler.h"
+#include "base_unit.h"
 
 #include "exception.hpp"
 
@@ -15,13 +15,13 @@ enum handler_state : std::uint8_t
 namespace genesis::m68k
 {
 
-base_handler::base_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq):
+base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq):
 	regs(regs), busm(busm), pq(pq)
 {
 	reset();
 }
 
-void base_handler::reset()
+void base_unit::reset()
 {
 	state = IDLE;
 	imm = 0;
@@ -31,7 +31,7 @@ void base_handler::reset()
 	need_wait = false;
 }
 
-bool base_handler::is_idle() const
+bool base_unit::is_idle() const
 {
 	if(state != IDLE && cycles_after_idle != 0)
 		return false;
@@ -51,7 +51,7 @@ bool base_handler::is_idle() const
 	return false;
 }
 
-void base_handler::cycle()
+void base_unit::cycle()
 {
 	switch (state)
 	{
@@ -86,7 +86,7 @@ void base_handler::cycle()
 
 }
 
-void base_handler::call_on_cycle()
+void base_unit::call_on_cycle()
 {
 	if(state == IDLE && need_wait && cycles_after_idle > 0)
 	{
@@ -100,7 +100,7 @@ void base_handler::call_on_cycle()
 	}
 }
 
-void base_handler::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
+void base_unit::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
 {
 	if(size == 1)
 		read_byte(addr, cb);
@@ -113,7 +113,7 @@ void base_handler::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_mana
 	need_wait = true;
 }
 
-void base_handler::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
+void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
 {
 	auto on_complete = [this, cb]()
 	{
@@ -125,7 +125,7 @@ void base_handler::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
 	state = WAITING_RW;
 }
 
-void base_handler::read_word(std::uint32_t addr, bus_manager::on_complete cb)
+void base_unit::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 {
 	auto on_complete = [this, cb]()
 	{
@@ -137,7 +137,7 @@ void base_handler::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 	state = WAITING_RW;
 }
 
-void base_handler::read_long(std::uint32_t addr, bus_manager::on_complete cb)
+void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 {
 	auto on_read_lsw = [this, cb]()
 	{
@@ -161,7 +161,7 @@ void base_handler::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 	state = WAITING_RW;
 }
 
-void base_handler::read_imm(std::uint8_t size, bus_manager::on_complete cb)
+void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 {
 	if(size == 4)
 	{
@@ -190,19 +190,19 @@ void base_handler::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 	}
 }
 
-void base_handler::write_byte(std::uint32_t addr, std::uint8_t data)
+void base_unit::write_byte(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
 	state = WAITING_RW;
 }
 
-void base_handler::write_word(std::uint32_t addr, std::uint16_t data)
+void base_unit::write_word(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
 	state = WAITING_RW;
 }
 
-void base_handler::write_long(std::uint32_t addr, std::uint32_t data)
+void base_unit::write_long(std::uint32_t addr, std::uint32_t data)
 {
 	auto write_msw = [this, addr, data]()
 	{
@@ -215,7 +215,7 @@ void base_handler::write_long(std::uint32_t addr, std::uint32_t data)
 	state = WAITING_RW;
 }
 
-void base_handler::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
+void base_unit::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
 {
 	if(size == 1)
 		write_byte_and_idle(addr, data);
@@ -225,7 +225,7 @@ void base_handler::write_and_idle(std::uint32_t addr, std::uint32_t data, std::u
 		write_long_and_idle(addr, data);
 }
 
-void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
+void base_unit::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 {
 	busm.init_write(addr, data);
 	state = WAITING_RW;
@@ -233,7 +233,7 @@ void base_handler::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
 	need_wait = true;
 }
 
-void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
+void base_unit::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 {
 	busm.init_write(addr, data);
 	state = WAITING_RW;
@@ -241,33 +241,33 @@ void base_handler::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
 	need_wait = true;
 }
 
-void base_handler::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
+void base_unit::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
 {
 	write_long(addr, data);
 	set_idle();
 	need_wait = true;
 }
 
-void base_handler::prefetch_one()
+void base_unit::prefetch_one()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING;
 }
 
-void base_handler::prefetch_two()
+void base_unit::prefetch_two()
 {
 	pq.init_fetch_two();
 	state = PREFETCHING;
 }
 
-void base_handler::prefetch_irc()
+void base_unit::prefetch_irc()
 {
 	pq.init_fetch_irc();
 	regs.PC += 2;
 	state = PREFETCHING;
 }
 
-void base_handler::prefetch_one_and_idle()
+void base_unit::prefetch_one_and_idle()
 {
 	pq.init_fetch_one();
 	state = PREFETCHING;
@@ -275,7 +275,7 @@ void base_handler::prefetch_one_and_idle()
 	need_wait = true;
 }
 
-void base_handler::prefetch_two_and_idle()
+void base_unit::prefetch_two_and_idle()
 {
 	pq.init_fetch_two();
 	state = PREFETCHING;
@@ -283,20 +283,20 @@ void base_handler::prefetch_two_and_idle()
 	need_wait = true;
 }
 
-void base_handler::prefetch_irc_and_idle()
+void base_unit::prefetch_irc_and_idle()
 {
 	prefetch_irc();
 	set_idle();
 	need_wait = true;
 }
 
-void base_handler::wait(std::uint8_t cycles)
+void base_unit::wait(std::uint8_t cycles)
 {
 	cycles_to_wait = cycles;
 	state = WAITING;
 }
 
-void base_handler::wait_and_idle(std::uint8_t cycles)
+void base_unit::wait_and_idle(std::uint8_t cycles)
 {
 	if(cycles <= 1)
 		throw internal_error();
@@ -307,7 +307,7 @@ void base_handler::wait_and_idle(std::uint8_t cycles)
 	need_wait = true;
 }
 
-void base_handler::wait_after_idle(std::uint8_t cycles)
+void base_unit::wait_after_idle(std::uint8_t cycles)
 {
 	need_wait = false;
 	cycles_after_idle = cycles;
