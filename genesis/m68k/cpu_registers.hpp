@@ -9,7 +9,7 @@
 namespace genesis::m68k
 {
 
-/* m68k stores data in big endian, however, cpu_registers class stores data in system endian */
+/* m68k stores data in big endian, however, cpu_registers class stores data in little endian */
 
 union data_register {
 	std::uint8_t B;

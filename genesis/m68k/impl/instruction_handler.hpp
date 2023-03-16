@@ -4,6 +4,7 @@
 #include "base_unit.h"
 #include "ea_decoder.hpp"
 #include "timings.hpp"
+#include "operations.hpp"
 
 #include "exception.hpp"
 
@@ -106,7 +107,8 @@ private:
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
-			res = add(reg, op, size);
+			res = operations::add(reg, op, size, sr);
+			update_user_bits(sr);
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
 
@@ -154,7 +156,8 @@ private:
 		{
 			auto op = dec.result();
 
-			res = add(imm, op, size);
+			res = operations::add(imm, op, size, sr);
+			update_user_bits(sr);
 
 			wait_after_idle(timings::addi(size, op));
 
@@ -198,7 +201,9 @@ private:
 
 			auto op = dec.result();
 
-			res = add(data, op, size);
+			res = operations::add(data, op, size, sr);
+			if(!op.is_addr_reg())
+				update_user_bits(sr);
 
 			wait_after_idle(timings::addq(size, op));
 
@@ -234,55 +239,6 @@ private:
 	}
 
 private:
-	std::uint32_t reg_value(data_register& reg, std::uint8_t size)
-	{
-		if(size == 1)
-			return reg.B;
-		else if(size == 2)
-			return reg.W;
-		else
-			return reg.LW;
-	}
-
-	std::uint32_t op_value(operand& op, std::uint8_t size)
-	{
-		if(size == 1)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().B;
-			else if(op.is_addr_reg())
-				throw_invalid_opcode();
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
-		else if(size == 2)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().W;
-			else if(op.is_addr_reg())
-				return op.addr_reg().W;
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
-		else if(size == 4)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().LW;
-			else if(op.is_addr_reg())
-				return op.addr_reg().LW;
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
-
-		throw internal_error();
-	}
-
 	void store(data_register& d, std::uint8_t size, std::uint32_t res)
 	{
 		if(size == 1)
@@ -293,13 +249,9 @@ private:
 		{
 			d.W = (std::uint16_t)res;
 		}
-		else if(size == 4)
-		{
-			d.LW = res;
-		}
 		else
 		{
-			throw internal_error();
+			d.LW = res;
 		}
 	}
 
@@ -326,18 +278,16 @@ private:
 			else if(op.is_addr_reg())
 				op.addr_reg().LW = res;
 		}
-
-		// throw internal_error();
 	}
 
-	std::uint32_t add(data_register& reg, operand& op, std::uint8_t size)
+	void update_user_bits(status_register sr)
 	{
-		return reg_value(reg, size) + op_value(op, size);
-	}
-
-	std::uint32_t add(std::uint32_t val, operand& op, std::uint8_t size)
-	{
-		return val + op_value(op, size);
+		auto& f = regs.flags;
+		f.C = sr.C;
+		f.V = sr.V;
+		f.Z = sr.Z;
+		f.N = sr.N;
+		f.X = sr.X;
 	}
 
 private:
@@ -361,6 +311,7 @@ private:
 
 	std::uint16_t opcode = 0;
 	std::uint32_t res = 0;
+	status_register sr;
 	std::uint8_t exec_stage;
 
 	std::uint8_t state;
