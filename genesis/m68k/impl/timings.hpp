@@ -14,6 +14,7 @@ class timings
 public:
 	timings() = delete;
 
+	/* ADD */
 	static std::uint8_t add(std::uint8_t opmode, const operand& op)
 	{
 		if(opmode != 0b010)
@@ -52,6 +53,10 @@ public:
 
 		return 2;
 	}
+
+	/* AND */
+	static constexpr auto and_op = add;
+	static constexpr auto andi = addi;
 };
 
 }

@@ -27,6 +27,16 @@ public:
 		return add(val, value(op, size), size, sr);
 	}
 
+	static std::uint32_t and_op(data_register& reg, operand& op, std::uint8_t size, status_register& sr)
+	{
+		return and_op(value(reg, size), value(op, size), size, sr);
+	}
+
+	static std::uint32_t and_op(std::uint32_t val, operand& op, std::uint8_t size, status_register& sr)
+	{
+		return and_op(val, value(op, size), size, sr);
+	}
+
 private:
 	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
@@ -56,6 +66,31 @@ private:
 
 		sr.X = sr.C;
 		sr.Z = res == 0;
+		return res;
+	}
+
+	static std::uint32_t and_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res = a & b;
+
+		if(size == 1)
+		{
+			res = std::uint8_t(res);
+			sr.N = (std::int8_t)res < 0;
+		}
+		else if(size == 2)
+		{
+			res = std::uint16_t(res);
+			sr.N = (std::int16_t)res < 0;
+		}
+		else
+		{
+			sr.N = (std::int32_t)res < 0;
+		}
+
+		sr.C = sr.V = 0;
+		sr.Z = res == 0;
+
 		return res;
 	}
 

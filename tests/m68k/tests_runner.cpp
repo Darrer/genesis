@@ -75,7 +75,7 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 	check_eq(state.A6, regs.A6.LW);
 
 	check_eq(state.USP, regs.USP.LW);
-	// ASSERT_EQ(state.SR, state.SR);
+	check_eq(state.SR, regs.SR);
 	check_eq(state.PC, regs.PC);
 
 	// check ram
@@ -370,5 +370,23 @@ TEST(M68K, ADDW)
 TEST(M68K, ADDL)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.l.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ANDB)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.b.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ANDW)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.w.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ANDL)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.l.json)";
 	load_and_run(path);
 }

@@ -86,6 +86,10 @@ private:
 			exec_addi();
 		else if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 0)
 			exec_addq();
+		else if((opcode >> 12) == 0b1100)
+			exec_and();
+		else if((opcode >> 8) == 0b10)
+			exec_andi();
 		else
 			throw not_implemented(std::to_string(opcode));
 	}
@@ -107,8 +111,7 @@ private:
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
-			res = operations::add(reg, op, size, sr);
-			update_user_bits(sr);
+			res = operations::add(reg, op, size, regs.flags);
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
 
@@ -156,8 +159,7 @@ private:
 		{
 			auto op = dec.result();
 
-			res = operations::add(imm, op, size, sr);
-			update_user_bits(sr);
+			res = operations::add(imm, op, size, regs.flags);
 
 			wait_after_idle(timings::addi(size, op));
 
@@ -201,9 +203,9 @@ private:
 
 			auto op = dec.result();
 
-			res = operations::add(data, op, size, sr);
+			res = operations::add(data, op, size, flags);
 			if(!op.is_addr_reg())
-				update_user_bits(sr);
+				update_user_bits(flags);
 
 			wait_after_idle(timings::addq(size, op));
 
@@ -228,14 +230,86 @@ private:
 		}
 	}
 
-	std::uint8_t dec_size(std::uint8_t size)
+	void exec_and()
 	{
-		size = size & 0b11;
-		if(size == 0) return 1;
-		if(size == 1) return 2;
-		if(size == 2) return 4;
+		switch (exec_stage++)
+		{
+		case 0:
+			size = dec_size(opcode >> 6);
+			decode_ea(pq.IRD & 0xFF, size);
+			break;
+		
+		case 1:
+		{
+			auto& reg = regs.D((opcode >> 9) & 0x7);
+			auto op = dec.result();
 
-		throw_invalid_opcode();
+			res = operations::and_op(reg, op, size, regs.flags);
+
+			const std::uint8_t opmode = (opcode >> 6) & 0x7;
+			wait_after_idle(timings::and_op(opmode, op));
+
+			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
+			{
+				store(reg, size, res);
+				prefetch_one_and_idle();
+			}
+			else
+			{
+				prefetch_one();
+			}
+
+			break;
+		}
+
+		case 2:
+			write_and_idle(dec.result().pointer().address, res, size);
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	void exec_andi()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = dec_size(opcode >> 6);
+			read_imm(size);
+			break;
+
+		case 1:
+			decode_ea(pq.IRD & 0xFF, size);
+			break;
+
+		case 2:
+		{
+			auto op = dec.result();
+
+			res = operations::and_op(imm, op, size, regs.flags);
+
+			wait_after_idle(timings::andi(size, op));
+
+			if(op.is_pointer())
+			{
+				prefetch_one();
+			}
+			else
+			{
+				store(op, size, res);
+				prefetch_one_and_idle();
+			}
+
+			break;
+		}
+
+		case 3:
+			write_and_idle(dec.result().pointer().address, res, size);
+			break;
+
+		default: throw internal_error();
+		}
 	}
 
 private:
@@ -306,12 +380,23 @@ private:
 		}
 	}
 
+	std::uint8_t dec_size(std::uint8_t size)
+	{
+		size = size & 0b11;
+		if(size == 0) return 1;
+		if(size == 1) return 2;
+		if(size == 2) return 4;
+
+		throw_invalid_opcode();
+	}
+
 private:
 	m68k::ea_decoder dec;
 
 	std::uint16_t opcode = 0;
 	std::uint32_t res = 0;
-	status_register sr;
+	std::uint8_t size = 0;
+	status_register flags;
 	std::uint8_t exec_stage;
 
 	std::uint8_t state;
