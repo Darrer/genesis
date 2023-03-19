@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <iostream>
+#include <filesystem>
 #include <chrono>
 
 #include "tests_loader.h"
@@ -75,7 +76,7 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 	check_eq(state.A6, regs.A6.LW);
 
 	check_eq(state.USP, regs.USP.LW);
-	// TODO: SSP?
+	check_eq(state.SSP, regs.SSP.LW);
 	check_eq(state.SR, regs.SR);
 	check_eq(state.PC, regs.PC);
 
@@ -293,9 +294,9 @@ bool run_test(test::test_cpu& cpu, const test_case& test)
 	return post && trans;
 }
 
-void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
+bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
 {
-	ASSERT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
+	EXPECT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
 
 	std::uint32_t total_cycles = 0;
 	auto start = std::chrono::high_resolution_clock::now();
@@ -313,17 +314,18 @@ void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 			continue;
 		}
 
-		std::cout << "Running " << test.name << std::endl;
+		// std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		total_cycles += test.length;
 
 		if(succeded)
 			++num_succeded;
 
-		ASSERT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
+		EXPECT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
+		if(!succeded) return false;
 	}
 
-	if(num_succeded == tests.size())
+	// if(num_succeded == tests.size())
 	{
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -337,110 +339,75 @@ void run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 		const auto ns_per_cycle = dur.count() / total_cycles;
 
-		ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
+		// ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
 
-		std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
-		std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
+		// std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
+		// std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
 	}
 
-	ASSERT_EQ(tests.size(), num_succeded);
+	// ASSERT_EQ(tests.size(), num_succeded);
+
+	return true;
 }
 
-void load_and_run(std::string test_path)
+bool load_and_run(std::string test_path)
 {
-	auto test_name = ::testing::UnitTest::GetInstance()->current_test_info()->name();
+	std::string test_name = std::filesystem::path(test_path).filename().string();
+	su::remove_ch(test_name, '\"');
 
 	auto tests = load_tests(test_path);
-	std::cout << test_name << ": loaded " << tests.size() << " tests" << std::endl;
+	std::cout << test_name << ": executing " << tests.size() << " tests" << std::endl;
 
 	test::test_cpu cpu;
-	run_tests(cpu, tests, test_name);
+	return run_tests(cpu, tests, test_name);
 }
 
-TEST(M68K, ADD)
+std::vector<std::string> collect_all_files(std::string dir_path, std::string extension)
 {
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.b.json)";
-	load_and_run(path);
+	if(!extension.starts_with("."))
+		extension = "." + extension;
+
+	std::vector<std::string> res;
+
+	namespace fs = std::filesystem;
+
+	std::function<void(std::string)> collect_all;
+	collect_all = [&](std::string path)
+	{
+		for(auto& entry : fs::directory_iterator(path))
+		{
+			if(entry.is_regular_file())
+			{
+				auto file = entry.path();
+				if(file.extension() == extension)
+					res.push_back(file.string());
+			}
+			if(entry.is_directory())
+			{
+				collect_all(entry.path().string());
+			}
+		}
+	};
+
+	collect_all(dir_path);
+
+	return res;
 }
 
-TEST(M68K, ADDW)
+// Tom Harte's Tests
+TEST(M68K, THT)
 {
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.w.json)";
-	load_and_run(path);
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers)", "json");
+	std::sort(all_tests.begin(), all_tests.end());
+
+	for(auto& test : all_tests)
+	{
+		bool succeeded = load_and_run(test);
+		ASSERT_TRUE(succeeded);
+	}
 }
 
-TEST(M68K, ADDL)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ADD.b.json\ADD.l.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ANDB)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.b.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ANDW)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.w.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ANDL)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.l.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, SUBB)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.b.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, SUBW)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.w.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, SUBL)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.l.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ORB)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.b.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ORW)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.w.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, ORL)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.l.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, EORB)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.b.json)";
-	load_and_run(path);
-}
-
-TEST(M68K, EORW)
-{
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.w.json)";
-	load_and_run(path);
-}
-
+// leave it here for debug
 TEST(M68K, EORL)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.l.json)";

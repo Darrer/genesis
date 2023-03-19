@@ -51,6 +51,17 @@ inline void trim(std::string& str)
 	str.erase(std::find_if(str.rbegin(), str.rend(), not_space).base(), str.end());
 }
 
+inline void remove_ch(std::string& str, char ch_to_remove)
+{
+	auto pos = str.find_first_of(ch_to_remove);
+
+	while (pos != std::string::npos)
+	{
+		str.erase(pos, 1);
+		pos = str.find_first_of(ch_to_remove, pos);
+	}
+}
+
 } // namespace su
 
 #endif // __STRING_UTILS_HPP__
