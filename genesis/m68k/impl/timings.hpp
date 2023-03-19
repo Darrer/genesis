@@ -57,6 +57,14 @@ public:
 
 		return 2;
 	}
+	
+	static std::uint8_t adda(std::uint8_t opmode, const operand& op)
+	{
+		if(opmode == 0b011 || op.is_addr_reg() || op.is_data_reg() || op.is_imm())
+			return 4;
+
+		return 2;
+	}
 
 	/* SUB */
 	static constexpr auto sub = add;
@@ -82,6 +90,8 @@ public:
 		{
 		case inst_type::ADD:
 			return add(opmode, op);
+		case inst_type::ADDA:
+			return adda(opmode, op);
 		case inst_type::AND:
 			return and_op(opmode, op);
 		case inst_type::SUB:

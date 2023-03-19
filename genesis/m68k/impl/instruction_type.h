@@ -9,6 +9,7 @@ enum inst_type : std::uint8_t
 	ADD,
 	ADDI,
 	ADDQ,
+	ADDA,
 	SUB,
 	SUBI,
 	SUBQ,

@@ -93,6 +93,10 @@ private:
 		case inst_type::EOR:
 			alu_mode_handler();
 			break;
+		
+		case inst_type::ADDA:
+			alu_address_mode_handler();
+			break;
 
 		case inst_type::ADDI:
 		case inst_type::ANDI:
@@ -156,6 +160,38 @@ private:
 		case 2:
 			write_and_idle(dec.result().pointer().address, res, size);
 			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	void alu_address_mode_handler()
+	{
+		const std::uint8_t opmode = (opcode >> 6) & 0x7;
+		if(opmode != 0b011 && opmode != 0b111)
+			throw_invalid_opcode();
+
+		switch (exec_stage++)
+		{
+		case 0:
+			size = opmode == 0b011 ? 2 : 4;
+			decode_ea(pq.IRD & 0xFF, size);
+			break;
+
+		case 1:
+		{
+			auto& reg = regs.A((opcode >> 9) & 0x7);
+			auto op = dec.result();
+
+			wait_after_idle(timings::alu_mode(curr_inst, opmode, op));
+
+			res = operations::alu(curr_inst, op, reg.LW, size, regs.flags);
+
+			reg.LW = res;
+			prefetch_one_and_idle();
+
+			break;
+		}
 
 		default: throw internal_error();
 		}
@@ -263,6 +299,11 @@ private:
 		}
 	}
 
+	void store(address_register& a, std::uint32_t res)
+	{
+		a.LW = res;
+	}
+
 	void store(operand& op, std::uint8_t size, std::uint32_t res)
 	{
 		if(size == 1)
@@ -326,6 +367,8 @@ private:
 
 	inst_type decode_opcode(std::uint16_t opcode)
 	{
+		if((opcode >> 12) == 0b1101 && ((opcode >> 6) & 3) == 0b11)
+			return inst_type::ADDA;
 		if((opcode >> 12) == 0b1101)
 			return inst_type::ADD;
 		if((opcode >> 8) == 0b110)

@@ -25,6 +25,14 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t adda(T1 src, T2 dest, std::uint8_t size, status_register&)
+	{
+		if(size == 2)
+			return (std::int16_t)value(src, size) + value(dest, 4 /* always long word */);
+		return value(src, size) + value(dest, size);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t sub(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
 		return sub(value(a, size), value(b, size), size, sr);
@@ -58,6 +66,9 @@ public:
 		case inst_type::ADDI:
 		case inst_type::ADDQ:
 			return operations::add(a, b, size, sr);
+
+		case inst_type::ADDA:
+			return operations::adda(a, b, size, sr);
 
 		case inst_type::SUB:
 		case inst_type::SUBI:
