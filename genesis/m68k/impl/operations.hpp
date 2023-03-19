@@ -42,6 +42,12 @@ public:
 		return or_op(value(a, size), value(b, size), size, sr);
 	}
 
+	template<class T1, class T2>
+	static std::uint32_t eor(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	{
+		return eor(value(a, size), value(b, size), size, sr);
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -65,6 +71,10 @@ public:
 		case inst_type::OR:
 		case inst_type::ORI:
 			return operations::or_op(a, b, size, sr);
+
+		case inst_type::EOR:
+		case inst_type::EORI:
+			return operations::eor(a, b, size, sr);
 
 		default: throw internal_error();
 		}
@@ -143,6 +153,13 @@ private:
 	static std::uint32_t or_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
 		std::uint32_t res = a | b;
+		set_logical_flags(res, size, sr);
+		return res;
+	}
+
+	static std::uint32_t eor(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res = a ^ b;
 		set_logical_flags(res, size, sr);
 		return res;
 	}

@@ -18,7 +18,10 @@ public:
 	/* ADD */
 	static std::uint8_t add(std::uint8_t opmode, const operand& op)
 	{
-		if(opmode != 0b010)
+		if(opmode != 0b010 && opmode != 0b110)
+			return 0;
+
+		if(opmode == 0b110 && op.is_pointer())
 			return 0;
 
 		if(op.is_addr_reg() || op.is_data_reg() || op.is_imm())
@@ -68,6 +71,10 @@ public:
 	static constexpr auto or_op = add;
 	static constexpr auto ori = addi;
 
+	/* EOR */
+	static constexpr auto eor = add;
+	static constexpr auto eori = addi;
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
@@ -81,6 +88,8 @@ public:
 			return sub(opmode, op);
 		case inst_type::OR:
 			return or_op(opmode, op);
+		case inst_type::EOR:
+			return eor(opmode, op);
 
 		default: throw internal_error();
 		}
@@ -102,6 +111,8 @@ public:
 			return andi(size, op);
 		case inst_type::ORI:
 			return ori(size, op);
+		case inst_type::EORI:
+			return eori(size, op);
 
 		default: throw internal_error();
 		}

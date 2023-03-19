@@ -90,6 +90,7 @@ private:
 		case inst_type::SUB:
 		case inst_type::AND:
 		case inst_type::OR:
+		case inst_type::EOR:
 			alu_mode_handler();
 			break;
 
@@ -97,6 +98,7 @@ private:
 		case inst_type::ANDI:
 		case inst_type::SUBI:
 		case inst_type::ORI:
+		case inst_type::EORI:
 			alu_imm_handler();
 			break;
 
@@ -137,7 +139,15 @@ private:
 			else
 			{
 				res = operations::alu(curr_inst, op, reg, size, regs.flags);
-				prefetch_one();
+				if(op.is_pointer())
+				{
+					prefetch_one();
+				}
+				else
+				{
+					store(op, size, res);
+					prefetch_one_and_idle();
+				}
 			}
 
 			break;
@@ -336,6 +346,10 @@ private:
 			return inst_type::ORI;
 		if((opcode >> 12) == 0b1000)
 			return inst_type::OR;
+		if((opcode >> 12) == 0b1011)
+			return inst_type::EOR;
+		if((opcode >> 8) == 0b1010)
+			return inst_type::EORI;
 
 		throw not_implemented(std::to_string(opcode));
 	}

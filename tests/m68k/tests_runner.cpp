@@ -428,3 +428,21 @@ TEST(M68K, ORL)
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.l.json)";
 	load_and_run(path);
 }
+
+TEST(M68K, EORB)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.b.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, EORW)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.w.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, EORL)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.l.json)";
+	load_and_run(path);
+}
