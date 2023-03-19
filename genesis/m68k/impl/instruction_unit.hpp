@@ -1,5 +1,5 @@
-#ifndef __M68K_INSTRUCTION_HANDLER_HPP__
-#define __M68K_INSTRUCTION_HANDLER_HPP__
+#ifndef __M68K_INSTRUCTION_UNIT_HPP__
+#define __M68K_INSTRUCTION_UNIT_HPP__
 
 
 #include "base_unit.h"
@@ -20,7 +20,7 @@ namespace genesis::m68k
 #define throw_invalid_opcode() \
 	throw std::runtime_error(std::string("executioner::") + __func__ + " error: invalid opcode")
 
-class instruction_handler : public base_unit
+class instruction_unit : public base_unit
 {
 private:
 	enum inst_state : std::uint8_t
@@ -31,7 +31,7 @@ private:
 	};
 
 public:
-	instruction_handler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
+	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
 		: base_unit(regs, busm, pq), dec(busm, regs, pq)
 	{
 		reset();
@@ -369,4 +369,4 @@ private:
 
 }
 
-#endif // __M68K_INSTRUCTION_HANDLER_HPP__
+#endif // __M68K_INSTRUCTION_UNIT_HPP__
