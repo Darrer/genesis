@@ -36,6 +36,12 @@ public:
 		return and_op(value(a, size), value(b, size), size, sr);
 	}
 
+	template<class T1, class T2>
+	static std::uint32_t or_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	{
+		return or_op(value(a, size), value(b, size), size, sr);
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -55,6 +61,10 @@ public:
 		case inst_type::AND:
 		case inst_type::ANDI:
 			return operations::and_op(a, b, size, sr);
+
+		case inst_type::OR:
+		case inst_type::ORI:
+			return operations::or_op(a, b, size, sr);
 
 		default: throw internal_error();
 		}
@@ -126,25 +136,14 @@ private:
 	static std::uint32_t and_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
 		std::uint32_t res = a & b;
+		set_logical_flags(res, size, sr);
+		return res;
+	}
 
-		if(size == 1)
-		{
-			res = std::uint8_t(res);
-			sr.N = (std::int8_t)res < 0;
-		}
-		else if(size == 2)
-		{
-			res = std::uint16_t(res);
-			sr.N = (std::int16_t)res < 0;
-		}
-		else
-		{
-			sr.N = (std::int32_t)res < 0;
-		}
-
-		sr.C = sr.V = 0;
-		sr.Z = res == 0;
-
+	static std::uint32_t or_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res = a | b;
+		set_logical_flags(res, size, sr);
 		return res;
 	}
 
@@ -204,6 +203,27 @@ private:
 		return 0;
 	}
 
+	static void set_logical_flags(std::uint32_t res, std::uint8_t size, status_register& sr)
+	{
+		if(size == 1)
+		{
+			res = std::uint8_t(res);
+			sr.N = (std::int8_t)res < 0;
+		}
+		else if(size == 2)
+		{
+			res = std::uint16_t(res);
+			sr.N = (std::int16_t)res < 0;
+		}
+		else
+		{
+			sr.N = (std::int32_t)res < 0;
+		}
+
+		sr.C = sr.V = 0;
+		sr.Z = res == 0;
+	}
+
 private:
 	static std::uint32_t value(data_register reg, std::uint8_t size)
 	{
@@ -232,8 +252,8 @@ private:
 
 	static std::uint32_t value(operand& op, std::uint8_t size)
 	{
-		if(op.is_imm()) return op.imm();
-		if(op.is_pointer()) return op.pointer().value;
+		if(op.is_imm()) return value(op.imm(), size);
+		if(op.is_pointer()) return value(op.pointer().value, size);
 		if(op.is_data_reg()) return value(op.data_reg(), size);
 		if(op.is_addr_reg()) return value(op.addr_reg(), size);
 

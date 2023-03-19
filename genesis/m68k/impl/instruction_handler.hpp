@@ -89,12 +89,14 @@ private:
 		case inst_type::ADD:
 		case inst_type::SUB:
 		case inst_type::AND:
+		case inst_type::OR:
 			alu_mode_handler();
 			break;
 
 		case inst_type::ADDI:
 		case inst_type::ANDI:
 		case inst_type::SUBI:
+		case inst_type::ORI:
 			alu_imm_handler();
 			break;
 
@@ -330,6 +332,10 @@ private:
 			return inst_type::SUB;
 		if((opcode >> 8) == 0b100)
 			return inst_type::SUBI;
+		if((opcode >> 8) == 0)
+			return inst_type::ORI;
+		if((opcode >> 12) == 0b1000)
+			return inst_type::OR;
 
 		throw not_implemented(std::to_string(opcode));
 	}

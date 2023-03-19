@@ -64,6 +64,9 @@ public:
 	static constexpr auto and_op = add;
 	static constexpr auto andi = addi;
 
+	/* OR */
+	static constexpr auto or_op = add;
+	static constexpr auto ori = addi;
 
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
@@ -76,6 +79,8 @@ public:
 			return and_op(opmode, op);
 		case inst_type::SUB:
 			return sub(opmode, op);
+		case inst_type::OR:
+			return or_op(opmode, op);
 
 		default: throw internal_error();
 		}
@@ -95,6 +100,8 @@ public:
 			return subq(size, op);
 		case inst_type::ANDI:
 			return andi(size, op);
+		case inst_type::ORI:
+			return ori(size, op);
 
 		default: throw internal_error();
 		}

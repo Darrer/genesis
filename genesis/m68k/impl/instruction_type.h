@@ -9,11 +9,13 @@ enum inst_type : std::uint8_t
 	ADD,
 	ADDI,
 	ADDQ,
-	AND,
-	ANDI,
 	SUB,
 	SUBI,
 	SUBQ,
+	AND,
+	ANDI,
+	OR,
+	ORI,
 };
 
 }

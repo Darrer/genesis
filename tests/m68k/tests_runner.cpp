@@ -75,15 +75,16 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 	check_eq(state.A6, regs.A6.LW);
 
 	check_eq(state.USP, regs.USP.LW);
+	// TODO: SSP?
 	check_eq(state.SR, regs.SR);
 	check_eq(state.PC, regs.PC);
 
 	// check ram
 	auto& mem = cpu.memory();
-	for(const auto& ram : state.ram)
+	for(auto [addr, value] : state.ram)
 	{
-		auto actual = mem.read<std::uint8_t>(ram.address);
-		check_eq(ram.value, actual) << "RAM assert failed at " << ram.address;
+		auto actual = mem.read<std::uint8_t>(addr);
+		check_eq(value, actual) << "RAM assert failed at " << addr;
 	}
 
 	// check prefetch queue
@@ -207,6 +208,7 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 	using namespace m68k;
 
 	run_result res;
+	res.transitions.reserve(16);
 
 	bool in_bus_cycle = false;
 	std::uint16_t cycles_in_curr_trans = 0;
@@ -406,5 +408,23 @@ TEST(M68K, SUBW)
 TEST(M68K, SUBL)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.l.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ORB)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.b.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ORW)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.w.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, ORL)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\OR\OR.l.json)";
 	load_and_run(path);
 }
