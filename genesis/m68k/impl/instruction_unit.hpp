@@ -95,6 +95,7 @@ private:
 			break;
 		
 		case inst_type::ADDA:
+		case inst_type::SUBA:
 			alu_address_mode_handler();
 			break;
 
@@ -381,6 +382,8 @@ private:
 			return inst_type::ANDI;
 		if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 1)
 			return inst_type::SUBQ;
+		if((opcode >> 12) == 0b1001 && ((opcode >> 6) & 3) == 0b11)
+			return inst_type::SUBA;
 		if((opcode >> 12) == 0b1001)
 			return inst_type::SUB;
 		if((opcode >> 8) == 0b100)

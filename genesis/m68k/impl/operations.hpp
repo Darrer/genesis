@@ -39,6 +39,14 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t suba(T1 src, T2 dest, std::uint8_t size, status_register&)
+	{
+		if(size == 2)
+			return value(dest, 4 /* always long word */) - (std::int16_t)value(src, size);
+		return value(dest, size) - value(src, size);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t and_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
 		return and_op(value(a, size), value(b, size), size, sr);
@@ -74,6 +82,9 @@ public:
 		case inst_type::SUBI:
 		case inst_type::SUBQ:
 			return operations::sub(a, b, size, sr);
+
+		case inst_type::SUBA:
+			return operations::suba(a, b, size, sr);
 
 		case inst_type::AND:
 		case inst_type::ANDI:

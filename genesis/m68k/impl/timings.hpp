@@ -70,6 +70,7 @@ public:
 	static constexpr auto sub = add;
 	static constexpr auto subi = addi;
 	static constexpr auto subq = addq;
+	static constexpr auto suba = adda;
 
 	/* AND */
 	static constexpr auto and_op = add;
@@ -96,6 +97,8 @@ public:
 			return and_op(opmode, op);
 		case inst_type::SUB:
 			return sub(opmode, op);
+		case inst_type::SUBA:
+			return suba(opmode, op);
 		case inst_type::OR:
 			return or_op(opmode, op);
 		case inst_type::EOR:

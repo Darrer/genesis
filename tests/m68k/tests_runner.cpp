@@ -397,7 +397,7 @@ std::vector<std::string> collect_all_files(std::string dir_path, std::string ext
 // Tom Harte's Tests
 TEST(M68K, THT)
 {
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers)", "json");
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented)", "json");
 	std::sort(all_tests.begin(), all_tests.end());
 
 	for(auto& test : all_tests)

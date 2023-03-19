@@ -13,6 +13,7 @@ enum inst_type : std::uint8_t
 	SUB,
 	SUBI,
 	SUBQ,
+	SUBA,
 	AND,
 	ANDI,
 	OR,
