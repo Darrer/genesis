@@ -390,3 +390,21 @@ TEST(M68K, ANDL)
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\AND\AND.l.json)";
 	load_and_run(path);
 }
+
+TEST(M68K, SUBB)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.b.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, SUBW)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.w.json)";
+	load_and_run(path);
+}
+
+TEST(M68K, SUBL)
+{
+	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\SUB\SUB.l.json)";
+	load_and_run(path);
+}

@@ -2,6 +2,7 @@
 #define __M68K_TIMINGS_HPP__
 
 #include <cstdint>
+#include "instruction_type.h"
 #include "ea_decoder.hpp"
 
 namespace genesis::m68k
@@ -54,9 +55,50 @@ public:
 		return 2;
 	}
 
+	/* SUB */
+	static constexpr auto sub = add;
+	static constexpr auto subi = addi;
+	static constexpr auto subq = addq;
+
 	/* AND */
 	static constexpr auto and_op = add;
 	static constexpr auto andi = addi;
+
+
+	/* helpers */
+	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
+	{
+		switch (inst)
+		{
+		case inst_type::ADD:
+			return add(opmode, op);
+		case inst_type::AND:
+			return and_op(opmode, op);
+		case inst_type::SUB:
+			return sub(opmode, op);
+
+		default: throw internal_error();
+		}
+	}
+
+	static std::uint8_t alu_size(inst_type inst, std::uint8_t size, const operand& op)
+	{
+		switch (inst)
+		{
+		case inst_type::ADDI:
+			return addi(size, op);
+		case inst_type::ADDQ:
+			return addq(size, op);
+		case inst_type::SUBI:
+			return subi(size, op);
+		case inst_type::SUBQ:
+			return subq(size, op);
+		case inst_type::ANDI:
+			return andi(size, op);
+
+		default: throw internal_error();
+		}
+	}
 };
 
 }

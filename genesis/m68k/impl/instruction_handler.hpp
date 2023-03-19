@@ -1,10 +1,13 @@
 #ifndef __M68K_INSTRUCTION_HANDLER_HPP__
 #define __M68K_INSTRUCTION_HANDLER_HPP__
 
+
 #include "base_unit.h"
+#include "instruction_type.h"
 #include "ea_decoder.hpp"
 #include "timings.hpp"
 #include "operations.hpp"
+
 
 #include "exception.hpp"
 
@@ -52,6 +55,7 @@ protected:
 		{
 		case IDLE:
 			opcode = pq.IRD;
+			curr_inst = decode_opcode(opcode);
 			regs.PC += 2;
 			state = EXECUTING;
 			execute();
@@ -80,29 +84,35 @@ protected:
 private:
 	void execute()
 	{
-		if((opcode >> 12) == 0b1101)
-			exec_add();
-		else if((opcode >> 8) == 0b110)
-			exec_addi();
-		else if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 0)
-			exec_addq();
-		else if((opcode >> 12) == 0b1100)
-			exec_and();
-		else if((opcode >> 8) == 0b10)
-			exec_andi();
-		else
-			throw not_implemented(std::to_string(opcode));
+		switch (curr_inst)
+		{
+		case inst_type::ADD:
+		case inst_type::SUB:
+		case inst_type::AND:
+			alu_mode_handler();
+			break;
+
+		case inst_type::ADDI:
+		case inst_type::ANDI:
+		case inst_type::SUBI:
+			alu_imm_handler();
+			break;
+
+		case inst_type::ADDQ:
+		case inst_type::SUBQ:
+			alu_quick_handler();
+			break;
+
+		default: throw internal_error();
+		}
 	}
 
-	void exec_add()
+	void alu_mode_handler()
 	{
-		// std::cout << "exec_add" << std::endl;
-
-		const std::uint8_t size = dec_size(opcode >> 6);
-
 		switch (exec_stage++)
 		{
 		case 0:
+			size = dec_size(opcode >> 6);
 			decode_ea(pq.IRD & 0xFF, size);
 			break;
 
@@ -111,20 +121,20 @@ private:
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
-			res = operations::add(reg, op, size, regs.flags);
-
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
 
-			wait_after_idle(timings::add(opmode, op));
+			wait_after_idle(timings::alu_mode(curr_inst, opmode, op));
 
 			// std::cout << "opmode: " << su::bin_str(opmode) << std::endl;
 			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
 			{
+				res = operations::alu(curr_inst, reg, op, size, regs.flags);
 				store(reg, size, res);
 				prefetch_one_and_idle();
 			}
 			else
 			{
+				res = operations::alu(curr_inst, op, reg, size, regs.flags);
 				prefetch_one();
 			}
 
@@ -139,15 +149,12 @@ private:
 		}
 	}
 
-	void exec_addi()
+	void alu_imm_handler()
 	{
-		// std::cout << "exec_addi" << std::endl;
-
-		const std::uint8_t size = dec_size(opcode >> 6);
-
 		switch (exec_stage++)
 		{
 		case 0:
+			size = dec_size(opcode >> 6);
 			read_imm(size);
 			break;
 
@@ -159,9 +166,9 @@ private:
 		{
 			auto op = dec.result();
 
-			res = operations::add(imm, op, size, regs.flags);
+			res = operations::alu(curr_inst, op, imm, size, regs.flags);
 
-			wait_after_idle(timings::addi(size, op));
+			wait_after_idle(timings::alu_size(curr_inst, size, op));
 
 			if(op.is_pointer())
 			{
@@ -184,15 +191,12 @@ private:
 		}
 	}
 
-	void exec_addq()
+	void alu_quick_handler()
 	{
-		const std::uint8_t size = dec_size(opcode >> 6);
-
-		// std::cout << "exec_addq" << std::endl;
-
 		switch (exec_stage++)
 		{
 		case 0:
+			size = dec_size(opcode >> 6);
 			decode_ea(pq.IRD & 0xFF, size);
 			break;
 
@@ -203,11 +207,11 @@ private:
 
 			auto op = dec.result();
 
-			res = operations::add(data, op, size, flags);
+			res = operations::alu(curr_inst, op, data, size, flags);
 			if(!op.is_addr_reg())
 				update_user_bits(flags);
 
-			wait_after_idle(timings::addq(size, op));
+			wait_after_idle(timings::alu_size(curr_inst, size, op));
 
 			if(op.is_pointer())
 			{
@@ -223,88 +227,6 @@ private:
 		}
 
 		case 2:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
-
-		default: throw internal_error();
-		}
-	}
-
-	void exec_and()
-	{
-		switch (exec_stage++)
-		{
-		case 0:
-			size = dec_size(opcode >> 6);
-			decode_ea(pq.IRD & 0xFF, size);
-			break;
-		
-		case 1:
-		{
-			auto& reg = regs.D((opcode >> 9) & 0x7);
-			auto op = dec.result();
-
-			res = operations::and_op(reg, op, size, regs.flags);
-
-			const std::uint8_t opmode = (opcode >> 6) & 0x7;
-			wait_after_idle(timings::and_op(opmode, op));
-
-			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
-			{
-				store(reg, size, res);
-				prefetch_one_and_idle();
-			}
-			else
-			{
-				prefetch_one();
-			}
-
-			break;
-		}
-
-		case 2:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
-
-		default: throw internal_error();
-		}
-	}
-
-	void exec_andi()
-	{
-		switch (exec_stage++)
-		{
-		case 0:
-			size = dec_size(opcode >> 6);
-			read_imm(size);
-			break;
-
-		case 1:
-			decode_ea(pq.IRD & 0xFF, size);
-			break;
-
-		case 2:
-		{
-			auto op = dec.result();
-
-			res = operations::and_op(imm, op, size, regs.flags);
-
-			wait_after_idle(timings::andi(size, op));
-
-			if(op.is_pointer())
-			{
-				prefetch_one();
-			}
-			else
-			{
-				store(op, size, res);
-				prefetch_one_and_idle();
-			}
-
-			break;
-		}
-
-		case 3:
 			write_and_idle(dec.result().pointer().address, res, size);
 			break;
 
@@ -390,10 +312,33 @@ private:
 		throw_invalid_opcode();
 	}
 
+	inst_type decode_opcode(std::uint16_t opcode)
+	{
+		if((opcode >> 12) == 0b1101)
+			return inst_type::ADD;
+		if((opcode >> 8) == 0b110)
+			return inst_type::ADDI;
+		if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 0)
+			return inst_type::ADDQ;
+		if((opcode >> 12) == 0b1100)
+			return inst_type::AND;
+		if((opcode >> 8) == 0b10)
+			return inst_type::ANDI;
+		if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 1)
+			return inst_type::SUBQ;
+		if((opcode >> 12) == 0b1001)
+			return inst_type::SUB;
+		if((opcode >> 8) == 0b100)
+			return inst_type::SUBI;
+
+		throw not_implemented(std::to_string(opcode));
+	}
+
 private:
 	m68k::ea_decoder dec;
 
 	std::uint16_t opcode = 0;
+	inst_type curr_inst;
 	std::uint32_t res = 0;
 	std::uint8_t size = 0;
 	status_register flags;

@@ -3,6 +3,7 @@
 
 #include <limits>
 
+#include "instruction_type.h"
 #include "m68k/cpu_registers.hpp"
 #include "ea_decoder.hpp"
 
@@ -17,24 +18,46 @@ class operations
 public:
 	operations() = delete;
 
-	static std::uint32_t add(data_register& reg, operand& op, std::uint8_t size, status_register& sr)
+	template<class T1, class T2>
+	static std::uint32_t add(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
-		return add(value(reg, size), value(op, size), size, sr);
+		return add(value(a, size), value(b, size), size, sr);
 	}
 
-	static std::uint32_t add(std::uint32_t val, operand& op, std::uint8_t size, status_register& sr)
+	template<class T1, class T2>
+	static std::uint32_t sub(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
-		return add(val, value(op, size), size, sr);
+		return sub(value(a, size), value(b, size), size, sr);
 	}
 
-	static std::uint32_t and_op(data_register& reg, operand& op, std::uint8_t size, status_register& sr)
+	template<class T1, class T2>
+	static std::uint32_t and_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
-		return and_op(value(reg, size), value(op, size), size, sr);
+		return and_op(value(a, size), value(b, size), size, sr);
 	}
 
-	static std::uint32_t and_op(std::uint32_t val, operand& op, std::uint8_t size, status_register& sr)
+	/* helpers */
+	template<class T1, class T2>
+	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
-		return and_op(val, value(op, size), size, sr);
+		switch (inst)
+		{
+		case inst_type::ADD:
+		case inst_type::ADDI:
+		case inst_type::ADDQ:
+			return operations::add(a, b, size, sr);
+
+		case inst_type::SUB:
+		case inst_type::SUBI:
+		case inst_type::SUBQ:
+			return operations::sub(a, b, size, sr);
+
+		case inst_type::AND:
+		case inst_type::ANDI:
+			return operations::and_op(a, b, size, sr);
+
+		default: throw internal_error();
+		}
 	}
 
 private:
@@ -61,6 +84,37 @@ private:
 			res = a + b;
 			sr.V = check_overflow_add<std::int32_t>(a, b);
 			sr.C = check_carry<std::uint32_t>(a, b);
+			sr.N = (std::int32_t)res < 0;
+		}
+
+		sr.X = sr.C;
+		sr.Z = res == 0;
+		return res;
+	}
+
+	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res;
+
+		if(size == 1)
+		{
+			res = std::uint8_t(a - b);
+			sr.V = check_overflow_sub<std::int8_t>(a, b);
+			sr.C = check_borrow<std::uint8_t>(a, b);
+			sr.N = (std::int8_t)res < 0;
+		}
+		else if(size == 2)
+		{
+			res = std::uint16_t(a - b);
+			sr.V = check_overflow_sub<std::int16_t>(a, b);
+			sr.C = check_borrow<std::uint16_t>(a, b);
+			sr.N = (std::int16_t)res < 0;
+		}
+		else
+		{
+			res = a - b;
+			sr.V = check_overflow_sub<std::int32_t>(a, b);
+			sr.C = check_borrow<std::uint32_t>(a, b);
 			sr.N = (std::int32_t)res < 0;
 		}
 
@@ -122,8 +176,36 @@ private:
 		return 0;
 	}
 
+	template <class T>
+	static std::uint8_t check_overflow_sub(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == true);
+
+		auto diff = (std::int64_t)a - (std::int64_t)b - c;
+
+		if (diff > std::numeric_limits<T>::max())
+			return 1;
+
+		if (diff < std::numeric_limits<T>::min())
+			return 1;
+
+		return 0;
+	}
+
+	template <class T>
+	static std::uint8_t check_borrow(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+
+		auto sum = (std::int64_t)b + c;
+		if (sum > a)
+			return 1;
+
+		return 0;
+	}
+
 private:
-	static std::uint32_t value(data_register& reg, std::uint8_t size)
+	static std::uint32_t value(data_register reg, std::uint8_t size)
 	{
 		if(size == 1)
 			return reg.B;
@@ -133,39 +215,27 @@ private:
 			return reg.LW;
 	}
 
+	static std::uint32_t value(address_register reg, std::uint8_t size)
+	{
+		if(size == 2)
+			return reg.W;
+		else if(size == 4)
+			return reg.LW;
+		
+		throw internal_error();
+	}
+
+	static std::uint32_t value(std::uint32_t val, std::uint8_t /* size */)
+	{
+		return val;
+	}
+
 	static std::uint32_t value(operand& op, std::uint8_t size)
 	{
-		if(size == 1)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().B;
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
-		else if(size == 2)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().W;
-			else if(op.is_addr_reg())
-				return op.addr_reg().W;
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
-		else if(size == 4)
-		{
-			if(op.is_data_reg())
-				return op.data_reg().LW;
-			else if(op.is_addr_reg())
-				return op.addr_reg().LW;
-			else if(op.is_imm())
-				return op.imm();
-			else if(op.is_pointer())
-				return op.pointer().value;
-		}
+		if(op.is_imm()) return op.imm();
+		if(op.is_pointer()) return op.pointer().value;
+		if(op.is_data_reg()) return value(op.data_reg(), size);
+		if(op.is_addr_reg()) return value(op.addr_reg(), size);
 
 		throw internal_error();
 	}

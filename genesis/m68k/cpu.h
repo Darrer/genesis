@@ -5,9 +5,10 @@
 #include "cpu_bus.hpp"
 #include "cpu_memory.h"
 
+#include "impl/base_unit.h"
+
 #include "impl/bus_manager.hpp"
 #include "impl/prefetch_queue.hpp"
-#include "impl/instruction_handler.hpp"
 #include "impl/exception_handler.hpp"
 
 #include <memory>
@@ -35,7 +36,7 @@ protected:
 
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
-	std::unique_ptr<m68k::instruction_handler> inst_handler;
+	std::unique_ptr<m68k::base_unit> inst_unit;
 	std::unique_ptr<m68k::exception_handler> excp_handler;
 };
 
