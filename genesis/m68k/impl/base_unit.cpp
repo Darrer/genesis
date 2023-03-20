@@ -125,7 +125,7 @@ void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
 		if(cb) cb();
 	};
 
-	busm.init_read_byte(addr, on_complete);
+	busm.init_read_byte(addr, addr_space::DATA, on_complete);
 	state = WAITING_RW;
 }
 
@@ -137,7 +137,7 @@ void base_unit::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 		if(cb) cb();
 	};
 
-	busm.init_read_word(addr, on_complete);
+	busm.init_read_word(addr, addr_space::DATA, on_complete);
 	state = WAITING_RW;
 }
 
@@ -159,10 +159,10 @@ void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 		data = data << 16;
 
 		// read LSW
-		busm.init_read_word(addr + 2, on_read_lsw);
+		busm.init_read_word(addr + 2, addr_space::DATA, on_read_lsw);
 	};
 
-	busm.init_read_word(addr, on_read_msw);
+	busm.init_read_word(addr, addr_space::DATA, on_read_msw);
 	state = WAITING_RW;
 }
 
@@ -180,7 +180,7 @@ void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 			prefetch_irc();
 		};
 
-		busm.init_read_word(regs.PC, on_complete);
+		busm.init_read_word(regs.PC, addr_space::PROGRAM, on_complete);
 		state = WAITING_RW;
 	}
 	else

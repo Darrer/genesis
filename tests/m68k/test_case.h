@@ -26,8 +26,8 @@ public:
 public:
 	bool operator==(const rw_transition& other) const
 	{
-		// NOTE: ignore func_code for now
-		return address == other.address && word_access == other.word_access && data == other.data;
+		return address == other.address && word_access == other.word_access
+			&& data == other.data && func_code == other.func_code;
 	}
 
 	bool operator!=(const rw_transition& other) const

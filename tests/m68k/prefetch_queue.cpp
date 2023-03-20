@@ -1,18 +1,19 @@
 #include <gtest/gtest.h>
 
+#include "test_cpu.hpp"
 #include "m68k/impl/prefetch_queue.hpp"
-#include "m68k/impl/bus_manager.hpp"
-#include "m68k/cpu_registers.hpp"
+// #include "m68k/impl/bus_manager.hpp"
+// #include "m68k/cpu_registers.hpp"
 
 
 using namespace genesis;
 
 #define setup_test() \
-	m68k::cpu_bus bus; \
-	auto mem = std::make_shared<m68k::memory>(); \
-	m68k::bus_manager busm(bus, *mem); \
-	m68k::cpu_registers regs; \
-	m68k::prefetch_queue pq(busm, regs)
+	[[maybe_unused]] test::test_cpu cpu; \
+	[[maybe_unused]] auto& mem = cpu.memory(); \
+	[[maybe_unused]] auto& regs = cpu.registers(); \
+	[[maybe_unused]] auto& busm = cpu.bus_manager(); \
+	[[maybe_unused]] auto& pq = cpu.prefetch_queue();
 
 
 std::uint32_t wait_idle(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
@@ -57,7 +58,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
-	mem->write(regs.PC + 2, val);
+	mem.write(regs.PC + 2, val);
 
 	auto actual_fetch_cycles = fetch_one(pq, busm);
 
@@ -80,7 +81,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
-	mem->write(regs.PC + 2, val);
+	mem.write(regs.PC + 2, val);
 
 	auto actual_fetch_cycles = fetch_irc(pq, busm);
 
@@ -100,8 +101,8 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
 	regs.PC = 0x101;
 	std::uint16_t val = 42240;
 	std::uint16_t val2 = 11666;
-	mem->write(regs.PC, val);
-	mem->write(regs.PC + 2, val2);
+	mem.write(regs.PC, val);
+	mem.write(regs.PC + 2, val2);
 
 	auto actual_fetch_cycles = fetch_two(pq, busm);
 

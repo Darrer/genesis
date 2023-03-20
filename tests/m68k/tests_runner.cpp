@@ -122,7 +122,7 @@ std::string bus_transition_to_str(const bus_transition& trans)
 	if(trans.type != trans_type::IDLE)
 	{
 		const rw_transition& rw = trans.rw_trans();
-		// ss << ", " << (int)rw.func_code; // TODO
+		ss << ", " << (int)rw.func_code;
 		ss << ", " << (int)rw.address;
 		ss << ", " << (rw.word_access ? ".w" : ".b");
 		ss << ", " << (int)rw.data;
@@ -231,7 +231,16 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
 			rw_trans.address = bus.address();
 			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
-			rw_trans.func_code = 0; // TODO
+
+			std::uint8_t func_codes = 0;
+			if(bus.is_set(bus::FC2))
+				func_codes |= 0b100;
+			if(bus.is_set(bus::FC1))
+				func_codes |= 0b010;
+			if(bus.is_set(bus::FC0))
+				func_codes |= 0b001;
+
+			rw_trans.func_code = func_codes;
 
 			if(rw_trans.word_access)
 				rw_trans.data = bus.data();

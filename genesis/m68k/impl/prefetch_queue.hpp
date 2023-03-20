@@ -42,7 +42,7 @@ public:
 	{
 		assert_idle("init_fetch_one");
 
-		busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 		state = FETCH_ONE;
 	}
 
@@ -52,7 +52,7 @@ public:
 	{
 		assert_idle("init_fetch_two");
 
-		busm.init_read_word(regs.PC);
+		busm.init_read_word(regs.PC, addr_space::PROGRAM);
 		state = FETCH_TWO;
 	}
 
@@ -62,7 +62,7 @@ public:
 	{
 		assert_idle("init_fetch_irc");
 
-		busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 		state = FETCH_IRC;
 	}
 
@@ -83,7 +83,7 @@ public:
 			if(busm.is_idle())
 			{
 				on_read_finished();
-				busm.init_read_word(regs.PC + 2, [&](){ on_complete(); });
+				busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 				state = FETCH_ONE;
 			}
 			break;

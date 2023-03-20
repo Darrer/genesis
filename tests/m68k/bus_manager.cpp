@@ -29,13 +29,13 @@ std::uint32_t wait_idle(m68k::bus_manager& busm)
 
 std::uint32_t read_byte(m68k::bus_manager& busm, std::uint32_t addr)
 {
-	busm.init_read_byte(addr);
+	busm.init_read_byte(addr, m68k::addr_space::DATA);
 	return wait_idle(busm);
 }
 
 std::uint32_t read_word(m68k::bus_manager& busm, std::uint32_t addr)
 {
-	busm.init_read_word(addr);
+	busm.init_read_word(addr, m68k::addr_space::DATA);
 	return wait_idle(busm);
 }
 
@@ -158,11 +158,11 @@ TEST(M68K_BUS_MANAGER, INTERRUPT_CYCLE_THROW)
 	// assert initial state
 	ASSERT_TRUE(busm.is_idle());
 
-	busm.init_read_byte(0x100);
+	busm.init_read_byte(0x100, m68k::addr_space::DATA);
 
 	// should not allow to start new bus cycle while in the middle of the other
-	ASSERT_THROW(busm.init_read_byte(0x101), std::runtime_error);
-	ASSERT_THROW(busm.init_read_word(0x101), std::runtime_error);
+	ASSERT_THROW(busm.init_read_byte(0x101, m68k::addr_space::DATA), std::runtime_error);
+	ASSERT_THROW(busm.init_read_word(0x101, m68k::addr_space::DATA), std::runtime_error);
 	ASSERT_THROW(busm.init_write(0x101, (std::uint16_t)0x101), std::runtime_error);
 
 	// should not allow to get letched data while in the middle of a cycle
@@ -202,9 +202,9 @@ bus_state read_and_track(std::uint32_t addr, T val_to_write)
 	mem.write(addr, val_to_write);
 
 	if constexpr (sizeof(T) == 1)
-		busm.init_read_byte(addr);
+		busm.init_read_byte(addr, m68k::addr_space::DATA);
 	else
-		busm.init_read_word(addr);
+		busm.init_read_word(addr, m68k::addr_space::DATA);
 
 	std::uint32_t cycle = 0;
 	bus_state bs;
