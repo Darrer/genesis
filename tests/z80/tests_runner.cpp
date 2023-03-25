@@ -111,7 +111,7 @@ private:
 };
 
 
-void report_results(int cycles, int num_succeded, int num_failed)
+void report_results(unsigned long long cycles, int num_succeded, int num_failed)
 {
 	std::cout << "Z80 Test complete, succeeded: " << num_succeded << ", failed: " << num_failed
 			  << ", cycles: " << cycles << std::endl;

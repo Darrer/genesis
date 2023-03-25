@@ -65,7 +65,7 @@ private:
 	std::optional<std::reference_wrapper<address_register>> _addr_reg;
 	std::optional<std::reference_wrapper<data_register>> _data_reg;
 	std::optional<std::uint32_t> _imm;
-	std::optional<class operand::pointer> _ptr;
+	std::optional<struct operand::pointer> _ptr;
 };
 
 

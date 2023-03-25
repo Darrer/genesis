@@ -181,7 +181,7 @@ public:
 
 			// emulate write
 			if(byte_op)
-				mem.write<std::uint8_t>(bus.address(), data_to_write);
+				mem.write<std::uint8_t>(bus.address(), data_to_write & 0xFF);
 			else
 				mem.write<std::uint16_t>(bus.address(), data_to_write);
 

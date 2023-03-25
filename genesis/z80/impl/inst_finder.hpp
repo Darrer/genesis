@@ -93,7 +93,7 @@ private:
 				idx = no_index;
 		}
 
-		for (size_t i = 0; i < std::size(instructions); ++i)
+		for (std::uint16_t i = 0; i < std::size(instructions); ++i)
 		{
 			auto& inst = instructions[i];
 			switch (inst.opcodes[0])

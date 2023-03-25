@@ -35,7 +35,7 @@ TEST(Memory, ReadWrite)
 
 	auto test_mem = [&test_read_write](auto mem) {
 		mem_addr addr = 0x0;
-		for (size_t i = 0; i < 10; ++i)
+		for (mem_addr i = 0; i < 10; ++i)
 		{
 			test_read_write(mem, addr, std::uint8_t(0xAF));
 			test_read_write(mem, addr, std::uint16_t(0xAF91));

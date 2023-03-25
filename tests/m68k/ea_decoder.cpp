@@ -47,7 +47,7 @@ TEST(M68K_EA_DECODER, MODE_000)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t data_mode = 0;
-	for(std::size_t i = 0; i < num_regs; ++i)
+	for(std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = data_mode + i;
 		decode(cpu, dec, ea, 1, { 0x0 });
@@ -66,7 +66,7 @@ TEST(M68K_EA_DECODER, MODE_001)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t addr_mode = 1 << 3;
-	for(std::size_t i = 0; i < num_regs; ++i)
+	for(std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = addr_mode + i;
 		decode(cpu, dec, ea, 1, { 0x0 });

@@ -5,6 +5,8 @@
 #include "z80/cpu.h"
 #include "z80/cpu_registers.hpp"
 
+#include "exception.hpp"
+
 #include <cstdint>
 
 
@@ -12,8 +14,7 @@ namespace genesis::z80
 {
 
 #define unsupported_addresing_mode(addr_mode)                                                                          \
-	throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + " error: unsupported addressing mode " +               \
-							 std::to_string(addr_mode))
+	throw internal_error("unsupported addressing mode " + std::to_string(addr_mode)) \
 
 class decoder
 {

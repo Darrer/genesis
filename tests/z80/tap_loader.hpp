@@ -156,7 +156,7 @@ void load_tap(std::string tap_path, genesis::z80::cpu& cpu)
 					{
 						auto& mem = cpu.memory();
 						genesis::z80::memory::address base = header.param1;
-						for (std::size_t j = 0; j < next_block.data.size(); ++j)
+						for (std::uint16_t j = 0; j < next_block.data.size(); ++j)
 						{
 							mem.write(base + j, next_block.data[j]);
 						}

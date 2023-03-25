@@ -615,7 +615,7 @@ public:
 	{
 		std::uint16_t _hl = regs.main_set.HL;
 		std::uint16_t _src = src;
-		std::uint16_t c = regs.main_set.flags.C;
+		std::uint8_t c = regs.main_set.flags.C;
 
 		auto& flags = regs.main_set.flags;
 
@@ -635,7 +635,7 @@ public:
 	{
 		std::uint16_t _hl = regs.main_set.HL;
 		std::uint16_t _src = src;
-		std::uint16_t c = regs.main_set.flags.C;
+		std::uint8_t c = regs.main_set.flags.C;
 
 		auto& flags = regs.main_set.flags;
 

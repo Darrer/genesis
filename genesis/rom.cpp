@@ -125,16 +125,20 @@ public:
 		return body;
 	}
 
-} bin_rom_parser;
+};
 
 
-static auto registered_parsers = {bin_rom_parser};
-
-
-const rom_parser* find_parser(const std::string& extention)
+// static rom_parser* registered_parsers = { new bin_rom_parser()};
+std::array<std::shared_ptr<rom_parser>, 1> registered_parsers = 
 {
-	auto is_support_ext = [&](const rom_parser& p) {
-		auto ext = p.supported_extentions();
+	std::make_shared<bin_rom_parser>()
+};
+
+
+const std::shared_ptr<rom_parser> find_parser(const std::string& extention)
+{
+	auto is_support_ext = [&](auto p) {
+		auto ext = p->supported_extentions();
 		return std::find(ext.begin(), ext.end(), extention) != ext.end();
 	};
 
@@ -142,7 +146,7 @@ const rom_parser* find_parser(const std::string& extention)
 
 	if (it == registered_parsers.end())
 		return nullptr;
-	return &(*it);
+	return *it;
 }
 
 
