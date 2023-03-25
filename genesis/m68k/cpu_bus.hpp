@@ -74,6 +74,22 @@ public:
 	void data(std::uint16_t val) { data_bus = val; }
 	std::uint16_t data() const { return data_bus; }
 
+	void func_codes(std::uint8_t fc)
+	{
+		if(fc & 0b001) set(bus::FC0);
+		if(fc & 0b010) set(bus::FC1);
+		if(fc & 0b100) set(bus::FC2);
+	}
+
+	std::uint8_t func_codes() const
+	{
+		std::uint8_t func_codes = 0;
+		if(is_set(bus::FC0)) func_codes |= 0b001;
+		if(is_set(bus::FC1)) func_codes |= 0b010;
+		if(is_set(bus::FC2)) func_codes |= 0b100;
+		return func_codes;
+	}
+
 private:
 	std::uint32_t addr_bus = 0;
 	std::uint16_t data_bus = 0;

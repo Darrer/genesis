@@ -38,7 +38,7 @@ protected:
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
 	std::unique_ptr<m68k::base_unit> inst_unit;
-	std::unique_ptr<m68k::exception_unit> excp_handler;
+	std::unique_ptr<m68k::exception_unit> excp_unit;
 	exception_manager exman;
 };
 

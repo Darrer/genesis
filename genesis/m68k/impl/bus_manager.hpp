@@ -116,12 +116,6 @@ public:
 
 		/* bus ready cycle */
 		case READ0:
-			set_func_codes();
-			bus.set(bus::RW);
-			bus.address(address);
-			state = READ1; break;
-
-		case READ1:
 			// check for address error
 			if(should_rise_address_error())
 			{
@@ -129,6 +123,12 @@ public:
 				break;
 			}
 
+			set_func_codes();
+			bus.set(bus::RW);
+			bus.address(address);
+			state = READ1; break;
+
+		case READ1:
 			bus.set(bus::AS);
 			set_data_strobe_bus();
 			state = READ2; break;
@@ -265,6 +265,18 @@ private:
 		bus.data(data);
 	}
 
+	std::uint8_t gen_func_codes() const
+	{
+		std::uint8_t func_codes = 0;
+		if(space == addr_space::DATA)
+			func_codes |= 1;
+		if(space == addr_space::PROGRAM)
+			func_codes |= 1 << 1;
+		if(regs.flags.S)
+			func_codes |= 1 << 2;
+		return func_codes;
+	}
+
 	void set_func_codes()
 	{
 		clear_funcs_codes();
@@ -286,18 +298,18 @@ private:
 
 	bool should_rise_address_error() const
 	{
-		return !byte_op && (bus.address() % 2) == 1;
+		return !byte_op && (address % 2) == 1;
 	}
 
 	void rise_address_error()
 	{
-		std::uint8_t func_codes = 0;
-		if(bus.is_set(bus::FC2))
-			func_codes |= 0b100;
-		if(bus.is_set(bus::FC1))
-			func_codes |= 0b010;
-		if(bus.is_set(bus::FC0))
-			func_codes |= 0b001;
+		std::uint8_t func_codes = gen_func_codes();
+		// if(bus.is_set(bus::FC2))
+		// 	func_codes |= 0b100;
+		// if(bus.is_set(bus::FC1))
+		// 	func_codes |= 0b010;
+		// if(bus.is_set(bus::FC0))
+		// 	func_codes |= 0b001;
 
 		exman.rise_address_error( { address, regs.PC - 2, func_codes, true, false } );
 		reset();

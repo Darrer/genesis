@@ -77,6 +77,34 @@ cpu_state parse_cpu_state(json& state)
 	return ct;
 }
 
+// in some cases external tests may have
+// ["n", 2], ["n", 4]
+// transitions, so werge it to ["n", 6]
+void merge_neighboring_idle_transitions(std::vector<bus_transition>& transitions)
+{
+	for(auto it = transitions.begin(); it != transitions.end(); ++it)
+	{
+		auto& trans = *it;
+		if(trans.type != trans_type::IDLE)
+			continue;
+
+		for(auto next = std::next(it); next != transitions.end();)
+		{
+			auto& next_trans = *next;
+			if(next_trans.type != trans_type::IDLE)
+				break;
+
+			// current and next transitoins have IDLE type
+
+			// merge cycles
+			trans.cycles += next_trans.cycles;
+
+			// remove next transition
+			next = transitions.erase(next);
+		}
+	}
+}
+
 std::vector<bus_transition> parse_transitions(json& transitions)
 {
 	if(!transitions.is_array() || transitions.size() == 0)
@@ -134,6 +162,7 @@ std::vector<bus_transition> parse_transitions(json& transitions)
 		}
 	}
 
+	merge_neighboring_idle_transitions(res);
 	res.shrink_to_fit();
 	return res;
 }

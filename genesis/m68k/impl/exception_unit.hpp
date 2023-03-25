@@ -105,7 +105,7 @@ private:
 		switch (ex_stage++)
 		{
 		case 0:
-			wait(2);
+			wait(4);
 			break;
 
 		case 1:
@@ -113,7 +113,7 @@ private:
 			regs.SSP.LW -= 2;
 			write_word(regs.SSP.LW, addr_error.PC & 0xFFFF);
 			break;
-		
+
 		case 2:
 			// PUSH SR
 			// note, for some reason we first push SR, then PC HIGH
@@ -123,12 +123,12 @@ private:
 			regs.flags.S = 1;
 			regs.flags.TR = 0;
 			break;
-		
+
 		case 3:
 			// PUSH PC HIGH
 			regs.SSP.LW -= 2;
 			write_word(regs.SSP.LW, addr_error.PC >> 16);
-			regs.SSP.LW -= 2; // next word is already push on the stack
+			regs.SSP.LW -= 2; // next word is already pushed on the stack
 			break;
 
 		case 4:
@@ -153,7 +153,7 @@ private:
 			// PUSH address HIGH
 			regs.SSP.LW -= 2;
 			write_word(regs.SSP.LW, addr_error.address >> 16);
-			regs.SSP.LW -= 2; // next word is already push on the stack
+			regs.SSP.LW -= 2; // next word is already pushed on the stack
 			break;
 
 		// fetch an exception routine address
