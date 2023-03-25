@@ -172,14 +172,15 @@ private:
 
 	std::uint16_t addr_error_info() const
 	{
-		std::uint16_t status = 0;
-		status = addr_error.func_codes & 0x7; // first 3 bits
+		// undocumented behavior
+		std::uint16_t status = pq.IR & ~0b11111;
+		status |= addr_error.func_codes & 0x7; // first 3 bits
 
 		if(addr_error.in)
-			status = status | (1 << 3); // 3rd bit
+			status |= 1 << 3; // 3rd bit
 		
 		if(addr_error.rw)
-			status = status | (1 << 4); // 4th bit
+			status |= 1 << 4; // 4th bit
 
 		return status;
 	}

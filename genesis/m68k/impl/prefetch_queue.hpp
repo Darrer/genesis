@@ -17,6 +17,8 @@ private:
 		IDLE,
 		FETCH_ONE,
 		FETCH_TWO,
+		FETCH_TWO_WAIT1,
+		FETCH_TWO_WAIT2,
 		FETCH_IRC
 	};
 
@@ -85,9 +87,17 @@ public:
 			if(busm.is_idle())
 			{
 				on_read_finished();
-				busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
-				state = FETCH_ONE;
+				state = FETCH_TWO_WAIT1;
 			}
+			break;
+
+		case FETCH_TWO_WAIT1:
+			state = FETCH_TWO_WAIT2;
+			break;
+
+		case FETCH_TWO_WAIT2:
+			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
+			state = FETCH_ONE;
 			break;
 
 		default:

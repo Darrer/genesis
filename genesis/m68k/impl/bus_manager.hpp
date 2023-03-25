@@ -122,12 +122,6 @@ public:
 			state = READ1; break;
 
 		case READ1:
-			bus.set(bus::AS);
-			set_data_strobe_bus();
-			state = READ2; break;
-
-		case READ2:
-		{
 			// check for address error
 			if(should_rise_address_error())
 			{
@@ -135,6 +129,12 @@ public:
 				break;
 			}
 
+			bus.set(bus::AS);
+			set_data_strobe_bus();
+			state = READ2; break;
+
+		case READ2:
+		{
 			// emulate read
 			std::uint16_t data = 0;
 			if(byte_op)
@@ -299,7 +299,7 @@ private:
 		if(bus.is_set(bus::FC0))
 			func_codes |= 0b001;
 
-		exman.rise_address_error( { address, regs.INST_PC, func_codes, true, false } );
+		exman.rise_address_error( { address, regs.PC - 2, func_codes, true, false } );
 		reset();
 	}
 
