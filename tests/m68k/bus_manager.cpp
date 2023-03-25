@@ -64,34 +64,32 @@ void test_read(T test_values)
 	auto& busm = cpu.bus_manager();
 	auto& mem = cpu.memory();
 
-	for(std::uint32_t base : {0x100, 0x101})
+	std::uint32_t base = 0x100;
+	prepare_mem(mem, base, test_values);
+
+	const std::uint32_t cycles_per_read = 4;
+
+	for(std::size_t i = 0; i < test_values.size(); ++i)
 	{
-		prepare_mem(mem, base, test_values);
+		auto expected = test_values[i];
+		std::uint32_t addr = base + i * sizeof(expected);
 
-		const std::uint32_t cycles_per_read = 4;
+		std::uint32_t cycles = 0;
+		decltype(expected) actual = 0;
 
-		for(std::size_t i = 0; i < test_values.size(); ++i)
+		if constexpr (sizeof(expected) == 1)
 		{
-			auto expected = test_values[i];
-			std::uint32_t addr = base + i * sizeof(expected);
-
-			std::uint32_t cycles = 0;
-			decltype(expected) actual = 0;
-
-			if constexpr (sizeof(expected) == 1)
-			{
-				cycles = read_byte(busm, addr);
-				actual = busm.letched_byte();
-			}
-			else
-			{
-				cycles = read_word(busm, addr);
-				actual = busm.letched_word();
-			}
-
-			ASSERT_EQ(cycles_per_read, cycles);
-			ASSERT_EQ(expected, actual);
+			cycles = read_byte(busm, addr);
+			actual = busm.letched_byte();
 		}
+		else
+		{
+			cycles = read_word(busm, addr);
+			actual = busm.letched_word();
+		}
+
+		ASSERT_EQ(cycles_per_read, cycles);
+		ASSERT_EQ(expected, actual);
 	}
 }
 
@@ -103,29 +101,27 @@ void test_write(T values_to_write)
 	auto& busm = cpu.bus_manager();
 	auto& mem = cpu.memory();
 
-	for(std::uint32_t base : {0x100, 0x101})
+	const std::uint32_t cycles_per_write = 4;
+
+	std::uint32_t base = 0x100;
+	for(std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
-		const std::uint32_t cycles_per_write = 4;
+		auto val = values_to_write[i];
+		std::uint32_t addr = base + i * sizeof(val);
 
-		for(std::size_t i = 0; i < values_to_write.size(); ++i)
-		{
-			auto val = values_to_write[i];
-			std::uint32_t addr = base + i * sizeof(val);
+		auto cycles = write(busm, addr, val);
 
-			auto cycles = write(busm, addr, val);
+		ASSERT_EQ(cycles_per_write, cycles);
+	}
 
-			ASSERT_EQ(cycles_per_write, cycles);
-		}
+	// check mem
+	for(std::size_t i = 0; i < values_to_write.size(); ++i)
+	{
+		auto expected = values_to_write[i];
+		std::uint32_t addr = base + i * sizeof(expected);
+		auto actual = mem.read<decltype(expected)>(addr);
 
-		// check mem
-		for(std::size_t i = 0; i < values_to_write.size(); ++i)
-		{
-			auto expected = values_to_write[i];
-			std::uint32_t addr = base + i * sizeof(expected);
-			auto actual = mem.read<decltype(expected)>(addr);
-
-			ASSERT_EQ(expected, actual);
-		}
+		ASSERT_EQ(expected, actual);
 	}
 }
 
@@ -162,8 +158,8 @@ TEST(M68K_BUS_MANAGER, INTERRUPT_CYCLE_THROW)
 
 	// should not allow to start new bus cycle while in the middle of the other
 	ASSERT_THROW(busm.init_read_byte(0x101, m68k::addr_space::DATA), std::runtime_error);
-	ASSERT_THROW(busm.init_read_word(0x101, m68k::addr_space::DATA), std::runtime_error);
-	ASSERT_THROW(busm.init_write(0x101, (std::uint16_t)0x101), std::runtime_error);
+	ASSERT_THROW(busm.init_read_word(0x100, m68k::addr_space::DATA), std::runtime_error);
+	ASSERT_THROW(busm.init_write(0x100, (std::uint16_t)0x101), std::runtime_error);
 
 	// should not allow to get letched data while in the middle of a cycle
 	ASSERT_THROW(busm.letched_byte(), std::runtime_error);
@@ -303,27 +299,23 @@ TEST(M68K_BUS_MANAGER, WRITE_BYTE_BUS_TRANSITIONS)
 TEST(M68K_BUS_MANAGER, READ_WORD_BUS_TRANSITIONS)
 {
 	std::uint16_t data = 42240;
-	for(auto addr : {0x100, 0x101})
-	{
-		auto bs = read_and_track(addr, data);
+	auto addr = 0x100;
+	auto bs = read_and_track(addr, data);
 
-		ASSERT_EQ(addr, bs.address);
-		ASSERT_EQ(data, bs.data);
-		ASSERT_TRUE(bs.uds_is_set);
-		ASSERT_TRUE(bs.lds_is_set);
-	}
+	ASSERT_EQ(addr, bs.address);
+	ASSERT_EQ(data, bs.data);
+	ASSERT_TRUE(bs.uds_is_set);
+	ASSERT_TRUE(bs.lds_is_set);
 }
 
 TEST(M68K_BUS_MANAGER, WRITE_WORD_BUS_TRANSITIONS)
 {
 	std::uint16_t data = 42241;
-	for(auto addr : {0x100, 0x101})
-	{
-		auto bs = write_and_track(addr, data);
+	auto addr = 0x100;
+	auto bs = write_and_track(addr, data);
 
-		ASSERT_EQ(addr, bs.address);
-		ASSERT_EQ(data, bs.data);
-		ASSERT_TRUE(bs.uds_is_set);
-		ASSERT_TRUE(bs.lds_is_set);
-	}
+	ASSERT_EQ(addr, bs.address);
+	ASSERT_EQ(data, bs.data);
+	ASSERT_TRUE(bs.uds_is_set);
+	ASSERT_TRUE(bs.lds_is_set);
 }

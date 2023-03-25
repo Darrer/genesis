@@ -19,7 +19,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::ui
 		throw std::runtime_error("decode error: mem data supposed to have at least 1 element");
 
 	auto& regs = cpu.registers();
-	regs.PC = 0x101;
+	regs.PC = 0x100;
 
 	// setup mem
 	cpu.prefetch_queue().IRC = *mem_data.begin();
@@ -85,7 +85,12 @@ void check_timings(std::uint8_t ea, std::uint8_t size,
 	setup_test();
 
 	auto& bus = cpu.bus();
-	cpu.registers().A0.LW = 0x101;
+
+	std::uint32_t base = 0x100;
+
+	cpu.registers().A0.LW = base;
+	cpu.registers().PC = base;
+	cpu.memory().write(base, std::uint32_t(base));
 	dec.decode(ea, size);
 
 	std::uint32_t cycles = 0;

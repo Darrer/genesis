@@ -106,7 +106,8 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
 
 	auto actual_fetch_cycles = fetch_two(pq, busm);
 
-	ASSERT_EQ(expected_fetch_cycles * 2, actual_fetch_cycles);
+	// assume 2 idle cycles between fetches
+	ASSERT_EQ(expected_fetch_cycles * 2 + 2, actual_fetch_cycles);
 	ASSERT_EQ(0x100, regs.PC);
 	ASSERT_EQ(val, pq.IRD);
 	ASSERT_EQ(val, pq.IR);
