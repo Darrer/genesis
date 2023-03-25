@@ -29,10 +29,10 @@ class exception_manager
 public:
 	void rise(exception_type ex)
 	{
-		// mulltiple exception of the same type are not allowed
-		if(is_raised(ex))
-			throw internal_error();
-		exps.set(static_cast<std::uint8_t>(ex), true);
+		if(ex == exception_type::address_error)
+			throw internal_error("rise_address_error should be used to rise address error");
+
+		rise_unsafe(ex);
 	}
 
 	bool is_raised(exception_type ex) const
@@ -55,7 +55,7 @@ public:
 
 	void rise_address_error(address_error _addr_error)
 	{
-		rise(exception_type::address_error);
+		rise_unsafe(exception_type::address_error);
 		addr_error = _addr_error;
 	}
 
@@ -63,6 +63,16 @@ public:
 	{
 		accept(exception_type::address_error);
 		return addr_error.value();
+	}
+
+private:
+	void rise_unsafe(exception_type ex)
+	{
+		// mulltiple exception of the same type are not allowed
+		if(is_raised(ex))
+			throw internal_error();
+
+		exps.set(static_cast<std::uint8_t>(ex), true);
 	}
 
 private:

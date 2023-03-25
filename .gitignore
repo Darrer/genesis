@@ -1,4 +1,9 @@
-build/
+build*/
 roms/
 .vscode/
 .todo*
+*.exe
+
+# tmp
+*.json
+*.gz

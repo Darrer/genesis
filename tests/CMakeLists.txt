@@ -42,6 +42,7 @@ PRIVATE
 	m68k/tests_loader.cpp
 	m68k/tests_runner.cpp
 	m68k/test_cpu.hpp
+	m68k/exception_unit.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
