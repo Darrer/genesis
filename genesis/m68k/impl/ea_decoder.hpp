@@ -97,6 +97,8 @@ public:
 		return res.has_value() && is_idle();
 	}
 
+	// TODO: override reset
+
 	operand result()
 	{
 		if(!ready()) throw internal_error();

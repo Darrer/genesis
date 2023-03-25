@@ -160,11 +160,7 @@ public:
 			{
 				_letched_word = bus.data();
 			}
-			bus.clear(bus::AS);
-			bus.clear(bus::LDS);
-			bus.clear(bus::UDS);
-			bus.clear(bus::DTACK);
-			clear_funcs_codes();
+			clear_bus();
 			set_idle(); break;
 
 		/* bus write cycle */
@@ -194,12 +190,8 @@ public:
 			state = WRITE3; break;
 
 		case WRITE3:
-			bus.clear(bus::AS);
-			bus.clear(bus::UDS);
-			bus.clear(bus::LDS);
+			clear_bus();
 			bus.set(bus::RW);
-			bus.clear(bus::DTACK);
-			clear_funcs_codes();
 			set_idle(); break;
 
 		default:
@@ -294,13 +286,21 @@ private:
 
 	bool should_rise_address_error() const
 	{
-		return false && !byte_op && (bus.address() % 2) == 1;
+		return !byte_op && (bus.address() % 2) == 1;
 	}
 
 	void rise_address_error()
 	{
+		std::uint8_t func_codes = 0;
+		if(bus.is_set(bus::FC2))
+			func_codes |= 0b100;
+		if(bus.is_set(bus::FC1))
+			func_codes |= 0b010;
+		if(bus.is_set(bus::FC0))
+			func_codes |= 0b001;
+
+		exman.rise_address_error( { address, regs.INST_PC, func_codes, true, false } );
 		reset();
-		// exman.rise_address_error(bus.address(), regs.)
 	}
 
 	void reset()
@@ -310,8 +310,16 @@ private:
 		_letched_byte.reset();
 		_letched_word.reset();
 		state = bus_cycle_state::IDLE;
+		clear_bus();
+	}
 
-		// TODO: clear bus?
+	void clear_bus()
+	{
+		bus.clear(bus::AS);
+		bus.clear(bus::UDS);
+		bus.clear(bus::LDS);
+		bus.clear(bus::DTACK);
+		clear_funcs_codes();
 	}
 
 private:

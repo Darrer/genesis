@@ -252,15 +252,24 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 
 
 		// transition bus cycle -> idle
-		bool rw_over = (in_bus_cycle && cycles_in_curr_trans == 4);
+		bool rw_over = (in_bus_cycle && (cycles_in_curr_trans == 4 || busm.is_idle()));
 		// bus cycle is over
-		if(/*busm.is_idle() && in_bus_cycle */ rw_over)
+		if(/*busm.is_idle() && in_bus_cycle*/ rw_over)
 		{
-			// push bus transition, assume data was saved
-			res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
-			// in_bus_cycle = false;
-			in_bus_cycle = !busm.is_idle();
-			cycles_in_curr_trans = 0;
+			if(cycles_in_curr_trans != 4)
+			{
+				// bus cycle was interrupted (probably due to exception)
+				// treat these cycles as idle (as external tests do so)
+				in_bus_cycle = false;
+			}
+			else
+			{
+				// push bus transition, assume data was saved
+				res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
+				// in_bus_cycle = false;
+				in_bus_cycle = !busm.is_idle();
+				cycles_in_curr_trans = 0;
+			}
 		}
 
 		// transition idle -> bus cycle
@@ -312,7 +321,7 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 	std::uint32_t num_succeded = 0;
 
-	const std::uint32_t skip_limit = tests.size();
+	const std::uint32_t skip_limit = tests.size() * 0;
 	std::uint32_t skipped = 0;
 	for(const auto& test : tests)
 	{
@@ -416,7 +425,7 @@ TEST(M68K, THT)
 	}
 }
 
-// leave it here for debug
+// keep it here for debug
 TEST(M68K, EORL)
 {
 	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.l.json)";

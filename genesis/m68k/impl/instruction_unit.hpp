@@ -57,6 +57,7 @@ protected:
 			opcode = pq.IRD;
 			curr_inst = decode_opcode(opcode);
 			regs.PC += 2;
+			regs.INST_PC = regs.PC;
 			state = EXECUTING;
 			execute();
 			break;

@@ -36,11 +36,13 @@ public:
 		return state == IDLE;
 	}
 
+	// TODO: add reset()
+
 	// IR/IRD = IRC
 	// IRC = (regs.PC + 2)
 	void init_fetch_one()
 	{
-		assert_idle("init_fetch_one");
+		assert_idle();
 
 		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 		state = FETCH_ONE;
@@ -50,7 +52,7 @@ public:
 	// IRC = (regs.PC + 2)
 	void init_fetch_two()
 	{
-		assert_idle("init_fetch_two");
+		assert_idle();
 
 		busm.init_read_word(regs.PC, addr_space::PROGRAM);
 		state = FETCH_TWO;
@@ -60,7 +62,7 @@ public:
 	// IRC = (regs.PC + 2)
 	void init_fetch_irc()
 	{
-		assert_idle("init_fetch_irc");
+		assert_idle();
 
 		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 		state = FETCH_IRC;
@@ -97,8 +99,8 @@ private:
 	void on_complete()
 	{
 		if(!busm.is_idle())
-			throw std::runtime_error("prefetch_queue::on_complete internal error: bus manager must be idle");
-		
+			throw internal_error("prefetch_queue::on_complete internal error: bus manager must be idle");
+
 		if(state == FETCH_ONE)
 		{
 			on_read_finished();
@@ -110,7 +112,7 @@ private:
 		else
 		{
 			state = IDLE;
-			throw std::runtime_error("prefetch_queue::on_complete internal error: unexpected state");
+			throw internal_error("prefetch_queue::on_complete internal error: unexpected state");
 		}
 
 		state = IDLE;
@@ -123,12 +125,11 @@ private:
 		IRC = busm.letched_word();
 	}
 
-	void assert_idle(std::string_view caller)
+	void assert_idle()
 	{
 		if(!is_idle())
 		{
-			throw std::runtime_error("prefetch_queue::" + std::string(caller) +
-				" error: cannot start new prefetch while in the middle of the other");
+			throw internal_error("cannot start new prefetch while in the middle of the other");
 		}
 	}
 

@@ -96,6 +96,7 @@ public:
 	address_register SSP;
 
 	std::uint32_t PC;
+	std::uint32_t INST_PC; // points to an instruction being executed
 
 	union {
 		std::uint16_t SR;

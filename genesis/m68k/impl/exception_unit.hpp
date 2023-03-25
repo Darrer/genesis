@@ -3,6 +3,7 @@
 
 #include "base_unit.h"
 #include "exception_manager.h"
+#include "instruction_unit.hpp"
 
 #include "exception.hpp"
 
@@ -10,13 +11,7 @@
 namespace genesis::m68k
 {
 
-enum exception_type
-{
-	none,
-	address_error,
-};
-
-class exception_unit : public base_unit //, public exception_manager
+class exception_unit : public base_unit
 {
 private:
 	enum ex_state
@@ -26,8 +21,9 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
-		: base_unit(regs, busm, pq)
+	exception_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq,
+		exception_manager& exman, m68k::instruction_unit& inst_unit)
+		: base_unit(regs, busm, pq), exman(exman), inst_unit(inst_unit)
 	{
 		reset();
 	}
@@ -35,24 +31,20 @@ public:
 	void reset() override
 	{
 		state = IDLE;
+		curr_ex = exception_type::none;
 		ex_stage = 0;
-
-		addr = 0;
-		pc = 0;
-		rw = 0;
-		in = 0;
 
 		base_unit::reset();
 	}
 
-	// void rise_address_error(std::uint32_t addr, std::uint32_t pc, std::uint8_t rw, std::uint8_t in) override
-	// {
-	// 	set_exception(exception_type::address_error);
-	// 	this->addr = addr;
-	// 	this->pc = pc;
-	// 	this->rw = rw;
-	// 	this->in = in;
-	// }
+	bool has_work() const
+	{
+		/* We should process these exceptions as soon as possible */
+		if(exman.is_raised(exception_type::address_error))
+			return true;
+
+		return false;
+	}
 
 protected:
 	void on_cycle() override
@@ -60,6 +52,7 @@ protected:
 		switch (state)
 		{
 		case IDLE:
+			accept_exception();
 			state = EXECUTING;
 			[[fallthrough]];
 
@@ -81,8 +74,22 @@ private:
 			address_error();
 			break;
 	
-		default:
-			throw internal_error();
+		default: throw internal_error();
+		}
+	}
+
+	void accept_exception()
+	{
+		if(exman.is_raised(exception_type::address_error))
+		{
+			curr_ex = exception_type::address_error;
+			addr_error = exman.accept_address_error();
+			inst_unit.reset();
+			// pq.reset(); // TODO: we don't know who rised address error, so reset all components
+		}
+		else
+		{
+			throw not_implemented();
 		}
 	}
 
@@ -98,30 +105,104 @@ private:
 		switch (ex_stage++)
 		{
 		case 0:
+			wait(2);
+			break;
+
+		case 1:
+			// PUSH PC LOW
+			regs.SSP.LW -= 2;
+			write_word(regs.SSP.LW, addr_error.PC & 0xFFFF);
+			break;
+		
+		case 2:
+			// PUSH SR
+			// note, for some reason we first push SR, then PC HIGH
+			write_word(regs.SSP.LW - 4, regs.SR);
+
+			// update SR
+			regs.flags.S = 1;
+			regs.flags.TR = 0;
+			break;
+		
+		case 3:
+			// PUSH PC HIGH
+			regs.SSP.LW -= 2;
+			write_word(regs.SSP.LW, addr_error.PC >> 16);
+			regs.SSP.LW -= 2; // next word is already push on the stack
+			break;
+
+		case 4:
+			// PUSH IRD
+			regs.SSP.LW -= 2;
+			// TODO: IRD not always contains the current instruction
+			write_word(regs.SSP.LW, pq.IRD);
+			break;
+
+		case 5:
+			// PUSH address LOW
+			regs.SSP.LW -= 2;
+			write_word(regs.SSP.LW, addr_error.address & 0xFFFF);
+			break;
+
+		case 6:
+			// PUSH status word
+			write_word(regs.SSP.LW - 4, addr_error_info());
+			break;
+
+		case 7:
+			// PUSH address HIGH
+			regs.SSP.LW -= 2;
+			write_word(regs.SSP.LW, addr_error.address >> 16);
+			regs.SSP.LW -= 2; // next word is already push on the stack
+			break;
+
+		// fetch an exception routine address
+		case 8:
+			read_long(vector_address(exception_type::address_error));
+			break;
+
+		case 9:
+			regs.PC = data;
+			prefetch_two_and_idle();
 			break;
 
 		default: throw internal_error();
 		}
 	}
 
-private:
-	void set_exception(exception_type ex)
+	std::uint16_t addr_error_info() const
 	{
-		if(curr_ex != exception_type::none)
-			throw not_implemented("nested exceptions are not supported yet");
+		std::uint16_t status = 0;
+		status = addr_error.func_codes & 0x7; // first 3 bits
 
-		curr_ex = ex;
+		if(addr_error.in)
+			status = status | (1 << 3); // 3rd bit
+		
+		if(addr_error.rw)
+			status = status | (1 << 4); // 4th bit
+
+		return status;
+	}
+
+	std::uint32_t vector_address(exception_type ex) const
+	{
+		switch (ex)
+		{
+		case exception_type::address_error:
+			return 0x00C;
+
+		default: throw internal_error();
+		}
 	}
 
 private:
+	m68k::exception_manager& exman;
+	m68k::instruction_unit& inst_unit;
 	exception_type curr_ex;
 	ex_state state;
 	std::uint16_t ex_stage;
 
-	std::uint32_t addr;
-	std::uint32_t pc;
-	std::uint8_t rw;
-	std::uint8_t in;
+	m68k::address_error addr_error;
 };
 
 }
