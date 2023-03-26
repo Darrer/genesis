@@ -49,6 +49,18 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t cmpa(T1 src, T2 dest, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t b = value(dest, 4 /* always long word */);
+		std::uint32_t a;
+		if(size == 2)
+			a = (std::int32_t)(std::int16_t)value(src, size);
+		else
+			a = value(src, size);
+		return cmp(b, a, 4, sr);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t suba(T1 src, T2 dest, std::uint8_t size, status_register&)
 	{
 		if(size == 2)
@@ -111,6 +123,9 @@ public:
 		case inst_type::CMP:
 		case inst_type::CMPI:
 			return operations::cmp(a, b, size, sr);
+
+		case inst_type::CMPA:
+			return operations::cmpa(a, b, size, sr);
 
 		default: throw internal_error();
 		}

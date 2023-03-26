@@ -87,6 +87,11 @@ public:
 		return 0;
 	}
 
+	static std::uint8_t cmpa(std::uint8_t, const operand&)
+	{
+		return 2;
+	}
+
 	/* AND */
 	static constexpr auto and_op = add;
 	static constexpr auto andi = addi;
@@ -120,6 +125,8 @@ public:
 			return eor(opmode, op);
 		case inst_type::CMP:
 			return cmp(opmode, op);
+		case inst_type::CMPA:
+			return cmpa(opmode, op);
 
 		default: throw internal_error();
 		}

@@ -14,36 +14,43 @@ struct mask_inst_pair
 	inst_type inst;
 };
 
+/* Placeholders:
+	- 0/1 -- self-explanatory
+	- _ -- either 1 or 0
+	- sz -- any of 00 01 10
+*/
+
 const constexpr mask_inst_pair opcodes[] =
 {
 	/* ADD */
-	{ "1101____________", inst_type::ADD },
+	{ "1101____sz______", inst_type::ADD },
 	{ "1101____11______", inst_type::ADDA },
-	{ "00000110________", inst_type::ADDI },
-	{ "0101___0________", inst_type::ADDQ },
+	{ "00000110sz______", inst_type::ADDI },
+	{ "0101___0sz______", inst_type::ADDQ },
 
 	/* SUB */
-	{ "1001____________", inst_type::SUB },
+	{ "1001____sz______", inst_type::SUB },
 	{ "1001____11______", inst_type::SUBA },
-	{ "00000100________", inst_type::SUBI },
-	{ "0101___1________", inst_type::SUBQ },
+	{ "00000100sz______", inst_type::SUBI },
+	{ "0101___1sz______", inst_type::SUBQ },
 
 	/* AND */
-	{ "1100____________", inst_type::AND },
-	{ "00000010________", inst_type::ANDI },
+	{ "1100____sz______", inst_type::AND },
+	{ "00000010sz______", inst_type::ANDI },
 
 	/* OR */
-	{ "1000____________", inst_type::OR },
-	{ "00000000________", inst_type::ORI },
+	{ "1000____sz______", inst_type::OR },
+	{ "00000000sz______", inst_type::ORI },
 
 	/* EOR */
-	{ "1011___1________", inst_type::EOR },
-	{ "00001010________", inst_type::EORI },
+	{ "1011___1sz______", inst_type::EOR },
+	{ "00001010sz______", inst_type::EORI },
 
 	/* CMP */
-	{ "1011___0________", inst_type::CMP },
-	{ "1011___1__001___", inst_type::CMPM },
-	{ "00001100________", inst_type::CMPI },
+	{ "1011___0sz______", inst_type::CMP },
+	{ "1011____11______", inst_type::CMPA },
+	{ "1011___1sz001___", inst_type::CMPM },
+	{ "00001100sz______", inst_type::CMPI },
 };
 
 

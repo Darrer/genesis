@@ -57,6 +57,7 @@ protected:
 		case IDLE:
 			opcode = pq.IRD;
 			curr_inst = decode_opcode(opcode);
+			std::cout << "Executing: " << (int)curr_inst << std::endl;
 			regs.PC += 2;
 			regs.INST_PC = regs.PC;
 			state = EXECUTING;
@@ -99,6 +100,7 @@ private:
 
 		case inst_type::ADDA:
 		case inst_type::SUBA:
+		case inst_type::CMPA:
 			alu_address_mode_handler();
 			break;
 
