@@ -30,6 +30,7 @@ protected:
 	void idle();
 
 	void read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
+	void read(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
 	void read_byte(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_word(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_long(std::uint32_t addr, bus_manager::on_complete cb = nullptr);

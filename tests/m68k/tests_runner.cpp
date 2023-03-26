@@ -231,16 +231,7 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
 			rw_trans.address = bus.address();
 			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
-
-			std::uint8_t func_codes = 0;
-			if(bus.is_set(bus::FC2))
-				func_codes |= 0b100;
-			if(bus.is_set(bus::FC1))
-				func_codes |= 0b010;
-			if(bus.is_set(bus::FC0))
-				func_codes |= 0b001;
-
-			rw_trans.func_code = func_codes;
+			rw_trans.func_code = bus.func_codes();
 
 			if(rw_trans.word_access)
 				rw_trans.data = bus.data();
@@ -252,9 +243,9 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 
 
 		// transition bus cycle -> idle
-		bool rw_over = (in_bus_cycle && (cycles_in_curr_trans == 4 || busm.is_idle()));
 		// bus cycle is over
-		if(/*busm.is_idle() && in_bus_cycle*/ rw_over)
+		bool rw_over = (in_bus_cycle && (cycles_in_curr_trans == 4 || busm.is_idle()));
+		if(rw_over)
 		{
 			if(cycles_in_curr_trans != 4)
 			{
@@ -332,7 +323,7 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 			continue;
 		}
 
-		// std::cout << "Running " << test.name << std::endl;
+		std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		total_cycles += test.length;
 
@@ -426,8 +417,14 @@ TEST(M68K, THT)
 }
 
 // keep it here for debug
-TEST(M68K, EORL)
+TEST(M68K, TMP)
 {
-	const std::string path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\EOR\EOR.l.json)";
-	load_and_run(path);
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented\CMP)", "json");
+	std::sort(all_tests.begin(), all_tests.end());
+
+	for(auto& test : all_tests)
+	{
+		bool succeeded = load_and_run(test);
+		ASSERT_TRUE(succeeded);
+	}
 }

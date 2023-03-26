@@ -72,6 +72,21 @@ public:
 	static constexpr auto subq = addq;
 	static constexpr auto suba = adda;
 
+	/* CMP */
+	static std::uint8_t cmp(std::uint8_t opmode, const operand&)
+	{
+		if(opmode == 0b010)
+			return 2;
+		return 0;
+	}
+
+	static std::uint8_t cmpi(std::uint8_t size, const operand& op)
+	{
+		if(size == 4 && op.is_data_reg())
+			return 2;
+		return 0;
+	}
+
 	/* AND */
 	static constexpr auto and_op = add;
 	static constexpr auto andi = addi;
@@ -103,6 +118,8 @@ public:
 			return or_op(opmode, op);
 		case inst_type::EOR:
 			return eor(opmode, op);
+		case inst_type::CMP:
+			return cmp(opmode, op);
 
 		default: throw internal_error();
 		}
@@ -126,6 +143,8 @@ public:
 			return ori(size, op);
 		case inst_type::EORI:
 			return eori(size, op);
+		case inst_type::CMPI:
+			return cmpi(size, op);
 
 		default: throw internal_error();
 		}

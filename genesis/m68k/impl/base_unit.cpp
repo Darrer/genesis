@@ -107,14 +107,18 @@ void base_unit::idle()
 
 void base_unit::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
 {
+	read(addr, size, cb);
+	go_idle = true;
+}
+
+void base_unit::read(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
+{
 	if(size == 1)
 		read_byte(addr, cb);
 	else if(size == 2)
 		read_word(addr, cb);
 	else
 		read_long(addr, cb);
-
-	go_idle = true;
 }
 
 void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)

@@ -123,7 +123,7 @@ public:
 				break;
 			}
 
-			set_func_codes();
+			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
 			bus.address(address);
 			state = READ1; break;
@@ -165,7 +165,7 @@ public:
 
 		/* bus write cycle */
 		case WRITE0:
-			set_func_codes();
+			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
 			bus.address(address);
 			state = WRITE1; break;
@@ -277,25 +277,6 @@ private:
 		return func_codes;
 	}
 
-	void set_func_codes()
-	{
-		clear_funcs_codes();
-
-		if(regs.flags.S)
-			bus.set(bus::FC2);
-		if(space == addr_space::PROGRAM)
-			bus.set(bus::FC1);
-		if(space == addr_space::DATA)
-			bus.set(bus::FC0);
-	}
-
-	void clear_funcs_codes()
-	{
-		bus.clear(bus::FC0);
-		bus.clear(bus::FC1);
-		bus.clear(bus::FC2);
-	}
-
 	bool should_rise_address_error() const
 	{
 		return !byte_op && (address % 2) == 1;
@@ -304,13 +285,6 @@ private:
 	void rise_address_error()
 	{
 		std::uint8_t func_codes = gen_func_codes();
-		// if(bus.is_set(bus::FC2))
-		// 	func_codes |= 0b100;
-		// if(bus.is_set(bus::FC1))
-		// 	func_codes |= 0b010;
-		// if(bus.is_set(bus::FC0))
-		// 	func_codes |= 0b001;
-
 		exman.rise_address_error( { address, regs.PC - 2, func_codes, true, false } );
 		reset();
 	}
@@ -331,7 +305,9 @@ private:
 		bus.clear(bus::UDS);
 		bus.clear(bus::LDS);
 		bus.clear(bus::DTACK);
-		clear_funcs_codes();
+		bus.clear(bus::FC0);
+		bus.clear(bus::FC1);
+		bus.clear(bus::FC2);
 	}
 
 private:

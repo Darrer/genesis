@@ -92,9 +92,10 @@ private:
 		case inst_type::AND:
 		case inst_type::OR:
 		case inst_type::EOR:
+		case inst_type::CMP:
 			alu_mode_handler();
 			break;
-		
+
 		case inst_type::ADDA:
 		case inst_type::SUBA:
 			alu_address_mode_handler();
@@ -105,12 +106,17 @@ private:
 		case inst_type::SUBI:
 		case inst_type::ORI:
 		case inst_type::EORI:
+		case inst_type::CMPI:
 			alu_imm_handler();
 			break;
 
 		case inst_type::ADDQ:
 		case inst_type::SUBQ:
 			alu_quick_handler();
+			break;
+
+		case inst_type::CMPM:
+			cmpm_handler();
 			break;
 
 		default: throw internal_error();
@@ -139,7 +145,8 @@ private:
 			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
 			{
 				res = operations::alu(curr_inst, reg, op, size, regs.flags);
-				store(reg, size, res);
+				if(curr_inst != inst_type::CMP)
+					store(reg, size, res);
 				prefetch_one_and_idle();
 			}
 			else
@@ -220,6 +227,12 @@ private:
 
 			wait_after_idle(timings::alu_size(curr_inst, size, op));
 
+			if(curr_inst == inst_type::CMPI)
+			{
+				prefetch_one_and_idle();
+				break;
+			}
+
 			if(op.is_pointer())
 			{
 				prefetch_one();
@@ -284,6 +297,31 @@ private:
 		}
 	}
 
+	void cmpm_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = dec_size(opcode >> 6);
+			read(regs.A(opcode & 0x7).LW, size);
+			inc_addr(opcode & 0x7, size);
+			break;
+
+		case 1:
+			res = data;
+			read(regs.A((opcode >> 9) & 0x7).LW, size);
+			inc_addr((opcode >> 9) & 0x7, size);
+			break;
+
+		case 2:
+			operations::cmp(data, res, size, regs.flags);
+			prefetch_one_and_idle();
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
 private:
 	void store(data_register& d, std::uint8_t size, std::uint32_t res)
 	{
@@ -331,6 +369,13 @@ private:
 		}
 	}
 
+	void inc_addr(std::uint8_t reg, std::uint8_t size)
+	{
+		if(reg == 0b111 && size == 1)
+			size = 2;
+		regs.A(reg).LW += size;
+	}
+
 	void update_user_bits(status_register sr)
 	{
 		auto& f = regs.flags;
@@ -369,6 +414,11 @@ private:
 
 	inst_type decode_opcode(std::uint16_t opcode)
 	{
+		const std::uint16_t cmpm_mask   = 0b1111000100111000;
+		const std::uint16_t cmpm_opcode = 0b1011000100001000;
+		if((opcode & cmpm_mask) == cmpm_opcode)
+			return inst_type::CMPM;
+
 		if((opcode >> 12) == 0b1101 && ((opcode >> 6) & 3) == 0b11)
 			return inst_type::ADDA;
 		if((opcode >> 12) == 0b1101)
@@ -393,10 +443,14 @@ private:
 			return inst_type::ORI;
 		if((opcode >> 12) == 0b1000)
 			return inst_type::OR;
-		if((opcode >> 12) == 0b1011)
+		if((opcode >> 12) == 0b1011 && ((opcode >> 8) & 1) == 1)
 			return inst_type::EOR;
 		if((opcode >> 8) == 0b1010)
 			return inst_type::EORI;
+		if((opcode >> 12) == 0b1011 && ((opcode >> 8) & 1) == 0)
+			return inst_type::CMP;
+		if((opcode >> 8) == 0b1100)
+			return inst_type::CMPI;
 
 		throw not_implemented(std::to_string(opcode));
 	}

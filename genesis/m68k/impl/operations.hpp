@@ -39,6 +39,16 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t cmp(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	{
+		// cmp like sub but does not change the result
+		std::uint8_t old_x = sr.X;
+		sub(value(a, size), value(b, size), size, sr);
+		sr.X = old_x; // in case of CMP X is not affected
+		return value(a, size);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t suba(T1 src, T2 dest, std::uint8_t size, status_register&)
 	{
 		if(size == 2)
@@ -97,6 +107,10 @@ public:
 		case inst_type::EOR:
 		case inst_type::EORI:
 			return operations::eor(a, b, size, sr);
+
+		case inst_type::CMP:
+		case inst_type::CMPI:
+			return operations::cmp(a, b, size, sr);
 
 		default: throw internal_error();
 		}
@@ -280,7 +294,7 @@ private:
 			return reg.W;
 		else if(size == 4)
 			return reg.LW;
-		
+
 		throw internal_error();
 	}
 

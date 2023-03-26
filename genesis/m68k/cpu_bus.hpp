@@ -76,9 +76,9 @@ public:
 
 	void func_codes(std::uint8_t fc)
 	{
-		if(fc & 0b001) set(bus::FC0);
-		if(fc & 0b010) set(bus::FC1);
-		if(fc & 0b100) set(bus::FC2);
+		bus_state.at(bus::FC0) = fc & 0b001;
+		bus_state.at(bus::FC1) = fc & 0b010;
+		bus_state.at(bus::FC2) = fc & 0b100;
 	}
 
 	std::uint8_t func_codes() const
