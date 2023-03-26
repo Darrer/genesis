@@ -8,6 +8,7 @@
 #include "timings.hpp"
 #include "operations.hpp"
 
+#include "opcode_decoder.h"
 
 #include "exception.hpp"
 
@@ -414,45 +415,10 @@ private:
 
 	inst_type decode_opcode(std::uint16_t opcode)
 	{
-		const std::uint16_t cmpm_mask   = 0b1111000100111000;
-		const std::uint16_t cmpm_opcode = 0b1011000100001000;
-		if((opcode & cmpm_mask) == cmpm_opcode)
-			return inst_type::CMPM;
-
-		if((opcode >> 12) == 0b1101 && ((opcode >> 6) & 3) == 0b11)
-			return inst_type::ADDA;
-		if((opcode >> 12) == 0b1101)
-			return inst_type::ADD;
-		if((opcode >> 8) == 0b110)
-			return inst_type::ADDI;
-		if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 0)
-			return inst_type::ADDQ;
-		if((opcode >> 12) == 0b1100)
-			return inst_type::AND;
-		if((opcode >> 8) == 0b10)
-			return inst_type::ANDI;
-		if((opcode >> 12) == 0b0101 && ((opcode >> 8) & 1) == 1)
-			return inst_type::SUBQ;
-		if((opcode >> 12) == 0b1001 && ((opcode >> 6) & 3) == 0b11)
-			return inst_type::SUBA;
-		if((opcode >> 12) == 0b1001)
-			return inst_type::SUB;
-		if((opcode >> 8) == 0b100)
-			return inst_type::SUBI;
-		if((opcode >> 8) == 0)
-			return inst_type::ORI;
-		if((opcode >> 12) == 0b1000)
-			return inst_type::OR;
-		if((opcode >> 12) == 0b1011 && ((opcode >> 8) & 1) == 1)
-			return inst_type::EOR;
-		if((opcode >> 8) == 0b1010)
-			return inst_type::EORI;
-		if((opcode >> 12) == 0b1011 && ((opcode >> 8) & 1) == 0)
-			return inst_type::CMP;
-		if((opcode >> 8) == 0b1100)
-			return inst_type::CMPI;
-
-		throw not_implemented(std::to_string(opcode));
+		auto res = opcode_decoder::decode(opcode);
+		if(res == inst_type::NONE)
+			throw not_implemented();
+		return res;
 	}
 
 private:
