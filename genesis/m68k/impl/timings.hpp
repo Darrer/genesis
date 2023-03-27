@@ -107,6 +107,9 @@ public:
 	/* NEG */
 	static constexpr auto neg = cmpi;
 
+	/* NOT */
+	static constexpr auto not_op = neg;
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
@@ -157,6 +160,8 @@ public:
 			return cmpi(size, op);
 		case inst_type::NEG:
 			return neg(size, op);
+		case inst_type::NOT:
+			return not_op(size, op);
 
 		default: throw internal_error();
 		}

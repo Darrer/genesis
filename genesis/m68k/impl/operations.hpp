@@ -92,6 +92,16 @@ public:
 		return sub(0, value(a, size), size, sr);
 	}
 
+	template<class T1>
+	static std::uint32_t not_op(T1 a, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res = value(~value(a, size), size);
+		sr.N = neg_flag(res, size);
+		sr.V = sr.C = 0;
+		sr.Z = res == 0;
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -132,6 +142,20 @@ public:
 
 		case inst_type::CMPA:
 			return operations::cmpa(a, b, size, sr);
+
+		default: throw internal_error();
+		}
+	}
+
+	template<class T1>
+	static std::uint32_t alu(inst_type inst, T1 a, std::uint8_t size, status_register& sr)
+	{
+		switch (inst)
+		{
+		case inst_type::NEG:
+			return neg(a, size, sr);
+		case inst_type::NOT:
+			return not_op(a, size, sr);
 
 		default: throw internal_error();
 		}
@@ -298,6 +322,15 @@ private:
 		sr.Z = res == 0;
 	}
 
+	static std::uint8_t neg_flag(std::uint32_t val, std::uint8_t size)
+	{
+		if(size == 1)
+			return std::int8_t(val) < 0;
+		if(size == 2)
+			return std::int16_t(val) < 0;
+		return std::int32_t(val) < 0;
+	}
+
 private:
 	static std::uint32_t value(data_register reg, std::uint8_t size)
 	{
@@ -319,8 +352,12 @@ private:
 		throw internal_error();
 	}
 
-	static std::uint32_t value(std::uint32_t val, std::uint8_t /* size */)
+	static std::uint32_t value(std::uint32_t val, std::uint8_t size)
 	{
+		if(size == 1)
+			return val & 0xFF;
+		if (size == 2)
+			return val & 0xFFFF;
 		return val;
 	}
 

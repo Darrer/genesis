@@ -123,7 +123,8 @@ private:
 			break;
 
 		case inst_type::NEG:
-			neg_handler();
+		case inst_type::NOT:
+			unary_handler();
 			break;
 
 		default: throw internal_error();
@@ -332,7 +333,7 @@ private:
 		}
 	}
 
-	void neg_handler()
+	void unary_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -345,7 +346,7 @@ private:
 		{
 			auto op = dec.result();
 
-			res = operations::neg(op, size, regs.flags);
+			res = operations::alu(curr_inst, op, size, regs.flags);
 
 			wait_after_idle(timings::alu_size(curr_inst, size, op));
 
