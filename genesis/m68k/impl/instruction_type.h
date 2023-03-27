@@ -28,6 +28,7 @@ enum inst_type : std::uint8_t
 	CMPI,
 	CMPM,
 	CMPA,
+	NEG,
 };
 
 }

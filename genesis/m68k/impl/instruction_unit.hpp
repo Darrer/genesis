@@ -57,7 +57,7 @@ protected:
 		case IDLE:
 			opcode = pq.IRD;
 			curr_inst = decode_opcode(opcode);
-			std::cout << "Executing: " << (int)curr_inst << std::endl;
+			// std::cout << "Executing: " << (int)curr_inst << std::endl;
 			regs.PC += 2;
 			regs.INST_PC = regs.PC;
 			state = EXECUTING;
@@ -122,9 +122,16 @@ private:
 			cmpm_handler();
 			break;
 
+		case inst_type::NEG:
+			neg_handler();
+			break;
+
 		default: throw internal_error();
 		}
 	}
+
+	// TODO: in most cases we do not handle invalid opcodes properly
+	// especially with some N/A EA decoding
 
 	void alu_mode_handler()
 	{
@@ -319,6 +326,44 @@ private:
 		case 2:
 			operations::cmp(data, res, size, regs.flags);
 			prefetch_one_and_idle();
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	void neg_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = dec_size(opcode >> 6);
+			decode_ea(pq.IRD & 0xFF, size);
+			break;
+
+		case 1:
+		{
+			auto op = dec.result();
+
+			res = operations::neg(op, size, regs.flags);
+
+			wait_after_idle(timings::alu_size(curr_inst, size, op));
+
+			if(op.is_pointer())
+			{
+				prefetch_one();
+			}
+			else
+			{
+				store(op, size, res);
+				prefetch_one_and_idle();
+			}
+
+			break;
+		}
+
+		case 2:
+			write_and_idle(dec.result().pointer().address, res, size);
 			break;
 
 		default: throw internal_error();

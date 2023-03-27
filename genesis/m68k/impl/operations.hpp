@@ -86,6 +86,12 @@ public:
 		return eor(value(a, size), value(b, size), size, sr);
 	}
 
+	template<class T1>
+	static std::uint32_t neg(T1 a, std::uint8_t size, status_register& sr)
+	{
+		return sub(0, value(a, size), size, sr);
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)

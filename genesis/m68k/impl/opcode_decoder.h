@@ -51,6 +51,9 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "1011____11______", inst_type::CMPA },
 	{ "1011___1sz001___", inst_type::CMPM },
 	{ "00001100sz______", inst_type::CMPI },
+
+	/* NEG */
+	{ "01000100sz______", inst_type::NEG },
 };
 
 
