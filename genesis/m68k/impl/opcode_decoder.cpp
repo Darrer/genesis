@@ -135,9 +135,10 @@ public:
 			}
 		}
 
-		// instructions with longest mask should come first
+		// instructions with longest template should come first
 		std::sort(res.begin(), res.end(), [](opcode_entry a, opcode_entry b)
 		{
+			// TODO: properly sort
 			return a.mask > b.mask;
 		});
 

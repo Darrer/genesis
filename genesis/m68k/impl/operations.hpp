@@ -33,6 +33,12 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t addx(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	{
+		return addx(value(a, size), value(b, size), size, sr);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t sub(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
 		return sub(value(a, size), value(b, size), size, sr);
@@ -116,6 +122,9 @@ public:
 		case inst_type::ADDA:
 			return operations::adda(a, b, size, sr);
 
+		case inst_type::ADDX:
+			return operations::addx(a, b, size, sr);
+
 		case inst_type::SUB:
 		case inst_type::SUBI:
 		case inst_type::SUBQ:
@@ -138,6 +147,7 @@ public:
 
 		case inst_type::CMP:
 		case inst_type::CMPI:
+		case inst_type::CMPM:
 			return operations::cmp(a, b, size, sr);
 
 		case inst_type::CMPA:
@@ -171,25 +181,52 @@ private:
 			res = std::uint8_t(a + b);
 			sr.V = check_overflow_add<std::int8_t>(a, b);
 			sr.C = check_carry<std::uint8_t>(a, b);
-			sr.N = (std::int8_t)res < 0;
 		}
 		else if(size == 2)
 		{
 			res = std::uint16_t(a + b);
 			sr.V = check_overflow_add<std::int16_t>(a, b);
 			sr.C = check_carry<std::uint16_t>(a, b);
-			sr.N = (std::int16_t)res < 0;
 		}
 		else
 		{
 			res = a + b;
 			sr.V = check_overflow_add<std::int32_t>(a, b);
 			sr.C = check_carry<std::uint32_t>(a, b);
-			sr.N = (std::int32_t)res < 0;
 		}
 
 		sr.X = sr.C;
 		sr.Z = res == 0;
+		sr.N = neg_flag(res, size);
+		return res;
+	}
+
+	static std::uint32_t addx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res;
+
+		if(size == 1)
+		{
+			res = std::uint8_t(a + b + sr.X);
+			sr.V = check_overflow_add<std::int8_t>(a, b, sr.X);
+			sr.C = check_carry<std::uint8_t>(a, b, sr.X);
+		}
+		else if(size == 2)
+		{
+			res = std::uint16_t(a + b + sr.X);
+			sr.V = check_overflow_add<std::int16_t>(a, b, sr.X);
+			sr.C = check_carry<std::uint16_t>(a, b, sr.X);
+		}
+		else
+		{
+			res = a + b + sr.X;
+			sr.V = check_overflow_add<std::int32_t>(a, b, sr.X);
+			sr.C = check_carry<std::uint32_t>(a, b, sr.X);
+		}
+
+		sr.X = sr.C;
+		if(res != 0) sr.Z = 0;
+		sr.N = neg_flag(res, size);
 		return res;
 	}
 

@@ -31,6 +31,7 @@ protected:
 
 	void read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
 	void read(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb = nullptr);
+	void dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manager::on_complete cb = nullptr);
 	void read_byte(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_word(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
 	void read_long(std::uint32_t addr, bus_manager::on_complete cb = nullptr);
@@ -59,6 +60,9 @@ protected:
 	void wait(std::uint8_t cycles);
 	void wait_and_idle(std::uint8_t cycles);
 	void wait_after_idle(std::uint8_t cycles);
+
+	void inc_addr(std::uint8_t reg, std::uint8_t size);
+	void dec_addr(std::uint8_t reg, std::uint8_t size);
 
 protected:
 	m68k::cpu_registers& regs;

@@ -119,12 +119,16 @@ private:
 			break;
 
 		case inst_type::CMPM:
-			cmpm_handler();
+			rm_postinc_handler();
 			break;
 
 		case inst_type::NEG:
 		case inst_type::NOT:
 			unary_handler();
+			break;
+
+		case inst_type::ADDX:
+			rm_predec_handler();
 			break;
 
 		default: throw internal_error();
@@ -308,25 +312,115 @@ private:
 		}
 	}
 
-	void cmpm_handler()
+	void rm_postinc_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
+			src_reg = opcode & 0x7;
+			dest_reg = (opcode >> 9) & 0x7;
 			size = dec_size(opcode >> 6);
-			read(regs.A(opcode & 0x7).LW, size);
-			inc_addr(opcode & 0x7, size);
+
+			if((opcode >> 3) & 1)
+			{
+				// address register
+				read(regs.A(src_reg).LW, size);
+				inc_addr(src_reg, size);
+			}
+			else
+			{
+				// data register
+				auto src = regs.D(src_reg);
+				auto dest = regs.D(dest_reg);
+				res = operations::alu(curr_inst, data, res, size, regs.flags);
+				store(dest, size, res);
+				prefetch_one_and_idle();
+			}
+
 			break;
+
 
 		case 1:
 			res = data;
-			read(regs.A((opcode >> 9) & 0x7).LW, size);
-			inc_addr((opcode >> 9) & 0x7, size);
+			read(regs.A(dest_reg).LW, size);
+			inc_addr(dest_reg, size);
 			break;
 
 		case 2:
-			operations::cmp(data, res, size, regs.flags);
+			operations::alu(curr_inst, data, res, size, regs.flags);
 			prefetch_one_and_idle();
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	void rm_predec_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			src_reg = opcode & 0x7;
+			dest_reg = (opcode >> 9) & 0x7;
+			size = dec_size(opcode >> 6);
+
+			if((opcode >> 3) & 1)
+			{
+				// address register
+				wait(2);
+			}
+			else
+			{
+				// data register
+				auto& src = regs.D(src_reg);
+				auto& dest = regs.D(dest_reg);
+				res = operations::alu(curr_inst, src, dest, size, regs.flags);
+				if(size == 4) wait_after_idle(4);
+				store(dest, size, res);
+				prefetch_one_and_idle();
+			}
+
+			break;
+
+		/* Got here if it's an address register */
+		case 1:
+			dec_and_read(src_reg, size);
+			break;
+
+		case 2:
+			res = data;
+			dec_and_read(dest_reg, size);
+			break;
+
+		case 3:
+			res = operations::alu(curr_inst, data, res, size, regs.flags);
+			if(size == 4)
+			{
+				// in this particular case we need to:
+				// 1. write LSW
+				// 2. do prefetch
+				// 3. write MSW
+				write_word(regs.A(dest_reg).LW + 2, res & 0xFFFF);
+			}
+			else
+			{
+				prefetch_one();
+			}
+			break;
+
+		case 4:
+			if(size == 4)
+			{
+				prefetch_one();
+			}
+			else
+			{
+				write_and_idle(regs.A(dest_reg).LW, res, size);
+			}
+			break;
+		
+		case 5:
+			write_word_and_idle(regs.A(dest_reg).LW, res >> 16);
 			break;
 
 		default: throw internal_error();
@@ -418,13 +512,6 @@ private:
 		}
 	}
 
-	void inc_addr(std::uint8_t reg, std::uint8_t size)
-	{
-		if(reg == 0b111 && size == 1)
-			size = 2;
-		regs.A(reg).LW += size;
-	}
-
 	void update_user_bits(status_register sr)
 	{
 		auto& f = regs.flags;
@@ -474,12 +561,17 @@ private:
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;
-	std::uint32_t res = 0;
-	std::uint8_t size = 0;
-	status_register flags;
 	std::uint8_t exec_stage;
 
 	std::uint8_t state;
+
+	// some helper variables
+	std::uint32_t res = 0;
+	std::uint32_t addr = 0;
+	std::uint8_t size = 0;
+	std::uint8_t src_reg = 0;
+	std::uint8_t dest_reg = 0;
+	status_register flags;
 };
 
 }

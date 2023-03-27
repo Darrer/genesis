@@ -121,6 +121,50 @@ void base_unit::read(std::uint32_t addr, std::uint8_t size, bus_manager::on_comp
 		read_long(addr, cb);
 }
 
+void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manager::on_complete cb)
+{
+	if(size == 4)
+	{
+		dec_addr(addr_reg, 2);
+
+		// TODO: due to this chaining we occupy bus for 8 cycles
+		auto on_read_msw = [this, cb]()
+		{
+			// we read MSW
+			data |= busm.letched_word() << 16;
+			if(cb) cb();
+		};
+
+		auto on_read_lsw = [this, addr_reg, on_read_msw]()
+		{
+			data = busm.letched_word();
+
+			// dec
+			dec_addr(addr_reg, 2);
+
+			// read LSW
+			busm.init_read_word(regs.A(addr_reg).LW, addr_space::DATA, on_read_msw);
+		};
+
+		busm.init_read_word(regs.A(addr_reg).LW, addr_space::DATA, on_read_lsw);
+		state = WAITING_RW;
+
+		return;
+	}
+
+	dec_addr(addr_reg, size);
+	std::uint32_t addr = regs.A(addr_reg).LW;
+
+	if(size == 2)
+	{
+		read_word(addr, cb);
+	}
+	else
+	{
+		read_byte(addr, cb);
+	}
+}
+
 void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
 {
 	auto on_complete = [this, cb]()
@@ -310,6 +354,20 @@ void base_unit::wait_and_idle(std::uint8_t cycles)
 void base_unit::wait_after_idle(std::uint8_t cycles)
 {
 	cycles_after_idle = cycles;
+}
+
+void base_unit::inc_addr(std::uint8_t reg, std::uint8_t size)
+{
+	if(reg == 0b111 && size == 1)
+		size = 2;
+	regs.A(reg).LW += size;
+}
+
+void base_unit::dec_addr(std::uint8_t reg, std::uint8_t size)
+{
+	if(reg == 0b111 && size == 1)
+		size = 2;
+	regs.A(reg).LW -= size;
 }
 
 }

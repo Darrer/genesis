@@ -162,6 +162,8 @@ public:
 			return neg(size, op);
 		case inst_type::NOT:
 			return not_op(size, op);
+		case inst_type::CMPM:
+			return 0;
 
 		default: throw internal_error();
 		}
