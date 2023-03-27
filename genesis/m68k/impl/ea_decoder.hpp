@@ -232,11 +232,7 @@ private:
 	void decode_011()
 	{
 		read_pointer_and_idle(regs.A(reg).LW);
-
-		if(reg == 0b111 && size == 1)
-			regs.A(reg).LW += 2;
-		else
-			regs.A(reg).LW += size;
+		inc_addr(reg, size);
 	}
 
 	// Address Register Indirect with Predecrement Mode 
@@ -246,11 +242,7 @@ private:
 		{
 		case 0: wait(2); break;
 		case 1:
-			// TODO: check
-			if(reg == 0b111 && size == 1)
-				regs.A(reg).LW -= 2; // to maintain alignment
-			else
-				regs.A(reg).LW -= size;
+			dec_addr(reg, size);
 			read_pointer_and_idle(regs.A(reg).LW);
 			break;
 		default: throw internal_error();
@@ -362,7 +354,7 @@ private:
 	}
 
 private:
-	std::uint32_t dec_brief_reg(std::uint32_t base)
+	std::uint32_t dec_brief_reg(std::uint32_t base) const
 	{
 		brief_ext ext(pq.IRC);
 		base += (std::int32_t)(std::int8_t)ext.displacement;
