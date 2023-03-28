@@ -8,7 +8,6 @@
 namespace genesis::m68k
 {
 
-
 /* Returns the amount of cycles per instruction after all read/write operations */
 class timings
 {

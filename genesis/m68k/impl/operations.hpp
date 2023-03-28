@@ -1,13 +1,12 @@
 #ifndef __M68K_OPERATIONS_HPP__
 #define __M68K_OPERATIONS_HPP__
 
-#include <limits>
+#include "cpu_flags.hpp"
+#include "exception.hpp"
 
 #include "instruction_type.h"
 #include "m68k/cpu_registers.hpp"
 #include "ea_decoder.hpp"
-
-#include "exception.hpp"
 
 
 namespace genesis::m68k
@@ -181,29 +180,17 @@ public:
 	}
 
 private:
+	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, std::uint8_t size)
+	{
+		if(size == 1) return std::uint8_t(a + b + x);
+		if(size == 2) return std::uint16_t(a + b + x);
+		return a + b + x;
+	}
+
 	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
-		std::uint32_t res;
-
-		if(size == 1)
-		{
-			res = std::uint8_t(a + b);
-			sr.V = check_overflow_add<std::int8_t>(a, b);
-			sr.C = check_carry<std::uint8_t>(a, b);
-		}
-		else if(size == 2)
-		{
-			res = std::uint16_t(a + b);
-			sr.V = check_overflow_add<std::int16_t>(a, b);
-			sr.C = check_carry<std::uint16_t>(a, b);
-		}
-		else
-		{
-			res = a + b;
-			sr.V = check_overflow_add<std::int32_t>(a, b);
-			sr.C = check_carry<std::uint32_t>(a, b);
-		}
-
+		std::uint32_t res = add(a, b, 0, size);
+		set_carry_and_overflow_flags(a, b, 0, size, sr);
 		sr.X = sr.C;
 		sr.Z = res == 0;
 		sr.N = neg_flag(res, size);
@@ -212,56 +199,25 @@ private:
 
 	static std::uint32_t addx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
-		std::uint32_t res;
-
-		if(size == 1)
-		{
-			res = std::uint8_t(a + b + sr.X);
-			sr.V = check_overflow_add<std::int8_t>(a, b, sr.X);
-			sr.C = check_carry<std::uint8_t>(a, b, sr.X);
-		}
-		else if(size == 2)
-		{
-			res = std::uint16_t(a + b + sr.X);
-			sr.V = check_overflow_add<std::int16_t>(a, b, sr.X);
-			sr.C = check_carry<std::uint16_t>(a, b, sr.X);
-		}
-		else
-		{
-			res = a + b + sr.X;
-			sr.V = check_overflow_add<std::int32_t>(a, b, sr.X);
-			sr.C = check_carry<std::uint32_t>(a, b, sr.X);
-		}
-
+		std::uint32_t res = add(a, b, sr.X, size);
+		set_carry_and_overflow_flags(a, b, sr.X, size, sr);
 		sr.X = sr.C;
 		if(res != 0) sr.Z = 0;
 		sr.N = neg_flag(res, size);
 		return res;
 	}
 
+	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t x, std::uint8_t size)
+	{
+		if(size == 1) return std::uint8_t(a - b - x);
+		if(size == 2) return std::uint16_t(a - b - x);
+		return a - b - x;
+	}
+
 	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
-		std::uint32_t res;
-
-		if(size == 1)
-		{
-			res = std::uint8_t(a - b);
-			sr.V = check_overflow_sub<std::int8_t>(a, b);
-			sr.C = check_borrow<std::uint8_t>(a, b);
-		}
-		else if(size == 2)
-		{
-			res = std::uint16_t(a - b);
-			sr.V = check_overflow_sub<std::int16_t>(a, b);
-			sr.C = check_borrow<std::uint16_t>(a, b);
-		}
-		else
-		{
-			res = a - b;
-			sr.V = check_overflow_sub<std::int32_t>(a, b);
-			sr.C = check_borrow<std::uint32_t>(a, b);
-		}
-
+		std::uint32_t res = sub(a, b, 0, size);
+		set_borrow_and_overflow_flags(a, b, 0, size, sr);
 		sr.X = sr.C;
 		sr.Z = res == 0;
 		sr.N = neg_flag(res, size);
@@ -270,27 +226,8 @@ private:
 
 	static std::uint32_t subx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
 	{
-		std::uint32_t res;
-
-		if(size == 1)
-		{
-			res = std::uint8_t(a - b - sr.X);
-			sr.V = check_overflow_sub<std::int8_t>(a, b, sr.X);
-			sr.C = check_borrow<std::uint8_t>(a, b, sr.X);
-		}
-		else if(size == 2)
-		{
-			res = std::uint16_t(a - b - sr.X);
-			sr.V = check_overflow_sub<std::int16_t>(a, b, sr.X);
-			sr.C = check_borrow<std::uint16_t>(a, b, sr.X);
-		}
-		else
-		{
-			res = a - b - sr.X;
-			sr.V = check_overflow_sub<std::int32_t>(a, b, sr.X);
-			sr.C = check_borrow<std::uint32_t>(a, b, sr.X);
-		}
-
+		std::uint32_t res = sub(a, b, sr.X, size);
+		set_borrow_and_overflow_flags(a, b, sr.X, size, sr);
 		sr.X = sr.C;
 		if(res != 0) sr.Z = 0;
 		sr.N = neg_flag(res, size);
@@ -318,60 +255,44 @@ private:
 		return res;
 	}
 
-	template <class T>
-	static std::uint8_t check_overflow_add(T a, T b, std::uint8_t c = 0)
+	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
+		std::uint8_t size, status_register& sr)
 	{
-		static_assert(std::numeric_limits<T>::is_signed == true);
-
-		auto sum = (std::int64_t)a + (std::int64_t)b + c;
-
-		if (sum > std::numeric_limits<T>::max())
-			return 1;
-
-		if (sum < std::numeric_limits<T>::min())
-			return 1;
-
-		return 0;
+		if(size == 1)
+		{
+			sr.V = cpu_flags::overflow_add<std::int8_t>(a, b, x);
+			sr.C = cpu_flags::carry<std::uint8_t>(a, b, x);
+		}
+		else if(size == 2)
+		{
+			sr.V = cpu_flags::overflow_add<std::int16_t>(a, b, x);
+			sr.C = cpu_flags::carry<std::uint16_t>(a, b, x);
+		}
+		else
+		{
+			sr.V = cpu_flags::overflow_add<std::int32_t>(a, b, x);
+			sr.C = cpu_flags::carry<std::uint32_t>(a, b, x);
+		}
 	}
 
-	template <class T>
-	static std::uint8_t check_carry(T a, T b, std::uint8_t c = 0)
+	static void set_borrow_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
+		std::uint8_t size, status_register& sr)
 	{
-		static_assert(std::numeric_limits<T>::is_signed == false);
-
-		auto sum = (std::int64_t)a + (std::int64_t)b + c;
-		if (sum > std::numeric_limits<T>::max())
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_overflow_sub(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == true);
-
-		auto diff = (std::int64_t)a - (std::int64_t)b - c;
-
-		if (diff > std::numeric_limits<T>::max())
-			return 1;
-
-		if (diff < std::numeric_limits<T>::min())
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_borrow(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == false);
-
-		auto sum = (std::int64_t)b + c;
-		if (sum > a)
-			return 1;
-
-		return 0;
+		if(size == 1)
+		{
+			sr.V = cpu_flags::overflow_sub<std::int8_t>(a, b, x);
+			sr.C = cpu_flags::borrow<std::uint8_t>(a, b, x);
+		}
+		else if(size == 2)
+		{
+			sr.V = cpu_flags::overflow_sub<std::int16_t>(a, b, x);
+			sr.C = cpu_flags::borrow<std::uint16_t>(a, b, x);
+		}
+		else
+		{
+			sr.V = cpu_flags::overflow_sub<std::int32_t>(a, b, x);
+			sr.C = cpu_flags::borrow<std::uint32_t>(a, b, x);
+		}
 	}
 
 	static void set_logical_flags(std::uint32_t res, std::uint8_t size, status_register& sr)
@@ -383,10 +304,8 @@ private:
 
 	static std::uint8_t neg_flag(std::uint32_t val, std::uint8_t size)
 	{
-		if(size == 1)
-			return std::int8_t(val) < 0;
-		if(size == 2)
-			return std::int16_t(val) < 0;
+		if(size == 1) return std::int8_t(val) < 0;
+		if(size == 2) return std::int16_t(val) < 0;
 		return std::int32_t(val) < 0;
 	}
 

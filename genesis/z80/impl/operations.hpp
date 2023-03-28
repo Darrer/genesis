@@ -2,6 +2,7 @@
 #define __OPERATIONS_HPP__
 
 #include "string_utils.hpp"
+#include "cpu_flags.hpp"
 #include "z80/cpu.h"
 
 #include <bit>
@@ -412,8 +413,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, b);
-		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b);
-		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b);
+		flags.PV = cpu_flags::overflow_add<std::int8_t>(regs.main_set.A, b);
+		flags.C = cpu_flags::carry<std::uint8_t>(regs.main_set.A, b);
 
 		flags.N = 0;
 
@@ -432,8 +433,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_carry<std::uint8_t>(regs.main_set.A, b, _c);
-		flags.PV = check_overflow_add<std::int8_t>(regs.main_set.A, b, _c);
-		flags.C = check_carry<std::uint8_t>(regs.main_set.A, b, _c);
+		flags.PV = cpu_flags::overflow_add<std::int8_t>(regs.main_set.A, b, _c);
+		flags.C = cpu_flags::carry<std::uint8_t>(regs.main_set.A, b, _c);
 
 		flags.N = 0;
 
@@ -451,8 +452,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b);
-		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
-		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
+		flags.PV = cpu_flags::overflow_sub<std::int8_t>(regs.main_set.A, b);
+		flags.C = cpu_flags::borrow<std::uint8_t>(regs.main_set.A, b);
 
 		flags.N = 1;
 
@@ -471,8 +472,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b, _c);
-		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b, _c);
-		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b, _c);
+		flags.PV = cpu_flags::overflow_sub<std::int8_t>(regs.main_set.A, b, _c);
+		flags.C = cpu_flags::borrow<std::uint8_t>(regs.main_set.A, b, _c);
 
 		flags.N = 1;
 
@@ -537,8 +538,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, b);
-		flags.PV = check_overflow_sub<std::int8_t>(regs.main_set.A, b);
-		flags.C = check_borrow<std::uint8_t>(regs.main_set.A, b);
+		flags.PV = cpu_flags::overflow_sub<std::int8_t>(regs.main_set.A, b);
+		flags.C = cpu_flags::borrow<std::uint8_t>(regs.main_set.A, b);
 		flags.N = 1;
 
 		std::int8_t diff = (std::uint8_t)regs.main_set.A - (std::uint8_t)b;
@@ -601,7 +602,7 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_carry<std::uint16_t>(dest, src);
-		flags.C = check_carry<std::uint16_t>(dest, src);
+		flags.C = cpu_flags::carry<std::uint16_t>(dest, src);
 
 		flags.N = 0;
 
@@ -620,8 +621,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_carry<std::uint16_t>(regs.main_set.HL, src, c);
-		flags.C = check_carry<std::uint16_t>(regs.main_set.HL, src, c);
-		flags.PV = check_overflow_add<std::int16_t>(regs.main_set.HL, src, c);
+		flags.C = cpu_flags::carry<std::uint16_t>(regs.main_set.HL, src, c);
+		flags.PV = cpu_flags::overflow_add<std::int16_t>(regs.main_set.HL, src, c);
 
 		flags.N = 0;
 
@@ -640,9 +641,8 @@ public:
 		auto& flags = regs.main_set.flags;
 
 		flags.H = check_half_borrow<std::uint16_t>(regs.main_set.HL, src, c);
-		flags.C = check_borrow<std::uint16_t>(regs.main_set.HL, src, c);
-
-		flags.PV = check_overflow_sub<std::int16_t>(regs.main_set.HL, src, c);
+		flags.C = cpu_flags::borrow<std::uint16_t>(regs.main_set.HL, src, c);
+		flags.PV = cpu_flags::overflow_sub<std::int16_t>(regs.main_set.HL, src, c);
 
 		flags.N = 1;
 
@@ -1147,8 +1147,8 @@ public:
 	{
 		auto& flags = regs.main_set.flags;
 
-		flags.C = check_borrow<std::uint8_t>(0, regs.main_set.A);
-		flags.PV = check_overflow_sub<std::int8_t>(0, regs.main_set.A);
+		flags.C = cpu_flags::borrow<std::uint8_t>(0, regs.main_set.A);
+		flags.PV = cpu_flags::overflow_sub<std::int8_t>(0, regs.main_set.A);
 		flags.H = check_half_borrow<std::uint8_t>(0, regs.main_set.A);
 		flags.N = 1;
 
@@ -1218,62 +1218,6 @@ public:
 
 private:
 	/* flag helpers */
-	template <class T>
-	static std::uint8_t check_overflow_add(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == true);
-
-		long sum = (long)a + (long)b + c;
-
-		if (sum > std::numeric_limits<T>::max())
-			return 1;
-
-		if (sum < std::numeric_limits<T>::min())
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_overflow_sub(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == true);
-
-		long diff = (long)a - (long)b - c;
-
-		if (diff > std::numeric_limits<T>::max())
-			return 1;
-
-		if (diff < std::numeric_limits<T>::min())
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_carry(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == false);
-
-		long sum = (long)a + (long)b + c;
-		if (sum > std::numeric_limits<T>::max())
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_borrow(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == false);
-
-		long sum = (long)b + c;
-		if (sum > a)
-			return 1;
-
-		return 0;
-	}
-
 	template <class T>
 	static std::uint8_t check_half_carry(T a, T b, std::uint8_t c = 0)
 	{
