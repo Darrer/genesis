@@ -34,6 +34,7 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "1001____11______", inst_type::SUBA },
 	{ "00000100sz______", inst_type::SUBI },
 	{ "0101___1sz______", inst_type::SUBQ },
+	{ "1001___1sz00____", inst_type::SUBX },
 
 	/* AND */
 	{ "1100____sz______", inst_type::AND },

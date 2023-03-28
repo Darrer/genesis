@@ -45,6 +45,12 @@ public:
 	}
 
 	template<class T1, class T2>
+	static std::uint32_t subx(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	{
+		return subx(value(a, size), value(b, size), size, sr);
+	}
+
+	template<class T1, class T2>
 	static std::uint32_t cmp(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
 		// cmp like sub but does not change the result
@@ -132,6 +138,9 @@ public:
 
 		case inst_type::SUBA:
 			return operations::suba(a, b, size, sr);
+
+		case inst_type::SUBX:
+			return operations::subx(a, b, size, sr);
 
 		case inst_type::AND:
 		case inst_type::ANDI:
@@ -255,6 +264,35 @@ private:
 
 		sr.X = sr.C;
 		sr.Z = res == 0;
+		sr.N = neg_flag(res, size);
+		return res;
+	}
+
+	static std::uint32_t subx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res;
+
+		if(size == 1)
+		{
+			res = std::uint8_t(a - b - sr.X);
+			sr.V = check_overflow_sub<std::int8_t>(a, b, sr.X);
+			sr.C = check_borrow<std::uint8_t>(a, b, sr.X);
+		}
+		else if(size == 2)
+		{
+			res = std::uint16_t(a - b - sr.X);
+			sr.V = check_overflow_sub<std::int16_t>(a, b, sr.X);
+			sr.C = check_borrow<std::uint16_t>(a, b, sr.X);
+		}
+		else
+		{
+			res = a - b - sr.X;
+			sr.V = check_overflow_sub<std::int32_t>(a, b, sr.X);
+			sr.C = check_borrow<std::uint32_t>(a, b, sr.X);
+		}
+
+		sr.X = sr.C;
+		if(res != 0) sr.Z = 0;
 		sr.N = neg_flag(res, size);
 		return res;
 	}

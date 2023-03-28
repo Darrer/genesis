@@ -128,6 +128,7 @@ private:
 			break;
 
 		case inst_type::ADDX:
+		case inst_type::SUBX:
 			rm_predec_handler();
 			break;
 
@@ -374,7 +375,7 @@ private:
 				// data register
 				auto& src = regs.D(src_reg);
 				auto& dest = regs.D(dest_reg);
-				res = operations::alu(curr_inst, src, dest, size, regs.flags);
+				res = operations::alu(curr_inst, dest, src, size, regs.flags);
 				if(size == 4) wait_after_idle(4);
 				store(dest, size, res);
 				prefetch_one_and_idle();
