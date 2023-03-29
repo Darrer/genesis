@@ -32,7 +32,8 @@ enum inst_type : std::uint8_t
 	CMPA,
 	NEG,
 	NEGX,
-	NOT
+	NOT,
+	NOP,
 };
 
 }

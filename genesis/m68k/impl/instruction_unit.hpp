@@ -133,6 +133,10 @@ private:
 			rm_predec_handler();
 			break;
 
+		case inst_type::NOP:
+			nop_hanlder();
+			break;
+
 		default: throw internal_error();
 		}
 	}
@@ -464,6 +468,33 @@ private:
 			break;
 
 		default: throw internal_error();
+		}
+	}
+
+	void nop_hanlder()
+	{
+		if(busm.is_idle())
+		{
+			prefetch_one_and_idle();
+		}
+	}
+
+	// save the result (write to register or to memory), do prefetch and go IDLE
+	void save_prefetch_and_idle(operand& op, std::uint32_t res, std::uint8_t size)
+	{
+		if(!op.is_pointer())
+		{
+			store(op, size, res);
+			prefetch_one_and_idle();
+			
+		}
+		else
+		{
+			prefetch_one();
+			// schedule write 
+			this->res = res;
+			this->size = size;
+			addr = op.pointer().address;
 		}
 	}
 

@@ -60,6 +60,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* NOT */
 	{ "01000110sz______", inst_type::NOT },
+
+	/* NOP */
+	{ "0100111001110001", inst_type::NOP},
 };
 
 
