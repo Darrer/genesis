@@ -105,6 +105,7 @@ public:
 	
 	/* NEG */
 	static constexpr auto neg = cmpi;
+	static constexpr auto negx = neg;
 
 	/* NOT */
 	static constexpr auto not_op = neg;
@@ -159,6 +160,8 @@ public:
 			return cmpi(size, op);
 		case inst_type::NEG:
 			return neg(size, op);
+		case inst_type::NEGX:
+			return negx(size, op);
 		case inst_type::NOT:
 			return not_op(size, op);
 		case inst_type::CMPM:

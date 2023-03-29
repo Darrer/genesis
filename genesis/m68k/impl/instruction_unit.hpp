@@ -123,6 +123,7 @@ private:
 			break;
 
 		case inst_type::NEG:
+		case inst_type::NEGX:
 		case inst_type::NOT:
 			unary_handler();
 			break;

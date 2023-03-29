@@ -104,6 +104,12 @@ public:
 	}
 
 	template<class T1>
+	static std::uint32_t negx(T1 a, std::uint8_t size, status_register& sr)
+	{
+		return subx(0, value(a, size), size, sr);
+	}
+
+	template<class T1>
 	static std::uint32_t not_op(T1 a, std::uint8_t size, status_register& sr)
 	{
 		std::uint32_t res = value(~value(a, size), size);
@@ -172,6 +178,8 @@ public:
 		{
 		case inst_type::NEG:
 			return neg(a, size, sr);
+		case inst_type::NEGX:
+			return negx(a, size, sr);
 		case inst_type::NOT:
 			return not_op(a, size, sr);
 

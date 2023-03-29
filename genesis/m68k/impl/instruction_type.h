@@ -31,6 +31,7 @@ enum inst_type : std::uint8_t
 	CMPM,
 	CMPA,
 	NEG,
+	NEGX,
 	NOT
 };
 
