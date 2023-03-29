@@ -29,6 +29,7 @@ private:
 		IDLE,
 		EXECUTING,
 		DECODING,
+		WRITE_RESULT,
 	};
 
 public:
@@ -74,6 +75,10 @@ protected:
 
 		case EXECUTING:
 			execute();
+			break;
+
+		case WRITE_RESULT:
+			write_and_idle(addr, res, size);
 			break;
 
 		default:
@@ -173,23 +178,11 @@ private:
 			else
 			{
 				res = operations::alu(curr_inst, op, reg, size, regs.flags);
-				if(op.is_pointer())
-				{
-					prefetch_one();
-				}
-				else
-				{
-					store(op, size, res);
-					prefetch_one_and_idle();
-				}
+				save_prefetch_and_idle(op, res, size);
 			}
 
 			break;
 		}
-
-		case 2:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
 
 		default: throw internal_error();
 		}
@@ -214,10 +207,7 @@ private:
 			auto op = dec.result();
 
 			wait_after_idle(timings::alu_mode(curr_inst, opmode, op));
-
-			res = operations::alu(curr_inst, op, reg.LW, size, regs.flags);
-
-			reg.LW = res;
+			reg.LW = operations::alu(curr_inst, op, reg.LW, size, regs.flags);
 			prefetch_one_and_idle();
 
 			break;
@@ -254,22 +244,9 @@ private:
 				break;
 			}
 
-			if(op.is_pointer())
-			{
-				prefetch_one();
-			}
-			else
-			{
-				store(op, size, res);
-				prefetch_one_and_idle();
-			}
-
+			save_prefetch_and_idle(op, res, size);
 			break;
 		}
-
-		case 3:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
 
 		default: throw internal_error();
 		}
@@ -297,22 +274,9 @@ private:
 
 			wait_after_idle(timings::alu_size(curr_inst, size, op));
 
-			if(op.is_pointer())
-			{
-				prefetch_one();
-			}
-			else
-			{
-				store(op, size, res);
-				prefetch_one_and_idle();
-			}
-
+			save_prefetch_and_idle(op, res, size);
 			break;
 		}
-
-		case 2:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
 
 		default: throw internal_error();
 		}
@@ -449,23 +413,10 @@ private:
 			res = operations::alu(curr_inst, op, size, regs.flags);
 
 			wait_after_idle(timings::alu_size(curr_inst, size, op));
-
-			if(op.is_pointer())
-			{
-				prefetch_one();
-			}
-			else
-			{
-				store(op, size, res);
-				prefetch_one_and_idle();
-			}
+			save_prefetch_and_idle(op, res, size);
 
 			break;
 		}
-
-		case 2:
-			write_and_idle(dec.result().pointer().address, res, size);
-			break;
 
 		default: throw internal_error();
 		}
@@ -486,12 +437,13 @@ private:
 		{
 			store(op, size, res);
 			prefetch_one_and_idle();
-			
 		}
 		else
 		{
 			prefetch_one();
+
 			// schedule write 
+			state = WRITE_RESULT;
 			this->res = res;
 			this->size = size;
 			addr = op.pointer().address;

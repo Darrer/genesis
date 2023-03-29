@@ -65,37 +65,6 @@ constexpr static std::size_t extended_size()
 	return size;
 }
 
-class token_replacer
-{
-public:
-	token_replacer() = delete;
-
-	/* constexpr static std::array<mask_inst_pair, extended_size()> extended_opcodes()
-	{
-		std::array<mask_inst_pair, extended_size()> res;
-
-		std::size_t pos = 0;
-
-		for(auto entry : opcodes)
-		{
-			if(entry.inst_template.find("sz") != std::string::npos)
-			{
-				// res.at(pos++)
-				entry.inst_template.substr
-			}
-			else
-			{
-				res.at(pos++) = entry;
-			}
-		}
-
-		return res;
-	} */
-
-private:
-
-};
-
 class opcode_builder
 {
 public:
