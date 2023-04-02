@@ -34,6 +34,7 @@ enum inst_type : std::uint8_t
 	NEGX,
 	NOT,
 	NOP,
+	MOVE,
 };
 
 }

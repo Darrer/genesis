@@ -119,6 +119,16 @@ public:
 		return res;
 	}
 
+	template<class T1, class T2>
+	static std::uint32_t move(T1 src, T2 dest, std::uint8_t size, status_register& sr)
+	{
+		std::uint32_t res = value(src, size);
+		sr.N = neg_flag(res, size);
+		sr.Z = res == 0;
+		sr.V = sr.C = 0;
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -166,6 +176,9 @@ public:
 
 		case inst_type::CMPA:
 			return operations::cmpa(a, b, size, sr);
+
+		case inst_type::MOVE:
+			return operations::move(a, b, size, sr);
 
 		default: throw internal_error();
 		}
@@ -350,7 +363,7 @@ private:
 	static std::uint32_t value(operand& op, std::uint8_t size)
 	{
 		if(op.is_imm()) return value(op.imm(), size);
-		if(op.is_pointer()) return value(op.pointer().value, size);
+		if(op.is_pointer()) return value(op.pointer().value(), size);
 		if(op.is_data_reg()) return value(op.data_reg(), size);
 		if(op.is_addr_reg()) return value(op.addr_reg(), size);
 

@@ -40,6 +40,7 @@ protected:
 	void read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb = nullptr);
 
 	// TODO: what about overloading?
+	void write(std::uint32_t addr, std::uint32_t data, std::uint8_t size);
 	void write_byte(std::uint32_t addr, std::uint8_t data);
 	void write_word(std::uint32_t addr, std::uint16_t data);
 	void write_long(std::uint32_t addr, std::uint32_t data);

@@ -142,6 +142,10 @@ private:
 			nop_hanlder();
 			break;
 
+		case inst_type::MOVE:
+			move_handler();
+			break;
+
 		default: throw internal_error();
 		}
 	}
@@ -430,6 +434,75 @@ private:
 		}
 	}
 
+	void move_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			// decode source
+			size = dec_move_size(opcode >> 12);
+			decode_ea(opcode & 0xFF, size);
+			break;
+
+		case 1:
+		{
+			src_op = dec.result();
+			// decode destenation
+			std::uint8_t ea = (opcode >> 6) & 7;
+			ea = (ea << 3) | ((opcode >> 9) & 7);
+			decode_ea(ea, size, ea_decoder::flags::no_read);
+			break;
+		}
+
+		case 2:
+		{
+			auto dest_op = dec.result();
+
+			res = operations::alu(curr_inst, src_op.value(), dest_op, size, regs.flags);
+
+			if(((opcode >> 6) & 7) == 0b100)
+			{
+				if(dest_op.is_pointer())
+				{
+					addr = dest_op.pointer().address;
+					prefetch_one();
+				}
+				else
+				{
+					throw internal_error();
+				}
+			}
+			else
+			{
+				if(dest_op.is_pointer())
+				{
+					write(dest_op.pointer().address, res, size);
+				}
+				else
+				{
+					store(dest_op, size, res);
+					prefetch_one_and_idle();
+				}
+			}
+
+			break;
+		}
+
+		case 3:
+			if(((opcode >> 6) & 7) == 0b100)
+			{
+				write_and_idle(addr, res, size);
+			}
+			else
+			{
+				prefetch_one_and_idle();
+			}
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
 	// save the result (write to register or to memory), do prefetch and go IDLE
 	void save_prefetch_and_idle(operand& op, std::uint32_t res, std::uint8_t size)
 	{
@@ -508,9 +581,9 @@ private:
 	}
 
 private:
-	void decode_ea(std::uint8_t ea, std::uint8_t size)
+	void decode_ea(std::uint8_t ea, std::uint8_t size, ea_decoder::flags flags = ea_decoder::flags::none)
 	{
-		dec.decode(ea, size);
+		dec.decode(ea, size, flags);
 		if(dec.ready())
 		{
 			// immediate decoding
@@ -529,6 +602,16 @@ private:
 		if(size == 0) return 1;
 		if(size == 1) return 2;
 		if(size == 2) return 4;
+
+		throw_invalid_opcode();
+	}
+
+	std::uint8_t dec_move_size(std::uint8_t size)
+	{
+		size = size & 0b11;
+		if(size == 0b01) return 1;
+		if(size == 0b11) return 2;
+		if(size == 0b10) return 4;
 
 		throw_invalid_opcode();
 	}
@@ -556,6 +639,7 @@ private:
 	std::uint8_t size = 0;
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
+	std::optional<m68k::operand> src_op;
 	status_register flags;
 };
 

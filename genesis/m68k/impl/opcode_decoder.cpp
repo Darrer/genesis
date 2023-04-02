@@ -28,10 +28,10 @@ constexpr bool validate_opcodes()
 			auto next_entry = *next;
 			if(entry.inst_template == next_entry.inst_template)
 				return false;
-			
+
 			// so far also assume there should be no duplicate instructions
-			if(entry.inst == next_entry.inst)
-				return false;
+			// if(entry.inst == next_entry.inst)
+			// 	return false;
 		}
 	}
 

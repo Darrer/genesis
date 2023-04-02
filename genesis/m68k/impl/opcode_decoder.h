@@ -62,7 +62,12 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "01000110sz______", inst_type::NOT },
 
 	/* NOP */
-	{ "0100111001110001", inst_type::NOP},
+	{ "0100111001110001", inst_type::NOP },
+
+	/* MOVE */
+	{ "0001____________", inst_type::MOVE },
+	{ "0011____________", inst_type::MOVE },
+	{ "0010____________", inst_type::MOVE },
 };
 
 

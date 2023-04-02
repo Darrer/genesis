@@ -128,6 +128,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 		dec_addr(addr_reg, 2);
 
 		// TODO: due to this chaining we occupy bus for 8 cycles
+		// TODO: capturing another lambda probably leads to memory allocation after assigning to std::function
 		auto on_read_msw = [this, cb]()
 		{
 			// we read MSW
@@ -247,6 +248,16 @@ void base_unit::read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb
 {
 	read_imm(size, cb);
 	go_idle = true;
+}
+
+void base_unit::write(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
+{
+	if(size == 1)
+		write_byte(addr, data);
+	else if(size == 2)
+		write_word(addr, data);
+	else
+		write_long(addr, data);
 }
 
 void base_unit::write_byte(std::uint32_t addr, std::uint8_t data)

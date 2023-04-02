@@ -16,17 +16,50 @@ namespace genesis::m68k
 class operand
 {
 public:
-	struct pointer
+	enum class type : std::uint8_t
 	{
-		std::uint32_t address;
-		std::uint32_t value;
+		address_register,
+		data_register,
+		immediate,
+		pointer,
+		read_only_pointer,
 	};
 
 public:
-	operand(address_register& _addr_reg) : _addr_reg(_addr_reg) { }
-	operand(data_register& _data_reg) : _data_reg(_data_reg) { }
-	operand(std::uint32_t _imm) : _imm(_imm) { }
-	operand(pointer ptr) : _ptr(ptr) { }
+	struct raw_pointer
+	{
+		raw_pointer(std::uint32_t address) : address(address) { }
+		raw_pointer(std::uint32_t address, std::uint32_t value)
+			: address(address), _value(value) { }
+
+		std::uint32_t address;
+
+		bool has_value() const
+		{
+			return _value.has_value();
+		}
+
+		std::uint32_t value() const
+		{
+			if(!has_value())
+				throw internal_error();
+
+			return _value.value();
+		}
+
+	private:
+		std::optional<std::uint32_t> _value;
+	};
+
+public:
+	// operand()
+
+
+
+	operand(address_register& _addr_reg, std::uint8_t size) : _addr_reg(_addr_reg), _size(size) { }
+	operand(data_register& _data_reg, std::uint8_t size) : _data_reg(_data_reg), _size(size) { }
+	operand(std::uint32_t _imm, std::uint8_t size) : _imm(_imm), _size(size) { }
+	operand(raw_pointer ptr, std::uint8_t size) : _ptr(ptr), _size(size) { }
 
 	bool is_addr_reg() const { return _addr_reg.has_value(); }
 	bool is_data_reg() const { return _data_reg.has_value(); }
@@ -54,38 +87,43 @@ public:
 		return _imm.value();
 	}
 
-	pointer pointer() const
+	raw_pointer pointer() const
 	{
 		if(!is_pointer()) throw internal_error();
 
 		return _ptr.value();
 	}
 
+	std::uint8_t size() const
+	{
+		return _size;
+	}
+
 private:
+	std::uint8_t _size;
 	std::optional<std::reference_wrapper<address_register>> _addr_reg;
 	std::optional<std::reference_wrapper<data_register>> _data_reg;
 	std::optional<std::uint32_t> _imm;
-	std::optional<struct operand::pointer> _ptr;
+	std::optional<raw_pointer> _ptr;
 };
 
 
 // effective address decoder
 class ea_decoder : public base_unit
 {
-private:
-	struct brief_ext
+public:
+	enum class flags : std::uint8_t
 	{
-		brief_ext(std::uint16_t raw)
-		{
-			static_assert(sizeof(brief_ext) == 2);
-			*reinterpret_cast<std::uint16_t*>(this) = raw;
-		}
+		none,
+		no_read,
+	};
 
-		std::uint8_t displacement;
-		std::uint8_t _res : 3;
-		std::uint8_t wl : 1;
-		std::uint8_t reg : 3;
-		std::uint8_t da : 1;
+private:
+	enum class dec_state : std::uint8_t
+	{
+		IDLE,
+		DECODING,
+		READING,
 	};
 
 public:
@@ -106,7 +144,7 @@ public:
 		return res.value();
 	}
 
-	void decode(std::uint8_t ea, std::uint8_t size)
+	void decode(std::uint8_t ea, std::uint8_t size, flags dec_flags = flags::none)
 	{
 		if(!is_idle() || !busm.is_idle())
 			throw internal_error();
@@ -114,9 +152,13 @@ public:
 		res.reset();
 		reg = ea & 0x7;
 		mode = (ea >> 3) & 0x7;
+		std::cout << "Start decoding: " << su::bin_str(mode) << std::endl;
 		this->size = size;
+		this->dec_flags = dec_flags;
 		dec_stage = 0;
+		state = dec_state::DECODING;
 
+		// this decoding modes may act right now
 		switch (mode)
 		{
 		case 0b000:
@@ -126,26 +168,7 @@ public:
 		case 0b001:
 			decode_001();
 			break;
-		}
-	}
 
-protected:
-	void on_cycle() override
-	{
-		if(res.has_value())
-		{
-			// we're not expected to be called after decoding is over
-			throw internal_error();
-		}
-
-		decoding();
-	}
-
-private:
-	void decoding()
-	{
-		switch (mode)
-		{
 		case 0b010:
 			decode_010();
 			break;
@@ -154,6 +177,39 @@ private:
 			decode_011();
 			break;
 
+		case 0b100:
+			decode_100_no_read();
+			break;
+		}
+	}
+
+protected:
+	void on_cycle() override
+	{
+		switch (state)
+		{
+		case dec_state::IDLE:
+			// we're not expected to be called after decoding is over
+			throw internal_error();
+		
+		case dec_state::DECODING:
+			decoding();
+			break;
+		
+		case dec_state::READING:
+			state = dec_state::IDLE;
+			read_pointer_and_idle(ptr);
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+private:
+	void decoding()
+	{
+		switch (mode)
+		{
 		case 0b100:
 			decode_100();
 			break;
@@ -201,26 +257,16 @@ private:
 	}
 
 private:
-	void read_pointer_and_idle(std::uint32_t addr)
-	{
-		auto cb = [this, addr]() { res = { { addr, data } }; };
-
-		read_and_idle(addr, size, cb);
-	}
-
-private:
 	/* immediately decoding */
 	void decode_000()
 	{
-		res = { regs.D(reg) };
+		res = { regs.D(reg), size };
 	}
 
 	void decode_001()
 	{
-		res = { regs.A(reg) };
+		res = { regs.A(reg), size };
 	}
-
-	/* need 1 bus read cycle */
 
 	// Address Register Indirect Mode 
 	void decode_010()
@@ -232,6 +278,7 @@ private:
 	void decode_011()
 	{
 		read_pointer_and_idle(regs.A(reg).LW);
+		// TODO: if the above call rises exception, we may end up with incorrect reg
 		inc_addr(reg, size);
 	}
 
@@ -240,12 +287,24 @@ private:
 	{
 		switch (dec_stage++)
 		{
-		case 0: wait(2); break;
+		case 0:
+			wait(2);
+			break;
 		case 1:
 			dec_addr(reg, size);
 			read_pointer_and_idle(regs.A(reg).LW);
 			break;
 		default: throw internal_error();
+		}
+	}
+
+	void decode_100_no_read()
+	{
+		if(dec_flags == flags::no_read)
+		{
+			dec_addr(reg, size);
+			// res = { regs.A(reg), size };
+			read_pointer_and_idle(regs.A(reg).LW);
 		}
 	}
 
@@ -256,7 +315,16 @@ private:
 		{
 		case 0:
 			ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
-			prefetch_irc();
+			// prefetch_irc();
+			if(dec_flags == flags::no_read)
+			{
+				res = { operand::raw_pointer(ptr, 0), size };
+				prefetch_irc_and_idle();
+			}
+			else
+			{
+				prefetch_irc();
+			}
 			break;
 		case 1:
 			read_pointer_and_idle(ptr);
@@ -273,7 +341,13 @@ private:
 		case 0: wait(2); break;
 		case 1:
 			ptr = dec_brief_reg(regs.A(reg).LW);
-			prefetch_irc();
+			if(dec_flags == flags::no_read)
+			{
+				res = { {ptr, 0}, size };
+				prefetch_irc_and_idle();
+			}
+			else
+				prefetch_irc();
 			break;
 		case 2:
 			read_pointer_and_idle(ptr);
@@ -289,7 +363,13 @@ private:
 		{
 		case 0:
 			ptr = (std::int16_t)pq.IRC;
-			prefetch_irc();
+			if(dec_flags == flags::no_read)
+			{
+				res = { operand::raw_pointer(ptr), size };
+				prefetch_irc_and_idle();
+			}
+			else
+				prefetch_irc();
 			break;
 		case 1:
 			read_pointer_and_idle(ptr);
@@ -320,11 +400,7 @@ private:
 		{
 		case 0:
 			ptr = regs.PC + (std::int16_t)pq.IRC;
-			prefetch_irc();
-			break;
-		case 1:
-			// TODO: check if ptr is read only here
-			read_pointer_and_idle(ptr);
+			prefetch_read_and_idle(ptr, true);
 			break;
 		default: throw internal_error();
 		}
@@ -338,10 +414,7 @@ private:
 		case 0: wait(2); break;
 		case 1:
 			ptr = dec_brief_reg(regs.PC);
-			prefetch_irc();
-			break;
-		case 2:
-			read_pointer_and_idle(ptr);
+			prefetch_read_and_idle(ptr, true);
 			break;
 		default: throw internal_error();
 		}
@@ -350,10 +423,60 @@ private:
 	// Immediate Data 
 	void decode_111_100()
 	{
-		read_imm_and_idle(size, [&]() { res = { imm }; });	
+		read_imm_and_idle(size, [&]() { res = { imm, size }; });	
+	}
+
+
+private:
+	/* helper methods */
+
+	void read_pointer_and_idle(std::uint32_t addr)
+	{
+		if(dec_flags == flags::no_read)
+		{
+			res = { operand::raw_pointer(addr), size };
+			idle();
+		}
+		else
+		{
+			auto cb = [this, addr]() { res = { operand::raw_pointer(addr, data), size }; };
+			read_and_idle(addr, size, cb);
+		}
+	}
+
+	void prefetch_read_and_idle(std::uint32_t ptr, bool read_only = false)
+	{
+		if(dec_flags == flags::none)
+		{
+			prefetch_irc();
+
+			// delayed read
+			state = dec_state::READING;
+			this->ptr = ptr;
+		}
+		else
+		{
+			res = { operand::raw_pointer(ptr), size };
+			prefetch_irc_and_idle();
+		}
 	}
 
 private:
+	struct brief_ext
+	{
+		brief_ext(std::uint16_t raw)
+		{
+			static_assert(sizeof(brief_ext) == 2);
+			*reinterpret_cast<std::uint16_t*>(this) = raw;
+		}
+
+		std::uint8_t displacement;
+		std::uint8_t _res : 3;
+		std::uint8_t wl : 1;
+		std::uint8_t reg : 3;
+		std::uint8_t da : 1;
+	};
+
 	std::uint32_t dec_brief_reg(std::uint32_t base) const
 	{
 		brief_ext ext(pq.IRC);
@@ -368,12 +491,14 @@ private:
 	}
 
 private:
+	dec_state state = dec_state::IDLE;
 	std::optional<operand> res;
 
 	std::uint8_t dec_stage;
 	std::uint8_t mode;
 	std::uint8_t reg;
 	std::uint8_t size;
+	flags dec_flags;
 
 	std::uint32_t ptr;
 };
