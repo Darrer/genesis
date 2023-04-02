@@ -450,7 +450,7 @@ private:
 			// decode destenation
 			std::uint8_t ea = (opcode >> 6) & 7;
 			ea = (ea << 3) | ((opcode >> 9) & 7);
-			decode_ea(ea, size, ea_decoder::flags::no_read);
+			decode_ea(ea, size);
 			break;
 		}
 
@@ -581,9 +581,9 @@ private:
 	}
 
 private:
-	void decode_ea(std::uint8_t ea, std::uint8_t size, ea_decoder::flags flags = ea_decoder::flags::none)
+	void decode_ea(std::uint8_t ea, std::uint8_t size)
 	{
-		dec.decode(ea, size, flags);
+		dec.decode(ea, size);
 		if(dec.ready())
 		{
 			// immediate decoding

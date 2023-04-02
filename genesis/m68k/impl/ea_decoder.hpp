@@ -52,10 +52,6 @@ public:
 	};
 
 public:
-	// operand()
-
-
-
 	operand(address_register& _addr_reg, std::uint8_t size) : _addr_reg(_addr_reg), _size(size) { }
 	operand(data_register& _data_reg, std::uint8_t size) : _data_reg(_data_reg), _size(size) { }
 	operand(std::uint32_t _imm, std::uint8_t size) : _imm(_imm), _size(size) { }
@@ -112,21 +108,6 @@ private:
 class ea_decoder : public base_unit
 {
 public:
-	enum class flags : std::uint8_t
-	{
-		none,
-		no_read,
-	};
-
-private:
-	enum class dec_state : std::uint8_t
-	{
-		IDLE,
-		DECODING,
-		READING,
-	};
-
-public:
 	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq)
 		: base_unit(regs, busm, pq) { }
 
@@ -144,7 +125,7 @@ public:
 		return res.value();
 	}
 
-	void decode(std::uint8_t ea, std::uint8_t size, flags dec_flags = flags::none)
+	void decode(std::uint8_t ea, std::uint8_t size)
 	{
 		if(!is_idle() || !busm.is_idle())
 			throw internal_error();
@@ -152,11 +133,8 @@ public:
 		res.reset();
 		reg = ea & 0x7;
 		mode = (ea >> 3) & 0x7;
-		std::cout << "Start decoding: " << su::bin_str(mode) << std::endl;
 		this->size = size;
-		this->dec_flags = dec_flags;
 		dec_stage = 0;
-		state = dec_state::DECODING;
 
 		// this decoding modes may act right now
 		switch (mode)
@@ -168,7 +146,24 @@ public:
 		case 0b001:
 			decode_001();
 			break;
+		}
+	}
 
+protected:
+	void on_cycle() override
+	{
+		// we're not expected to be called after decoding is over
+		if(res.has_value())
+			throw internal_error();
+
+		decoding();
+	}
+
+private:
+	void decoding()
+	{
+		switch (mode)
+		{
 		case 0b010:
 			decode_010();
 			break;
@@ -177,39 +172,6 @@ public:
 			decode_011();
 			break;
 
-		case 0b100:
-			decode_100_no_read();
-			break;
-		}
-	}
-
-protected:
-	void on_cycle() override
-	{
-		switch (state)
-		{
-		case dec_state::IDLE:
-			// we're not expected to be called after decoding is over
-			throw internal_error();
-		
-		case dec_state::DECODING:
-			decoding();
-			break;
-		
-		case dec_state::READING:
-			state = dec_state::IDLE;
-			read_pointer_and_idle(ptr);
-			break;
-
-		default: throw internal_error();
-		}
-	}
-
-private:
-	void decoding()
-	{
-		switch (mode)
-		{
 		case 0b100:
 			decode_100();
 			break;
@@ -298,16 +260,6 @@ private:
 		}
 	}
 
-	void decode_100_no_read()
-	{
-		if(dec_flags == flags::no_read)
-		{
-			dec_addr(reg, size);
-			// res = { regs.A(reg), size };
-			read_pointer_and_idle(regs.A(reg).LW);
-		}
-	}
-
 	// Address Register Indirect with Displacement Mode
 	void decode_101()
 	{
@@ -315,16 +267,7 @@ private:
 		{
 		case 0:
 			ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
-			// prefetch_irc();
-			if(dec_flags == flags::no_read)
-			{
-				res = { operand::raw_pointer(ptr, 0), size };
-				prefetch_irc_and_idle();
-			}
-			else
-			{
-				prefetch_irc();
-			}
+			prefetch_irc();
 			break;
 		case 1:
 			read_pointer_and_idle(ptr);
@@ -341,13 +284,7 @@ private:
 		case 0: wait(2); break;
 		case 1:
 			ptr = dec_brief_reg(regs.A(reg).LW);
-			if(dec_flags == flags::no_read)
-			{
-				res = { {ptr, 0}, size };
-				prefetch_irc_and_idle();
-			}
-			else
-				prefetch_irc();
+			prefetch_irc();
 			break;
 		case 2:
 			read_pointer_and_idle(ptr);
@@ -363,13 +300,7 @@ private:
 		{
 		case 0:
 			ptr = (std::int16_t)pq.IRC;
-			if(dec_flags == flags::no_read)
-			{
-				res = { operand::raw_pointer(ptr), size };
-				prefetch_irc_and_idle();
-			}
-			else
-				prefetch_irc();
+			prefetch_irc();
 			break;
 		case 1:
 			read_pointer_and_idle(ptr);
@@ -400,7 +331,10 @@ private:
 		{
 		case 0:
 			ptr = regs.PC + (std::int16_t)pq.IRC;
-			prefetch_read_and_idle(ptr, true);
+			prefetch_irc();
+			break;
+		case 1:
+			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();
 		}
@@ -414,7 +348,10 @@ private:
 		case 0: wait(2); break;
 		case 1:
 			ptr = dec_brief_reg(regs.PC);
-			prefetch_read_and_idle(ptr, true);
+			prefetch_irc();
+			break;
+		case 2:
+			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();
 		}
@@ -429,36 +366,11 @@ private:
 
 private:
 	/* helper methods */
-
 	void read_pointer_and_idle(std::uint32_t addr)
 	{
-		if(dec_flags == flags::no_read)
-		{
-			res = { operand::raw_pointer(addr), size };
-			idle();
-		}
-		else
-		{
-			auto cb = [this, addr]() { res = { operand::raw_pointer(addr, data), size }; };
-			read_and_idle(addr, size, cb);
-		}
-	}
-
-	void prefetch_read_and_idle(std::uint32_t ptr, bool read_only = false)
-	{
-		if(dec_flags == flags::none)
-		{
-			prefetch_irc();
-
-			// delayed read
-			state = dec_state::READING;
-			this->ptr = ptr;
-		}
-		else
-		{
-			res = { operand::raw_pointer(ptr), size };
-			prefetch_irc_and_idle();
-		}
+		ptr = addr;
+		auto cb = [this]() { res = { operand::raw_pointer(ptr, data), size }; };
+		read_and_idle(addr, size, cb);
 	}
 
 private:
@@ -491,14 +403,12 @@ private:
 	}
 
 private:
-	dec_state state = dec_state::IDLE;
 	std::optional<operand> res;
 
 	std::uint8_t dec_stage;
 	std::uint8_t mode;
 	std::uint8_t reg;
 	std::uint8_t size;
-	flags dec_flags;
 
 	std::uint32_t ptr;
 };
