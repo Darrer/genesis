@@ -108,8 +108,8 @@ private:
 class ea_decoder : public base_unit
 {
 public:
-	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq)
-		: base_unit(regs, busm, pq) { }
+	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, busm, pq, scheduler) { }
 
 	bool ready() const
 	{

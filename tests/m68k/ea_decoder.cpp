@@ -7,7 +7,7 @@
 
 #define setup_test() \
 	genesis::test::test_cpu cpu; \
-	m68k::ea_decoder dec(cpu.bus_manager(), cpu.registers(), cpu.prefetch_queue())
+	m68k::ea_decoder dec(cpu.bus_manager(), cpu.registers(), cpu.prefetch_queue(), cpu.bus_scheduler())
 
 using namespace genesis;
 

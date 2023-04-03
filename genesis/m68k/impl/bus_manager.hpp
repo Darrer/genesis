@@ -6,6 +6,8 @@
 #include <functional>
 #include <limits>
 
+#include <iostream>
+
 #include "m68k/cpu_memory.h"
 #include "m68k/cpu_bus.hpp"
 #include "m68k/cpu_registers.hpp"

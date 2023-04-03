@@ -8,16 +8,16 @@ enum handler_state : std::uint8_t
 {
 	IDLE,
 	EXECUTING,
-	WAITING_RW,
-	PREFETCHING,
+	SCHEDULER,
 	WAITING,
 };
 
 namespace genesis::m68k
 {
 
-base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq):
-	regs(regs), busm(busm), pq(pq)
+base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
+	m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler):
+	regs(regs), busm(busm), pq(pq), scheduler(scheduler)
 {
 	base_unit::reset();
 }
@@ -37,11 +37,8 @@ bool base_unit::is_idle() const
 	if(cycles_after_idle > 0)
 		return false;
 
-	if(state == WAITING_RW && go_idle)
-		return busm.is_idle();
-
-	if(state == PREFETCHING && go_idle)
-		return pq.is_idle();
+	if(state == SCHEDULER && go_idle)
+		return scheduler.is_idle();
 
 	if(state == WAITING && go_idle)
 		return cycles_to_wait == 0;
@@ -51,22 +48,14 @@ bool base_unit::is_idle() const
 
 void base_unit::cycle()
 {
-	if(state == WAITING_RW)
+	if(state == SCHEDULER)
 	{
-		if(!busm.is_idle())
+		if(!scheduler.is_idle())
 			return;
 
 		state = go_idle ? IDLE : EXECUTING;
 	}
 
-	if(state == PREFETCHING)
-	{
-		if(!pq.is_idle())
-			return;
-
-		state = go_idle ? IDLE : EXECUTING;
-	}
-	
 	if(state == WAITING)
 	{
 		if(cycles_to_wait > 0)
@@ -127,28 +116,27 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 	{
 		dec_addr(addr_reg, 2);
 
-		// TODO: due to this chaining we occupy bus for 8 cycles
-		// TODO: capturing another lambda probably leads to memory allocation after assigning to std::function
-		auto on_read_msw = [this, cb]()
+		this->cb = cb;
+		this->reg_to_dec = addr_reg;
+		
+		auto on_read_lsw = [this](std::uint32_t data, size_type)
+		{
+			this->data = data;
+
+			// we cannot dec in earler due to possible exceptions
+			dec_addr(reg_to_dec, 2);
+		};
+		scheduler.read(regs.A(addr_reg).LW, size_type::WORD, on_read_lsw);
+
+		auto on_read_msw = [this](std::uint32_t data, size_type)
 		{
 			// we read MSW
-			data |= busm.letched_word() << 16;
-			if(cb) cb();
+			this->data |= data << 16;
+			if(this->cb) this->cb();
 		};
+		scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD, on_read_msw);
 
-		auto on_read_lsw = [this, addr_reg, on_read_msw]()
-		{
-			data = busm.letched_word();
-
-			// dec
-			dec_addr(addr_reg, 2);
-
-			// read LSW
-			busm.init_read_word(regs.A(addr_reg).LW, addr_space::DATA, on_read_msw);
-		};
-
-		busm.init_read_word(regs.A(addr_reg).LW, addr_space::DATA, on_read_lsw);
-		state = WAITING_RW;
+		state = SCHEDULER;
 
 		return;
 	}
@@ -168,80 +156,63 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 
 void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
 {
-	auto on_complete = [this, cb]()
+	this->cb = cb;
+	auto on_complete = [this](std::uint32_t data, size_type)
 	{
-		data = busm.letched_byte();
-		if(cb) cb();
+		this->data = data;
+		if(this->cb) this->cb();
 	};
 
-	busm.init_read_byte(addr, addr_space::DATA, on_complete);
-	state = WAITING_RW;
+	scheduler.read(addr, size_type::BYTE, on_complete);
+	state = SCHEDULER;
 }
 
 void base_unit::read_word(std::uint32_t addr, bus_manager::on_complete cb)
 {
-	auto on_complete = [this, cb]()
+	this->cb = cb;
+	auto on_complete = [this](std::uint32_t data, size_type)
 	{
-		data = busm.letched_word();
-		if(cb) cb();
+		this->data = data;
+		if(this->cb) this->cb();
 	};
 
-	busm.init_read_word(addr, addr_space::DATA, on_complete);
-	state = WAITING_RW;
+	scheduler.read(addr, size_type::WORD, on_complete);
+	state = SCHEDULER;
 }
 
 void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 {
-	// TODO: due to this chaining we occupy bus for 8 cycles
-	auto on_read_lsw = [this, cb]()
+	this->cb = cb;
+	auto on_complete = [this](std::uint32_t data, size_type)
 	{
-		data = data | busm.letched_word();
-		if(cb) cb();
+		this->data = data;
+		if(this->cb) this->cb();
 	};
 
-	auto on_read_msw = [this, addr, on_read_lsw]()
-	{
-		// we read MSW
-		data = busm.letched_word();
-
-		// assume it's little-endian
-		data = data << 16;
-
-		// read LSW
-		busm.init_read_word(addr + 2, addr_space::DATA, on_read_lsw);
-	};
-
-	busm.init_read_word(addr, addr_space::DATA, on_read_msw);
-	state = WAITING_RW;
+	scheduler.read(addr, size_type::LONG, on_complete);
+	state = SCHEDULER;
 }
 
 void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 {
-	if(size == 4)
-	{
-		imm = (std::uint32_t)pq.IRC << 16;
-		regs.PC += 2;
+	this->cb = cb;
 
-		auto on_complete = [this, cb]()
-		{
-			imm = imm | busm.letched_word();
-			if(cb) cb(); // data is available, good to cb
-			prefetch_irc();
-		};
-
-		busm.init_read_word(regs.PC, addr_space::PROGRAM, on_complete);
-		state = WAITING_RW;
-	}
+	size_type sz;
+	if(size == 1)
+		sz = size_type::BYTE;
+	else if(size == 2)
+		sz = size_type::WORD;
 	else
+		sz = size_type::LONG;
+
+	auto on_complete = [this](std::uint32_t data, size_type)
 	{
-		if(size == 1)
-			imm = pq.IRC & 0xFF;
-		else // size == 2
-			imm = pq.IRC;
-		
-		if(cb) cb();
-		prefetch_irc();
-	}
+		this->imm = data;
+		if(this->cb) this->cb();
+	};
+
+	scheduler.read_imm(sz, on_complete);
+	state = SCHEDULER;
 }
 
 void base_unit::read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb)
@@ -262,27 +233,20 @@ void base_unit::write(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
 
 void base_unit::write_byte(std::uint32_t addr, std::uint8_t data)
 {
-	busm.init_write(addr, data);
-	state = WAITING_RW;
+	state = SCHEDULER;
+	scheduler.write(addr, data, size_type::BYTE);
 }
 
 void base_unit::write_word(std::uint32_t addr, std::uint16_t data)
 {
-	busm.init_write(addr, data);
-	state = WAITING_RW;
+	state = SCHEDULER;
+	scheduler.write(addr, data, size_type::WORD);
 }
 
 void base_unit::write_long(std::uint32_t addr, std::uint32_t data)
 {
-	auto write_msw = [this, addr, data]()
-	{
-		std::uint16_t msw = data >> 16;
-		busm.init_write(addr, msw);
-	};
-
-	std::uint16_t lsw = data & 0xFFFF;
-	busm.init_write(addr + 2, lsw, write_msw);
-	state = WAITING_RW;
+	state = SCHEDULER;
+	scheduler.write(addr, data, size_type::LONG);
 }
 
 void base_unit::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
@@ -315,21 +279,20 @@ void base_unit::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
 
 void base_unit::prefetch_one()
 {
-	pq.init_fetch_one();
-	state = PREFETCHING;
+	state = SCHEDULER;
+	scheduler.prefetch_one();
 }
 
 void base_unit::prefetch_two()
 {
-	pq.init_fetch_two();
-	state = PREFETCHING;
+	state = SCHEDULER;
+	scheduler.prefetch_two();
 }
 
 void base_unit::prefetch_irc()
 {
-	pq.init_fetch_irc();
-	regs.PC += 2;
-	state = PREFETCHING;
+	state = SCHEDULER;
+	scheduler.prefetch_irc();
 }
 
 void base_unit::prefetch_one_and_idle()

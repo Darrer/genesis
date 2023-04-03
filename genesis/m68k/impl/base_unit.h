@@ -5,6 +5,7 @@
 
 #include "bus_manager.hpp"
 #include "prefetch_queue.hpp"
+#include "bus_scheduler.h"
 #include "m68k/cpu_registers.hpp"
 
 
@@ -14,7 +15,8 @@ namespace genesis::m68k
 class base_unit
 {
 public:
-	base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
+	base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
+		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler);
 	virtual ~base_unit() { }
 
 	void cycle();
@@ -69,14 +71,17 @@ protected:
 	m68k::cpu_registers& regs;
 	m68k::bus_manager& busm;
 	m68k::prefetch_queue& pq;
+	m68k::bus_scheduler& scheduler;
 
 	std::uint32_t imm;
 	std::uint32_t data;
 
 private:
+	bus_manager::on_complete cb = nullptr;
 	std::uint8_t state;
 	std::uint8_t cycles_to_wait;
 	std::uint8_t cycles_after_idle = 0;
+	std::uint8_t reg_to_dec = 0;
 	bool go_idle;
 };
 

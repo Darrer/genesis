@@ -14,6 +14,7 @@ public:
 	m68k::memory& memory() { return *mem; }
 	m68k::bus_manager& bus_manager() { return *busm; }
 	m68k::prefetch_queue& prefetch_queue() { return *pq; }
+	m68k::bus_scheduler& bus_scheduler() { return *scheduler; }
 	m68k::exception_manager& exception_manager() { return exman; }
 
 	unsigned long long cycle_till_idle(unsigned long long cycles_limit = 1000)

@@ -9,6 +9,7 @@
 
 #include "impl/bus_manager.hpp"
 #include "impl/prefetch_queue.hpp"
+#include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
 
@@ -37,6 +38,7 @@ protected:
 
 	std::unique_ptr<m68k::bus_manager> busm;
 	std::unique_ptr<m68k::prefetch_queue> pq;
+	std::unique_ptr<m68k::bus_scheduler> scheduler;
 	std::unique_ptr<m68k::base_unit> inst_unit;
 	std::unique_ptr<m68k::exception_unit> excp_unit;
 	exception_manager exman;

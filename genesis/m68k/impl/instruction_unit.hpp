@@ -33,8 +33,9 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq)
-		: base_unit(regs, busm, pq), dec(busm, regs, pq)
+	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
+		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, busm, pq, scheduler), dec(busm, regs, pq, scheduler)
 	{
 		reset();
 	}

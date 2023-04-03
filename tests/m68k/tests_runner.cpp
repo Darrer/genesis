@@ -2,6 +2,7 @@
 #include <iostream>
 #include <filesystem>
 #include <chrono>
+#include<stdlib.h>
 
 #include "tests_loader.h"
 #include "test_cpu.hpp"
@@ -303,6 +304,18 @@ bool run_test(test::test_cpu& cpu, const test_case& test)
 	return post && trans;
 }
 
+// using namespace std;
+// void * operator new(size_t size)
+// {
+// 	void * p = malloc(size);
+// 	return p;
+// }
+ 
+// void operator delete(void * p)
+// {
+// 	free(p);
+// }
+
 bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
 {
 	EXPECT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
@@ -323,7 +336,7 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 			continue;
 		}
 
-		std::cout << "Running " << test.name << std::endl;
+		// std::cout << "Running " << test.name << std::endl;
 		bool succeded = run_test(cpu, test);
 		total_cycles += test.length;
 
@@ -350,8 +363,8 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 		// ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
 
-		// std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
-		// std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
+		std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
+		std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
 	}
 
 	// ASSERT_EQ(tests.size(), num_succeded);
@@ -416,10 +429,13 @@ TEST(M68K, THT)
 	}
 }
 
+// TODO: overload new operator here, make sure it won't be called during executing cpu.cycle()
+// as this will be a huge performance hit
+
 // keep it here for debug
 TEST(M68K, TMP)
 {
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented\CMP)", "json");
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented\MOVE)", "json");
 	std::sort(all_tests.begin(), all_tests.end());
 
 	for(auto& test : all_tests)

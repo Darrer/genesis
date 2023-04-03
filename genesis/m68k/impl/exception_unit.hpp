@@ -22,8 +22,8 @@ private:
 
 public:
 	exception_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq,
-		exception_manager& exman, m68k::instruction_unit& inst_unit)
-		: base_unit(regs, busm, pq), exman(exman), inst_unit(inst_unit)
+		exception_manager& exman, m68k::instruction_unit& inst_unit, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, busm, pq, scheduler), exman(exman), inst_unit(inst_unit)
 	{
 		reset();
 	}
@@ -85,6 +85,7 @@ private:
 			curr_ex = exception_type::address_error;
 			addr_error = exman.accept_address_error();
 			inst_unit.reset();
+			scheduler.reset();
 			// pq.reset(); // TODO: we don't know who rised address error, so reset all components
 		}
 		else
