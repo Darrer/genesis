@@ -134,9 +134,20 @@ public:
 		reg = ea & 0x7;
 		mode = (ea >> 3) & 0x7;
 		this->size = size;
-		dec_stage = 0;
 
-		// this decoding modes may act right now
+		decoding();
+	}
+
+protected:
+	void on_cycle() override
+	{
+		// we're not expected to be called
+		throw internal_error();
+	}
+
+private:
+	void decoding()
+	{
 		switch (mode)
 		{
 		case 0b000:
@@ -146,24 +157,7 @@ public:
 		case 0b001:
 			decode_001();
 			break;
-		}
-	}
 
-protected:
-	void on_cycle() override
-	{
-		// we're not expected to be called after decoding is over
-		if(res.has_value())
-			throw internal_error();
-
-		decoding();
-	}
-
-private:
-	void decoding()
-	{
-		switch (mode)
-		{
 		case 0b010:
 			decode_010();
 			break;
@@ -247,17 +241,9 @@ private:
 	// Address Register Indirect with Predecrement Mode 
 	void decode_100()
 	{
-		switch (dec_stage++)
-		{
-		case 0:
-			wait(2);
-			break;
-		case 1:
-			dec_addr(reg, size);
-			read_pointer_and_idle(regs.A(reg).LW);
-			break;
-		default: throw internal_error();
-		}
+		wait(2);
+		dec_addr(reg, size);
+		read_pointer_and_idle(regs.A(reg).LW);
 	}
 
 	// Address Register Indirect with Displacement Mode
@@ -271,16 +257,10 @@ private:
 	// Address Register Indirect with Index (8-Bit Displacement) Mode 
 	void decode_110()
 	{
-		switch (dec_stage++)
-		{
-		case 0: wait(2); break;
-		case 1:
-			ptr = dec_brief_reg(regs.A(reg).LW);
-			prefetch_irc();
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw internal_error();
-		}
+		wait(2);
+		prefetch_irc();
+		ptr = dec_brief_reg(regs.A(reg).LW);
+		read_pointer_and_idle(ptr);
 	}
 
 	// Absolute Short Addressing Mode 
@@ -310,16 +290,10 @@ private:
 	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
 	void decode_111_011()
 	{
-		switch (dec_stage++)
-		{
-		case 0: wait(2); break;
-		case 1:
-			ptr = dec_brief_reg(regs.PC);
-			prefetch_irc();
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw internal_error();
-		}
+		wait(2);
+		prefetch_irc();
+		ptr = dec_brief_reg(regs.PC);
+		read_pointer_and_idle(ptr);
 	}
 
 	// Immediate Data 
@@ -370,7 +344,6 @@ private:
 private:
 	std::optional<operand> res;
 
-	std::uint8_t dec_stage;
 	std::uint8_t mode;
 	std::uint8_t reg;
 	std::uint8_t size;

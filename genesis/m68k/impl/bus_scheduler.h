@@ -37,7 +37,8 @@ private:
 		WRITE,
 		PREFETCH_ONE,
 		PREFETCH_TWO,
-		PREFETCH_IRC
+		PREFETCH_IRC,
+		WAIT,
 	};
 
 	struct read_operation
@@ -60,11 +61,16 @@ private:
 		size_type size;
 	};
 
+	struct wait_operation
+	{
+		std::uint16_t cycles;
+	};
+
 	struct operation
 	{
 		op_type type;
 		std::variant<read_operation, read_imm_operation,
-			write_operation> op;
+			write_operation, wait_operation> op;
 	};
 
 public:
@@ -96,6 +102,8 @@ public:
 	void prefetch_two();
 	void prefetch_irc();
 
+	void wait(std::uint16_t cycles);
+
 private:
 	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete = nullptr);
 	void read_imm_impl(size_type size, on_read_complete on_complete = nullptr);
@@ -113,6 +121,7 @@ private:
 	std::queue<operation> queue;
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;
+	std::uint16_t curr_wait_cycles = 0;
 };
 
 

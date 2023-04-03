@@ -106,7 +106,7 @@ private:
 		switch (ex_stage++)
 		{
 		case 0:
-			wait(4);
+			wait(4 - 1);
 			break;
 
 		case 1:

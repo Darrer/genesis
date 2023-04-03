@@ -35,6 +35,8 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::ui
 	while(!dec.ready())
 	{
 		dec.cycle();
+		cpu.bus_scheduler().cycle();
+		cpu.prefetch_queue().cycle();
 		cpu.bus_manager().cycle();
 	}
 }
@@ -100,6 +102,7 @@ void check_timings(std::uint8_t ea, std::uint8_t size,
 	while (!dec.ready())
 	{
 		dec.cycle();
+		cpu.bus_scheduler().cycle();
 		cpu.prefetch_queue().cycle();
 		cpu.bus_manager().cycle();
 

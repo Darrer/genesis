@@ -42,19 +42,27 @@ bool bus_scheduler::current_op_is_over() const
 	case op_type::PREFETCH_ONE:
 	case op_type::PREFETCH_TWO:
 		return pq.is_idle();
-	
+
+	case op_type::WAIT:
+		return curr_wait_cycles == 0;
+
 	default: throw internal_error();
 	}
 }
 
 void bus_scheduler::cycle()
 {
+	if(!current_op_is_over())
+	{
+		if(current_op.has_value() && current_op.value().type == op_type::WAIT)
+			--curr_wait_cycles;
+
+		return;
+	}
+	
 	if(queue.empty())
 		return;
-	
-	if(!current_op_is_over())
-		return;
-	
+
 	start_operation(queue.front());
 	queue.pop();
 }
@@ -160,6 +168,12 @@ void bus_scheduler::prefetch_irc()
 	queue.push({ op_type::PREFETCH_IRC });
 }
 
+void bus_scheduler::wait(std::uint16_t cycles)
+{
+	wait_operation wait_op {cycles};
+	queue.emplace(op_type::WAIT, wait_op);
+}
+
 void bus_scheduler::start_operation(operation op)
 {
 	current_op = op;
@@ -229,6 +243,13 @@ void bus_scheduler::start_operation(operation op)
 	case op_type::PREFETCH_TWO:
 		pq.init_fetch_two();
 		break;
+
+	case op_type::WAIT:
+	{
+		wait_operation wait = std::get<wait_operation>(op.op);
+		curr_wait_cycles = wait.cycles - 1; // took current cycle
+		break;
+	}
 
 	default: throw internal_error();
 	}

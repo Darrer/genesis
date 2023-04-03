@@ -322,8 +322,10 @@ void base_unit::prefetch_irc_and_idle()
 
 void base_unit::wait(std::uint8_t cycles)
 {
-	cycles_to_wait = cycles - 1; // assume current cycle is already spent
-	state = WAITING;
+	scheduler.wait(cycles);
+	state = SCHEDULER;
+	// cycles_to_wait = cycles - 1; // assume current cycle is already spent
+	// state = WAITING;
 }
 
 void base_unit::wait_and_idle(std::uint8_t cycles)
