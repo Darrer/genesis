@@ -263,17 +263,9 @@ private:
 	// Address Register Indirect with Displacement Mode
 	void decode_101()
 	{
-		switch (dec_stage++)
-		{
-		case 0:
-			ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
-			prefetch_irc();
-			break;
-		case 1:
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw internal_error();
-		}
+		ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+		prefetch_irc();
+		read_pointer_and_idle(ptr);
 	}
 
 	// Address Register Indirect with Index (8-Bit Displacement) Mode 
@@ -285,8 +277,6 @@ private:
 		case 1:
 			ptr = dec_brief_reg(regs.A(reg).LW);
 			prefetch_irc();
-			break;
-		case 2:
 			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();
@@ -296,48 +286,25 @@ private:
 	// Absolute Short Addressing Mode 
 	void decode_111_000()
 	{
-		switch (dec_stage++)
-		{
-		case 0:
-			ptr = (std::int16_t)pq.IRC;
-			prefetch_irc();
-			break;
-		case 1:
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw internal_error();
-		}
+		prefetch_irc();
+		read_pointer_and_idle((std::int16_t)pq.IRC);
 	}
 
 	// Absolute Long Addressing Mode
 	void decode_111_001()
 	{
-		switch (dec_stage++)
+		read_imm(4 /* long word */, [this]()
 		{
-		case 0:
-			read_imm(4 /* long word */);
-			break;
-		case 1:
 			read_pointer_and_idle(imm);
-			break;
-		default: throw internal_error();
-		}
+		} );
 	}
 
 	// Program Counter Indirect with Displacement Mode
 	void decode_111_010()
 	{
-		switch (dec_stage++)
-		{
-		case 0:
-			ptr = regs.PC + (std::int16_t)pq.IRC;
-			prefetch_irc();
-			break;
-		case 1:
-			read_pointer_and_idle(ptr);
-			break;
-		default: throw internal_error();
-		}
+		ptr = regs.PC + (std::int16_t)pq.IRC;
+		prefetch_irc();
+		read_pointer_and_idle(ptr);
 	}
 
 	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
@@ -349,8 +316,6 @@ private:
 		case 1:
 			ptr = dec_brief_reg(regs.PC);
 			prefetch_irc();
-			break;
-		case 2:
 			read_pointer_and_idle(ptr);
 			break;
 		default: throw internal_error();

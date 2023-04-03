@@ -37,11 +37,8 @@ void cpu::cycle()
 	pq->cycle();
 	busm->cycle();
 
-	// TMP
-	if(excp_unit->is_idle())
-	{
-		excp_unit->reset();
-	}
+	excp_unit->post_cycle();
+	inst_unit->post_cycle();
 
 	// if exception of group 0 rised - do cycle now
 	if(!exception_cycle && excp_unit->has_work())

@@ -9,6 +9,7 @@ enum handler_state : std::uint8_t
 	IDLE,
 	EXECUTING,
 	SCHEDULER,
+	WAIT_SCHEDULER,
 	WAITING,
 };
 
@@ -87,6 +88,12 @@ void base_unit::cycle()
 
 	// unreachable
 	throw internal_error();
+}
+
+void base_unit::post_cycle()
+{
+	if(is_idle())
+		state = IDLE;
 }
 
 void base_unit::idle()
@@ -328,6 +335,17 @@ void base_unit::wait_and_idle(std::uint8_t cycles)
 void base_unit::wait_after_idle(std::uint8_t cycles)
 {
 	cycles_after_idle = cycles;
+}
+
+void base_unit::wait_scheduler()
+{
+	state = SCHEDULER;
+}
+
+void base_unit::wait_scheduler_and_idle()
+{
+	// state = WAIT_SCHEDULER;
+	go_idle = true;
 }
 
 void base_unit::inc_addr(std::uint8_t reg, std::uint8_t size)

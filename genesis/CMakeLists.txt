@@ -32,6 +32,7 @@ PRIVATE
 	m68k/impl/bus_manager.hpp
 	m68k/impl/prefetch_queue.hpp
 	m68k/impl/opcode_decoder.cpp
+	m68k/impl/bus_scheduler.cpp
 
 	m68k/cpu_registers.hpp
 	m68k/cpu.h

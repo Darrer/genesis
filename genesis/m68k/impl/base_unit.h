@@ -20,6 +20,7 @@ public:
 	virtual ~base_unit() { }
 
 	void cycle();
+	void post_cycle();
 	bool is_idle() const;
 	virtual void reset();
 
@@ -63,6 +64,9 @@ protected:
 	void wait(std::uint8_t cycles);
 	void wait_and_idle(std::uint8_t cycles);
 	void wait_after_idle(std::uint8_t cycles);
+
+	void wait_scheduler();
+	void wait_scheduler_and_idle();
 
 	void inc_addr(std::uint8_t reg, std::uint8_t size);
 	void dec_addr(std::uint8_t reg, std::uint8_t size);

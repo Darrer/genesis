@@ -1,6 +1,7 @@
 #include "opcode_decoder.h"
 #include <array>
 #include <algorithm>
+#include <string>
 
 namespace genesis::m68k
 {
