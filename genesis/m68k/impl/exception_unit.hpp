@@ -101,74 +101,54 @@ private:
 	 * 4. Push address
 	 * 5. Info word
 	*/
-	void address_error()
+	handler address_error()
 	{
-		switch (ex_stage++)
+		scheduler.wait(4 - 1);
+
+		// PUSH PC LOW
+		regs.SSP.LW -= 2;
+		scheduler.write(regs.SSP.LW, addr_error.PC & 0xFFFF, size_type::WORD);
+
+		// PUSH SR
+		// note, for some reason we first push SR, then PC HIGH
+		scheduler.write(regs.SSP.LW - 4, regs.SR, size_type::WORD);
+
+		// update SR
+		regs.flags.S = 1;
+		regs.flags.TR = 0;
+
+		// PUSH PC HIGH
+		regs.SSP.LW -= 2;
+		scheduler.write(regs.SSP.LW, addr_error.PC >> 16, size_type::WORD);
+		regs.SSP.LW -= 2; // next word is already pushed on the stack
+
+		// PUSH IRD
+		regs.SSP.LW -= 2;
+		// TODO: IRD not always contains the current instruction
+		scheduler.write(regs.SSP.LW, pq.IRD, size_type::WORD);
+
+		// PUSH address LOW
+		regs.SSP.LW -= 2;
+		scheduler.write(regs.SSP.LW, addr_error.address & 0xFFFF, size_type::WORD);
+
+		// PUSH status word
+		scheduler.write(regs.SSP.LW - 4, addr_error_info(), size_type::WORD);
+
+		// PUSH address HIGH
+		regs.SSP.LW -= 2;
+		scheduler.write(regs.SSP.LW, addr_error.address >> 16, size_type::WORD);
+		regs.SSP.LW -= 2; // next word is already pushed on the stack
+
+		std::uint32_t addr = vector_address(exception_type::address_error);
+		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
 		{
-		case 0:
-			wait(4 - 1);
-			break;
-
-		case 1:
-			// PUSH PC LOW
-			regs.SSP.LW -= 2;
-			write_word(regs.SSP.LW, addr_error.PC & 0xFFFF);
-			break;
-
-		case 2:
-			// PUSH SR
-			// note, for some reason we first push SR, then PC HIGH
-			write_word(regs.SSP.LW - 4, regs.SR);
-
-			// update SR
-			regs.flags.S = 1;
-			regs.flags.TR = 0;
-			break;
-
-		case 3:
-			// PUSH PC HIGH
-			regs.SSP.LW -= 2;
-			write_word(regs.SSP.LW, addr_error.PC >> 16);
-			regs.SSP.LW -= 2; // next word is already pushed on the stack
-			break;
-
-		case 4:
-			// PUSH IRD
-			regs.SSP.LW -= 2;
-			// TODO: IRD not always contains the current instruction
-			write_word(regs.SSP.LW, pq.IRD);
-			break;
-
-		case 5:
-			// PUSH address LOW
-			regs.SSP.LW -= 2;
-			write_word(regs.SSP.LW, addr_error.address & 0xFFFF);
-			break;
-
-		case 6:
-			// PUSH status word
-			write_word(regs.SSP.LW - 4, addr_error_info());
-			break;
-
-		case 7:
-			// PUSH address HIGH
-			regs.SSP.LW -= 2;
-			write_word(regs.SSP.LW, addr_error.address >> 16);
-			regs.SSP.LW -= 2; // next word is already pushed on the stack
-			break;
-
-		// fetch an exception routine address
-		case 8:
-			read_long(vector_address(exception_type::address_error));
-			break;
-
-		case 9:
 			regs.PC = data;
-			prefetch_two_and_idle();
-			break;
+		});
 
-		default: throw internal_error();
-		}
+		scheduler.prefetch_two();
+		
+		wait_scheduler_and_idle();
+		return handler::wait_scheduler_and_done;
 	}
 
 	std::uint16_t addr_error_info() const

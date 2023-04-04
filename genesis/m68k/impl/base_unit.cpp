@@ -101,12 +101,6 @@ void base_unit::idle()
 	state = IDLE;
 }
 
-void base_unit::read_and_idle(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
-{
-	read(addr, size, cb);
-	go_idle = true;
-}
-
 void base_unit::read(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
 {
 	if(size == 1)
@@ -121,7 +115,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 {
 	if(size == 4)
 	{
-		dec_addr(addr_reg, 2);
+		regs.dec_addr(addr_reg, 2);
 
 		this->cb = cb;
 		this->reg_to_dec = addr_reg;
@@ -131,7 +125,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 			this->data = data;
 
 			// we cannot dec in earler due to possible exceptions
-			dec_addr(reg_to_dec, 2);
+			regs.dec_addr(reg_to_dec, 2);
 		};
 		scheduler.read(regs.A(addr_reg).LW, size_type::WORD, on_read_lsw);
 
@@ -148,7 +142,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 		return;
 	}
 
-	dec_addr(addr_reg, size);
+	regs.dec_addr(addr_reg, size);
 	std::uint32_t addr = regs.A(addr_reg).LW;
 
 	if(size == 2)
@@ -222,123 +216,6 @@ void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 	state = SCHEDULER;
 }
 
-void base_unit::read_imm_and_idle(std::uint8_t size, bus_manager::on_complete cb)
-{
-	read_imm(size, cb);
-	go_idle = true;
-}
-
-void base_unit::write(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
-{
-	if(size == 1)
-		write_byte(addr, data);
-	else if(size == 2)
-		write_word(addr, data);
-	else
-		write_long(addr, data);
-}
-
-void base_unit::write_byte(std::uint32_t addr, std::uint8_t data)
-{
-	state = SCHEDULER;
-	scheduler.write(addr, data, size_type::BYTE);
-}
-
-void base_unit::write_word(std::uint32_t addr, std::uint16_t data)
-{
-	state = SCHEDULER;
-	scheduler.write(addr, data, size_type::WORD);
-}
-
-void base_unit::write_long(std::uint32_t addr, std::uint32_t data)
-{
-	state = SCHEDULER;
-	scheduler.write(addr, data, size_type::LONG);
-}
-
-void base_unit::write_and_idle(std::uint32_t addr, std::uint32_t data, std::uint8_t size)
-{
-	if(size == 1)
-		write_byte_and_idle(addr, data);
-	else if(size == 2)
-		write_word_and_idle(addr, data);
-	else
-		write_long_and_idle(addr, data);
-}
-
-void base_unit::write_byte_and_idle(std::uint32_t addr, std::uint8_t data)
-{
-	write_byte(addr, data);
-	go_idle = true;
-}
-
-void base_unit::write_word_and_idle(std::uint32_t addr, std::uint16_t data)
-{
-	write_word(addr, data);
-	go_idle = true;
-}
-
-void base_unit::write_long_and_idle(std::uint32_t addr, std::uint32_t data)
-{
-	write_long(addr, data);
-	go_idle = true;
-}
-
-void base_unit::prefetch_one()
-{
-	state = SCHEDULER;
-	scheduler.prefetch_one();
-}
-
-void base_unit::prefetch_two()
-{
-	state = SCHEDULER;
-	scheduler.prefetch_two();
-}
-
-void base_unit::prefetch_irc()
-{
-	state = SCHEDULER;
-	scheduler.prefetch_irc();
-}
-
-void base_unit::prefetch_one_and_idle()
-{
-	prefetch_one();
-	go_idle = true;
-}
-
-void base_unit::prefetch_two_and_idle()
-{
-	prefetch_two();
-	go_idle = true;
-}
-
-void base_unit::prefetch_irc_and_idle()
-{
-	prefetch_irc();
-	go_idle = true;
-}
-
-void base_unit::wait(std::uint8_t cycles)
-{
-	scheduler.wait(cycles);
-	state = SCHEDULER;
-	// cycles_to_wait = cycles - 1; // assume current cycle is already spent
-	// state = WAITING;
-}
-
-void base_unit::wait_and_idle(std::uint8_t cycles)
-{
-	wait(cycles);
-	go_idle = true;
-}
-
-void base_unit::wait_after_idle(std::uint8_t cycles)
-{
-	cycles_after_idle = cycles;
-}
-
 void base_unit::wait_scheduler()
 {
 	state = SCHEDULER;
@@ -346,22 +223,8 @@ void base_unit::wait_scheduler()
 
 void base_unit::wait_scheduler_and_idle()
 {
-	// state = WAIT_SCHEDULER;
+	wait_scheduler();
 	go_idle = true;
-}
-
-void base_unit::inc_addr(std::uint8_t reg, std::uint8_t size)
-{
-	if(reg == 0b111 && size == 1)
-		size = 2;
-	regs.A(reg).LW += size;
-}
-
-void base_unit::dec_addr(std::uint8_t reg, std::uint8_t size)
-{
-	if(reg == 0b111 && size == 1)
-		size = 2;
-	regs.A(reg).LW -= size;
 }
 
 }

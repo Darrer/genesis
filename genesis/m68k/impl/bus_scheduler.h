@@ -14,11 +14,11 @@ namespace genesis::m68k
 {
 
 // TODO: move away
-enum class size_type : std::uint8_t
+enum /*class*/ size_type : std::uint8_t
 {
-	BYTE,
-	WORD,
-	LONG,
+	BYTE = 1,
+	WORD = 2,
+	LONG = 4,
 };
 
 

@@ -7,7 +7,7 @@
 
 #define setup_test() \
 	genesis::test::test_cpu cpu; \
-	m68k::ea_decoder dec(cpu.bus_manager(), cpu.registers(), cpu.prefetch_queue(), cpu.bus_scheduler())
+	m68k::ea_decoder dec(cpu.registers(), cpu.prefetch_queue(), cpu.bus_scheduler())
 
 using namespace genesis;
 
@@ -31,10 +31,9 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::ui
 	}
 
 	// start decoding
-	dec.decode(ea, size);
+	dec.schedule_decoding(ea, size);
 	while(!dec.ready())
 	{
-		dec.cycle();
 		cpu.bus_scheduler().cycle();
 		cpu.prefetch_queue().cycle();
 		cpu.bus_manager().cycle();
@@ -93,15 +92,14 @@ void check_timings(std::uint8_t ea, std::uint8_t size,
 	cpu.registers().A0.LW = base;
 	cpu.registers().PC = base;
 	cpu.memory().write(base, std::uint32_t(base));
-	dec.decode(ea, size);
+	dec.schedule_decoding(ea, size);
 
 	std::uint32_t cycles = 0;
 	std::uint32_t read_cycles = 0;
 
 	bool in_read_cycle = false;
-	while (!dec.ready())
+	while (!dec.ready() || !cpu.bus_scheduler().is_idle())
 	{
-		dec.cycle();
 		cpu.bus_scheduler().cycle();
 		cpu.prefetch_queue().cycle();
 		cpu.bus_manager().cycle();

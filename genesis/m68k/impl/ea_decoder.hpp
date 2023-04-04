@@ -7,8 +7,8 @@
 #include "bus_manager.hpp"
 #include "prefetch_queue.hpp"
 #include "m68k/cpu_registers.hpp"
+#include "bus_scheduler.h"
 
-#include "base_unit.h"
 
 namespace genesis::m68k
 {
@@ -105,18 +105,17 @@ private:
 
 
 // effective address decoder
-class ea_decoder : public base_unit
+class ea_decoder
 {
 public:
-	ea_decoder(bus_manager& busm, cpu_registers& regs, prefetch_queue& pq, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, busm, pq, scheduler) { }
+	// TODO: remove pq?
+	ea_decoder(cpu_registers& regs, prefetch_queue& pq, bus_scheduler& scheduler)
+		: regs(regs), pq(pq), scheduler(scheduler) { }
 
 	bool ready() const
 	{
-		return res.has_value() && is_idle();
+		return res.has_value();
 	}
-
-	// TODO: override reset
 
 	operand result()
 	{
@@ -125,57 +124,54 @@ public:
 		return res.value();
 	}
 
-	void decode(std::uint8_t ea, std::uint8_t size)
+	void reset()
 	{
-		if(!is_idle() || !busm.is_idle())
+		res.reset();
+	}
+
+	void schedule_decoding(std::uint8_t ea, std::uint8_t size)
+	{
+		if(!scheduler.is_idle())
 			throw internal_error();
 
 		res.reset();
-		reg = ea & 0x7;
-		mode = (ea >> 3) & 0x7;
-		this->size = size;
+		std::uint8_t mode = (ea >> 3) & 0x7;
+		std::uint8_t reg = ea & 0x7;
 
-		decoding();
-	}
-
-protected:
-	void on_cycle() override
-	{
-		// we're not expected to be called
-		throw internal_error();
+		schedule_decoding(mode, reg, (size_type)size);
 	}
 
 private:
-	void decoding()
+	void schedule_decoding(std::uint8_t mode, std::uint8_t reg, size_type size)
 	{
 		switch (mode)
 		{
 		case 0b000:
-			decode_000();
+			decode_000(reg, size);
 			break;
 
 		case 0b001:
-			decode_001();
+			decode_001(reg, size);
 			break;
 
 		case 0b010:
-			decode_010();
+			decode_010(reg, size);
 			break;
 
 		case 0b011:
-			decode_011();
+			decode_011(reg, size);
 			break;
 
 		case 0b100:
-			decode_100();
+			decode_100(reg, size);
 			break;
 
 		case 0b101:
-			decode_101();
+			decode_101(reg, size);
 			break;
 
 		case 0b110:
-			decode_110();
+			decode_110(reg, size);
 			break;
 
 		case 0b111:
@@ -183,27 +179,26 @@ private:
 		switch (reg)
 		{
 		case 0b000:
-			decode_111_000();
+			decode_111_000(size);
 			break;
 
 		case 0b001:
-			decode_111_001();
+			decode_111_001(size);
 			break;
 
 		case 0b010:
-			decode_111_010();
+			decode_111_010(size);
 			break;
 
 		case 0b011:
-			decode_111_011();
+			decode_111_011(size);
 			break;
 
 		case 0b100:
-			decode_111_100();
+			decode_111_100(size);
 			break;
 
-		default:
-			throw not_implemented("111 " + std::to_string(reg));
+		default: throw internal_error();
 		}
 			break;
 		}
@@ -214,102 +209,112 @@ private:
 
 private:
 	/* immediately decoding */
-	void decode_000()
+	void decode_000(std::uint8_t reg, size_type size)
 	{
 		res = { regs.D(reg), size };
 	}
 
-	void decode_001()
+	void decode_001(std::uint8_t reg, size_type size)
 	{
 		res = { regs.A(reg), size };
 	}
 
 	// Address Register Indirect Mode 
-	void decode_010()
+	void decode_010(std::uint8_t reg, size_type size)
 	{
-		read_pointer_and_idle(regs.A(reg).LW);
+		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
 	// Address Register Indirect with Postincrement Mode
-	void decode_011()
+	void decode_011(std::uint8_t reg, size_type size)
 	{
-		read_pointer_and_idle(regs.A(reg).LW);
+		schedule_read_and_save(regs.A(reg).LW, size);
 		// TODO: if the above call rises exception, we may end up with incorrect reg
-		inc_addr(reg, size);
+		regs.inc_addr(reg, size);
 	}
 
 	// Address Register Indirect with Predecrement Mode 
-	void decode_100()
+	void decode_100(std::uint8_t reg, size_type size)
 	{
-		wait(2);
-		dec_addr(reg, size);
-		read_pointer_and_idle(regs.A(reg).LW);
+		scheduler.wait(2);
+		regs.dec_addr(reg, size);
+		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
 	// Address Register Indirect with Displacement Mode
-	void decode_101()
+	void decode_101(std::uint8_t reg, size_type size)
 	{
-		ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
-		prefetch_irc();
-		read_pointer_and_idle(ptr);
+		scheduler.prefetch_irc();
+
+		std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+		schedule_read_and_save(ptr, size);
 	}
 
 	// Address Register Indirect with Index (8-Bit Displacement) Mode 
-	void decode_110()
+	void decode_110(std::uint8_t reg, size_type size)
 	{
-		wait(2);
-		prefetch_irc();
-		ptr = dec_brief_reg(regs.A(reg).LW);
-		read_pointer_and_idle(ptr);
+		scheduler.wait(2);
+		scheduler.prefetch_irc();
+
+		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW);
+		schedule_read_and_save(ptr, size);
 	}
 
 	// Absolute Short Addressing Mode 
-	void decode_111_000()
+	void decode_111_000(size_type size)
 	{
-		prefetch_irc();
-		read_pointer_and_idle((std::int16_t)pq.IRC);
+		scheduler.prefetch_irc();
+		schedule_read_and_save((std::int16_t)pq.IRC, size);
 	}
 
 	// Absolute Long Addressing Mode
-	void decode_111_001()
+	void decode_111_001(size_type size)
 	{
-		read_imm(4 /* long word */, [this]()
+		this->size = size;
+		scheduler.read_imm(size_type::LONG, [this](std::uint32_t imm, size_type)
 		{
-			read_pointer_and_idle(imm);
-		} );
+			schedule_read_and_save(imm, this->size);
+		});
 	}
 
 	// Program Counter Indirect with Displacement Mode
-	void decode_111_010()
+	void decode_111_010(size_type size)
 	{
-		ptr = regs.PC + (std::int16_t)pq.IRC;
-		prefetch_irc();
-		read_pointer_and_idle(ptr);
+		scheduler.prefetch_irc();
+
+		std::uint32_t ptr = regs.PC + (std::int16_t)pq.IRC;
+		schedule_read_and_save(ptr, size);
 	}
 
 	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
-	void decode_111_011()
+	void decode_111_011(size_type size)
 	{
-		wait(2);
-		prefetch_irc();
-		ptr = dec_brief_reg(regs.PC);
-		read_pointer_and_idle(ptr);
+		scheduler.wait(2);
+		scheduler.prefetch_irc();
+		
+		std::uint32_t ptr = dec_brief_reg(regs.PC);
+		schedule_read_and_save(ptr, size);
 	}
 
 	// Immediate Data 
-	void decode_111_100()
+	void decode_111_100(size_type size)
 	{
-		read_imm_and_idle(size, [&]() { res = { imm, size }; });	
+		scheduler.read_imm(size, [this](std::uint32_t imm, size_type size)
+		{
+			res = { imm, size };
+		});
 	}
 
 
 private:
 	/* helper methods */
-	void read_pointer_and_idle(std::uint32_t addr)
+	void schedule_read_and_save(std::uint32_t addr, size_type size)
 	{
 		ptr = addr;
-		auto cb = [this]() { res = { operand::raw_pointer(ptr, data), size }; };
-		read_and_idle(addr, size, cb);
+		scheduler.read(addr, size, [this](std::uint32_t data, size_type size)
+		{
+			 res = { operand::raw_pointer(ptr, data), size };
+		});
 	}
 
 private:
@@ -342,12 +347,13 @@ private:
 	}
 
 private:
+	cpu_registers& regs;
+	prefetch_queue& pq;
+	bus_scheduler& scheduler;
+
 	std::optional<operand> res;
 
-	std::uint8_t mode;
-	std::uint8_t reg;
-	std::uint8_t size;
-
+	size_type size;
 	std::uint32_t ptr;
 };
 

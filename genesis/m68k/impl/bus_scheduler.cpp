@@ -170,6 +170,8 @@ void bus_scheduler::prefetch_irc()
 
 void bus_scheduler::wait(std::uint16_t cycles)
 {
+	if(cycles == 0) return;
+
 	wait_operation wait_op {cycles};
 	queue.emplace(op_type::WAIT, wait_op);
 }

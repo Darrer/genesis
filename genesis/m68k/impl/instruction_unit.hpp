@@ -28,14 +28,12 @@ private:
 	{
 		IDLE,
 		EXECUTING,
-		DECODING,
-		WRITE_RESULT,
 	};
 
 public:
 	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
 		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, busm, pq, scheduler), dec(busm, regs, pq, scheduler)
+		: base_unit(regs, busm, pq, scheduler), dec(regs, pq, scheduler)
 	{
 		reset();
 	}
@@ -61,37 +59,34 @@ protected:
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
 			regs.PC += 2;
-			regs.INST_PC = regs.PC;
 			state = EXECUTING;
-			execute();
-			break;
-
-		case DECODING:
-			if(dec.ready())
-			{
-				state = EXECUTING;
-				execute();
-			}
-			break;
+			[[fallthrough]];
 
 		case EXECUTING:
 			execute();
 			break;
 
-		case WRITE_RESULT:
-			write_and_idle(addr, res, size);
-			break;
-
 		default:
 			throw internal_error();
 		}
-
-		if(state == DECODING)
-			dec.cycle();
 	}
 
 private:
 	void execute()
+	{
+		handler req = execute_handler();
+
+		if(req == handler::wait_scheduler)
+			wait_scheduler();
+		else if (req == handler::wait_scheduler_and_done)
+			wait_scheduler_and_idle();
+		else if(req == handler::in_progress)
+			return; // just wait
+		else
+			throw internal_error();
+	}
+
+	handler execute_handler()
 	{
 		switch (curr_inst)
 		{
@@ -101,14 +96,12 @@ private:
 		case inst_type::OR:
 		case inst_type::EOR:
 		case inst_type::CMP:
-			alu_mode_handler();
-			break;
+			return alu_mode_handler();
 
 		case inst_type::ADDA:
 		case inst_type::SUBA:
 		case inst_type::CMPA:
-			alu_address_mode_handler();
-			break;
+			return alu_address_mode_handler();
 
 		case inst_type::ADDI:
 		case inst_type::ANDI:
@@ -116,36 +109,29 @@ private:
 		case inst_type::ORI:
 		case inst_type::EORI:
 		case inst_type::CMPI:
-			alu_imm_handler();
-			break;
+			return alu_imm_handler();
 
 		case inst_type::ADDQ:
 		case inst_type::SUBQ:
-			alu_quick_handler();
-			break;
+			return alu_quick_handler();
 
 		case inst_type::CMPM:
-			rm_postinc_handler();
-			break;
+			return rm_postinc_handler();
 
 		case inst_type::NEG:
 		case inst_type::NEGX:
 		case inst_type::NOT:
-			unary_handler();
-			break;
+			return unary_handler();
 
 		case inst_type::ADDX:
 		case inst_type::SUBX:
-			rm_predec_handler();
-			break;
+			return rm_predec_handler();
 
 		case inst_type::NOP:
-			nop_hanlder();
-			break;
+			return nop_hanlder();
 
 		case inst_type::MOVE:
-			move_handler();
-			break;
+			return move_handler();
 
 		default: throw internal_error();
 		}
@@ -154,14 +140,14 @@ private:
 	// TODO: in most cases we do not handle invalid opcodes properly
 	// especially with some N/A EA decoding
 
-	void alu_mode_handler()
+	handler alu_mode_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			decode_ea(pq.IRD & 0xFF, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
 		{
@@ -169,31 +155,28 @@ private:
 			auto op = dec.result();
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
-
-			wait_after_idle(timings::alu_mode(curr_inst, opmode, op));
-
-			// std::cout << "opmode: " << su::bin_str(opmode) << std::endl;
 			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
 			{
 				res = operations::alu(curr_inst, reg, op, size, regs.flags);
 				if(curr_inst != inst_type::CMP)
 					store(reg, size, res);
-				prefetch_one_and_idle();
+				scheduler.prefetch_one();
 			}
 			else
 			{
 				res = operations::alu(curr_inst, op, reg, size, regs.flags);
-				save_prefetch_and_idle(op, res, size);
+				schedule_prefetch_and_write(op, res, size);
 			}
 
-			break;
+			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
+			return handler::wait_scheduler_and_done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	void alu_address_mode_handler()
+	handler alu_address_mode_handler()
 	{
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
 		if(opmode != 0b011 && opmode != 0b111)
@@ -204,36 +187,36 @@ private:
 		case 0:
 			size = opmode == 0b011 ? 2 : 4;
 			decode_ea(pq.IRD & 0xFF, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
 		{
 			auto& reg = regs.A((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
-			wait_after_idle(timings::alu_mode(curr_inst, opmode, op));
 			reg.LW = operations::alu(curr_inst, op, reg.LW, size, regs.flags);
-			prefetch_one_and_idle();
 
-			break;
+			scheduler.prefetch_one();
+			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
+			return handler::wait_scheduler_and_done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	void alu_imm_handler()
+	handler alu_imm_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			read_imm(size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
-			decode_ea(pq.IRD & 0xFF, size);
-			break;
+			decode_ea(opcode & 0xFF, size);
+			return handler::wait_scheduler;
 
 		case 2:
 		{
@@ -241,30 +224,31 @@ private:
 
 			res = operations::alu(curr_inst, op, imm, size, regs.flags);
 
-			wait_after_idle(timings::alu_size(curr_inst, size, op));
-
 			if(curr_inst == inst_type::CMPI)
 			{
-				prefetch_one_and_idle();
-				break;
+				scheduler.prefetch_one();
+			}
+			else
+			{
+				schedule_prefetch_and_write(op, res, size);
 			}
 
-			save_prefetch_and_idle(op, res, size);
-			break;
+			scheduler.wait(timings::alu_size(curr_inst, size, op));
+			return handler::wait_scheduler_and_done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	void alu_quick_handler()
+	handler alu_quick_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			decode_ea(pq.IRD & 0xFF, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
 		{
@@ -277,17 +261,17 @@ private:
 			if(!op.is_addr_reg())
 				update_user_bits(flags);
 
-			wait_after_idle(timings::alu_size(curr_inst, size, op));
+			schedule_prefetch_and_write(op, res, size);
 
-			save_prefetch_and_idle(op, res, size);
-			break;
+			scheduler.wait(timings::alu_size(curr_inst, size, op));
+			return handler::wait_scheduler_and_done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	void rm_postinc_handler()
+	handler rm_postinc_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -300,7 +284,8 @@ private:
 			{
 				// address register
 				read(regs.A(src_reg).LW, size);
-				inc_addr(src_reg, size);
+				regs.inc_addr(src_reg, size);
+				return handler::wait_scheduler;
 			}
 			else
 			{
@@ -309,28 +294,26 @@ private:
 				auto dest = regs.D(dest_reg);
 				res = operations::alu(curr_inst, data, res, size, regs.flags);
 				store(dest, size, res);
-				prefetch_one_and_idle();
+				scheduler.prefetch_one();
+				return handler::wait_scheduler_and_done;
 			}
-
-			break;
-
 
 		case 1:
 			res = data;
 			read(regs.A(dest_reg).LW, size);
-			inc_addr(dest_reg, size);
-			break;
+			regs.inc_addr(dest_reg, size);
+			return handler::wait_scheduler;
 
 		case 2:
 			operations::alu(curr_inst, data, res, size, regs.flags);
-			prefetch_one_and_idle();
-			break;
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
 
 		default: throw internal_error();
 		}
 	}
 
-	void rm_predec_handler()
+	handler rm_predec_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -342,7 +325,8 @@ private:
 			if((opcode >> 3) & 1)
 			{
 				// address register
-				wait(2);
+				scheduler.wait(2);
+				return handler::wait_scheduler;
 			}
 			else
 			{
@@ -350,22 +334,21 @@ private:
 				auto& src = regs.D(src_reg);
 				auto& dest = regs.D(dest_reg);
 				res = operations::alu(curr_inst, dest, src, size, regs.flags);
-				if(size == 4) wait_after_idle(4);
 				store(dest, size, res);
-				prefetch_one_and_idle();
+				scheduler.prefetch_one();
+				if(size == 4) scheduler.wait(4);
+				return handler::wait_scheduler_and_done;
 			}
-
-			break;
 
 		/* Got here if it's an address register */
 		case 1:
 			dec_and_read(src_reg, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 2:
 			res = data;
 			dec_and_read(dest_reg, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 3:
 			res = operations::alu(curr_inst, data, res, size, regs.flags);
@@ -375,41 +358,29 @@ private:
 				// 1. write LSW
 				// 2. do prefetch
 				// 3. write MSW
-				write_word(regs.A(dest_reg).LW + 2, res & 0xFFFF);
+				scheduler.write(regs.A(dest_reg).LW + 2, res & 0xFFFF, size_type::WORD);
+				scheduler.prefetch_one();
+				scheduler.write(regs.A(dest_reg).LW, res >> 16, size_type::WORD);
 			}
 			else
 			{
-				prefetch_one();
+				scheduler.prefetch_one();
+				scheduler.write(regs.A(dest_reg).LW, res, (size_type)size);
 			}
-			break;
-
-		case 4:
-			if(size == 4)
-			{
-				prefetch_one();
-			}
-			else
-			{
-				write_and_idle(regs.A(dest_reg).LW, res, size);
-			}
-			break;
-		
-		case 5:
-			write_word_and_idle(regs.A(dest_reg).LW, res >> 16);
-			break;
+			return handler::wait_scheduler_and_done;
 
 		default: throw internal_error();
 		}
 	}
 
-	void unary_handler()
+	handler unary_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			decode_ea(pq.IRD & 0xFF, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
 		{
@@ -417,25 +388,28 @@ private:
 
 			res = operations::alu(curr_inst, op, size, regs.flags);
 
-			wait_after_idle(timings::alu_size(curr_inst, size, op));
-			save_prefetch_and_idle(op, res, size);
+			schedule_prefetch_and_write(op, res, size);
+			scheduler.wait(timings::alu_size(curr_inst, size, op));
 
-			break;
+			return handler::wait_scheduler_and_done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	void nop_hanlder()
+	handler nop_hanlder()
 	{
 		if(busm.is_idle())
 		{
-			prefetch_one_and_idle();
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
 		}
+
+		return handler::in_progress;
 	}
 
-	void move_handler()
+	handler move_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -443,7 +417,7 @@ private:
 			// decode source
 			size = dec_move_size(opcode >> 12);
 			decode_ea(opcode & 0xFF, size);
-			break;
+			return handler::wait_scheduler;
 
 		case 1:
 		{
@@ -452,7 +426,7 @@ private:
 			std::uint8_t ea = (opcode >> 6) & 7;
 			ea = (ea << 3) | ((opcode >> 9) & 7);
 			decode_ea(ea, size);
-			break;
+			return handler::wait_scheduler;
 		}
 
 		case 2:
@@ -466,7 +440,7 @@ private:
 				if(dest_op.is_pointer())
 				{
 					addr = dest_op.pointer().address;
-					prefetch_one();
+					scheduler.prefetch_one();
 				}
 				else
 				{
@@ -477,50 +451,45 @@ private:
 			{
 				if(dest_op.is_pointer())
 				{
-					write(dest_op.pointer().address, res, size);
+					scheduler.write(dest_op.pointer().address, res, (size_type)size);
 				}
 				else
 				{
 					store(dest_op, size, res);
-					prefetch_one_and_idle();
+					scheduler.prefetch_one();
+					return handler::wait_scheduler_and_done;
 				}
 			}
 
-			break;
+			return handler::wait_scheduler;
 		}
 
 		case 3:
 			if(((opcode >> 6) & 7) == 0b100)
 			{
-				write_and_idle(addr, res, size);
+				scheduler.write(addr, res, (size_type)size);
 			}
 			else
 			{
-				prefetch_one_and_idle();
+				scheduler.prefetch_one();
 			}
-			break;
+			return handler::wait_scheduler_and_done;
 
 		default: throw internal_error();
 		}
 	}
 
 	// save the result (write to register or to memory), do prefetch and go IDLE
-	void save_prefetch_and_idle(operand& op, std::uint32_t res, std::uint8_t size)
+	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
 	{
+		scheduler.prefetch_one();
 		if(!op.is_pointer())
 		{
 			store(op, size, res);
-			prefetch_one_and_idle();
 		}
 		else
 		{
-			prefetch_one();
-
-			// schedule write 
-			state = WRITE_RESULT;
-			this->res = res;
-			this->size = size;
-			addr = op.pointer().address;
+			scheduler.write(op.pointer().address, res, (size_type)size);
 		}
 	}
 
@@ -584,7 +553,7 @@ private:
 private:
 	void decode_ea(std::uint8_t ea, std::uint8_t size)
 	{
-		dec.decode(ea, size);
+		dec.schedule_decoding(ea, size);
 		if(dec.ready())
 		{
 			// immediate decoding
@@ -593,7 +562,7 @@ private:
 		else
 		{
 			// wait till decoding is over
-			state = DECODING;
+			wait_scheduler();
 		}
 	}
 

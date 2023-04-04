@@ -90,13 +90,26 @@ public:
 		}
 	}
 
+	void inc_addr(std::uint8_t reg, std::uint8_t size)
+	{
+		if(reg == 0b111 && size == 1)
+			size = 2;
+		A(reg).LW += size;
+	}
+
+	void dec_addr(std::uint8_t reg, std::uint8_t size)
+	{
+		if(reg == 0b111 && size == 1)
+			size = 2;
+		A(reg).LW -= size;
+	}
+
 	data_register D0, D1, D2, D3, D4, D5, D6, D7;
 	address_register A0, A1, A2, A3, A4, A5, A6;
 	address_register USP;
 	address_register SSP;
 
 	std::uint32_t PC;
-	std::uint32_t INST_PC; // points to an instruction being executed
 
 	union {
 		std::uint16_t SR;
