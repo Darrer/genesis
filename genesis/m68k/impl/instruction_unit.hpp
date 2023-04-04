@@ -50,7 +50,7 @@ public:
 	}
 
 protected:
-	void on_cycle() override
+	handler on_handler() override
 	{
 		switch (state)
 		{
@@ -63,8 +63,7 @@ protected:
 			[[fallthrough]];
 
 		case EXECUTING:
-			execute();
-			break;
+			return execute_handler();
 
 		default:
 			throw internal_error();
@@ -284,6 +283,7 @@ private:
 			{
 				// address register
 				read(regs.A(src_reg).LW, size);
+				// FIXME: read may rise an exception, register is not inc in such a case
 				regs.inc_addr(src_reg, size);
 				return handler::wait_scheduler;
 			}
@@ -301,6 +301,7 @@ private:
 		case 1:
 			res = data;
 			read(regs.A(dest_reg).LW, size);
+			// FIXME: read may rise an exception, register is not inc in such a case
 			regs.inc_addr(dest_reg, size);
 			return handler::wait_scheduler;
 

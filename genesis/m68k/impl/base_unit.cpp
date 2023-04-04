@@ -9,8 +9,6 @@ enum handler_state : std::uint8_t
 	IDLE,
 	EXECUTING,
 	SCHEDULER,
-	WAIT_SCHEDULER,
-	WAITING,
 };
 
 namespace genesis::m68k
@@ -28,21 +26,13 @@ void base_unit::reset()
 	state = IDLE;
 	imm = 0;
 	data = 0;
-	cycles_to_wait = 0;
-	cycles_after_idle = 0;
 	go_idle = false;
 }
 
 bool base_unit::is_idle() const
 {
-	if(cycles_after_idle > 0)
-		return false;
-
 	if(state == SCHEDULER && go_idle)
 		return scheduler.is_idle();
-
-	if(state == WAITING && go_idle)
-		return cycles_to_wait == 0;
 
 	return state == IDLE;
 }
@@ -57,32 +47,25 @@ void base_unit::cycle()
 		state = go_idle ? IDLE : EXECUTING;
 	}
 
-	if(state == WAITING)
-	{
-		if(cycles_to_wait > 0)
-		{
-			--cycles_to_wait;
-			return;
-		}
-
-		state = go_idle ? IDLE : EXECUTING;
-	}
-
 	if(state == IDLE)
 	{
-		if(cycles_after_idle > 0)
-		{
-			--cycles_after_idle;
-			return;
-		}
-
 		reset();
 		state = EXECUTING;
 	}
 
 	if(state == EXECUTING)
 	{
-		on_cycle();
+		auto req = on_handler();
+
+		if(req == handler::wait_scheduler)
+			wait_scheduler();
+		else if (req == handler::wait_scheduler_and_done)
+			wait_scheduler_and_idle();
+		else if(req == handler::in_progress)
+			return; // just wait
+		else
+			throw internal_error();
+
 		return;
 	}
 
@@ -117,7 +100,6 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 	{
 		regs.dec_addr(addr_reg, 2);
 
-		this->cb = cb;
 		this->reg_to_dec = addr_reg;
 		
 		auto on_read_lsw = [this](std::uint32_t data, size_type)
@@ -133,7 +115,6 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 		{
 			// we read MSW
 			this->data |= data << 16;
-			if(this->cb) this->cb();
 		};
 		scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD, on_read_msw);
 
@@ -196,23 +177,12 @@ void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
 
 void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
 {
-	this->cb = cb;
-
-	size_type sz;
-	if(size == 1)
-		sz = size_type::BYTE;
-	else if(size == 2)
-		sz = size_type::WORD;
-	else
-		sz = size_type::LONG;
-
 	auto on_complete = [this](std::uint32_t data, size_type)
 	{
 		this->imm = data;
-		if(this->cb) this->cb();
 	};
 
-	scheduler.read_imm(sz, on_complete);
+	scheduler.read_imm((size_type)size, on_complete);
 	state = SCHEDULER;
 }
 

@@ -32,8 +32,6 @@ public:
 	{
 		state = IDLE;
 		curr_ex = exception_type::none;
-		ex_stage = 0;
-
 		base_unit::reset();
 	}
 
@@ -47,7 +45,7 @@ public:
 	}
 
 protected:
-	void on_cycle() override
+	handler on_handler() override
 	{
 		switch (state)
 		{
@@ -57,8 +55,7 @@ protected:
 			[[fallthrough]];
 
 		case EXECUTING:
-			exec();
-			break;
+			return exec();
 
 		default:
 			throw internal_error();
@@ -66,13 +63,12 @@ protected:
 	}
 
 private:
-	void exec()
+	handler exec()
 	{
 		switch (curr_ex)
 		{
 		case exception_type::address_error:
-			address_error();
-			break;
+			return address_error();
 	
 		default: throw internal_error();
 		}
@@ -147,14 +143,12 @@ private:
 
 		scheduler.prefetch_two();
 		
-		wait_scheduler_and_idle();
 		return handler::wait_scheduler_and_done;
 	}
 
 	std::uint16_t addr_error_info() const
 	{
-		// undocumented behavior
-		std::uint16_t status = pq.IR & ~0b11111;
+		std::uint16_t status = pq.IR & ~0b11111; // undocumented behavior
 		status |= addr_error.func_codes & 0x7; // first 3 bits
 
 		if(addr_error.in)
@@ -182,7 +176,6 @@ private:
 	m68k::instruction_unit& inst_unit;
 	exception_type curr_ex;
 	ex_state state;
-	std::uint16_t ex_stage;
 
 	m68k::address_error addr_error;
 };

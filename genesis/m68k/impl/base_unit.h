@@ -34,7 +34,7 @@ public:
 	virtual void reset();
 
 protected:
-	virtual void on_cycle() = 0;
+	virtual handler on_handler() = 0;
 
 protected:
 	/* interface for sub classes */
@@ -64,8 +64,6 @@ protected:
 private:
 	bus_manager::on_complete cb = nullptr;
 	std::uint8_t state;
-	std::uint8_t cycles_to_wait;
-	std::uint8_t cycles_after_idle = 0;
 	std::uint8_t reg_to_dec = 0;
 	bool go_idle;
 };
