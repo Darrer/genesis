@@ -30,10 +30,52 @@ enum class order : std::uint8_t
 // TODO: maybe back to scheduler?
 class bus_scheduler
 {
+private:
+	// all callbacks are restricted in size to the size of the pointer
+	// this is required for std::function small-size optimizations
+	// (though it's not guaranteed by standard, so we purely rely on implementation)
+	constexpr const static std::size_t max_callable_size = sizeof(void*);
+
 public:
-	// constexpr static const std::size_t queue_size = 20;
 	using on_read_complete = std::function<void(std::uint32_t /*data*/, size_type)>;
-	using callback = std::function<void()>;
+
+public:
+	bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
+	~bus_scheduler() = default;
+
+	void cycle();
+	void post_cycle();
+	bool is_idle() const;
+	void reset();
+
+	template<class Callable>
+	void read(std::uint32_t addr, size_type size, Callable on_complete)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		read_impl(addr, size, on_complete);
+	}
+
+	template<class Callable>
+	void read_imm(size_type size, Callable on_complete)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		read_imm_impl(size, on_complete);
+	}
+
+	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
+
+	void prefetch_one();
+	void prefetch_two();
+	void prefetch_irc();
+
+	void wait(std::uint16_t cycles);
+
+	template<class Callable>
+	void call(Callable cb)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		call_impl(cb);
+	}
 
 private:
 	enum class op_type : std::uint8_t
@@ -73,6 +115,7 @@ private:
 		std::uint16_t cycles;
 	};
 
+	using callback = std::function<void()>;
 	struct call_operation
 	{
 		callback cb;
@@ -85,51 +128,12 @@ private:
 			write_operation, wait_operation, call_operation> op;
 	};
 
-public:
-	bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
-	~bus_scheduler() { }
-
-	void cycle();
-	void post_cycle();
-	bool is_idle() const;
-	void reset();
-
-
-	template<class Callable>
-	void read(std::uint32_t addr, size_type size, Callable on_complete)
-	{
-		static_assert(sizeof(Callable) <= 8);
-		read_impl(addr, size, on_complete);
-	}
-
-	template<class Callable>
-	void read_imm(size_type size, Callable on_complete)
-	{
-		static_assert(sizeof(Callable) <= 8);
-		read_imm_impl(size, on_complete);
-	}
-
-	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
-
-	void prefetch_one();
-	void prefetch_two();
-	void prefetch_irc();
-
-	void wait(std::uint16_t cycles);
-
-	template<class Callable>
-	void call(Callable cb)
-	{
-		static_assert(sizeof(Callable) <= 8);
-		call_impl(cb);
-	}
-
 private:
 	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete = nullptr);
 	void read_imm_impl(size_type size, on_read_complete on_complete = nullptr);
 	void call_impl(callback);
 
-	void on_read_finish();
+	void on_read_finished();
 	bool current_op_is_over() const;
 	void start_operation(operation);
 	void run_call_operations();

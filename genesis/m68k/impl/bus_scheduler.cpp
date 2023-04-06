@@ -1,8 +1,6 @@
 #include "bus_scheduler.h"
-
-#include <iostream>
-
 #include "exception.hpp"
+
 
 namespace genesis::m68k
 {
@@ -108,7 +106,7 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete)
 	queue.emplace(op_type::READ_IMM, read);
 }
 
-void bus_scheduler::on_read_finish()
+void bus_scheduler::on_read_finished()
 {
 	if(!current_op.has_value())
 		throw internal_error();
@@ -213,9 +211,9 @@ void bus_scheduler::start_operation(operation op)
 	{
 		read_operation read = std::get<read_operation>(op.op);
 		if(read.size == size_type::BYTE)
-			busm.init_read_byte(read.addr, addr_space::DATA, [this]() { on_read_finish(); });
+			busm.init_read_byte(read.addr, addr_space::DATA, [this]() { on_read_finished(); });
 		else
-			busm.init_read_word(read.addr, addr_space::DATA, [this]() { on_read_finish(); });
+			busm.init_read_word(read.addr, addr_space::DATA, [this]() { on_read_finished(); });
 
 		break;
 	}
@@ -239,7 +237,7 @@ void bus_scheduler::start_operation(operation op)
 
 			auto on_read_complete = [this]()
 			{
-				on_read_finish();
+				on_read_finished();
 				regs.PC += 2;
 				start_operation({ op_type::PREFETCH_IRC });
 			};
@@ -256,12 +254,7 @@ void bus_scheduler::start_operation(operation op)
 		if(write.size == size_type::BYTE)
 			busm.init_write<std::uint8_t>(write.addr, write.data);
 		else
-		{
-			// tmp workaround
-			// if(write.addr % 2 == 1)
-				// write.addr -= 2;
 			busm.init_write<std::uint16_t>(write.addr, write.data);
-		}
 
 		break;
 	}
@@ -272,7 +265,6 @@ void bus_scheduler::start_operation(operation op)
 
 	case op_type::PREFETCH_IRC:
 		pq.init_fetch_irc();
-		// regs.PC += 2;
 		break;
 
 	case op_type::PREFETCH_TWO:
