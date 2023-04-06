@@ -21,9 +21,9 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq,
+	exception_unit(m68k::cpu_registers& regs, m68k::prefetch_queue& pq,
 		exception_manager& exman, m68k::instruction_unit& inst_unit, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, busm, pq, scheduler), exman(exman), inst_unit(inst_unit)
+		: base_unit(regs, pq, scheduler), exman(exman), inst_unit(inst_unit)
 	{
 		reset();
 	}
@@ -144,7 +144,7 @@ private:
 
 		scheduler.prefetch_two();
 		
-		return handler::wait_scheduler_and_done;
+		return handler::wait_scheduler_and_idle;
 	}
 
 	std::uint16_t addr_error_info() const

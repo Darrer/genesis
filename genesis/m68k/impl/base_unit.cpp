@@ -1,22 +1,21 @@
 #include "base_unit.h"
-
 #include "exception.hpp"
 
-#include <iostream>
 
 enum handler_state : std::uint8_t
 {
 	IDLE,
 	EXECUTING,
-	SCHEDULER,
+	WAITING_SCHEDULER,
+	WAITING_SCHEDULER_AND_IDLE,
 };
 
 namespace genesis::m68k
 {
 
-base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
+base_unit::base_unit(m68k::cpu_registers& regs, 
 	m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler):
-	regs(regs), busm(busm), pq(pq), scheduler(scheduler)
+	regs(regs), pq(pq), scheduler(scheduler)
 {
 	base_unit::reset();
 }
@@ -26,12 +25,11 @@ void base_unit::reset()
 	state = IDLE;
 	imm = 0;
 	data = 0;
-	go_idle = false;
 }
 
 bool base_unit::is_idle() const
 {
-	if(state == SCHEDULER && go_idle)
+	if(state == WAITING_SCHEDULER_AND_IDLE)
 		return scheduler.is_idle();
 
 	return state == IDLE;
@@ -39,12 +37,12 @@ bool base_unit::is_idle() const
 
 void base_unit::cycle()
 {
-	if(state == SCHEDULER)
+	if(state == WAITING_SCHEDULER || state == WAITING_SCHEDULER_AND_IDLE)
 	{
 		if(!scheduler.is_idle())
 			return;
 
-		state = go_idle ? IDLE : EXECUTING;
+		state = state == WAITING_SCHEDULER ? EXECUTING : IDLE;
 	}
 
 	if(state == IDLE)
@@ -81,13 +79,10 @@ void base_unit::exec()
 			wait_scheduler();
 			return;
 
-		case handler::wait_scheduler_and_done:
+		case handler::wait_scheduler_and_idle:
 			wait_scheduler_and_idle();
 			return;
-		
-		case handler::in_progress:
-			return; // just wait
-		
+
 		default: throw internal_error();
 		}
 	}
@@ -99,24 +94,25 @@ void base_unit::post_cycle()
 		state = IDLE;
 }
 
-void base_unit::idle()
+void base_unit::read(std::uint32_t addr, std::uint8_t size)
 {
-	state = IDLE;
+	auto on_read = [this](std::uint32_t data, size_type)
+	{
+		this->data = data;
+	};
+
+	scheduler.read(addr, (size_type)size, on_read);
 }
 
-void base_unit::read(std::uint32_t addr, std::uint8_t size, bus_manager::on_complete cb)
+void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
 {
-	if(size == 1)
-		read_byte(addr, cb);
-	else if(size == 2)
-		read_word(addr, cb);
+	if(size == size_type::BYTE || size == size_type::WORD)
+	{
+		regs.dec_addr(addr_reg, size);
+		std::uint32_t addr = regs.A(addr_reg).LW;
+		read(addr, size);
+	}
 	else
-		read_long(addr, cb);
-}
-
-void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manager::on_complete cb)
-{
-	if(size == 4)
 	{
 		regs.dec_addr(addr_reg, 2);
 
@@ -137,84 +133,27 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size, bus_manag
 			this->data |= data << 16;
 		};
 		scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD, on_read_msw);
-
-		state = SCHEDULER;
-
-		return;
-	}
-
-	regs.dec_addr(addr_reg, size);
-	std::uint32_t addr = regs.A(addr_reg).LW;
-
-	if(size == 2)
-	{
-		read_word(addr, cb);
-	}
-	else
-	{
-		read_byte(addr, cb);
 	}
 }
 
-void base_unit::read_byte(std::uint32_t addr, bus_manager::on_complete cb)
+void base_unit::read_imm(std::uint8_t size)
 {
-	this->cb = cb;
-	auto on_complete = [this](std::uint32_t data, size_type)
-	{
-		this->data = data;
-		if(this->cb) this->cb();
-	};
-
-	scheduler.read(addr, size_type::BYTE, on_complete);
-	state = SCHEDULER;
-}
-
-void base_unit::read_word(std::uint32_t addr, bus_manager::on_complete cb)
-{
-	this->cb = cb;
-	auto on_complete = [this](std::uint32_t data, size_type)
-	{
-		this->data = data;
-		if(this->cb) this->cb();
-	};
-
-	scheduler.read(addr, size_type::WORD, on_complete);
-	state = SCHEDULER;
-}
-
-void base_unit::read_long(std::uint32_t addr, bus_manager::on_complete cb)
-{
-	this->cb = cb;
-	auto on_complete = [this](std::uint32_t data, size_type)
-	{
-		this->data = data;
-		if(this->cb) this->cb();
-	};
-
-	scheduler.read(addr, size_type::LONG, on_complete);
-	state = SCHEDULER;
-}
-
-void base_unit::read_imm(std::uint8_t size, bus_manager::on_complete cb)
-{
-	auto on_complete = [this](std::uint32_t data, size_type)
+	scheduler.read_imm((size_type)size, [this](std::uint32_t data, size_type)
 	{
 		this->imm = data;
-	};
+	});
 
-	scheduler.read_imm((size_type)size, on_complete);
-	state = SCHEDULER;
+	state = WAITING_SCHEDULER;
 }
 
 void base_unit::wait_scheduler()
 {
-	state = SCHEDULER;
+	state = WAITING_SCHEDULER;
 }
 
 void base_unit::wait_scheduler_and_idle()
 {
-	wait_scheduler();
-	go_idle = true;
+	state = WAITING_SCHEDULER_AND_IDLE;
 }
 
 }

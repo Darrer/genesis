@@ -31,9 +31,9 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
+	instruction_unit(m68k::cpu_registers& regs,
 		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, busm, pq, scheduler), dec(regs, pq, scheduler), move_dec(regs, pq, scheduler)
+		: base_unit(regs, pq, scheduler), dec(regs, pq, scheduler), move_dec(regs, pq, scheduler)
 	{
 		reset();
 	}
@@ -155,7 +155,7 @@ private:
 			}
 
 			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		}
 
 		default: throw internal_error();
@@ -184,7 +184,7 @@ private:
 
 			scheduler.prefetch_one();
 			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		}
 
 		default: throw internal_error();
@@ -220,7 +220,7 @@ private:
 			}
 
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		}
 
 		default: throw internal_error();
@@ -250,7 +250,7 @@ private:
 			schedule_prefetch_and_write(op, res, size);
 
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		}
 
 		default: throw internal_error();
@@ -282,7 +282,7 @@ private:
 				res = operations::alu(curr_inst, data, res, size, regs.flags);
 				store(dest, size, res);
 				scheduler.prefetch_one();
-				return handler::wait_scheduler_and_done;
+				return handler::wait_scheduler_and_idle;
 			}
 
 		case 1:
@@ -295,7 +295,7 @@ private:
 		case 2:
 			operations::alu(curr_inst, data, res, size, regs.flags);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		default: throw internal_error();
 		}
@@ -325,7 +325,7 @@ private:
 				store(dest, size, res);
 				scheduler.prefetch_one();
 				if(size == 4) scheduler.wait(4);
-				return handler::wait_scheduler_and_done;
+				return handler::wait_scheduler_and_idle;
 			}
 
 		/* Got here if it's an address register */
@@ -355,7 +355,7 @@ private:
 				scheduler.prefetch_one();
 				scheduler.write(regs.A(dest_reg).LW, res, (size_type)size);
 			}
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		default: throw internal_error();
 		}
@@ -379,7 +379,7 @@ private:
 			schedule_prefetch_and_write(op, res, size);
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
 
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		}
 
 		default: throw internal_error();
@@ -388,13 +388,8 @@ private:
 
 	handler nop_hanlder()
 	{
-		if(busm.is_idle())
-		{
-			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
-		}
-
-		return handler::in_progress;
+		scheduler.prefetch_one();
+		return handler::wait_scheduler_and_idle;
 	}
 
 	handler move_handler()
@@ -434,12 +429,12 @@ private:
 		case 0b000:
 			store(regs.D(reg), size, res);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 		
 		case 0b010:
 			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		case 0b011:
 			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
@@ -448,7 +443,7 @@ private:
 			{
 				regs.inc_addr(dest_reg, this->size);
 			});
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		case 0b100:
 			scheduler.prefetch_one();
@@ -467,14 +462,14 @@ private:
 				});
 			}
 
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		case 0b101:
 			scheduler.prefetch_irc();
 			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		case 0b110:
 			scheduler.wait(2);
@@ -482,7 +477,7 @@ private:
 			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_done;
+			return handler::wait_scheduler_and_idle;
 
 		case 0b111:
 		{
@@ -492,7 +487,7 @@ private:
 				scheduler.prefetch_irc();
 				scheduler.write((std::int16_t)pq.IRC, res, (size_type)size, write_order);
 				scheduler.prefetch_one();
-				return handler::wait_scheduler_and_done;
+				return handler::wait_scheduler_and_idle;
 
 			case 0b001:
 				addr = pq.IRC << 16;
@@ -517,7 +512,7 @@ private:
 						scheduler.prefetch_one();
 					});
 				}
-				return handler::wait_scheduler_and_done;
+				return handler::wait_scheduler_and_idle;
 
 			default: throw internal_error();
 			}
