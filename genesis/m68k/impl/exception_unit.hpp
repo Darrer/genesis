@@ -45,7 +45,7 @@ public:
 	}
 
 protected:
-	handler on_handler() override
+	exec_state on_executing() override
 	{
 		switch (state)
 		{
@@ -63,7 +63,7 @@ protected:
 	}
 
 private:
-	handler exec()
+	exec_state exec()
 	{
 		switch (curr_ex)
 		{
@@ -97,7 +97,7 @@ private:
 	 * 4. Push address
 	 * 5. Info word
 	*/
-	handler address_error()
+	exec_state address_error()
 	{
 		correct_pc();
 		scheduler.wait(4 - 1);
@@ -144,7 +144,7 @@ private:
 
 		scheduler.prefetch_two();
 		
-		return handler::wait_scheduler_and_idle;
+		return exec_state::done;
 	}
 
 	std::uint16_t addr_error_info() const

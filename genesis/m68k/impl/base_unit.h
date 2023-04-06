@@ -15,10 +15,10 @@ namespace genesis::m68k
 class base_unit
 {
 protected:
-	enum class handler : std::uint8_t
+	enum class exec_state : std::uint8_t
 	{
+		done,
 		wait_scheduler,
-		wait_scheduler_and_idle,
 	};
 
 public:
@@ -32,7 +32,8 @@ public:
 	virtual void reset();
 
 protected:
-	virtual handler on_handler() = 0;
+	// virtual void on_idle() = 0; // TODO
+	virtual exec_state on_executing() = 0;
 
 protected:
 	/* interface for sub classes */
@@ -41,11 +42,8 @@ protected:
 	void dec_and_read(std::uint8_t addr_reg, std::uint8_t size);
 	void read_imm(std::uint8_t size);
 
-	void wait_scheduler();
-	void wait_scheduler_and_idle();
-
 private:
-	void exec();
+	void executing();
 
 protected:
 	m68k::cpu_registers& regs;

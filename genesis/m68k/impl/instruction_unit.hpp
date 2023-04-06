@@ -50,7 +50,7 @@ public:
 	}
 
 protected:
-	handler on_handler() override
+	exec_state on_executing() override
 	{
 		switch (state)
 		{
@@ -72,7 +72,7 @@ protected:
 	}
 
 private:
-	handler execute()
+	exec_state execute()
 	{
 		switch (curr_inst)
 		{
@@ -126,14 +126,14 @@ private:
 	// TODO: in most cases we do not handle invalid opcodes properly
 	// especially with some N/A EA decoding
 
-	handler alu_mode_handler()
+	exec_state alu_mode_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(pq.IRD & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 		{
@@ -155,14 +155,14 @@ private:
 			}
 
 			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	handler alu_address_mode_handler()
+	exec_state alu_address_mode_handler()
 	{
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
 		if(opmode != 0b011 && opmode != 0b111)
@@ -173,7 +173,7 @@ private:
 		case 0:
 			size = opmode == 0b011 ? 2 : 4;
 			dec.schedule_decoding(pq.IRD & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 		{
@@ -184,25 +184,25 @@ private:
 
 			scheduler.prefetch_one();
 			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	handler alu_imm_handler()
+	exec_state alu_imm_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			read_imm(size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 			dec.schedule_decoding(opcode & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 2:
 		{
@@ -220,21 +220,21 @@ private:
 			}
 
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	handler alu_quick_handler()
+	exec_state alu_quick_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(pq.IRD & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 		{
@@ -250,14 +250,14 @@ private:
 			schedule_prefetch_and_write(op, res, size);
 
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	handler rm_postinc_handler()
+	exec_state rm_postinc_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -272,7 +272,7 @@ private:
 				read(regs.A(src_reg).LW, size);
 				// FIXME: read may rise an exception, register is not inc in such a case
 				regs.inc_addr(src_reg, size);
-				return handler::wait_scheduler;
+				return exec_state::wait_scheduler;
 			}
 			else
 			{
@@ -282,7 +282,7 @@ private:
 				res = operations::alu(curr_inst, data, res, size, regs.flags);
 				store(dest, size, res);
 				scheduler.prefetch_one();
-				return handler::wait_scheduler_and_idle;
+				return exec_state::done;
 			}
 
 		case 1:
@@ -290,18 +290,18 @@ private:
 			read(regs.A(dest_reg).LW, size);
 			// FIXME: read may rise an exception, register is not inc in such a case
 			regs.inc_addr(dest_reg, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 2:
 			operations::alu(curr_inst, data, res, size, regs.flags);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		default: throw internal_error();
 		}
 	}
 
-	handler rm_predec_handler()
+	exec_state rm_predec_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -314,7 +314,7 @@ private:
 			{
 				// address register
 				scheduler.wait(2);
-				return handler::wait_scheduler;
+				return exec_state::wait_scheduler;
 			}
 			else
 			{
@@ -325,18 +325,18 @@ private:
 				store(dest, size, res);
 				scheduler.prefetch_one();
 				if(size == 4) scheduler.wait(4);
-				return handler::wait_scheduler_and_idle;
+				return exec_state::done;
 			}
 
 		/* Got here if it's an address register */
 		case 1:
 			dec_and_read(src_reg, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 2:
 			res = data;
 			dec_and_read(dest_reg, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 3:
 			res = operations::alu(curr_inst, data, res, size, regs.flags);
@@ -355,20 +355,20 @@ private:
 				scheduler.prefetch_one();
 				scheduler.write(regs.A(dest_reg).LW, res, (size_type)size);
 			}
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		default: throw internal_error();
 		}
 	}
 
-	handler unary_handler()
+	exec_state unary_handler()
 	{
 		switch (exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(pq.IRD & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 		{
@@ -379,20 +379,20 @@ private:
 			schedule_prefetch_and_write(op, res, size);
 			scheduler.wait(timings::alu_size(curr_inst, size, op));
 
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	handler nop_hanlder()
+	exec_state nop_hanlder()
 	{
 		scheduler.prefetch_one();
-		return handler::wait_scheduler_and_idle;
+		return exec_state::done;
 	}
 
-	handler move_handler()
+	exec_state move_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -400,7 +400,7 @@ private:
 			// decode source
 			size = dec_move_size(opcode >> 12);
 			dec.schedule_decoding(opcode & 0xFF, size);
-			return handler::wait_scheduler;
+			return exec_state::wait_scheduler;
 
 		case 1:
 		{
@@ -413,7 +413,7 @@ private:
 		}
 	}
 
-	handler move_decode_and_write(operand src_op, std::uint32_t res, size_type size)
+	exec_state move_decode_and_write(operand src_op, std::uint32_t res, size_type size)
 	{
 		std::uint8_t ea = opcode >> 6;
 		std::uint8_t mode = ea & 0x7;
@@ -429,12 +429,12 @@ private:
 		case 0b000:
 			store(regs.D(reg), size, res);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 		
 		case 0b010:
 			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		case 0b011:
 			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
@@ -443,7 +443,7 @@ private:
 			{
 				regs.inc_addr(dest_reg, this->size);
 			});
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		case 0b100:
 			scheduler.prefetch_one();
@@ -462,14 +462,14 @@ private:
 				});
 			}
 
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		case 0b101:
 			scheduler.prefetch_irc();
 			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		case 0b110:
 			scheduler.wait(2);
@@ -477,7 +477,7 @@ private:
 			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
-			return handler::wait_scheduler_and_idle;
+			return exec_state::done;
 
 		case 0b111:
 		{
@@ -487,7 +487,7 @@ private:
 				scheduler.prefetch_irc();
 				scheduler.write((std::int16_t)pq.IRC, res, (size_type)size, write_order);
 				scheduler.prefetch_one();
-				return handler::wait_scheduler_and_idle;
+				return exec_state::done;
 
 			case 0b001:
 				addr = pq.IRC << 16;
@@ -512,7 +512,7 @@ private:
 						scheduler.prefetch_one();
 					});
 				}
-				return handler::wait_scheduler_and_idle;
+				return exec_state::done;
 
 			default: throw internal_error();
 			}

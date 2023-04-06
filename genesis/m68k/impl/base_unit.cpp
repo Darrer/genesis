@@ -53,7 +53,7 @@ void base_unit::cycle()
 
 	if(state == EXECUTING)
 	{
-		exec();
+		executing();
 		return;
 	}
 
@@ -61,26 +61,28 @@ void base_unit::cycle()
 	throw internal_error();
 }
 
-void base_unit::exec()
+void base_unit::executing()
 {
 	while (true)
 	{
-		auto req = on_handler();
-
-		switch (req)
+		auto ex_state = on_executing();
+		switch (ex_state)
 		{
-		case handler::wait_scheduler:
+		case exec_state::wait_scheduler:
 			if(scheduler.is_idle())
 			{
-				// scheduled nothing, repeat now
+				// scheduled nothing, repeat on_executing
 				continue;
 			}
 
-			wait_scheduler();
+			state = WAITING_SCHEDULER;
 			return;
 
-		case handler::wait_scheduler_and_idle:
-			wait_scheduler_and_idle();
+		case exec_state::done:
+			if(scheduler.is_idle())
+				state = IDLE;
+			else
+				state = WAITING_SCHEDULER_AND_IDLE;
 			return;
 
 		default: throw internal_error();
@@ -109,8 +111,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
 		regs.dec_addr(addr_reg, size);
-		std::uint32_t addr = regs.A(addr_reg).LW;
-		read(addr, size);
+		read(regs.A(addr_reg).LW, size);
 	}
 	else
 	{
@@ -144,16 +145,6 @@ void base_unit::read_imm(std::uint8_t size)
 	});
 
 	state = WAITING_SCHEDULER;
-}
-
-void base_unit::wait_scheduler()
-{
-	state = WAITING_SCHEDULER;
-}
-
-void base_unit::wait_scheduler_and_idle()
-{
-	state = WAITING_SCHEDULER_AND_IDLE;
 }
 
 }
