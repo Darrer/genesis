@@ -52,6 +52,9 @@ protected:
 	void wait_scheduler();
 	void wait_scheduler_and_idle();
 
+private:
+	void exec();
+
 protected:
 	m68k::cpu_registers& regs;
 	m68k::bus_manager& busm;

@@ -167,6 +167,12 @@ public:
 
 		/* bus write cycle */
 		case WRITE0:
+			if(should_rise_address_error())
+			{
+				rise_address_error();
+				break;
+			}
+
 			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
 			bus.address(address);
@@ -287,7 +293,9 @@ private:
 	void rise_address_error()
 	{
 		std::uint8_t func_codes = gen_func_codes();
-		exman.rise_address_error( { address, regs.PC - 2, func_codes, true, false } );
+		bool read_operation = state == bus_cycle_state::READ0;
+		std::uint32_t pc = regs.PC - 2;
+		exman.rise_address_error( { address, pc, func_codes, read_operation, false } );
 		reset();
 	}
 

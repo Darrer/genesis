@@ -256,7 +256,7 @@ private:
 		scheduler.wait(2);
 		scheduler.prefetch_irc();
 
-		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW);
+		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -292,7 +292,7 @@ private:
 		scheduler.wait(2);
 		scheduler.prefetch_irc();
 		
-		std::uint32_t ptr = dec_brief_reg(regs.PC);
+		std::uint32_t ptr = dec_brief_reg(regs.PC, pq.IRC, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -333,9 +333,10 @@ private:
 		std::uint8_t da : 1;
 	};
 
-	std::uint32_t dec_brief_reg(std::uint32_t base) const
+public:
+	static std::uint32_t dec_brief_reg(std::uint32_t base, std::uint16_t irc, cpu_registers& regs)
 	{
-		brief_ext ext(pq.IRC);
+		brief_ext ext(irc);
 		base += (std::int32_t)(std::int8_t)ext.displacement;
 
 		if(ext.wl)
@@ -355,6 +356,189 @@ private:
 
 	size_type size;
 	std::uint32_t ptr;
+};
+
+
+class ea_move_decoder
+{
+public:
+	// TODO: remove pq?
+	ea_move_decoder(cpu_registers& regs, prefetch_queue& pq, bus_scheduler& scheduler)
+		: regs(regs), pq(pq), scheduler(scheduler) { }
+
+	bool ready() const
+	{
+		return res.has_value();
+	}
+
+	operand result()
+	{
+		if(!ready()) throw internal_error();
+
+		return res.value();
+	}
+
+	void reset()
+	{
+		res.reset();
+	}
+
+	void schedule_decoding(std::uint8_t ea, std::uint8_t size, std::uint32_t src)
+	{
+		if(!scheduler.is_idle())
+			throw internal_error();
+
+		res.reset();
+		std::uint8_t mode = ea & 0x7;
+		std::uint8_t reg = (ea >> 3) & 0x7;
+		this->size = (size_type)size;
+		this->src = src;
+
+		std::cout << "ea move decoding: " << (int)mode << ", " << (int)reg << std::endl;
+		schedule_decoding(mode, reg, (size_type)size);
+	}
+
+private:
+	void schedule_decoding(std::uint8_t mode, std::uint8_t reg, size_type size)
+	{
+		switch (mode)
+		{
+		case 0b000:
+			if(size == size_type::BYTE)
+				regs.D(reg).B = src;
+			else if(size == size_type::WORD)
+				regs.D(reg).W = src;
+			else
+				regs.D(reg).LW = src;
+			scheduler.prefetch_one();
+			// res = { regs.D(reg), size };
+			return;
+
+		case 0b010:
+			// res = { operand::raw_pointer(regs.A(reg).LW), size };
+			scheduler.write(regs.A(reg).LW, src, size);
+			scheduler.prefetch_one();
+			return;
+
+		case 0b011:
+			// res = { operand::raw_pointer(regs.A(reg).LW), size };
+			scheduler.write(regs.A(reg).LW, src, size);
+			scheduler.prefetch_one();
+			regs.inc_addr(reg, size);
+			return;
+
+		case 0b100:
+			regs.dec_addr(reg, size);
+			scheduler.prefetch_one();
+			scheduler.write(regs.A(reg).LW, src, size);
+			// res = { operand::raw_pointer(regs.A(reg).LW), size };
+			return;
+
+		case 0b101:
+		{
+			scheduler.prefetch_irc();
+			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			scheduler.write(ptr, src, size);
+			scheduler.prefetch_one();
+			// res = { operand::raw_pointer(ptr), size };
+			return;
+		}
+
+		case 0b110:
+		{
+			scheduler.wait(2);
+			scheduler.prefetch_irc();
+
+			std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
+			scheduler.write(ptr, src, size);
+			scheduler.prefetch_one();
+			// res = { operand::raw_pointer(ptr), size };
+			return;
+		}
+		
+		case 0b111:
+		{
+		switch (reg)
+		{
+		case 0b000:
+			scheduler.prefetch_irc();
+			// res = { operand::raw_pointer((std::int16_t)pq.IRC), size };
+			scheduler.write((std::int16_t)pq.IRC, src, size);
+			scheduler.prefetch_one();
+			return;
+
+		case 0b001:
+			if(size == size_type::BYTE || size == size_type::WORD)
+			{
+				ptr = pq.IRC << 16;
+				scheduler.prefetch_irc();
+				scheduler.call([this]()
+				{
+					std::uint32_t addr = ptr | (pq.IRC & 0xFFFF);
+					scheduler.prefetch_irc();
+					scheduler.write(addr, src, this->size);
+					scheduler.prefetch_one();
+					// res = { operand::raw_pointer(addr), this->size };
+				});
+			}
+			else
+			{
+				scheduler.read_imm(size_type::LONG, [this](std::uint32_t imm, size_type)
+				{
+					res = { operand::raw_pointer(imm), this->size };
+				});
+			}
+			return;
+
+		default: throw internal_error();
+		}
+
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+private:
+	struct brief_ext
+	{
+		brief_ext(std::uint16_t raw)
+		{
+			static_assert(sizeof(brief_ext) == 2);
+			*reinterpret_cast<std::uint16_t*>(this) = raw;
+		}
+
+		std::uint8_t displacement;
+		std::uint8_t _res : 3;
+		std::uint8_t wl : 1;
+		std::uint8_t reg : 3;
+		std::uint8_t da : 1;
+	};
+
+public:
+	static std::uint32_t dec_brief_reg(std::uint32_t base, std::uint16_t irc, cpu_registers& regs)
+	{
+		brief_ext ext(irc);
+		base += (std::int32_t)(std::int8_t)ext.displacement;
+
+		if(ext.wl)
+			base += ext.da ? regs.A(ext.reg).LW : regs.D(ext.reg).LW;
+		else
+			base += (std::int16_t)(ext.da ? regs.A(ext.reg).W : regs.D(ext.reg).W);
+
+		return base;
+	}
+
+private:
+	cpu_registers& regs;
+	prefetch_queue& pq;
+	bus_scheduler& scheduler;
+
+	std::optional<operand> res;
+
+	size_type size;
+	std::uint32_t ptr;
+	std::uint32_t src;
 };
 
 }

@@ -131,7 +131,15 @@ private:
 	void on_read_finished(bool irc_only = false)
 	{
 		if(!irc_only)
+		{
 			IRD = IR = IRC;
+			regs.SPC = regs.PC;
+		}
+		else
+		{
+			regs.SPC = regs.PC - 2;
+		}
+
 		IRC = busm.letched_word();
 	}
 

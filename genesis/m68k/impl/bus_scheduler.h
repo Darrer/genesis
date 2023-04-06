@@ -21,13 +21,19 @@ enum /*class*/ size_type : std::uint8_t
 	LONG = 4,
 };
 
+enum class order : std::uint8_t
+{
+	lsw_first, // least significant word first
+	msw_first, // most significant word first
+};
 
-// TODO: maybe bus_scheduler?
+// TODO: maybe back to scheduler?
 class bus_scheduler
 {
 public:
-	constexpr static const std::size_t queue_size = 20;
+	// constexpr static const std::size_t queue_size = 20;
 	using on_read_complete = std::function<void(std::uint32_t /*data*/, size_type)>;
+	using callback = std::function<void()>;
 
 private:
 	enum class op_type : std::uint8_t
@@ -39,6 +45,7 @@ private:
 		PREFETCH_TWO,
 		PREFETCH_IRC,
 		WAIT,
+		CALL,
 	};
 
 	struct read_operation
@@ -66,11 +73,16 @@ private:
 		std::uint16_t cycles;
 	};
 
+	struct call_operation
+	{
+		callback cb;
+	};
+
 	struct operation
 	{
 		op_type type;
 		std::variant<read_operation, read_imm_operation,
-			write_operation, wait_operation> op;
+			write_operation, wait_operation, call_operation> op;
 	};
 
 public:
@@ -78,6 +90,7 @@ public:
 	~bus_scheduler() { }
 
 	void cycle();
+	void post_cycle();
 	bool is_idle() const;
 	void reset();
 
@@ -96,7 +109,7 @@ public:
 		read_imm_impl(size, on_complete);
 	}
 
-	void write(std::uint32_t addr, std::uint32_t data, size_type size);
+	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
 	void prefetch_one();
 	void prefetch_two();
@@ -104,13 +117,22 @@ public:
 
 	void wait(std::uint16_t cycles);
 
+	template<class Callable>
+	void call(Callable cb)
+	{
+		static_assert(sizeof(Callable) <= 8);
+		call_impl(cb);
+	}
+
 private:
 	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete = nullptr);
 	void read_imm_impl(size_type size, on_read_complete on_complete = nullptr);
+	void call_impl(callback);
 
 	void on_read_finish();
 	bool current_op_is_over() const;
 	void start_operation(operation);
+	void run_call_operations();
 
 private:
 	m68k::cpu_registers& regs;

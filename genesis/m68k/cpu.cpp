@@ -37,6 +37,7 @@ void cpu::cycle()
 	pq->cycle();
 	busm->cycle();
 
+	scheduler->post_cycle();
 	excp_unit->post_cycle();
 	inst_unit->post_cycle();
 

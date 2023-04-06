@@ -55,22 +55,42 @@ void base_unit::cycle()
 
 	if(state == EXECUTING)
 	{
-		auto req = on_handler();
-
-		if(req == handler::wait_scheduler)
-			wait_scheduler();
-		else if (req == handler::wait_scheduler_and_done)
-			wait_scheduler_and_idle();
-		else if(req == handler::in_progress)
-			return; // just wait
-		else
-			throw internal_error();
-
+		exec();
 		return;
 	}
 
 	// unreachable
 	throw internal_error();
+}
+
+void base_unit::exec()
+{
+	while (true)
+	{
+		auto req = on_handler();
+
+		switch (req)
+		{
+		case handler::wait_scheduler:
+			if(scheduler.is_idle())
+			{
+				// scheduled nothing, repeat now
+				continue;
+			}
+
+			wait_scheduler();
+			return;
+
+		case handler::wait_scheduler_and_done:
+			wait_scheduler_and_idle();
+			return;
+		
+		case handler::in_progress:
+			return; // just wait
+		
+		default: throw internal_error();
+		}
+	}
 }
 
 void base_unit::post_cycle()

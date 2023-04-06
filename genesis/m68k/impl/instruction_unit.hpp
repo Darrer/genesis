@@ -33,7 +33,7 @@ private:
 public:
 	instruction_unit(m68k::cpu_registers& regs, m68k::bus_manager& busm,
 		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, busm, pq, scheduler), dec(regs, pq, scheduler)
+		: base_unit(regs, busm, pq, scheduler), dec(regs, pq, scheduler), move_dec(regs, pq, scheduler)
 	{
 		reset();
 	}
@@ -56,6 +56,7 @@ protected:
 		{
 		case IDLE:
 			opcode = pq.IRD;
+			regs.SIRD = pq.IRD;
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
 			regs.PC += 2;
@@ -63,7 +64,7 @@ protected:
 			[[fallthrough]];
 
 		case EXECUTING:
-			return execute_handler();
+			return execute();
 
 		default:
 			throw internal_error();
@@ -71,21 +72,7 @@ protected:
 	}
 
 private:
-	void execute()
-	{
-		handler req = execute_handler();
-
-		if(req == handler::wait_scheduler)
-			wait_scheduler();
-		else if (req == handler::wait_scheduler_and_done)
-			wait_scheduler_and_idle();
-		else if(req == handler::in_progress)
-			return; // just wait
-		else
-			throw internal_error();
-	}
-
-	handler execute_handler()
+	handler execute()
 	{
 		switch (curr_inst)
 		{
@@ -145,7 +132,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			decode_ea(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(pq.IRD & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 1:
@@ -185,7 +172,7 @@ private:
 		{
 		case 0:
 			size = opmode == 0b011 ? 2 : 4;
-			decode_ea(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(pq.IRD & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 1:
@@ -214,7 +201,7 @@ private:
 			return handler::wait_scheduler;
 
 		case 1:
-			decode_ea(opcode & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 2:
@@ -246,7 +233,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			decode_ea(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(pq.IRD & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 1:
@@ -380,7 +367,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			decode_ea(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(pq.IRD & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 1:
@@ -417,64 +404,185 @@ private:
 		case 0:
 			// decode source
 			size = dec_move_size(opcode >> 12);
-			decode_ea(opcode & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return handler::wait_scheduler;
 
 		case 1:
 		{
-			src_op = dec.result();
-			// decode destenation
-			std::uint8_t ea = (opcode >> 6) & 7;
-			ea = (ea << 3) | ((opcode >> 9) & 7);
-			decode_ea(ea, size);
-			return handler::wait_scheduler;
+			auto src_op = dec.result();
+			res = operations::alu(curr_inst, src_op, size, regs.flags);
+			return move_decode_and_write(src_op, res, (size_type)size);
 		}
 
-		case 2:
+		default: throw internal_error();
+		}
+	}
+
+	handler move_decode_and_write(operand src_op, std::uint32_t res, size_type size)
+	{
+		std::uint8_t ea = opcode >> 6;
+		std::uint8_t mode = ea & 0x7;
+		std::uint8_t reg = (ea >> 3) & 0x7;
+		dest_reg = reg;
+
+		// std::cout << "decode move: " << (int)mode << ", " << (int)reg << std::endl;
+
+		order write_order = order::msw_first;
+
+		switch (mode)
 		{
-			auto dest_op = dec.result();
+		case 0b000:
+			store(regs.D(reg), size, res);
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
+		
+		case 0b010:
+			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
 
-			res = operations::alu(curr_inst, src_op.value(), dest_op, size, regs.flags);
-
-			if(((opcode >> 6) & 7) == 0b100)
+		case 0b011:
+			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
+			scheduler.prefetch_one();
+			scheduler.call([this]()
 			{
-				if(dest_op.is_pointer())
-				{
-					addr = dest_op.pointer().address;
-					scheduler.prefetch_one();
-				}
-				else
-				{
-					throw internal_error();
-				}
+				regs.inc_addr(dest_reg, this->size);
+			});
+			return handler::wait_scheduler_and_done;
+
+		case 0b100:
+			scheduler.prefetch_one();
+			if(size != size_type::LONG)
+			{
+				regs.dec_addr(dest_reg, size);
+				scheduler.write(regs.A(reg).LW, res, (size_type)size);
 			}
 			else
 			{
-				if(dest_op.is_pointer())
+				regs.dec_addr(dest_reg, size_type::WORD);
+				scheduler.write(regs.A(reg).LW - 2, res, (size_type)size);
+				scheduler.call([this]()
 				{
-					scheduler.write(dest_op.pointer().address, res, (size_type)size);
+					regs.dec_addr(dest_reg, size_type::WORD);
+				});
+			}
+
+			return handler::wait_scheduler_and_done;
+
+		case 0b101:
+			scheduler.prefetch_irc();
+			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			scheduler.write(addr, res, (size_type)size, write_order);
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
+
+		case 0b110:
+			scheduler.wait(2);
+			scheduler.prefetch_irc();
+			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
+			scheduler.write(addr, res, (size_type)size, write_order);
+			scheduler.prefetch_one();
+			return handler::wait_scheduler_and_done;
+
+		case 0b111:
+		{
+			switch (reg)
+			{
+			case 0b000:
+				scheduler.prefetch_irc();
+				scheduler.write((std::int16_t)pq.IRC, res, (size_type)size, write_order);
+				scheduler.prefetch_one();
+				return handler::wait_scheduler_and_done;
+
+			case 0b001:
+				addr = pq.IRC << 16;
+				scheduler.prefetch_irc();
+				if(src_op.is_pointer())
+				{
+					scheduler.call([this]()
+					{
+						addr = addr | (pq.IRC & 0xFFFF);
+						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+						scheduler.prefetch_irc();
+						scheduler.prefetch_one();
+					});
 				}
 				else
 				{
-					store(dest_op, size, res);
-					scheduler.prefetch_one();
-					return handler::wait_scheduler_and_done;
+					scheduler.call([this]()
+					{
+						addr = addr | (pq.IRC & 0xFFFF);
+						scheduler.prefetch_irc();
+						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+						scheduler.prefetch_one();
+					});
 				}
-			}
+				return handler::wait_scheduler_and_done;
 
-			return handler::wait_scheduler;
+			default: throw internal_error();
+			}
 		}
 
-		case 3:
-			if(((opcode >> 6) & 7) == 0b100)
-			{
-				scheduler.write(addr, res, (size_type)size);
-			}
-			else
-			{
-				scheduler.prefetch_one();
-			}
-			return handler::wait_scheduler_and_done;
+		default: throw internal_error();
+		}
+	}
+
+	void decode_ea_move(std::uint8_t ea, size_type size)
+	{
+		std::uint8_t mode = ea & 0x7;
+		std::uint8_t reg = (ea >> 3) & 0x7;
+		dest_op.reset();
+
+		std::cout << "decode ea move: " << (int)mode << ", " << (int)reg << std::endl;
+
+		auto save = [this](std::uint32_t addr, size_type size)
+		{
+			dest_op = { operand::raw_pointer(addr), size };
+		};
+
+		switch (mode)
+		{
+		case 0b000:
+			dest_op = { regs.D(reg), size };
+			return;
+		
+		case 0b010:
+			save(regs.A(reg).LW, size);
+			return;
+
+		case 0b011:
+			save(regs.A(reg).LW, size);
+			regs.inc_addr(reg, size);
+			return;
+
+		case 0b100:
+			return;
+
+		case 0b101:
+		{
+			scheduler.prefetch_irc();
+			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			save(ptr, size);
+			return;
+		}
+
+		case 0b110:
+			return;
+		
+		case 0b111:
+		{
+		switch (reg)
+		{
+		case 0b000:
+			return;
+		
+		case 0b001:
+			return;
+		
+		default: throw internal_error();
+		}
+
+		}
 
 		default: throw internal_error();
 		}
@@ -552,21 +660,6 @@ private:
 	}
 
 private:
-	void decode_ea(std::uint8_t ea, std::uint8_t size)
-	{
-		dec.schedule_decoding(ea, size);
-		if(dec.ready())
-		{
-			// immediate decoding
-			execute();
-		}
-		else
-		{
-			// wait till decoding is over
-			wait_scheduler();
-		}
-	}
-
 	std::uint8_t dec_size(std::uint8_t size)
 	{
 		size = size & 0b11;
@@ -597,6 +690,7 @@ private:
 
 private:
 	m68k::ea_decoder dec;
+	m68k::ea_move_decoder move_dec;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;
@@ -610,7 +704,7 @@ private:
 	std::uint8_t size = 0;
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
-	std::optional<m68k::operand> src_op;
+	std::optional<m68k::operand> dest_op;
 	status_register flags;
 };
 

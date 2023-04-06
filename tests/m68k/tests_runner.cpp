@@ -435,7 +435,7 @@ TEST(M68K, THT)
 // keep it here for debug
 TEST(M68K, TMP)
 {
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented\MOVE)", "json");
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\MOVE)", "json");
 	std::sort(all_tests.begin(), all_tests.end());
 
 	for(auto& test : all_tests)

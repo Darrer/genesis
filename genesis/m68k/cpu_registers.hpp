@@ -2,7 +2,6 @@
 #define __M68K_CPU_REGISTERS_HPP__
 
 #include <cstdint>
-#include <stdexcept>
 
 #include "exception.hpp"
 
@@ -108,6 +107,9 @@ public:
 	address_register A0, A1, A2, A3, A4, A5, A6;
 	address_register USP;
 	address_register SSP;
+
+	std::uint16_t SIRD;
+	std::uint32_t SPC;
 
 	std::uint32_t PC;
 

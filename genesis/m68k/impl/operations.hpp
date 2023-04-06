@@ -119,8 +119,8 @@ public:
 		return res;
 	}
 
-	template<class T1, class T2>
-	static std::uint32_t move(T1 src, T2 dest, std::uint8_t size, status_register& sr)
+	template<class T1>
+	static std::uint32_t move(T1 src, std::uint8_t size, status_register& sr)
 	{
 		std::uint32_t res = value(src, size);
 		sr.N = neg_flag(res, size);
@@ -177,9 +177,6 @@ public:
 		case inst_type::CMPA:
 			return operations::cmpa(a, b, size, sr);
 
-		case inst_type::MOVE:
-			return operations::move(a, b, size, sr);
-
 		default: throw internal_error();
 		}
 	}
@@ -195,6 +192,8 @@ public:
 			return negx(a, size, sr);
 		case inst_type::NOT:
 			return not_op(a, size, sr);
+		case inst_type::MOVE:
+			return move(a, size, sr);
 
 		default: throw internal_error();
 		}
@@ -330,7 +329,7 @@ private:
 		return std::int32_t(val) < 0;
 	}
 
-private:
+public:
 	static std::uint32_t value(data_register reg, std::uint8_t size)
 	{
 		if(size == 1)

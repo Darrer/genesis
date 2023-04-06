@@ -67,6 +67,20 @@ void bus_scheduler::cycle()
 	queue.pop();
 }
 
+void bus_scheduler::post_cycle()
+{
+	if(!current_op_is_over())
+		return;
+
+	if(current_op.has_value() && current_op.value().type == op_type::PREFETCH_IRC)
+		regs.PC += 2;
+
+	if(!queue.empty())
+	{
+		run_call_operations();
+	}
+}
+
 void bus_scheduler::read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete)
 {
 	if(size == size_type::BYTE || size == size_type::WORD)
@@ -133,7 +147,7 @@ void bus_scheduler::on_read_finish()
 	current_op.reset();
 }
 
-void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size)
+void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size, order order)
 {
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
@@ -148,8 +162,16 @@ void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size
 		write_operation write_lsw { addr + 2, data & 0xFFFF, size_type::WORD };
 		write_operation write_msw { addr, data >> 16, size_type::WORD };
 
-		queue.emplace(op_type::WRITE, write_lsw);
-		queue.emplace(op_type::WRITE, write_msw);
+		if(order == order::lsw_first)
+		{
+			queue.emplace(op_type::WRITE, write_lsw);
+			queue.emplace(op_type::WRITE, write_msw);
+		}
+		else
+		{
+			queue.emplace(op_type::WRITE, write_msw);
+			queue.emplace(op_type::WRITE, write_lsw);
+		}
 	}
 }
 
@@ -174,6 +196,12 @@ void bus_scheduler::wait(std::uint16_t cycles)
 
 	wait_operation wait_op {cycles};
 	queue.emplace(op_type::WAIT, wait_op);
+}
+
+void bus_scheduler::call_impl(callback cb)
+{
+	call_operation call_op { cb };
+	queue.emplace(op_type::CALL, call_op);
 }
 
 void bus_scheduler::start_operation(operation op)
@@ -212,11 +240,11 @@ void bus_scheduler::start_operation(operation op)
 			auto on_read_complete = [this]()
 			{
 				on_read_finish();
+				regs.PC += 2;
 				start_operation({ op_type::PREFETCH_IRC });
 			};
 
-			regs.PC += 2;
-			busm.init_read_word(regs.PC, addr_space::PROGRAM, on_read_complete);
+			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, on_read_complete);
 		}
 
 		break;
@@ -228,7 +256,12 @@ void bus_scheduler::start_operation(operation op)
 		if(write.size == size_type::BYTE)
 			busm.init_write<std::uint8_t>(write.addr, write.data);
 		else
+		{
+			// tmp workaround
+			// if(write.addr % 2 == 1)
+				// write.addr -= 2;
 			busm.init_write<std::uint16_t>(write.addr, write.data);
+		}
 
 		break;
 	}
@@ -239,7 +272,7 @@ void bus_scheduler::start_operation(operation op)
 
 	case op_type::PREFETCH_IRC:
 		pq.init_fetch_irc();
-		regs.PC += 2;
+		// regs.PC += 2;
 		break;
 
 	case op_type::PREFETCH_TWO:
@@ -254,6 +287,16 @@ void bus_scheduler::start_operation(operation op)
 	}
 
 	default: throw internal_error();
+	}
+}
+
+void bus_scheduler::run_call_operations()
+{
+	while (queue.front().type == op_type::CALL)
+	{
+		auto call_op = std::get<call_operation>(queue.front().op);
+		call_op.cb();
+		queue.pop();
 	}
 }
 

@@ -99,6 +99,7 @@ private:
 	*/
 	handler address_error()
 	{
+		correct_pc();
 		scheduler.wait(4 - 1);
 
 		// PUSH PC LOW
@@ -121,7 +122,7 @@ private:
 		// PUSH IRD
 		regs.SSP.LW -= 2;
 		// TODO: IRD not always contains the current instruction
-		scheduler.write(regs.SSP.LW, pq.IRD, size_type::WORD);
+		scheduler.write(regs.SSP.LW, /*pq.IRD*/ regs.SIRD, size_type::WORD);
 
 		// PUSH address LOW
 		regs.SSP.LW -= 2;
@@ -148,7 +149,7 @@ private:
 
 	std::uint16_t addr_error_info() const
 	{
-		std::uint16_t status = pq.IR & ~0b11111; // undocumented behavior
+		std::uint16_t status = /*pq.IR*/ regs.SIRD & ~0b11111; // undocumented behavior
 		status |= addr_error.func_codes & 0x7; // first 3 bits
 
 		if(addr_error.in)
@@ -168,6 +169,22 @@ private:
 			return 0x00C;
 
 		default: throw internal_error();
+		}
+	}
+
+	void correct_pc()
+	{
+		bool is_move_long = (regs.SIRD >> 12) == 0b0010;
+		bool is_move_word = (regs.SIRD >> 12) == 0b0011;
+		bool write_op = !addr_error.rw;
+
+		if((is_move_long || is_move_word) && write_op)
+		{
+			std::uint8_t mode = (regs.SIRD >> 6) & 0x7;
+			if(mode == 0b100)
+			{
+				addr_error.PC += 2;
+			}
 		}
 	}
 
