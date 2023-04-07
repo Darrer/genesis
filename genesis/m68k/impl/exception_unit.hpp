@@ -122,7 +122,7 @@ private:
 		// PUSH IRD
 		regs.SSP.LW -= 2;
 		// TODO: IRD not always contains the current instruction
-		scheduler.write(regs.SSP.LW, /*pq.IRD*/ regs.SIRD, size_type::WORD);
+		scheduler.write(regs.SSP.LW, regs.SIRD, size_type::WORD);
 
 		// PUSH address LOW
 		regs.SSP.LW -= 2;
@@ -149,7 +149,7 @@ private:
 
 	std::uint16_t addr_error_info() const
 	{
-		std::uint16_t status = /*pq.IR*/ regs.SIRD & ~0b11111; // undocumented behavior
+		std::uint16_t status = regs.SIRD & ~0b11111; // undocumented behavior
 		status |= addr_error.func_codes & 0x7; // first 3 bits
 
 		if(addr_error.in)

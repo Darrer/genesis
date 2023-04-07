@@ -33,7 +33,7 @@ private:
 
 public:
 	instruction_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, scheduler), dec(regs, scheduler), move_dec(regs, scheduler)
+		: base_unit(regs, scheduler), dec(regs, scheduler)
 	{
 		reset();
 	}
@@ -343,7 +343,7 @@ private:
 
 		case 3:
 			res = operations::alu(curr_inst, data, res, size, regs.flags);
-			if(size == 4)
+			if(size == size_type::LONG)
 			{
 				// in this particular case we need to:
 				// 1. write LSW
@@ -409,38 +409,33 @@ private:
 		{
 			auto src_op = dec.result();
 			res = operations::alu(curr_inst, src_op, size, regs.flags);
-			return move_decode_and_write(src_op, res, (size_type)size);
+			return decode_move_and_write(src_op, res, (size_type)size);
 		}
 
 		default: throw internal_error();
 		}
 	}
 
-	exec_state move_decode_and_write(operand src_op, std::uint32_t res, size_type size)
+	exec_state decode_move_and_write(operand src_op, std::uint32_t res, size_type size)
 	{
 		std::uint8_t ea = opcode >> 6;
 		std::uint8_t mode = ea & 0x7;
-		std::uint8_t reg = (ea >> 3) & 0x7;
-		dest_reg = reg;
-
-		// std::cout << "decode move: " << (int)mode << ", " << (int)reg << std::endl;
-
-		order write_order = order::msw_first;
+		dest_reg = (ea >> 3) & 0x7;
 
 		switch (mode)
 		{
 		case 0b000:
-			store(regs.D(reg), size, res);
+			store(regs.D(dest_reg), size, res);
 			scheduler.prefetch_one();
 			return exec_state::done;
 		
 		case 0b010:
-			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
+			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
 			scheduler.prefetch_one();
 			return exec_state::done;
 
 		case 0b011:
-			scheduler.write(regs.A(reg).LW, res, (size_type)size, write_order);
+			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
 			scheduler.prefetch_one();
 			scheduler.call([this]()
 			{
@@ -453,12 +448,12 @@ private:
 			if(size != size_type::LONG)
 			{
 				regs.dec_addr(dest_reg, size);
-				scheduler.write(regs.A(reg).LW, res, (size_type)size);
+				scheduler.write(regs.A(dest_reg).LW, res, size);
 			}
 			else
 			{
 				regs.dec_addr(dest_reg, size_type::WORD);
-				scheduler.write(regs.A(reg).LW - 2, res, (size_type)size);
+				scheduler.write(regs.A(dest_reg).LW - 2, res, size);
 				scheduler.call([this]()
 				{
 					regs.dec_addr(dest_reg, size_type::WORD);
@@ -469,26 +464,26 @@ private:
 
 		case 0b101:
 			scheduler.prefetch_irc();
-			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
-			scheduler.write(addr, res, (size_type)size, write_order);
+			addr = (std::int32_t)regs.A(dest_reg).LW + std::int32_t((std::int16_t)regs.IRC);
+			scheduler.write(addr, res, size, order::msw_first);
 			scheduler.prefetch_one();
 			return exec_state::done;
 
 		case 0b110:
 			scheduler.wait(2);
 			scheduler.prefetch_irc();
-			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, regs.IRC, regs);
-			scheduler.write(addr, res, (size_type)size, write_order);
+			addr = ea_decoder::dec_brief_reg(regs.A(dest_reg).LW, regs.IRC, regs);
+			scheduler.write(addr, res, size, order::msw_first);
 			scheduler.prefetch_one();
 			return exec_state::done;
 
 		case 0b111:
 		{
-			switch (reg)
+			switch (dest_reg)
 			{
 			case 0b000:
 				scheduler.prefetch_irc();
-				scheduler.write((std::int16_t)regs.IRC, res, (size_type)size, write_order);
+				scheduler.write((std::int16_t)regs.IRC, res, size, order::msw_first);
 				scheduler.prefetch_one();
 				return exec_state::done;
 
@@ -535,67 +530,6 @@ private:
 		scheduler.prefetch_one();
 
 		return exec_state::done;
-	}
-
-	void decode_ea_move(std::uint8_t ea, size_type size)
-	{
-		std::uint8_t mode = ea & 0x7;
-		std::uint8_t reg = (ea >> 3) & 0x7;
-		dest_op.reset();
-
-		std::cout << "decode ea move: " << (int)mode << ", " << (int)reg << std::endl;
-
-		auto save = [this](std::uint32_t addr, size_type size)
-		{
-			dest_op = { operand::raw_pointer(addr), size };
-		};
-
-		switch (mode)
-		{
-		case 0b000:
-			dest_op = { regs.D(reg), size };
-			return;
-		
-		case 0b010:
-			save(regs.A(reg).LW, size);
-			return;
-
-		case 0b011:
-			save(regs.A(reg).LW, size);
-			regs.inc_addr(reg, size);
-			return;
-
-		case 0b100:
-			return;
-
-		case 0b101:
-		{
-			scheduler.prefetch_irc();
-			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
-			save(ptr, size);
-			return;
-		}
-
-		case 0b110:
-			return;
-		
-		case 0b111:
-		{
-		switch (reg)
-		{
-		case 0b000:
-			return;
-		
-		case 0b001:
-			return;
-		
-		default: throw internal_error();
-		}
-
-		}
-
-		default: throw internal_error();
-		}
 	}
 
 	// save the result (write to register or to memory), do prefetch and go IDLE
@@ -670,22 +604,22 @@ private:
 	}
 
 private:
-	std::uint8_t dec_size(std::uint8_t size)
+	size_type dec_size(std::uint8_t size)
 	{
 		size = size & 0b11;
-		if(size == 0) return 1;
-		if(size == 1) return 2;
-		if(size == 2) return 4;
+		if(size == 0) return size_type::BYTE;
+		if(size == 1) return size_type::WORD;
+		if(size == 2) return size_type::LONG;
 
 		throw_invalid_opcode();
 	}
 
-	std::uint8_t dec_move_size(std::uint8_t size)
+	size_type dec_move_size(std::uint8_t size)
 	{
 		size = size & 0b11;
-		if(size == 0b01) return 1;
-		if(size == 0b11) return 2;
-		if(size == 0b10) return 4;
+		if(size == 0b01) return size_type::BYTE;
+		if(size == 0b11) return size_type::WORD;
+		if(size == 0b10) return size_type::LONG;
 
 		throw_invalid_opcode();
 	}
@@ -700,7 +634,6 @@ private:
 
 private:
 	m68k::ea_decoder dec;
-	m68k::ea_move_decoder move_dec;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;
@@ -714,7 +647,6 @@ private:
 	std::uint8_t size = 0;
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
-	std::optional<m68k::operand> dest_op;
 	status_register flags;
 };
 
