@@ -13,9 +13,8 @@ enum handler_state : std::uint8_t
 namespace genesis::m68k
 {
 
-base_unit::base_unit(m68k::cpu_registers& regs, 
-	m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler):
-	regs(regs), pq(pq), scheduler(scheduler)
+base_unit::base_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler)
+	: regs(regs), scheduler(scheduler)
 {
 	base_unit::reset();
 }

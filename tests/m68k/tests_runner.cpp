@@ -44,8 +44,8 @@ void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 		mem.write(addr, value);
 
 	// setup prefetch queue
-	cpu.prefetch_queue().IR = cpu.prefetch_queue().IRD = state.prefetch.at(0);
-	cpu.prefetch_queue().IRC = state.prefetch.at(1);
+	regs.IR = regs.IRD = state.prefetch.at(0);
+	regs.IRC = state.prefetch.at(1);
 }
 
 bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
@@ -90,11 +90,9 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 	}
 
 	// check prefetch queue
-	auto& pq = cpu.prefetch_queue();
-
-	check_eq(state.prefetch.at(0), pq.IR);
-	check_eq(state.prefetch.at(0), pq.IRD);
-	check_eq(state.prefetch.at(1), pq.IRC);
+	check_eq(state.prefetch.at(0), regs.IR);
+	check_eq(state.prefetch.at(0), regs.IRD);
+	check_eq(state.prefetch.at(1), regs.IRC);
 
 	#undef check_eq
 

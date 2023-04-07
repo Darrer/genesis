@@ -108,9 +108,8 @@ private:
 class ea_decoder
 {
 public:
-	// TODO: remove pq?
-	ea_decoder(cpu_registers& regs, prefetch_queue& pq, bus_scheduler& scheduler)
-		: regs(regs), pq(pq), scheduler(scheduler) { }
+	ea_decoder(cpu_registers& regs, bus_scheduler& scheduler)
+		: regs(regs), scheduler(scheduler) { }
 
 	bool ready() const
 	{
@@ -246,7 +245,7 @@ private:
 	{
 		scheduler.prefetch_irc();
 
-		std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+		std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -256,7 +255,7 @@ private:
 		scheduler.wait(2);
 		scheduler.prefetch_irc();
 
-		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
+		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, regs.IRC, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -264,7 +263,7 @@ private:
 	void decode_111_000(size_type size)
 	{
 		scheduler.prefetch_irc();
-		schedule_read_and_save((std::int16_t)pq.IRC, size);
+		schedule_read_and_save((std::int16_t)regs.IRC, size);
 	}
 
 	// Absolute Long Addressing Mode
@@ -282,7 +281,7 @@ private:
 	{
 		scheduler.prefetch_irc();
 
-		std::uint32_t ptr = regs.PC + (std::int16_t)pq.IRC;
+		std::uint32_t ptr = regs.PC + (std::int16_t)regs.IRC;
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -292,7 +291,7 @@ private:
 		scheduler.wait(2);
 		scheduler.prefetch_irc();
 		
-		std::uint32_t ptr = dec_brief_reg(regs.PC, pq.IRC, regs);
+		std::uint32_t ptr = dec_brief_reg(regs.PC, regs.IRC, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
@@ -349,7 +348,6 @@ public:
 
 private:
 	cpu_registers& regs;
-	prefetch_queue& pq;
 	bus_scheduler& scheduler;
 
 	std::optional<operand> res;
@@ -362,9 +360,8 @@ private:
 class ea_move_decoder
 {
 public:
-	// TODO: remove pq?
-	ea_move_decoder(cpu_registers& regs, prefetch_queue& pq, bus_scheduler& scheduler)
-		: regs(regs), pq(pq), scheduler(scheduler) { }
+	ea_move_decoder(cpu_registers& regs, bus_scheduler& scheduler)
+		: regs(regs), scheduler(scheduler) { }
 
 	bool ready() const
 	{
@@ -437,7 +434,7 @@ private:
 		case 0b101:
 		{
 			scheduler.prefetch_irc();
-			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
 			scheduler.write(ptr, src, size);
 			scheduler.prefetch_one();
 			// res = { operand::raw_pointer(ptr), size };
@@ -449,7 +446,7 @@ private:
 			scheduler.wait(2);
 			scheduler.prefetch_irc();
 
-			std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
+			std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, regs.IRC, regs);
 			scheduler.write(ptr, src, size);
 			scheduler.prefetch_one();
 			// res = { operand::raw_pointer(ptr), size };
@@ -462,19 +459,19 @@ private:
 		{
 		case 0b000:
 			scheduler.prefetch_irc();
-			// res = { operand::raw_pointer((std::int16_t)pq.IRC), size };
-			scheduler.write((std::int16_t)pq.IRC, src, size);
+			// res = { operand::raw_pointer((std::int16_t)regs.IRC), size };
+			scheduler.write((std::int16_t)regs.IRC, src, size);
 			scheduler.prefetch_one();
 			return;
 
 		case 0b001:
 			if(size == size_type::BYTE || size == size_type::WORD)
 			{
-				ptr = pq.IRC << 16;
+				ptr = regs.IRC << 16;
 				scheduler.prefetch_irc();
 				scheduler.call([this]()
 				{
-					std::uint32_t addr = ptr | (pq.IRC & 0xFFFF);
+					std::uint32_t addr = ptr | (regs.IRC & 0xFFFF);
 					scheduler.prefetch_irc();
 					scheduler.write(addr, src, this->size);
 					scheduler.prefetch_one();
@@ -531,7 +528,6 @@ public:
 
 private:
 	cpu_registers& regs;
-	prefetch_queue& pq;
 	bus_scheduler& scheduler;
 
 	std::optional<operand> res;

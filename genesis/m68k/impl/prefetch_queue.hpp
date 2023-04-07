@@ -1,10 +1,9 @@
 #ifndef __M68K_PREFETCH_QUEUE_HPP__
 #define __M68K_PREFETCH_QUEUE_HPP__
 
-#include <string_view>
-
 #include "bus_manager.hpp"
 #include "m68k/cpu_registers.hpp"
+
 
 namespace genesis::m68k
 {
@@ -23,15 +22,7 @@ private:
 	};
 
 public:
-	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs)
-	{
-		IRC = IR = IRD = 0x0;
-	}
-
-	// Consider moving to cpu_registers
-	std::uint16_t IRC;
-	std::uint16_t IR;
-	std::uint16_t IRD;
+	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs) { }
 
 	bool is_idle() const
 	{
@@ -131,16 +122,8 @@ private:
 	void on_read_finished(bool irc_only = false)
 	{
 		if(!irc_only)
-		{
-			IRD = IR = IRC;
-			regs.SPC = regs.PC;
-		}
-		else
-		{
-			regs.SPC = regs.PC - 2;
-		}
-
-		IRC = busm.letched_word();
+			regs.IRD = regs.IR = regs.IRC;
+		regs.IRC = busm.letched_word();
 	}
 
 	void assert_idle()

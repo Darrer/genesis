@@ -11,8 +11,8 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
 	scheduler = std::make_unique<m68k::bus_scheduler>(regs, *busm, *pq);
 
-	auto inst = std::make_unique<m68k::instruction_unit>(regs, *pq, *scheduler);
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, *pq, exman, *inst, *scheduler);
+	auto inst = std::make_unique<m68k::instruction_unit>(regs, *scheduler);
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *inst, *scheduler);
 	inst_unit = std::move(inst);
 }
 

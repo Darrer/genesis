@@ -55,6 +55,7 @@ public:
 		PC = 0x0;
 		SR = 0x0;
 		USP.LW = SSP.LW = 0x0;
+		IRC = IR = IRD = SIRD = 0x0;
 	}
 
 	data_register& D(std::uint8_t reg)
@@ -108,7 +109,6 @@ public:
 	address_register USP;
 	address_register SSP;
 
-	std::uint16_t SIRD;
 	std::uint32_t SPC;
 
 	std::uint32_t PC;
@@ -117,6 +117,12 @@ public:
 		std::uint16_t SR;
 		status_register flags;
 	};
+
+	/* Prefetch queue registers */
+	std::uint16_t IRC;
+	std::uint16_t IR;
+	std::uint16_t IRD;
+	std::uint16_t SIRD;
 };
 
 } // namespace genesis::m68k

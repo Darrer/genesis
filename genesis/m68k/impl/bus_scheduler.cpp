@@ -223,7 +223,7 @@ void bus_scheduler::start_operation(operation op)
 		read_imm_operation read = std::get<read_imm_operation>(op.op);
 		if(read.size == size_type::BYTE || read.size == size_type::WORD)
 		{
-			std::uint32_t data = read.size == size_type::WORD ? pq.IRC : pq.IRC & 0xFF;
+			std::uint32_t data = read.size == size_type::WORD ? regs.IRC : regs.IRC & 0xFF;
 			if(read.on_complete)
 			{
 				read.on_complete(data, read.size);
@@ -233,7 +233,7 @@ void bus_scheduler::start_operation(operation op)
 		}
 		else
 		{
-			data = pq.IRC;
+			data = regs.IRC;
 
 			auto on_read_complete = [this]()
 			{

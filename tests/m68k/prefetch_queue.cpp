@@ -54,7 +54,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 	setup_test();
 
 	std::uint16_t old_irc = 42;
-	pq.IRC = old_irc;
+	regs.IRC = old_irc;
 
 	regs.PC = 0x100;
 	std::uint16_t val = 42240;
@@ -64,11 +64,11 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
 	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, pq.IRC);
+	ASSERT_EQ(val, regs.IRC);
 
 	// old irc should go to IR/IRD
-	ASSERT_EQ(old_irc, pq.IR);
-	ASSERT_EQ(old_irc, pq.IRD);
+	ASSERT_EQ(old_irc, regs.IR);
+	ASSERT_EQ(old_irc, regs.IRD);
 }
 
 TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
@@ -76,8 +76,8 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 	setup_test();
 
 	std::uint16_t old_ir = 24;
-	pq.IRC = 42;
-	pq.IR = pq.IRD = old_ir;
+	regs.IRC = 42;
+	regs.IR = regs.IRD = old_ir;
 
 	regs.PC = 0x100;
 	std::uint16_t val = 42240;
@@ -87,11 +87,11 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
 	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, pq.IRC);
+	ASSERT_EQ(val, regs.IRC);
 
 	// these should not be changed
-	ASSERT_EQ(old_ir, pq.IR);
-	ASSERT_EQ(old_ir, pq.IRD);
+	ASSERT_EQ(old_ir, regs.IR);
+	ASSERT_EQ(old_ir, regs.IRD);
 }
 
 TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
@@ -109,9 +109,9 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
 	// assume 2 idle cycles between fetches
 	ASSERT_EQ(expected_fetch_cycles * 2 + 2, actual_fetch_cycles);
 	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, pq.IRD);
-	ASSERT_EQ(val, pq.IR);
-	ASSERT_EQ(val2, pq.IRC);
+	ASSERT_EQ(val, regs.IRD);
+	ASSERT_EQ(val, regs.IR);
+	ASSERT_EQ(val2, regs.IRC);
 }
 
 TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)

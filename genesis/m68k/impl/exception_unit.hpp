@@ -21,9 +21,9 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, m68k::prefetch_queue& pq,
-		exception_manager& exman, m68k::instruction_unit& inst_unit, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, pq, scheduler), exman(exman), inst_unit(inst_unit)
+	exception_unit(m68k::cpu_registers& regs, exception_manager& exman,
+		m68k::instruction_unit& inst_unit, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, scheduler), exman(exman), inst_unit(inst_unit)
 	{
 		reset();
 	}

@@ -32,9 +32,8 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs,
-		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, pq, scheduler), dec(regs, pq, scheduler), move_dec(regs, pq, scheduler)
+	instruction_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, scheduler), dec(regs, scheduler), move_dec(regs, scheduler)
 	{
 		reset();
 	}
@@ -56,8 +55,8 @@ protected:
 		switch (state)
 		{
 		case IDLE:
-			opcode = pq.IRD;
-			regs.SIRD = pq.IRD;
+			opcode = regs.IRD;
+			regs.SIRD = regs.IRD;
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
 			regs.PC += 2;
@@ -136,7 +135,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			dec.schedule_decoding(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
 		case 1:
@@ -176,7 +175,7 @@ private:
 		{
 		case 0:
 			size = opmode == 0b011 ? 2 : 4;
-			dec.schedule_decoding(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
 		case 1:
@@ -237,7 +236,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			dec.schedule_decoding(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
 		case 1:
@@ -371,7 +370,7 @@ private:
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
-			dec.schedule_decoding(pq.IRD & 0xFF, size);
+			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
 		case 1:
@@ -470,7 +469,7 @@ private:
 
 		case 0b101:
 			scheduler.prefetch_irc();
-			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			addr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
 			return exec_state::done;
@@ -478,7 +477,7 @@ private:
 		case 0b110:
 			scheduler.wait(2);
 			scheduler.prefetch_irc();
-			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, pq.IRC, regs);
+			addr = ea_decoder::dec_brief_reg(regs.A(reg).LW, regs.IRC, regs);
 			scheduler.write(addr, res, (size_type)size, write_order);
 			scheduler.prefetch_one();
 			return exec_state::done;
@@ -489,18 +488,18 @@ private:
 			{
 			case 0b000:
 				scheduler.prefetch_irc();
-				scheduler.write((std::int16_t)pq.IRC, res, (size_type)size, write_order);
+				scheduler.write((std::int16_t)regs.IRC, res, (size_type)size, write_order);
 				scheduler.prefetch_one();
 				return exec_state::done;
 
 			case 0b001:
-				addr = pq.IRC << 16;
+				addr = regs.IRC << 16;
 				scheduler.prefetch_irc();
 				if(src_op.is_pointer())
 				{
 					scheduler.call([this]()
 					{
-						addr = addr | (pq.IRC & 0xFFFF);
+						addr = addr | (regs.IRC & 0xFFFF);
 						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
 						scheduler.prefetch_irc();
 						scheduler.prefetch_one();
@@ -510,7 +509,7 @@ private:
 				{
 					scheduler.call([this]()
 					{
-						addr = addr | (pq.IRC & 0xFFFF);
+						addr = addr | (regs.IRC & 0xFFFF);
 						scheduler.prefetch_irc();
 						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
 						scheduler.prefetch_one();
@@ -572,7 +571,7 @@ private:
 		case 0b101:
 		{
 			scheduler.prefetch_irc();
-			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)pq.IRC);
+			std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
 			save(ptr, size);
 			return;
 		}

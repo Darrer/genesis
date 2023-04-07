@@ -7,7 +7,7 @@
 
 #define setup_test() \
 	genesis::test::test_cpu cpu; \
-	m68k::ea_decoder dec(cpu.registers(), cpu.prefetch_queue(), cpu.bus_scheduler())
+	m68k::ea_decoder dec(cpu.registers(), cpu.bus_scheduler())
 
 using namespace genesis;
 
@@ -22,7 +22,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, std::ui
 	regs.PC = 0x100;
 
 	// setup mem
-	cpu.prefetch_queue().IRC = *mem_data.begin();
+	regs.IRC = *mem_data.begin();
 	std::uint32_t offset = 0;
 	for(auto it = std::next(mem_data.begin()); it != mem_data.end(); ++it)
 	{

@@ -3,10 +3,9 @@
 
 #include <cstdint>
 
-#include "bus_manager.hpp"
-#include "prefetch_queue.hpp"
-#include "bus_scheduler.h"
 #include "m68k/cpu_registers.hpp"
+#include "bus_manager.hpp"
+#include "bus_scheduler.h"
 
 
 namespace genesis::m68k
@@ -22,8 +21,7 @@ protected:
 	};
 
 public:
-	base_unit(m68k::cpu_registers& regs,
-		m68k::prefetch_queue& pq, m68k::bus_scheduler& scheduler);
+	base_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler);
 	virtual ~base_unit() { }
 
 	void cycle();
@@ -47,7 +45,6 @@ private:
 
 protected:
 	m68k::cpu_registers& regs;
-	m68k::prefetch_queue& pq;
 	m68k::bus_scheduler& scheduler;
 
 	std::uint32_t imm;
