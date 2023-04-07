@@ -18,6 +18,7 @@
 namespace genesis::m68k
 {
 
+// TODO: add exception class
 #define throw_invalid_opcode() \
 	throw std::runtime_error(std::string("executioner::") + __func__ + " error: invalid opcode")
 
@@ -118,6 +119,9 @@ private:
 
 		case inst_type::MOVE:
 			return move_handler();
+
+		case inst_type::MOVEQ:
+			return moveq_handler();
 
 		default: throw internal_error();
 		}
@@ -520,6 +524,18 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	exec_state moveq_handler()
+	{
+		std::int32_t data = std::int8_t(opcode & 0xFF);
+		std::uint8_t reg = (opcode >> 9) & 0x7;
+
+		operations::move(data, size_type::LONG, regs.flags);
+		store(regs.D(reg), size_type::LONG, data);
+		scheduler.prefetch_one();
+
+		return exec_state::done;
 	}
 
 	void decode_ea_move(std::uint8_t ea, size_type size)
