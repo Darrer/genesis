@@ -122,6 +122,9 @@ private:
 		case inst_type::MOVEQ:
 			return moveq_handler();
 
+		case inst_type::MOVEA:
+			return movea_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -530,6 +533,26 @@ private:
 		scheduler.prefetch_one();
 
 		return exec_state::done;
+	}
+
+	exec_state movea_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = ((opcode >> 12) & 1) == 0 ? size_type::LONG : size_type::WORD;
+			dest_reg = (opcode >> 9) & 0x7;
+			dec.schedule_decoding(opcode & 0xFF, size);
+			return exec_state::wait_scheduler;
+
+		case 1:
+			res = operations::movea(dec.result(), size);
+			store(regs.A(dest_reg), res);
+			scheduler.prefetch_one();
+			return exec_state::done;
+
+		default: throw internal_error();
+		}
 	}
 
 	// save the result (write to register or to memory), do prefetch

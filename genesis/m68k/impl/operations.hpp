@@ -129,6 +129,16 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static std::uint32_t movea(T1 src, std::uint8_t size)
+	{
+		if(size == size_type::LONG)
+			return value(src, size);
+		
+		std::int16_t res = value(src, size);
+		return std::int32_t(res);
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
