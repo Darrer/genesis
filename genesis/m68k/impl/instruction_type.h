@@ -36,6 +36,7 @@ enum inst_type : std::uint8_t
 	NOP,
 	MOVE,
 	MOVEQ,
+	MOVEA,
 };
 
 }

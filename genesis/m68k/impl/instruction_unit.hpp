@@ -174,7 +174,7 @@ private:
 		switch (exec_stage++)
 		{
 		case 0:
-			size = opmode == 0b011 ? 2 : 4;
+			size = opmode == 0b011 ? size_type::WORD : size_type::LONG;
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
@@ -532,7 +532,7 @@ private:
 		return exec_state::done;
 	}
 
-	// save the result (write to register or to memory), do prefetch and go IDLE
+	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
 	{
 		scheduler.prefetch_one();
@@ -549,11 +549,11 @@ private:
 private:
 	void store(data_register& d, std::uint8_t size, std::uint32_t res)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 		{
 			d.B = (std::uint8_t)res;
 		}
-		else if(size == 2)
+		else if(size == size_type::WORD)
 		{
 			d.W = (std::uint16_t)res;
 		}
@@ -570,21 +570,21 @@ private:
 
 	void store(operand& op, std::uint8_t size, std::uint32_t res)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 		{
 			if(op.is_data_reg())
 				op.data_reg().B = (std::uint8_t)res;
 			else
 				throw_invalid_opcode();
 		}
-		else if(size == 2)
+		else if(size == size_type::WORD)
 		{
 			if(op.is_data_reg())
 				op.data_reg().W = (std::uint16_t)res;
 			else if(op.is_addr_reg())
 				op.addr_reg().W = (std::uint16_t)res;
 		}
-		else if(size == 4)
+		else if(size == size_type::LONG)
 		{
 			if(op.is_data_reg())
 				op.data_reg().LW = res;

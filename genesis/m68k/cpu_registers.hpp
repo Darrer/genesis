@@ -109,8 +109,6 @@ public:
 	address_register USP;
 	address_register SSP;
 
-	std::uint32_t SPC;
-
 	std::uint32_t PC;
 
 	union {

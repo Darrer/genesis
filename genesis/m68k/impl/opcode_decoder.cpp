@@ -108,8 +108,7 @@ public:
 		// instructions with longest template should come first
 		std::sort(res.begin(), res.end(), [](opcode_entry a, opcode_entry b)
 		{
-			// TODO: properly sort
-			return a.mask > b.mask;
+			return mask_length(a.mask) > mask_length(b.mask);
 		});
 
 		return res;
@@ -146,6 +145,18 @@ private:
 			++pos;
 		}
 		return mask;
+	}
+
+	constexpr static std::uint8_t mask_length(std::uint16_t mask)
+	{
+		std::uint8_t length = 0;
+		for(int i = 0; i < sizeof(mask) * 8; ++i)
+		{
+			if((mask >> i) & 1)
+				++length;
+		}
+
+		return length;
 	}
 };
 
