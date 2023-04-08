@@ -58,6 +58,8 @@ void bus_scheduler::cycle()
 		return;
 	}
 	
+	run_call_operations();
+
 	if(queue.empty())
 		return;
 
@@ -284,7 +286,7 @@ void bus_scheduler::start_operation(operation op)
 
 void bus_scheduler::run_call_operations()
 {
-	while (queue.front().type == op_type::CALL)
+	while(!queue.empty() && queue.front().type == op_type::CALL)
 	{
 		auto call_op = std::get<call_operation>(queue.front().op);
 		call_op.cb();

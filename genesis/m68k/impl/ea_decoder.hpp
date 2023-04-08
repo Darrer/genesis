@@ -106,6 +106,13 @@ private:
 class ea_decoder
 {
 public:
+	enum class flags
+	{
+		none,
+		no_read,
+	};
+
+public:
 	ea_decoder(cpu_registers& regs, bus_scheduler& scheduler)
 		: regs(regs), scheduler(scheduler) { }
 
@@ -126,12 +133,13 @@ public:
 		res.reset();
 	}
 
-	void schedule_decoding(std::uint8_t ea, std::uint8_t size)
+	void schedule_decoding(std::uint8_t ea, std::uint8_t size, flags flags = flags::none)
 	{
 		if(!scheduler.is_idle())
 			throw internal_error();
 
 		res.reset();
+		this->flags = flags;
 		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;
 
@@ -227,14 +235,19 @@ private:
 	{
 		schedule_read_and_save(regs.A(reg).LW, size);
 		// TODO: if the above call rises exception, we may end up with incorrect reg
-		regs.inc_addr(reg, size);
+		if(flags == flags::none)
+			regs.inc_addr(reg, size);
 	}
 
 	// Address Register Indirect with Predecrement Mode 
 	void decode_100(std::uint8_t reg, size_type size)
 	{
-		scheduler.wait(2);
-		regs.dec_addr(reg, size);
+		if(flags == flags::none)
+		{
+			scheduler.wait(2);
+			regs.dec_addr(reg, size);
+		}
+
 		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
@@ -307,11 +320,18 @@ private:
 	/* helper methods */
 	void schedule_read_and_save(std::uint32_t addr, size_type size)
 	{
-		ptr = addr;
-		scheduler.read(addr, size, [this](std::uint32_t data, size_type size)
+		if(flags == flags::no_read)
 		{
-			 res = { operand::raw_pointer(ptr, data), size };
-		});
+			res = { operand::raw_pointer(addr), size };
+		}
+		else
+		{
+			ptr = addr;
+			scheduler.read(addr, size, [this](std::uint32_t data, size_type size)
+			{
+				res = { operand::raw_pointer(ptr, data), size };
+			});
+		}
 	}
 
 private:
@@ -352,6 +372,7 @@ private:
 
 	size_type size;
 	std::uint32_t ptr;
+	flags flags = flags::none;
 };
 
 }

@@ -125,6 +125,9 @@ private:
 		case inst_type::MOVEA:
 			return movea_handler();
 
+		case inst_type::MOVEM:
+			return movem_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -425,17 +428,41 @@ private:
 		std::uint8_t mode = ea & 0x7;
 		dest_reg = (ea >> 3) & 0x7;
 
+		if(mode == 0b000 || mode == 0b010 || mode == 0b101 || mode == 0b110 || (mode == 0b111 && dest_reg == 0b000))
+		{
+			std::uint8_t ea_move = (mode << 3) | dest_reg;
+			dec.schedule_decoding(ea_move, size, ea_decoder::flags::no_read);
+
+			scheduler.call([this]()
+			{
+				auto op = dec.result();
+
+				if(op.is_pointer())
+				{
+					std::uint32_t addr = op.pointer().address;
+					scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+				}
+				else
+				{
+					store(op, this->size, this->res);
+				}
+				scheduler.prefetch_one();
+			});
+
+			return exec_state::done;
+		}
+
 		switch (mode)
 		{
-		case 0b000:
-			store(regs.D(dest_reg), size, res);
-			scheduler.prefetch_one();
-			return exec_state::done;
+		// case 0b000:
+		// 	store(regs.D(dest_reg), size, res);
+		// 	scheduler.prefetch_one();
+		// 	return exec_state::done;
 		
-		case 0b010:
-			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
-			scheduler.prefetch_one();
-			return exec_state::done;
+		// case 0b010:
+		// 	scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
+		// 	scheduler.prefetch_one();
+		// 	return exec_state::done;
 
 		case 0b011:
 			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
@@ -465,30 +492,30 @@ private:
 
 			return exec_state::done;
 
-		case 0b101:
-			scheduler.prefetch_irc();
-			addr = (std::int32_t)regs.A(dest_reg).LW + std::int32_t((std::int16_t)regs.IRC);
-			scheduler.write(addr, res, size, order::msw_first);
-			scheduler.prefetch_one();
-			return exec_state::done;
+		// case 0b101:
+		// 	scheduler.prefetch_irc();
+		// 	addr = (std::int32_t)regs.A(dest_reg).LW + std::int32_t((std::int16_t)regs.IRC);
+		// 	scheduler.write(addr, res, size, order::msw_first);
+		// 	scheduler.prefetch_one();
+		// 	return exec_state::done;
 
-		case 0b110:
-			scheduler.wait(2);
-			scheduler.prefetch_irc();
-			addr = ea_decoder::dec_brief_reg(regs.A(dest_reg).LW, regs.IRC, regs);
-			scheduler.write(addr, res, size, order::msw_first);
-			scheduler.prefetch_one();
-			return exec_state::done;
+		// case 0b110:
+		// 	scheduler.wait(2);
+		// 	scheduler.prefetch_irc();
+		// 	addr = ea_decoder::dec_brief_reg(regs.A(dest_reg).LW, regs.IRC, regs);
+		// 	scheduler.write(addr, res, size, order::msw_first);
+		// 	scheduler.prefetch_one();
+		// 	return exec_state::done;
 
 		case 0b111:
 		{
 			switch (dest_reg)
 			{
-			case 0b000:
-				scheduler.prefetch_irc();
-				scheduler.write((std::int16_t)regs.IRC, res, size, order::msw_first);
-				scheduler.prefetch_one();
-				return exec_state::done;
+			// case 0b000:
+			// 	scheduler.prefetch_irc();
+			// 	scheduler.write((std::int16_t)regs.IRC, res, size, order::msw_first);
+			// 	scheduler.prefetch_one();
+			// 	return exec_state::done;
 
 			case 0b001:
 				addr = regs.IRC << 16;
@@ -552,6 +579,164 @@ private:
 			return exec_state::done;
 
 		default: throw internal_error();
+		}
+	}
+
+	exec_state movem_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = ((opcode >> 6) & 1) == 0 ? size_type::WORD : size_type::LONG;
+			read_imm(size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+			src_reg = opcode & 0x7;
+			dec.schedule_decoding(opcode & 0xFF, size, ea_decoder::flags::no_read);
+			return exec_state::wait_scheduler;
+
+		case 2:
+		{
+			if(!dec.result().is_pointer())
+				throw_invalid_opcode();
+
+			std::uint8_t dr = (opcode >> 10) & 1;
+			std::uint16_t reg_mask = imm & 0xFFFF;
+
+			if(dr == 1) 
+				movem_memory_to_register(reg_mask);
+			else
+				movem_register_to_memory(reg_mask);
+
+			scheduler.prefetch_one();
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	void movem_register_to_memory(std::uint16_t reg_mask)
+	{
+		std::uint32_t start_addr = dec.result().pointer().address;
+		std::int8_t offset = size == size_type::WORD ? 2 : 4;
+		order order = order::msw_first;
+
+		bool predec_mode = ((opcode >> 3) & 0x7) == 0b100;
+		if(predec_mode)
+		{
+			order = order::lsw_first;
+			offset = -offset;
+			start_addr += offset;
+		}
+
+		for(int i = 0; i <= 15; ++i)
+		{
+			if(((reg_mask >> i) & 1) == 0)
+				continue;
+
+			std::uint8_t reg = predec_mode ? (15 - i) : i;
+			std::uint32_t data;
+			if(reg >= 8)
+			{
+				// address register
+				data = regs.A(reg - 8).LW;
+			}
+			else
+			{
+				// data register
+				data = regs.D(reg).LW;
+			}
+
+			scheduler.write(start_addr, data, (size_type)size, order);
+			start_addr += offset;
+		}
+
+		if(predec_mode)
+		{
+			addr = predec_mode ? (start_addr - offset) : start_addr;
+			scheduler.call([this]()
+			{
+				regs.A(src_reg).LW = addr;
+			});
+		}
+	}
+
+	void move_to_register(std::uint32_t data, size_type size)
+	{
+		if(size == size_type::WORD)
+			data = std::int32_t(std::int16_t(data & 0xFFFF));
+
+		for(; dest_reg <= 15; ++dest_reg)
+		{
+			if(((move_reg_mask >> dest_reg) & 1) == 0)
+				continue;
+
+			if(dest_reg >= 8)
+			{
+				// address register
+				auto& reg = regs.A(dest_reg - 8);
+				reg.LW = data;
+			}
+			else
+			{
+				// data register
+				auto& reg = regs.D(dest_reg);
+				reg.LW = data;
+			}
+
+			++dest_reg;
+			return;
+		}
+
+		// must be unrechable
+		throw internal_error();
+	}
+
+	void movem_memory_to_register(std::uint16_t reg_mask)
+	{
+		move_reg_mask = reg_mask;
+		dest_reg = 0;
+		bool postinc_mode = ((opcode >> 3) & 0x7) == 0b011;
+		if(postinc_mode)
+		{
+			// in the end of execution we update reg with address value,
+			// we don't need to inc it, however, there might be an exception,
+			// so inc it to accout for that.
+			if(size == size_type::LONG)
+				regs.inc_addr(src_reg, size_type::WORD);
+			else
+				regs.inc_addr(src_reg, size);
+		}
+
+		std::uint32_t start_addr = dec.result().pointer().address;
+		for(int i = 0; i <= 15; ++i)
+		{
+			if(((reg_mask >> i) & 1) == 0)
+				continue;
+
+			scheduler.read(start_addr, (size_type)size, [this](std::uint32_t data, size_type size)
+			{
+				move_to_register(data, size);
+			});
+
+			if(size == size_type::WORD)
+				start_addr += 2;
+			else
+				start_addr += 4;
+		}
+
+		// some weird uncodumented read
+		scheduler.read(start_addr, size_type::WORD, nullptr);
+
+		if(postinc_mode)
+		{
+			addr = start_addr;
+			scheduler.call([this]()
+			{
+				regs.A(src_reg).LW = addr;
+			});
 		}
 	}
 
@@ -670,6 +855,7 @@ private:
 	std::uint8_t size = 0;
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
+	std::uint16_t move_reg_mask;
 	status_register flags;
 };
 

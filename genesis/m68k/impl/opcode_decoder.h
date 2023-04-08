@@ -70,6 +70,7 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0010____________", inst_type::MOVE },
 	{ "0111___0________", inst_type::MOVEQ },
 	{ "001____001______", inst_type::MOVEA },
+	{ "01001_001_______", inst_type::MOVEM },
 };
 
 
