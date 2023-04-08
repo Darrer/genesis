@@ -41,6 +41,9 @@ public:
 		if(exman.is_raised(exception_type::address_error))
 			return true;
 
+		if(exman.is_raised(exception_type::bus_error))
+			return true;
+
 		return false;
 	}
 
@@ -68,6 +71,7 @@ private:
 		switch (curr_ex)
 		{
 		case exception_type::address_error:
+		case exception_type::bus_error:
 			return address_error();
 	
 		default: throw internal_error();
@@ -83,6 +87,13 @@ private:
 			inst_unit.reset();
 			scheduler.reset();
 			// pq.reset(); // TODO: we don't know who rised address error, so reset all components
+		}
+		else if(exman.is_raised(exception_type::bus_error))
+		{
+			curr_ex = exception_type::bus_error;
+			addr_error = exman.accept_bus_error();
+			inst_unit.reset();
+			scheduler.reset();
 		}
 		else
 		{
@@ -136,7 +147,7 @@ private:
 		scheduler.write(regs.SSP.LW, addr_error.address >> 16, size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
-		std::uint32_t addr = vector_address(exception_type::address_error);
+		std::uint32_t addr = vector_address(curr_ex);
 		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
 		{
 			regs.PC = data;
@@ -161,10 +172,12 @@ private:
 		return status;
 	}
 
-	std::uint32_t vector_address(exception_type ex) const
+	static std::uint32_t vector_address(exception_type ex)
 	{
 		switch (ex)
 		{
+		case exception_type::bus_error:
+			return 0x08;
 		case exception_type::address_error:
 			return 0x00C;
 

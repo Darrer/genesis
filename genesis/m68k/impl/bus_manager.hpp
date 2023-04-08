@@ -12,6 +12,7 @@
 
 #include "exception_manager.h"
 
+
 namespace genesis::m68k
 {
 
@@ -116,12 +117,8 @@ public:
 
 		/* bus ready cycle */
 		case READ0:
-			// check for address error
-			if(should_rise_address_error())
-			{
-				rise_address_error();
-				break;
-			}
+			if(check_exceptions())
+				return;
 
 			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
@@ -165,11 +162,8 @@ public:
 
 		/* bus write cycle */
 		case WRITE0:
-			if(should_rise_address_error())
-			{
-				rise_address_error();
-				break;
-			}
+			if(check_exceptions())
+				return;
 
 			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
@@ -283,20 +277,6 @@ private:
 		return func_codes;
 	}
 
-	bool should_rise_address_error() const
-	{
-		return !byte_op && (address % 2) == 1;
-	}
-
-	void rise_address_error()
-	{
-		std::uint8_t func_codes = gen_func_codes();
-		bool read_operation = state == bus_cycle_state::READ0;
-		std::uint32_t pc = regs.PC - 2;
-		exman.rise_address_error( { address, pc, func_codes, read_operation, false } );
-		reset();
-	}
-
 	void reset()
 	{
 		on_complete_cb = nullptr;
@@ -316,6 +296,64 @@ private:
 		bus.clear(bus::FC0);
 		bus.clear(bus::FC1);
 		bus.clear(bus::FC2);
+	}
+
+	// exceptions
+	bool check_exceptions()
+	{
+		return check_bus_error() || check_address_error();
+	}
+
+	bool check_bus_error()
+	{
+		if(false && should_rise_bus_error())
+		{
+			rise_bus_error();
+			return true;
+		}
+
+		return false;
+	}
+
+	bool should_rise_bus_error() const
+	{
+		const std::uint32_t max_address = 0xFFFFFF;
+		std::uint8_t size = byte_op ? 1 : 2;
+		return (address & max_address) + size > max_address;
+	}
+
+	void rise_bus_error()
+	{
+		std::uint8_t func_codes = gen_func_codes();
+		bool read_operation = state == bus_cycle_state::READ0;
+		std::uint32_t pc = regs.PC - 2;
+		exman.rise_bus_error( { address, pc, func_codes, read_operation, false } );
+		reset();
+	}
+
+	bool check_address_error()
+	{
+		if(should_rise_address_error())
+		{
+			rise_address_error();
+			return true;
+		}
+
+		return false;
+	}
+
+	bool should_rise_address_error() const
+	{
+		return !byte_op && (address % 2) == 1;
+	}
+
+	void rise_address_error()
+	{
+		std::uint8_t func_codes = gen_func_codes();
+		bool read_operation = state == bus_cycle_state::READ0;
+		std::uint32_t pc = regs.PC - 2;
+		exman.rise_address_error( { address, pc, func_codes, read_operation, false } );
+		reset();
 	}
 
 private:

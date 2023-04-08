@@ -12,6 +12,7 @@ enum class exception_type : std::uint8_t
 {
 	none,
 	address_error,
+	bus_error,
 	count
 };
 
@@ -23,6 +24,8 @@ struct address_error
 	bool rw;
 	bool in;
 };
+
+using bus_error = address_error;
 
 class exception_manager
 {
@@ -62,6 +65,18 @@ public:
 	address_error accept_address_error()
 	{
 		accept(exception_type::address_error);
+		return addr_error.value();
+	}
+
+	void rise_bus_error(bus_error _addr_error)
+	{
+		rise_unsafe(exception_type::bus_error);
+		addr_error = _addr_error;
+	}
+
+	bus_error accept_bus_error()
+	{
+		accept(exception_type::bus_error);
 		return addr_error.value();
 	}
 
