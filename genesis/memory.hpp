@@ -77,13 +77,13 @@ public:
 private:
 	inline void check_addr(address addr, size_t size)
 	{
-		if (addr + size >= capacity || addr < 0)
+		if (addr + size > capacity || addr < 0)
 			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) +
 									 ") read: " + std::to_string(size));
 	}
 
 private:
-	std::array<std::byte, capacity> mem;
+	std::array<std::byte, capacity + 1> mem;
 };
 
 } // namespace genesis
