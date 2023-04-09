@@ -15,6 +15,8 @@ enum inst_type : std::uint8_t
 	ADDQ,
 	ADDA,
 	ADDX,
+	ANDItoCCR,
+	ANDItoSR,
 	SUB,
 	SUBI,
 	SUBQ,

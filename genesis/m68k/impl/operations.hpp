@@ -85,6 +85,17 @@ public:
 		return and_op(value(a, size), value(b, size), size, sr);
 	}
 
+	static void andi_to_ccr(std::uint8_t src, std::uint16_t& SR)
+	{
+		std::uint16_t src_mask = 0xFFE0 | src;
+		SR = SR & src_mask;
+	}
+
+	static void andi_to_sr(std::uint16_t src, std::uint16_t& SR)
+	{
+		SR = SR & src;
+	}
+
 	template<class T1, class T2>
 	static std::uint32_t or_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
@@ -140,7 +151,6 @@ public:
 	template<class T1>
 	static std::uint16_t move_to_sr(T1 src)
 	{
-		// TODO: should I do smth with unimplemented bits?
 		const std::uint16_t mask = 0b1010011100011111; // I've got no idea why T/M bits are cleared here
 		return value(src, size_type::WORD) & mask;
 	}

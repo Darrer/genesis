@@ -28,6 +28,8 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "00000110sz______", inst_type::ADDI },
 	{ "0101___0sz______", inst_type::ADDQ },
 	{ "1101___1sz00____", inst_type::ADDX },
+	{ "0000001000111100", inst_type::ANDItoCCR },
+	{ "0000001001111100", inst_type::ANDItoSR },
 
 	/* SUB */
 	{ "1001____sz______", inst_type::SUB },
