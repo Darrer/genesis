@@ -42,6 +42,7 @@ enum inst_type : std::uint8_t
 	MOVEfromSR,
 	MOVEtoSR,
 	MOVE_USP,
+	MOVEtoCCR,
 };
 
 }

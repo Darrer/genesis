@@ -141,8 +141,15 @@ public:
 	static std::uint16_t move_to_sr(T1 src)
 	{
 		// TODO: should I do smth with unimplemented bits?
-		const std::uint16_t mask = 0b1010011100011111; // I've got no idea why T/M bits are clear here
+		const std::uint16_t mask = 0b1010011100011111; // I've got no idea why T/M bits are cleared here
 		return value(src, size_type::WORD) & mask;
+	}
+
+	template<class T1>
+	static std::uint16_t move_to_ccr(T1 src, std::uint16_t sr)
+	{
+		std::uint8_t low_byte = value(src, size_type::BYTE) & 0b11111;
+		return (sr & 0xFF00) | low_byte;
 	}
 
 	/* helpers */

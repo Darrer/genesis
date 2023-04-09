@@ -139,6 +139,9 @@ private:
 
 		case inst_type::MOVE_USP:
 			return move_usp_handler();
+		
+		case inst_type::MOVEtoCCR:
+			return move_to_ccr_handler();
 
 		default: throw internal_error();
 		}
@@ -853,27 +856,12 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
-		{
-			// auto op = dec.result();
-			// if(op.is_data_reg())
-			// 	std::cout << "Move: " << op.data_reg().W;
-			// else if(op.is_addr_reg())
-			// 	std::cout << "Move: " << op.addr_reg().W;
-			// else if(op.is_imm())
-			// 	std::cout << "Move: " << op.imm();
-			// else
-			// 	std::cout << "Move: " << op.pointer().value();
-			// std::cout << std::endl;
-
 			regs.SR = operations::move_to_sr(dec.result());
-
 			scheduler.wait(4);
 			regs.PC -= 2;
 			scheduler.prefetch_irc();
 			scheduler.prefetch_one();
-
 			return exec_state::done;
-		}
 
 		default: throw internal_error();
 		}
@@ -900,6 +888,26 @@ private:
 
 		scheduler.prefetch_one();
 		return exec_state::done;
+	}
+
+	exec_state move_to_ccr_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+			regs.SR = operations::move_to_ccr(dec.result(), regs.SR);
+			scheduler.wait(4);
+			regs.PC -= 2;
+			scheduler.prefetch_irc();
+			scheduler.prefetch_one();
+			return exec_state::done;
+
+		default: throw internal_error();
+		}
 	}
 
 	// save the result (write to register or to memory), do prefetch
