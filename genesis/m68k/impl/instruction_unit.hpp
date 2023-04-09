@@ -134,6 +134,9 @@ private:
 		case inst_type::MOVEfromSR:
 			return move_from_sr_handler();
 
+		case inst_type::MOVE_USP:
+			return move_usp_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -835,6 +838,29 @@ private:
 		}
 	}
 
+	exec_state move_usp_handler()
+	{
+		if(!in_supervisor())
+			throw not_implemented();
+		
+		std::uint8_t dr = (opcode >> 3) & 1;
+		std::uint8_t reg = opcode & 0x7;
+
+		// USP -> address register
+		if(dr == 1)
+		{
+			regs.A(reg).LW = regs.USP.LW;
+		}
+		// address register -> USP
+		else
+		{
+			regs.USP.LW = regs.A(reg).LW;
+		}
+
+		scheduler.prefetch_one();
+		return exec_state::done;
+	}
+
 	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
 	{
@@ -933,6 +959,11 @@ private:
 		if(res == inst_type::NONE)
 			throw not_implemented();
 		return res;
+	}
+
+	bool in_supervisor() const
+	{
+		return regs.flags.S == 1;
 	}
 
 private:
