@@ -135,8 +135,14 @@ public:
 		if(size == size_type::LONG)
 			return value(src, size);
 		return sign_extend(value(src, size));
-		// std::int16_t res = value(src, size);
-		// return std::int32_t(res);
+	}
+
+	template<class T1>
+	static std::uint16_t move_to_sr(T1 src)
+	{
+		// TODO: should I do smth with unimplemented bits?
+		const std::uint16_t mask = 0b1010011100011111; // I've got no idea why T/M bits are clear here
+		return value(src, size_type::WORD) & mask;
 	}
 
 	/* helpers */
