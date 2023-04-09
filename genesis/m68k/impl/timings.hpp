@@ -110,6 +110,14 @@ public:
 	/* NOT */
 	static constexpr auto not_op = neg;
 
+	/* MOVE */
+	static std::uint8_t move_from_sr(const operand& op)
+	{
+		if(op.is_data_reg())
+			return 2;
+		return 0;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

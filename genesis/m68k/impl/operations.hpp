@@ -134,9 +134,9 @@ public:
 	{
 		if(size == size_type::LONG)
 			return value(src, size);
-		
-		std::int16_t res = value(src, size);
-		return std::int32_t(res);
+		return sign_extend(value(src, size));
+		// std::int16_t res = value(src, size);
+		// return std::int32_t(res);
 	}
 
 	/* helpers */

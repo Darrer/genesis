@@ -39,6 +39,7 @@ enum inst_type : std::uint8_t
 	MOVEA,
 	MOVEM,
 	MOVEP,
+	MOVEfromSR,
 };
 
 }

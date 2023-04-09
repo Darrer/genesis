@@ -130,6 +130,9 @@ private:
 
 		case inst_type::MOVEP:
 			return movep_handler();
+		
+		case inst_type::MOVEfromSR:
+			return move_from_sr_handler();
 
 		default: throw internal_error();
 		}
@@ -808,6 +811,27 @@ private:
 			scheduler.write(addr + 2, data >> 16, size_type::BYTE);
 			scheduler.write(addr + 4, data >> 8, size_type::BYTE);
 			scheduler.write(addr + 6, data, size_type::BYTE);
+		}
+	}
+
+	exec_state move_from_sr_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			res = regs.SR; // TODO: do I need to set unimplemented bits to zero?
+			auto op = dec.result();
+			schedule_prefetch_and_write(op, res, size_type::WORD);
+			scheduler.wait(timings::move_from_sr(op));
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
 		}
 	}
 
