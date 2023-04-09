@@ -209,6 +209,11 @@ public:
 		}
 	}
 
+	static std::uint32_t sign_extend(std::uint16_t val)
+	{
+		return std::int32_t(std::int16_t(val));
+	}
+
 private:
 	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, std::uint8_t size)
 	{

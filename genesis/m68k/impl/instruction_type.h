@@ -38,6 +38,7 @@ enum inst_type : std::uint8_t
 	MOVEQ,
 	MOVEA,
 	MOVEM,
+	MOVEP,
 };
 
 }

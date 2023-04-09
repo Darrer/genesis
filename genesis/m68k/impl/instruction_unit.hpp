@@ -128,6 +128,9 @@ private:
 		case inst_type::MOVEM:
 			return movem_handler();
 
+		case inst_type::MOVEP:
+			return movep_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -737,6 +740,74 @@ private:
 			{
 				regs.A(src_reg).LW = addr;
 			});
+		}
+	}
+
+	exec_state movep_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = ((opcode >> 6) & 1) == 0 ? size_type::WORD : size_type::LONG;
+			dest_reg = (opcode >> 9) & 0x7;
+			src_reg = opcode & 0x7;
+
+			read_imm(size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			addr = regs.A(src_reg).LW + operations::sign_extend(imm & 0xFFFF);
+			bool mem_to_reg = ((opcode >> 7) & 1) == 0;
+			if(mem_to_reg)
+				movep_memory_to_register();
+			else
+				movep_register_to_memory();
+			
+			scheduler.prefetch_one();
+			return exec_state::done;
+		}
+		
+		default: throw internal_error();
+		}
+	}
+
+	void movep_memory_to_register()
+	{
+		auto on_read = [this](std::uint32_t data, size_type)
+		{
+			auto& reg = regs.D(dest_reg);
+			if(size == size_type::LONG)
+				reg.LW = (reg.LW << 8) | (data & 0xFF);
+			else
+				reg.W = (reg.W << 8) | (data & 0xFF);
+		};
+
+		scheduler.read(addr, size_type::BYTE, on_read);
+		scheduler.read(addr + 2, size_type::BYTE, on_read);
+
+		if(size == size_type::LONG)
+		{
+			scheduler.read(addr + 4, size_type::BYTE, on_read);
+			scheduler.read(addr + 6, size_type::BYTE, on_read);
+		}
+	}
+
+	void movep_register_to_memory()
+	{
+		std::uint32_t data = regs.D(dest_reg).LW;
+
+		if(size == size_type::WORD)
+		{
+			scheduler.write(addr, data >> 8, size_type::BYTE);
+			scheduler.write(addr + 2, data, size_type::BYTE);
+		}
+		else
+		{
+			scheduler.write(addr, data >> 24, size_type::BYTE);
+			scheduler.write(addr + 2, data >> 16, size_type::BYTE);
+			scheduler.write(addr + 4, data >> 8, size_type::BYTE);
+			scheduler.write(addr + 6, data, size_type::BYTE);
 		}
 	}
 
