@@ -120,6 +120,19 @@ public:
 		return eor(value(a, size), value(b, size), size, sr);
 	}
 
+	static void eori_to_sr(std::uint16_t src, std::uint16_t& SR)
+	{
+		src = clear_unimplemented_flags(src);
+		SR = SR ^ src;
+	}
+
+	static void eori_to_ccr(std::uint8_t src, std::uint16_t& SR)
+	{
+		std::uint8_t res = (SR ^ src) & 0b11111;
+		SR = SR & ~0b11111;
+		SR = SR | res;
+	}
+
 	template<class T1>
 	static std::uint32_t neg(T1 a, std::uint8_t size, status_register& sr)
 	{
@@ -251,11 +264,15 @@ public:
 		case inst_type::ANDItoSR:
 			andi_to_sr(src, SR);
 			break;
-		
+
 		case inst_type::ORItoSR:
 			ori_to_sr(src, SR);
 			break;
-		
+
+		case inst_type::EORItoSR:
+			eori_to_sr(src, SR);
+			break;
+
 		default: throw internal_error();
 		}
 	}
@@ -270,6 +287,10 @@ public:
 
 		case inst_type::ORItoCCR:
 			ori_to_ccr(src, SR);
+			break;
+
+		case inst_type::EORItoCCR:
+			eori_to_ccr(src, SR);
 			break;
 
 		default: throw internal_error();

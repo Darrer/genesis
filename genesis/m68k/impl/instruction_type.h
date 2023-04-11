@@ -30,6 +30,8 @@ enum inst_type : std::uint8_t
 	ORItoSR,
 	EOR,
 	EORI,
+	EORItoCCR,
+	EORItoSR,
 	CMP,
 	CMPI,
 	CMPM,

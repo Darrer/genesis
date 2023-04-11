@@ -145,10 +145,12 @@ private:
 
 		case inst_type::ANDItoCCR:
 		case inst_type::ORItoCCR:
+		case inst_type::EORItoCCR:
 			return alu_to_ccr_handler();
 		
 		case inst_type::ANDItoSR:
 		case inst_type::ORItoSR:
+		case inst_type::EORItoSR:
 			return alu_to_sr_handler();
 
 		default: throw internal_error();

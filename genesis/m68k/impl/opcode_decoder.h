@@ -45,12 +45,14 @@ const constexpr mask_inst_pair opcodes[] =
 	/* OR */
 	{ "1000____sz______", inst_type::OR },
 	{ "00000000sz______", inst_type::ORI },
-	{ "0000000001111100", inst_type::ORItoSR },
 	{ "0000000000111100", inst_type::ORItoCCR },
+	{ "0000000001111100", inst_type::ORItoSR },
 
 	/* EOR */
 	{ "1011___1sz______", inst_type::EOR },
 	{ "00001010sz______", inst_type::EORI },
+	{ "0000101000111100", inst_type::EORItoCCR },
+	{ "0000101001111100", inst_type::EORItoSR },
 
 	/* CMP */
 	{ "1011___0sz______", inst_type::CMP },
