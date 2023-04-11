@@ -82,6 +82,10 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100011011______", inst_type::MOVEtoSR },
 	{ "0100010011______", inst_type::MOVEtoCCR },
 	{ "010011100110____", inst_type::MOVE_USP },
+
+	/* ASL/ASR */
+	{ "1110____sz_00___", inst_type::ASreg },
+	{ "1110000_11______", inst_type::ASmem },
 };
 
 

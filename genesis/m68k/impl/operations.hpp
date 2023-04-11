@@ -187,6 +187,29 @@ public:
 		return (sr & 0xFF00) | low_byte;
 	}
 
+	template<class T1>
+	static std::uint32_t asl(T1 a, size_type size, std::uint32_t shift_count, status_register& sr)
+	{
+		std::int32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		std::uint8_t sign_bit = msb(val, size);
+
+		sr.C = sr.V = 0;
+		for(std::uint32_t i = 0; i < shift_count; ++i)
+		{
+			sr.C = sr.X = msb(val, size);
+			val = val << 1;
+			sr.V = sr.V | (sr.C ^ msb(val, size));
+		}
+
+		val = value(val, size);
+		sr.N = neg_flag(val, size);
+		sr.Z = val == 0;
+
+		return val;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -476,6 +499,16 @@ public:
 		if(op.is_addr_reg()) return value(op.addr_reg(), size);
 
 		throw internal_error();
+	}
+
+	// return most significant bit
+	static std::uint8_t msb(std::uint32_t val, size_type size)
+	{
+		if(size == size_type::BYTE)
+			return (val >> 7) & 1;
+		if(size == size_type::WORD)
+			return (val >> 15) & 1;
+		return (val >> 31) & 1;
 	}
 };
 

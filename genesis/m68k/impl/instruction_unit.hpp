@@ -152,6 +152,12 @@ private:
 		case inst_type::ORItoSR:
 		case inst_type::EORItoSR:
 			return alu_to_sr_handler();
+		
+		case inst_type::ASreg:
+			return as_reg_handler();
+
+		case inst_type::ASmem:
+			return as_mem_handler();
 
 		default: throw internal_error();
 		}
@@ -963,6 +969,71 @@ private:
 		}
 	}
 
+	exec_state as_reg_handler()
+	{
+		std::uint8_t ir = bit_is_set(opcode, 5);
+		std::uint8_t count_or_reg = (opcode >> 9) & 0x7;
+
+		std::uint32_t shift_count;
+		if(ir)
+		{
+			shift_count = regs.D(count_or_reg).LW;
+		}
+		else
+		{
+			if(count_or_reg == 0)
+				count_or_reg = 8;
+			shift_count = count_or_reg;
+		}
+
+		size = dec_size(opcode >> 6);
+		auto& reg = regs.D(opcode & 0x7);
+		std::uint8_t shift_left = bit_is_set(opcode, 8);
+		if(shift_left == 1)
+		{
+			res = operations::asl(reg, (size_type)size, shift_count, regs.flags);
+		}
+		else
+		{
+			throw not_implemented();
+		}
+
+		store(reg, size, res);
+
+		scheduler.prefetch_one();
+		scheduler.wait(timings::asl(shift_count, (size_type)size));
+		return exec_state::done;
+	}
+
+	exec_state as_mem_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto op = dec.result();
+			std::uint8_t shift_left = bit_is_set(opcode, 8);
+			if(shift_left == 1)
+			{
+				res = operations::asl(op, size_type::WORD, 1, regs.flags);
+			}
+			else
+			{
+				throw not_implemented();
+			}
+			
+			schedule_prefetch_and_write(op, res, size_type::WORD);
+		}
+			return exec_state::done;
+
+		default: throw internal_error();
+		}
+	}
+
 	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
 	{
@@ -1061,6 +1132,11 @@ private:
 		if(res == inst_type::NONE)
 			throw not_implemented();
 		return res;
+	}
+
+	static std::uint8_t bit_is_set(std::uint32_t data, std::uint8_t bit_number)
+	{
+		return (data >> bit_number) & 1;
 	}
 
 	bool in_supervisory() const
