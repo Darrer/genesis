@@ -144,10 +144,12 @@ private:
 			return move_to_ccr_handler();
 
 		case inst_type::ANDItoCCR:
-			return andi_to_ccr_handler();
+		case inst_type::ORItoCCR:
+			return alu_to_ccr_handler();
 		
 		case inst_type::ANDItoSR:
-			return andi_to_sr_handler();
+		case inst_type::ORItoSR:
+			return alu_to_sr_handler();
 
 		default: throw internal_error();
 		}
@@ -916,7 +918,7 @@ private:
 		}
 	}
 
-	exec_state andi_to_ccr_handler()
+	exec_state alu_to_ccr_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -925,7 +927,7 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
-			operations::andi_to_ccr(imm, regs.SR);
+			operations::alu_to_ccr(curr_inst, imm & 0xFF, regs.SR);
 			scheduler.wait(8);
 			regs.PC -= 2;
 			scheduler.prefetch_irc();
@@ -936,7 +938,7 @@ private:
 		}
 	}
 
-	exec_state andi_to_sr_handler()
+	exec_state alu_to_sr_handler()
 	{
 		if(!in_supervisory())
 			throw not_implemented();
@@ -948,7 +950,7 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
-			operations::andi_to_sr(imm, regs.SR);
+			operations::alu_to_sr(curr_inst, imm, regs.SR);
 			scheduler.wait(8);
 			regs.PC -= 2;
 			scheduler.prefetch_irc();

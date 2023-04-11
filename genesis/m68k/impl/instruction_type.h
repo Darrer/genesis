@@ -26,6 +26,8 @@ enum inst_type : std::uint8_t
 	ANDI,
 	OR,
 	ORI,
+	ORItoCCR,
+	ORItoSR,
 	EOR,
 	EORI,
 	CMP,

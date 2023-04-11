@@ -93,6 +93,7 @@ public:
 
 	static void andi_to_sr(std::uint16_t src, std::uint16_t& SR)
 	{
+		src = clear_unimplemented_flags(src);
 		SR = SR & src;
 	}
 
@@ -100,6 +101,17 @@ public:
 	static std::uint32_t or_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
 	{
 		return or_op(value(a, size), value(b, size), size, sr);
+	}
+
+	static void ori_to_sr(std::uint16_t src, std::uint16_t& SR)
+	{
+		src = clear_unimplemented_flags(src);
+		SR = SR | src;
+	}
+
+	static void ori_to_ccr(std::uint8_t src, std::uint16_t& SR)
+	{
+		SR = SR | (src & 0b11111);
 	}
 
 	template<class T1, class T2>
@@ -227,6 +239,38 @@ public:
 			return not_op(a, size, sr);
 		case inst_type::MOVE:
 			return move(a, size, sr);
+
+		default: throw internal_error();
+		}
+	}
+
+	static void alu_to_sr(inst_type inst, std::uint16_t src, std::uint16_t& SR)
+	{
+		switch (inst)
+		{
+		case inst_type::ANDItoSR:
+			andi_to_sr(src, SR);
+			break;
+		
+		case inst_type::ORItoSR:
+			ori_to_sr(src, SR);
+			break;
+		
+		default: throw internal_error();
+		}
+	}
+
+	static void alu_to_ccr(inst_type inst, std::uint8_t src, std::uint16_t& SR)
+	{
+		switch (inst)
+		{
+		case inst_type::ANDItoCCR:
+			andi_to_ccr(src, SR);
+			break;
+
+		case inst_type::ORItoCCR:
+			ori_to_ccr(src, SR);
+			break;
 
 		default: throw internal_error();
 		}
@@ -365,6 +409,12 @@ private:
 		if(size == 1) return std::int8_t(val) < 0;
 		if(size == 2) return std::int16_t(val) < 0;
 		return std::int32_t(val) < 0;
+	}
+
+	static std::uint16_t clear_unimplemented_flags(std::uint16_t SR)
+	{
+		const std::uint16_t implemented_flags_mask = 0b1010011100011111;
+		return SR & implemented_flags_mask;
 	}
 
 public:

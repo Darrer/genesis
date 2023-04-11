@@ -45,6 +45,8 @@ const constexpr mask_inst_pair opcodes[] =
 	/* OR */
 	{ "1000____sz______", inst_type::OR },
 	{ "00000000sz______", inst_type::ORI },
+	{ "0000000001111100", inst_type::ORItoSR },
+	{ "0000000000111100", inst_type::ORItoCCR },
 
 	/* EOR */
 	{ "1011___1sz______", inst_type::EOR },
@@ -76,8 +78,8 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0000___1__001___", inst_type::MOVEP },
 	{ "0100000011______", inst_type::MOVEfromSR },
 	{ "0100011011______", inst_type::MOVEtoSR },
-	{ "010011100110____", inst_type::MOVE_USP },
 	{ "0100010011______", inst_type::MOVEtoCCR },
+	{ "010011100110____", inst_type::MOVE_USP },
 };
 
 
