@@ -257,6 +257,26 @@ public:
 		return val;
 	}
 
+	template<class T1>
+	static std::uint32_t ror(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		if(size == size_type::BYTE)
+			val = std::rotr(std::uint8_t(val), shift_count);
+		else if(size == size_type::WORD)
+			val = std::rotr(std::uint16_t(val), shift_count);
+		else
+			val = std::rotr(val, shift_count);
+
+		sr.C = shift_count == 0 ? 0 : msb(val, size);
+		sr.N = neg_flag(val, size);
+		sr.Z = val == 0;
+		sr.V = 0;
+		return val;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -382,8 +402,8 @@ public:
 		case inst_type::ROLRmem:
 			if(is_left_shift)
 				return rol(src, shift_count, size, sr);
-			throw not_implemented();
-		
+			return ror(src, shift_count, size, sr);
+
 		default: throw internal_error();
 		}
 	}
