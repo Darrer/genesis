@@ -4,6 +4,8 @@
 #include <bit>
 #include <cstdint>
 
+#include <iostream>
+
 #include "cpu_flags.hpp"
 #include "exception.hpp"
 
@@ -277,6 +279,29 @@ public:
 		return val;
 	}
 
+	template<class T1>
+	static std::uint32_t lsl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		if(shift_count == 0)
+		{
+			sr.C = 0;
+		}
+		else
+		{
+			sr.C = sr.X = msb(std::uint64_t(val) << (shift_count - 1), size);
+		}
+
+		val = std::uint64_t(val) << shift_count;
+		val = value(val, size);
+
+		sr.V = 0;
+		nz_flags(val, size, sr);
+		return val;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -403,6 +428,12 @@ public:
 			if(is_left_shift)
 				return rol(src, shift_count, size, sr);
 			return ror(src, shift_count, size, sr);
+
+		case inst_type::LSLRreg:
+		case inst_type::LSLRmem:
+			if(is_left_shift)
+				return lsl(src, shift_count, size, sr);
+			throw not_implemented();
 
 		default: throw internal_error();
 		}
@@ -541,6 +572,17 @@ private:
 		if(size == 1) return std::int8_t(val) < 0;
 		if(size == 2) return std::int16_t(val) < 0;
 		return std::int32_t(val) < 0;
+	}
+
+	static std::uint8_t zer_flag(std::uint32_t val, size_type size)
+	{
+		return value(val, size) == 0;
+	}
+
+	static void nz_flags(std::uint32_t val, size_type size, status_register& sr)
+	{
+		sr.N = neg_flag(val, size);
+		sr.Z = zer_flag(val, size);
 	}
 
 	static std::uint16_t clear_unimplemented_flags(std::uint16_t SR)

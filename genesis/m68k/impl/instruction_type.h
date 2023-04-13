@@ -53,6 +53,8 @@ enum inst_type : std::uint8_t
 	ASLRmem,
 	ROLRreg,
 	ROLRmem,
+	LSLRreg,
+	LSLRmem,
 };
 
 }

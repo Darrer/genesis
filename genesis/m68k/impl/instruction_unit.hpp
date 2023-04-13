@@ -155,10 +155,12 @@ private:
 		
 		case inst_type::ASLRreg:
 		case inst_type::ROLRreg:
+		case inst_type::LSLRreg:
 			return shift_reg_handler();
 
 		case inst_type::ASLRmem:
 		case inst_type::ROLRmem:
+		case inst_type::LSLRmem:
 			return shift_mem_handler();
 
 		default: throw internal_error();

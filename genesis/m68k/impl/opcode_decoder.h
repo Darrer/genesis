@@ -83,11 +83,13 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100010011______", inst_type::MOVEtoCCR },
 	{ "010011100110____", inst_type::MOVE_USP },
 
-	/* ASL/ASR */
+	/* ASL/ASR/ROL/ROR/LSL/LSR */
 	{ "1110____sz_00___", inst_type::ASLRreg },
 	{ "1110000_11______", inst_type::ASLRmem },
 	{ "1110____sz_11___", inst_type::ROLRreg },
 	{ "1110011_11______", inst_type::ROLRmem },
+	{ "1110____sz_01___", inst_type::LSLRreg },
+	{ "1110001_11______", inst_type::LSLRmem },
 };
 
 
