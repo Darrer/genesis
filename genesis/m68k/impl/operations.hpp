@@ -302,6 +302,29 @@ public:
 		return val;
 	}
 
+	template<class T1>
+	static std::uint32_t lsr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		if(shift_count == 0)
+		{
+			sr.C = 0;
+		}
+		else
+		{
+			sr.C = sr.X = lsb(std::uint64_t(val) >> (shift_count - 1));
+		}
+
+		val = std::uint64_t(val) >> shift_count;
+		val = value(val, size);
+
+		sr.V = 0;
+		nz_flags(val, size, sr);
+		return val;
+	}	
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -433,7 +456,7 @@ public:
 		case inst_type::LSLRmem:
 			if(is_left_shift)
 				return lsl(src, shift_count, size, sr);
-			throw not_implemented();
+			return lsr(src, shift_count, size, sr);
 
 		default: throw internal_error();
 		}
