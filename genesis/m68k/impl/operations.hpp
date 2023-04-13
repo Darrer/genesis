@@ -193,14 +193,38 @@ public:
 		std::int32_t val = value(a, size);
 		shift_count = shift_count % 64;
 
-		std::uint8_t sign_bit = msb(val, size);
-
 		sr.C = sr.V = 0;
 		for(std::uint32_t i = 0; i < shift_count; ++i)
 		{
 			sr.C = sr.X = msb(val, size);
 			val = val << 1;
 			sr.V = sr.V | (sr.C ^ msb(val, size));
+		}
+
+		val = value(val, size);
+		sr.N = neg_flag(val, size);
+		sr.Z = val == 0;
+
+		return val;
+	}
+
+	template<class T1>
+	static std::uint32_t asr(T1 a, size_type size, std::uint32_t shift_count, status_register& sr)
+	{
+		std::int32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		sr.C = sr.V = 0;
+		for(std::uint32_t i = 0; i < shift_count; ++i)
+		{
+			sr.C = sr.X = lsb(val);
+
+			if(size == size_type::BYTE)
+				val = std::int8_t(val) >> 1;
+			else if(size == size_type::WORD)
+				val = std::int16_t(val) >> 1;
+			else
+				val = std::int32_t(val) >> 1;
 		}
 
 		val = value(val, size);
@@ -501,6 +525,15 @@ public:
 		throw internal_error();
 	}
 
+	static std::uint8_t size_raw(size_type size)
+	{
+		if(size == size_type::BYTE)
+			return 1;
+		if(size == size_type::WORD)
+			return 2;
+		return 4;
+	}
+
 	// return most significant bit
 	static std::uint8_t msb(std::uint32_t val, size_type size)
 	{
@@ -509,6 +542,12 @@ public:
 		if(size == size_type::WORD)
 			return (val >> 15) & 1;
 		return (val >> 31) & 1;
+	}
+
+	// return less significant bit
+	static std::uint8_t lsb(std::uint32_t val)
+	{
+		return val & 1;
 	}
 };
 

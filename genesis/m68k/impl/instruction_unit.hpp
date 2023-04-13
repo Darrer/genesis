@@ -977,7 +977,7 @@ private:
 		std::uint32_t shift_count;
 		if(ir)
 		{
-			shift_count = regs.D(count_or_reg).LW;
+			shift_count = regs.D(count_or_reg).B;
 		}
 		else
 		{
@@ -995,13 +995,14 @@ private:
 		}
 		else
 		{
-			throw not_implemented();
+			std::cout << "Val: " << (int)reg.B << ", shift count: " << (int)shift_count << std::endl;
+			res = operations::asr(reg, (size_type)size, shift_count, regs.flags);
 		}
 
 		store(reg, size, res);
 
 		scheduler.prefetch_one();
-		scheduler.wait(timings::asl(shift_count, (size_type)size));
+		scheduler.wait(timings::ashift(shift_count, (size_type)size));
 		return exec_state::done;
 	}
 
@@ -1023,7 +1024,7 @@ private:
 			}
 			else
 			{
-				throw not_implemented();
+				res = operations::asr(op, size_type::WORD, 1, regs.flags);
 			}
 			
 			schedule_prefetch_and_write(op, res, size_type::WORD);
