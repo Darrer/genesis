@@ -49,8 +49,10 @@ enum inst_type : std::uint8_t
 	MOVEtoSR,
 	MOVE_USP,
 	MOVEtoCCR,
-	ASreg,
-	ASmem,
+	ASLRreg,
+	ASLRmem,
+	ROLRreg,
+	ROLRmem,
 };
 
 }

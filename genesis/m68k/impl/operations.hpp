@@ -1,6 +1,9 @@
 #ifndef __M68K_OPERATIONS_HPP__
 #define __M68K_OPERATIONS_HPP__
 
+#include <bit>
+#include <cstdint>
+
 #include "cpu_flags.hpp"
 #include "exception.hpp"
 
@@ -188,7 +191,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t asl(T1 a, size_type size, std::uint32_t shift_count, status_register& sr)
+	static std::uint32_t asl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::int32_t val = value(a, size);
 		shift_count = shift_count % 64;
@@ -209,7 +212,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t asr(T1 a, size_type size, std::uint32_t shift_count, status_register& sr)
+	static std::uint32_t asr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::int32_t val = value(a, size);
 		shift_count = shift_count % 64;
@@ -231,6 +234,26 @@ public:
 		sr.N = neg_flag(val, size);
 		sr.Z = val == 0;
 
+		return val;
+	}
+
+	template<class T1>
+	static std::uint32_t rol(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		if(size == size_type::BYTE)
+			val = std::rotl(std::uint8_t(val), shift_count);
+		else if(size == size_type::WORD)
+			val = std::rotl(std::uint16_t(val), shift_count);
+		else
+			val = std::rotl(val, shift_count);
+
+		sr.C = shift_count == 0 ? 0 : lsb(val);
+		sr.N = neg_flag(val, size);
+		sr.Z = val == 0;
+		sr.V = 0;
 		return val;
 	}
 
@@ -340,6 +363,27 @@ public:
 			eori_to_ccr(src, SR);
 			break;
 
+		default: throw internal_error();
+		}
+	}
+
+	template<class T1>
+	static std::uint32_t shift(inst_type inst, T1 src, std::uint8_t shift_count, bool is_left_shift, size_type size, status_register& sr)
+	{
+		switch (inst)
+		{
+		case inst_type::ASLRreg:
+		case inst_type::ASLRmem:
+			if(is_left_shift)
+				return asl(src, shift_count, size, sr);
+			return asr(src, shift_count, size, sr);
+
+		case inst_type::ROLRreg:
+		case inst_type::ROLRmem:
+			if(is_left_shift)
+				return rol(src, shift_count, size, sr);
+			throw not_implemented();
+		
 		default: throw internal_error();
 		}
 	}
@@ -548,6 +592,15 @@ public:
 	static std::uint8_t lsb(std::uint32_t val)
 	{
 		return val & 1;
+	}
+
+	static std::uint32_t min_shift_count(std::uint32_t shift_count, size_type size)
+	{
+		// shift count is rectricted by the amount of bits
+		std::uint32_t num_bits = size_raw(size) * 8;
+		if(shift_count > num_bits)
+			return num_bits;
+		return shift_count;
 	}
 };
 

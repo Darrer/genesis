@@ -153,11 +153,13 @@ private:
 		case inst_type::EORItoSR:
 			return alu_to_sr_handler();
 		
-		case inst_type::ASreg:
-			return as_reg_handler();
+		case inst_type::ASLRreg:
+		case inst_type::ROLRreg:
+			return shift_reg_handler();
 
-		case inst_type::ASmem:
-			return as_mem_handler();
+		case inst_type::ASLRmem:
+		case inst_type::ROLRmem:
+			return shift_mem_handler();
 
 		default: throw internal_error();
 		}
@@ -969,7 +971,7 @@ private:
 		}
 	}
 
-	exec_state as_reg_handler()
+	exec_state shift_reg_handler()
 	{
 		std::uint8_t ir = bit_is_set(opcode, 5);
 		std::uint8_t count_or_reg = (opcode >> 9) & 0x7;
@@ -988,25 +990,17 @@ private:
 
 		size = dec_size(opcode >> 6);
 		auto& reg = regs.D(opcode & 0x7);
-		std::uint8_t shift_left = bit_is_set(opcode, 8);
-		if(shift_left == 1)
-		{
-			res = operations::asl(reg, (size_type)size, shift_count, regs.flags);
-		}
-		else
-		{
-			std::cout << "Val: " << (int)reg.B << ", shift count: " << (int)shift_count << std::endl;
-			res = operations::asr(reg, (size_type)size, shift_count, regs.flags);
-		}
-
+		bool is_left_shift = bit_is_set(opcode, 8) == 1;
+		
+		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, (size_type)size, regs.flags);
 		store(reg, size, res);
 
 		scheduler.prefetch_one();
-		scheduler.wait(timings::ashift(shift_count, (size_type)size));
+		scheduler.wait(timings::reg_shift(shift_count, (size_type)size));
 		return exec_state::done;
 	}
 
-	exec_state as_mem_handler()
+	exec_state shift_mem_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -1017,15 +1011,8 @@ private:
 		case 1:
 		{
 			auto op = dec.result();
-			std::uint8_t shift_left = bit_is_set(opcode, 8);
-			if(shift_left == 1)
-			{
-				res = operations::asl(op, size_type::WORD, 1, regs.flags);
-			}
-			else
-			{
-				res = operations::asr(op, size_type::WORD, 1, regs.flags);
-			}
+			bool is_left_shift = bit_is_set(opcode, 8) == 1;
+			res = operations::shift(curr_inst, op, 1, is_left_shift, size_type::WORD, regs.flags);
 			
 			schedule_prefetch_and_write(op, res, size_type::WORD);
 		}

@@ -118,7 +118,7 @@ public:
 		return 0;
 	}
 
-	static std::uint16_t ashift(std::uint32_t shift_count, size_type size)
+	static std::uint16_t reg_shift(std::uint32_t shift_count, size_type size)
 	{
 		std::uint16_t cycles = 2 * (shift_count % 64) + 2;
 		if(size == size_type::LONG)
