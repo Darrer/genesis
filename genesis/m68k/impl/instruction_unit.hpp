@@ -107,6 +107,7 @@ private:
 		case inst_type::NEG:
 		case inst_type::NEGX:
 		case inst_type::NOT:
+		case inst_type::CLR:
 			return unary_handler();
 
 		case inst_type::ADDX:

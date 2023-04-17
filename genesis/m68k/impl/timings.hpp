@@ -118,6 +118,7 @@ public:
 		return 0;
 	}
 
+	/* ASL/ASR/ROL/ROR/LSL/LSR */
 	static std::uint16_t reg_shift(std::uint32_t shift_count, size_type size)
 	{
 		std::uint16_t cycles = 2 * (shift_count % 64) + 2;
@@ -125,6 +126,9 @@ public:
 			cycles += 2;
 		return cycles;
 	}
+
+	/* CLR */
+	static constexpr auto clr = cmpi;
 
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
@@ -182,6 +186,8 @@ public:
 			return not_op(size, op);
 		case inst_type::CMPM:
 			return 0;
+		case inst_type::CLR:
+			return clr(size, op);
 
 		default: throw internal_error();
 		}

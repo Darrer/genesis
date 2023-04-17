@@ -382,6 +382,14 @@ public:
 		nz_flags(value(src, size), size, sr);
 	}
 
+	template<class T1>
+	static std::uint32_t clr(T1 /* src */, size_type size, status_register& sr)
+	{
+		sr.N = sr.V = sr.C = 0;
+		sr.Z = 1;
+		return 0;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
@@ -447,6 +455,8 @@ public:
 			return not_op(a, size, sr);
 		case inst_type::MOVE:
 			return move(a, size, sr);
+		case inst_type::CLR:
+			return clr(a, (size_type)size, sr);
 
 		default: throw internal_error();
 		}

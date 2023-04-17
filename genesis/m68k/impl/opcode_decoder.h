@@ -95,6 +95,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* TST */
 	{ "01001010sz______", inst_type::TST },
+
+	/* CLR */
+	{ "01000010sz______", inst_type::CLR },
 };
 
 
