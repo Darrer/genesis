@@ -2,6 +2,7 @@
 #define __M68K_TIMINGS_HPP__
 
 #include <cstdint>
+#include <bit>
 #include "instruction_type.h"
 #include "ea_decoder.hpp"
 
@@ -129,6 +130,13 @@ public:
 
 	/* CLR */
 	static constexpr auto clr = cmpi;
+
+	/* MULU */
+	static std::uint8_t mulu(std::uint32_t src)
+	{
+		std::uint8_t ones = std::popcount(src);
+		return (17 + ones) * 2;
+	}
 
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)

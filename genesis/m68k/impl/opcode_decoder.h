@@ -98,6 +98,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* CLR */
 	{ "01000010sz______", inst_type::CLR },
+
+	/* MULU/MULS */
+	{ "1100___011______", inst_type::MULU },
 };
 
 

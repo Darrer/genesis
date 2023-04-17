@@ -169,6 +169,9 @@ private:
 		case inst_type::TST:
 			return tst_handler();
 
+		case inst_type::MULU:
+			return mulu_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1046,6 +1049,33 @@ private:
 
 			operations::tst(op, (size_type)size, regs.flags);
 			scheduler.prefetch_one();
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state mulu_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto op = dec.result();
+			auto& dest = regs.D((opcode >> 9) & 7);
+			std::uint32_t src = operations::value(op, size_type::WORD);
+
+			res = operations::mulu(src, dest, regs.flags);
+			store(dest, size_type::LONG, res);
+
+			scheduler.prefetch_one();
+			scheduler.wait(timings::mulu(src));
 
 			return exec_state::done;
 		}

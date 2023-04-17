@@ -59,6 +59,7 @@ enum inst_type : std::uint8_t
 	ROXLRmem,
 	TST,
 	CLR,
+	MULU,
 };
 
 }

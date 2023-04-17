@@ -390,6 +390,19 @@ public:
 		return 0;
 	}
 
+	template<class T1, class T2>
+	static std::uint32_t mulu(T1 a, T2 b, status_register& sr)
+	{
+		std::uint32_t a_val = value(a, size_type::WORD);
+		std::uint32_t b_val = value(b, size_type::WORD);
+		std::uint32_t res = a_val * b_val;
+
+		sr.V = sr.C = 0;
+		nz_flags(res, size_type::LONG, sr);
+
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
