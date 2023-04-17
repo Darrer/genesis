@@ -11,9 +11,15 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
 	scheduler = std::make_unique<m68k::bus_scheduler>(regs, *busm, *pq);
 
-	auto inst = std::make_unique<m68k::instruction_unit>(regs, *scheduler);
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *inst, *scheduler);
-	inst_unit = std::move(inst);
+	auto abort_execution = [this]()
+	{
+		// pq->reset(); // TODO: we don't know who rised exception, so reset all components
+		inst_unit->reset();
+		scheduler->reset();
+	};
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *scheduler, abort_execution);
+
+	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, *scheduler);
 }
 
 cpu::~cpu()

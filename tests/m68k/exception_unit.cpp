@@ -2,6 +2,8 @@
 
 #include "test_cpu.hpp"
 #include "m68k/impl/exception_manager.h"
+#include "exception.hpp"
+
 
 using namespace genesis::m68k;
 
@@ -23,7 +25,7 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 	if(ex == exception_type::address_error)
 		exman.rise_address_error({ 0, 0, 0, false, false });
 	else
-		exman.rise(ex);
+		throw genesis::internal_error();
 
 	ASSERT_TRUE(exman.is_raised(ex));
 

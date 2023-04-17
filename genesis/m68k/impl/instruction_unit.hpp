@@ -3,12 +3,16 @@
 
 
 #include "base_unit.h"
+#include "cpu_registers.hpp"
+#include "bus_scheduler.h"
+#include "exception_manager.h"
+
+
 #include "instruction_type.h"
+#include "opcode_decoder.h"
 #include "ea_decoder.hpp"
 #include "timings.hpp"
 #include "operations.hpp"
-
-#include "opcode_decoder.h"
 
 #include "exception.hpp"
 
@@ -32,8 +36,8 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, scheduler), dec(regs, scheduler)
+	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman)
 	{
 		reset();
 	}
@@ -172,6 +176,9 @@ private:
 		case inst_type::MULU:
 		case inst_type::MULS:
 			return mulu_handler();
+
+		case inst_type::TRAP:
+			return trap_handler();
 
 		default: throw internal_error();
 		}
@@ -1085,6 +1092,13 @@ private:
 		}
 	}
 
+	exec_state trap_handler()
+	{
+		std::uint8_t vector = 32 + (opcode & 0b1111);
+		exman.rise_trap(vector);
+		return exec_state::done;
+	}
+
 	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
 	{
@@ -1197,6 +1211,7 @@ private:
 
 private:
 	m68k::ea_decoder dec;
+	exception_manager& exman;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;

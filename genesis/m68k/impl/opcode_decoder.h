@@ -102,6 +102,9 @@ const constexpr mask_inst_pair opcodes[] =
 	/* MULU/MULS */
 	{ "1100___011______", inst_type::MULU },
 	{ "1100___111______", inst_type::MULS },
+
+	/* TRAP */
+	{ "010011100100____", inst_type::TRAP },
 };
 
 
