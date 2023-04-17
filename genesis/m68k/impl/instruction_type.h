@@ -62,6 +62,7 @@ enum inst_type : std::uint8_t
 	MULU,
 	MULS,
 	TRAP,
+	TRAPV,
 };
 
 }

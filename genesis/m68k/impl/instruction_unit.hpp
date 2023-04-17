@@ -180,6 +180,9 @@ private:
 		case inst_type::TRAP:
 			return trap_handler();
 
+		case inst_type::TRAPV:
+			return trapv_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1096,6 +1099,17 @@ private:
 	{
 		std::uint8_t vector = 32 + (opcode & 0b1111);
 		exman.rise_trap(vector);
+		return exec_state::done;
+	}
+
+	exec_state trapv_handler()
+	{
+		scheduler.prefetch_one();
+		if(regs.flags.V == 1)
+		{
+			exman.rise_trap(7);
+		}
+
 		return exec_state::done;
 	}
 

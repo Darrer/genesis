@@ -191,7 +191,9 @@ private:
 	*/
 	exec_state trap()
 	{
-		scheduler.wait(4 - 1);
+		// TODO:
+		if(trap_vector != 7)
+			scheduler.wait(4 - 1);
 
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
@@ -210,7 +212,7 @@ private:
 		scheduler.write(regs.SSP.LW, regs.PC >> 16, size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
-		std::uint32_t addr = vector_address(curr_ex) + (trap_vector - 32) * 4;
+		std::uint32_t addr = trap_vector * 4;
 		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
 		{
 			regs.PC = data;

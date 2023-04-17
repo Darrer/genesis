@@ -105,6 +105,7 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* TRAP */
 	{ "010011100100____", inst_type::TRAP },
+	{ "0100111001110110", inst_type::TRAPV },
 };
 
 

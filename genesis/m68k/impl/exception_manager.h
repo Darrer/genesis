@@ -14,6 +14,7 @@ enum class exception_type : std::uint8_t
 	address_error,
 	bus_error,
 	trap,
+	trapv,
 	count
 };
 
