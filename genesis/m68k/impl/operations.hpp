@@ -220,9 +220,13 @@ public:
 		shift_count = shift_count % 64;
 
 		sr.C = sr.V = 0;
+		// const std::uint32_t set_flags_limit = size_raw(size) * CHAR_BIT;
 		for(std::uint32_t i = 0; i < shift_count; ++i)
 		{
-			sr.C = sr.X = lsb(val);
+			// if(i < set_flags_limit)
+				sr.C = sr.X = lsb(val);
+			// else
+				// sr.C = sr.X = 0;
 
 			if(size == size_type::BYTE)
 				val = std::int8_t(val) >> 1;
@@ -275,6 +279,52 @@ public:
 		sr.C = shift_count == 0 ? 0 : msb(val, size);
 		sr.N = neg_flag(val, size);
 		sr.Z = val == 0;
+		sr.V = 0;
+		return val;
+	}
+
+	template<class T1>
+	static std::uint32_t roxl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		sr.C = sr.X;
+		for(std::uint32_t i = 0; i < shift_count; ++i)
+		{
+			sr.C = msb(val, size);
+
+			val = val << 1;
+			val = val | sr.X;
+
+			sr.X = sr.C;
+		}
+
+		nz_flags(val, size, sr);
+		sr.V = 0;
+		return val;
+	}
+
+	template<class T1>
+	static std::uint32_t roxr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
+	{
+		std::uint32_t val = value(a, size);
+		shift_count = shift_count % 64;
+
+		sr.C = sr.X;
+		for(std::uint32_t i = 0; i < shift_count; ++i)
+		{
+			sr.C = lsb(val);
+
+			val = val >> 1;
+			std::uint32_t msb_val = sr.X;
+			msb_val = msb_val << (size_raw(size) * 8 - 1);
+			val = val | msb_val;
+
+			sr.X = sr.C;
+		}
+
+		nz_flags(val, size, sr);
 		sr.V = 0;
 		return val;
 	}
@@ -457,6 +507,12 @@ public:
 			if(is_left_shift)
 				return lsl(src, shift_count, size, sr);
 			return lsr(src, shift_count, size, sr);
+
+		case inst_type::ROXLRreg:
+		case inst_type::ROXLRmem:
+			if(is_left_shift)
+				return roxl(src, shift_count, size, sr);
+			return roxr(src, shift_count, size, sr);
 
 		default: throw internal_error();
 		}

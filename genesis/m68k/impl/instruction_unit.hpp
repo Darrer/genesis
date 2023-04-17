@@ -156,11 +156,13 @@ private:
 		case inst_type::ASLRreg:
 		case inst_type::ROLRreg:
 		case inst_type::LSLRreg:
+		case inst_type::ROXLRreg:
 			return shift_reg_handler();
 
 		case inst_type::ASLRmem:
 		case inst_type::ROLRmem:
 		case inst_type::LSLRmem:
+		case inst_type::ROXLRmem:
 			return shift_mem_handler();
 
 		default: throw internal_error();
@@ -994,6 +996,7 @@ private:
 		auto& reg = regs.D(opcode & 0x7);
 		bool is_left_shift = bit_is_set(opcode, 8) == 1;
 		
+		// std::cout << "Shifting " << (int)reg.B << " by " << (int)shift_count << std::endl;
 		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, (size_type)size, regs.flags);
 		store(reg, size, res);
 
