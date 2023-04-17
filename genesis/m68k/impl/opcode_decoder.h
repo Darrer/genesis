@@ -92,6 +92,9 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "1110001_11______", inst_type::LSLRmem },
 	{ "1110____sz_10___", inst_type::ROXLRreg },
 	{ "1110010_11______", inst_type::ROXLRmem },
+
+	/* TST */
+	{ "01001010sz______", inst_type::TST },
 };
 
 

@@ -165,6 +165,9 @@ private:
 		case inst_type::ROXLRmem:
 			return shift_mem_handler();
 
+		case inst_type::TST:
+			return tst_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1022,6 +1025,29 @@ private:
 			schedule_prefetch_and_write(op, res, size_type::WORD);
 		}
 			return exec_state::done;
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state tst_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			size = dec_size(opcode >> 6);
+			dec.schedule_decoding(opcode & 0xFF, size);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto op = dec.result();
+
+			operations::tst(op, (size_type)size, regs.flags);
+			scheduler.prefetch_one();
+
+			return exec_state::done;
+		}
 
 		default: throw internal_error();
 		}

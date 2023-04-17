@@ -56,7 +56,8 @@ enum inst_type : std::uint8_t
 	LSLRreg,
 	LSLRmem,
 	ROXLRreg,
-	ROXLRmem
+	ROXLRmem,
+	TST,
 };
 
 }

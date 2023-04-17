@@ -373,7 +373,14 @@ public:
 		sr.V = 0;
 		nz_flags(val, size, sr);
 		return val;
-	}	
+	}
+
+	template<class T1>
+	static void tst(T1 src, size_type size, status_register& sr)
+	{
+		sr.V = sr.C = 0;
+		nz_flags(value(src, size), size, sr);
+	}
 
 	/* helpers */
 	template<class T1, class T2>
