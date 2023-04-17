@@ -131,11 +131,27 @@ public:
 	/* CLR */
 	static constexpr auto clr = cmpi;
 
-	/* MULU */
-	static std::uint8_t mulu(std::uint32_t src)
+	/* MULU/MULS */
+	static std::uint8_t mulu(std::uint16_t src)
 	{
 		std::uint8_t ones = std::popcount(src);
 		return (17 + ones) * 2;
+	}
+
+	static std::uint8_t muls(std::uint16_t val)
+	{
+		std::int32_t src = std::int16_t(val);
+		src = src << 1;
+		std::uint8_t m = 0;
+		for(int i = 0; i < 17; ++i)
+		{
+			std::uint8_t lsb = src & 0b11;
+			if(lsb == 0b10 || lsb == 0b01)
+				++m;
+			src = src >> 1;
+		}
+
+		return (17 + m) * 2;
 	}
 
 	/* helpers */
@@ -196,6 +212,20 @@ public:
 			return 0;
 		case inst_type::CLR:
 			return clr(size, op);
+
+		default: throw internal_error();
+		}
+	}
+
+	static std::uint8_t mul(inst_type inst, std::uint16_t src)
+	{
+		switch (inst)
+		{
+		case inst_type::MULU:
+			return mulu(src);
+
+		case inst_type::MULS:
+			return muls(src);
 
 		default: throw internal_error();
 		}

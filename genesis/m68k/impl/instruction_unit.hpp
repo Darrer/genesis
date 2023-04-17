@@ -170,6 +170,7 @@ private:
 			return tst_handler();
 
 		case inst_type::MULU:
+		case inst_type::MULS:
 			return mulu_handler();
 
 		default: throw internal_error();
@@ -1071,11 +1072,11 @@ private:
 			auto& dest = regs.D((opcode >> 9) & 7);
 			std::uint32_t src = operations::value(op, size_type::WORD);
 
-			res = operations::mulu(src, dest, regs.flags);
+			res = operations::alu(curr_inst, src, dest, size_type::WORD, regs.flags);
 			store(dest, size_type::LONG, res);
 
 			scheduler.prefetch_one();
-			scheduler.wait(timings::mulu(src));
+			scheduler.wait(timings::mul(curr_inst, src));
 
 			return exec_state::done;
 		}
