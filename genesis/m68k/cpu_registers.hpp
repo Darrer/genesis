@@ -121,6 +121,8 @@ public:
 	std::uint16_t IR;
 	std::uint16_t IRD;
 	std::uint16_t SIRD;
+
+	std::uint32_t SPC;
 };
 
 } // namespace genesis::m68k

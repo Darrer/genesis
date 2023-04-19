@@ -47,7 +47,11 @@ public:
 		if(exman.is_raised(exception_type::bus_error))
 			return true;
 
+		//
 		if(exman.is_raised(exception_type::trap))
+			return true;
+
+		if(exman.is_raised(exception_type::division_by_zero))
 			return true;
 
 		return false;
@@ -80,10 +84,13 @@ private:
 		case exception_type::address_error:
 		case exception_type::bus_error:
 			return address_error();
-		
+
 		case exception_type::trap:
 			return trap();
-	
+
+		case exception_type::division_by_zero:
+			return division_by_zero();
+
 		default: throw internal_error();
 		}
 	}
@@ -107,6 +114,11 @@ private:
 			// TODO: do we need to abort / or wait for smth?
 			curr_ex = exception_type::trap;
 			trap_vector = exman.accept_trap();
+		}
+		else if(exman.is_raised(exception_type::division_by_zero))
+		{
+			curr_ex = exception_type::division_by_zero;
+			exman.accept_division_by_zero();
 		}
 		else
 		{
@@ -185,19 +197,32 @@ private:
 		return status;
 	}
 
-	/* Sequence of actions
-	 * 1. Push PC
-	 * 2. Push SR
-	*/
 	exec_state trap()
 	{
 		// TODO:
 		if(trap_vector != 7)
 			scheduler.wait(4 - 1);
 
+		schedule_trap(regs.PC, trap_vector);
+		return exec_state::done;
+	}
+
+	exec_state division_by_zero()
+	{
+		scheduler.wait(8 - 1);
+		schedule_trap(regs.SPC, 5);
+		return exec_state::done;
+	}
+
+	/* Sequence of actions
+	 * 1. Push PC
+	 * 2. Push SR
+	*/
+	void schedule_trap(std::uint32_t pc, std::uint8_t trap_vector)
+	{
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, regs.PC & 0xFFFF, size_type::WORD);
+		scheduler.write(regs.SSP.LW, pc & 0xFFFF, size_type::WORD);
 
 		// PUSH SR
 		// note, for some reason we first push SR, then PC HIGH
@@ -209,7 +234,7 @@ private:
 
 		// PUSH PC HIGH
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, regs.PC >> 16, size_type::WORD);
+		scheduler.write(regs.SSP.LW, pc >> 16, size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		std::uint32_t addr = trap_vector * 4;
@@ -219,8 +244,6 @@ private:
 		});
 
 		scheduler.prefetch_two();
-
-		return exec_state::done;
 	}
 
 	static std::uint32_t vector_address(exception_type ex)

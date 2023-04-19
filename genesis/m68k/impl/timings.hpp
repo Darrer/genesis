@@ -154,6 +154,41 @@ public:
 		return (17 + m) * 2;
 	}
 
+	static std::uint8_t divu_overflow()
+	{
+		return 6;
+	}
+
+	static std::uint8_t divu(std::uint32_t dividend, std::uint16_t divisor)
+	{
+		std::uint8_t cycles = 36;
+		std::uint32_t div = divisor << 16;
+		for(int i = 0; i < 15; ++i)
+		{
+			std::int32_t old_dividend = dividend;
+			dividend = dividend << 1;
+
+			if(old_dividend < 0)
+			{
+				dividend -= div;
+			}
+			else
+			{
+				if(dividend >= div)
+				{
+					dividend -= div;
+					++cycles;
+				}
+				else
+				{
+					cycles += 2;
+				}
+			}
+		}
+
+		return cycles * 2;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

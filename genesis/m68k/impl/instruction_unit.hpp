@@ -63,6 +63,7 @@ protected:
 			regs.SIRD = regs.IRD;
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
+			regs.SPC = regs.PC;
 			regs.PC += 2;
 			state = EXECUTING;
 			[[fallthrough]];
@@ -182,6 +183,9 @@ private:
 
 		case inst_type::TRAPV:
 			return trapv_handler();
+
+		case inst_type::DIVU:
+			return div_handler();
 
 		default: throw internal_error();
 		}
@@ -1111,6 +1115,49 @@ private:
 		}
 
 		return exec_state::done;
+	}
+
+	exec_state div_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto& dest_reg = regs.D((opcode >> 9) & 0x7);
+			auto op = dec.result();
+
+			std::uint32_t dest = dest_reg.LW;
+			std::uint16_t src =  operations::value(op, size_type::WORD);
+
+			if(src == 0)
+			{
+				regs.flags.C = 0;
+				regs.flags.N = regs.flags.V = regs.flags.Z = 0; // undefined
+				exman.rise_division_by_zero();
+				return exec_state::done;
+			}
+
+			if(operations::chk_divu_overflow(dest, src, regs.flags))
+			{
+				// do not affect dest in case of overflow
+				scheduler.wait(timings::divu_overflow());
+				scheduler.prefetch_one();
+				return exec_state::done;
+			}
+
+			dest_reg.LW = operations::divu(dest, src, regs.flags);
+
+			scheduler.wait(timings::divu(dest, src));
+			scheduler.prefetch_one();
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
 	}
 
 	// save the result (write to register or to memory), do prefetch

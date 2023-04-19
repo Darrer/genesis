@@ -15,6 +15,7 @@ enum class exception_type : std::uint8_t
 	bus_error,
 	trap,
 	trapv,
+	division_by_zero,
 	count
 };
 
@@ -71,6 +72,16 @@ public:
 	{
 		accept(exception_type::trap);
 		return trap_vector.value();
+	}
+
+	void rise_division_by_zero()
+	{
+		rise_unsafe(exception_type::division_by_zero);
+	}
+
+	void accept_division_by_zero()
+	{
+		accept(exception_type::division_by_zero);
 	}
 
 private:

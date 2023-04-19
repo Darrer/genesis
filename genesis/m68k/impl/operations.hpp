@@ -416,6 +416,49 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static bool is_zero_devision(T1 src)
+	{
+		return value(src, size_type::WORD) == 0;
+	}
+
+	template<class T1, class T2>
+	static bool chk_divu_overflow(T1 dest, T2 src, status_register& sr)
+	{
+		std::uint32_t dest_val = value(dest, size_type::LONG);
+		std::uint16_t src_val = value(src, size_type::WORD);
+
+		bool is_overflow = (dest_val >> 16) >= src_val;
+
+		// std::uint16_t remainder = dest_val % src_val;
+		// std::uint32_t quotient = (dest_val - remainder) / src_val;
+
+		// bool is_overflow = quotient > (std::uint32_t)std::numeric_limits<std::int16_t>::max();
+
+		if(is_overflow)
+			sr.V = 1;
+
+		sr.C = 0;
+		return is_overflow;
+	}
+
+	template<class T1, class T2>
+	static std::uint32_t divu(T1 dest, T2 src, status_register& sr)
+	{
+		std::uint32_t dest_val = value(dest, size_type::LONG);
+		std::uint16_t src_val = value(src, size_type::WORD);
+
+		std::uint16_t remainder = dest_val % src_val;
+		std::uint16_t quotient = (dest_val - remainder) / src_val;
+
+		std::uint32_t res = (remainder << 16) | quotient;
+
+		sr.C = sr.V = 0;
+		nz_flags(quotient, size_type::WORD, sr);
+
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
