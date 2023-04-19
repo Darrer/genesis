@@ -1,6 +1,7 @@
 #ifndef __M68K_EA_DECODER_HPP__
 #define __M68K_EA_DECODER_HPP__
 
+#include "size_type.h"
 #include "m68k/cpu_registers.hpp"
 #include "bus_manager.hpp"
 #include "bus_scheduler.h"
@@ -13,16 +14,6 @@ namespace genesis::m68k
 
 class operand
 {
-public:
-	enum class type : std::uint8_t
-	{
-		address_register,
-		data_register,
-		immediate,
-		pointer,
-		read_only_pointer,
-	};
-
 public:
 	struct raw_pointer
 	{
@@ -143,7 +134,7 @@ public:
 		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;
 
-		schedule_decoding(mode, reg, (size_type)size);
+		schedule_decoding(mode, reg, size);
 	}
 
 private:

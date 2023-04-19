@@ -36,6 +36,7 @@ struct status_register
 	std::uint8_t U3 : 1;
 
 	/* system byte */
+	// TODO: remove unimplemented bits
 	std::uint8_t IPM : 3;
 	std::uint8_t U4 : 1;
 	std::uint8_t M : 1;

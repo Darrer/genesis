@@ -1137,13 +1137,14 @@ private:
 			{
 				operations::divu_zero_division(regs.flags);
 				exman.rise_division_by_zero();
-				return exec_state::done;
+			}
+			else
+			{
+				dest_reg.LW = operations::divu(dest, src, regs.flags);
+				scheduler.wait(timings::divu(dest, src));
+				scheduler.prefetch_one();
 			}
 
-			dest_reg.LW = operations::divu(dest, src, regs.flags);
-
-			scheduler.wait(timings::divu(dest, src));
-			scheduler.prefetch_one();
 			return exec_state::done;
 		}
 
