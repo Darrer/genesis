@@ -95,17 +95,17 @@ void base_unit::post_cycle()
 		state = IDLE;
 }
 
-void base_unit::read(std::uint32_t addr, std::uint8_t size)
+void base_unit::read(std::uint32_t addr, size_type size)
 {
 	auto on_read = [this](std::uint32_t data, size_type)
 	{
 		this->data = data;
 	};
 
-	scheduler.read(addr, (size_type)size, on_read);
+	scheduler.read(addr, size, on_read);
 }
 
-void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
+void base_unit::dec_and_read(std::uint8_t addr_reg, size_type size)
 {
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
@@ -114,7 +114,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
 	}
 	else
 	{
-		regs.dec_addr(addr_reg, 2);
+		regs.dec_addr(addr_reg, size_type::WORD);
 
 		this->reg_to_dec = addr_reg;
 		
@@ -123,7 +123,7 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
 			this->data = data;
 
 			// we cannot dec in earler due to possible exceptions
-			regs.dec_addr(reg_to_dec, 2);
+			regs.dec_addr(reg_to_dec, size_type::WORD);
 		};
 		scheduler.read(regs.A(addr_reg).LW, size_type::WORD, on_read_lsw);
 
@@ -136,9 +136,9 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, std::uint8_t size)
 	}
 }
 
-void base_unit::read_imm(std::uint8_t size)
+void base_unit::read_imm(size_type size)
 {
-	scheduler.read_imm((size_type)size, [this](std::uint32_t data, size_type)
+	scheduler.read_imm(size, [this](std::uint32_t data, size_type)
 	{
 		this->imm = data;
 	});

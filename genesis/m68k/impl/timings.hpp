@@ -9,7 +9,7 @@
 namespace genesis::m68k
 {
 
-/* Returns the amount of cycles per instruction after all read/write operations */
+/* Returns the amount of cycles per instruction except all read/write operations */
 class timings
 {
 public:
@@ -30,20 +30,20 @@ public:
 		return 2;
 	}
 
-	static std::uint8_t addi(std::uint8_t size, const operand& op)
+	static std::uint8_t addi(size_type size, const operand& op)
 	{
-		if(size != 4 || op.is_pointer())
+		if(size != size_type::LONG || op.is_pointer())
 			return 0;
 		
 		return 4;
 	}
 
-	static std::uint8_t addq(std::uint8_t size, const operand& op)
+	static std::uint8_t addq(size_type size, const operand& op)
 	{
-		if(size == 1 || op.is_pointer())
+		if(size == size_type::BYTE || op.is_pointer())
 			return 0;
 
-		if(size == 2)
+		if(size == size_type::WORD)
 		{
 			if(op.is_addr_reg())
 				return 4;
@@ -80,9 +80,9 @@ public:
 		return 0;
 	}
 
-	static std::uint8_t cmpi(std::uint8_t size, const operand& op)
+	static std::uint8_t cmpi(size_type size, const operand& op)
 	{
-		if(size == 4 && op.is_data_reg())
+		if(size == size_type::LONG && op.is_data_reg())
 			return 2;
 		return 0;
 	}
@@ -217,7 +217,7 @@ public:
 		}
 	}
 
-	static std::uint8_t alu_size(inst_type inst, std::uint8_t size, const operand& op)
+	static std::uint8_t alu_size(inst_type inst, size_type size, const operand& op)
 	{
 		switch (inst)
 		{

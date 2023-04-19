@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include "impl/size_type.h"
 #include "exception.hpp"
 
 namespace genesis::m68k
@@ -90,18 +91,18 @@ public:
 		}
 	}
 
-	void inc_addr(std::uint8_t reg, std::uint8_t size)
+	void inc_addr(std::uint8_t reg, size_type size)
 	{
-		if(reg == 0b111 && size == 1)
-			size = 2;
-		A(reg).LW += size;
+		if(reg == 0b111 && size == size_type::BYTE)
+			size = size_type::WORD;
+		A(reg).LW += size_in_bytes(size);
 	}
 
-	void dec_addr(std::uint8_t reg, std::uint8_t size)
+	void dec_addr(std::uint8_t reg, size_type size)
 	{
-		if(reg == 0b111 && size == 1)
-			size = 2;
-		A(reg).LW -= size;
+		if(reg == 0b111 && size == size_type::BYTE)
+			size = size_type::WORD;
+		A(reg).LW -= size_in_bytes(size);
 	}
 
 	data_register D0, D1, D2, D3, D4, D5, D6, D7;

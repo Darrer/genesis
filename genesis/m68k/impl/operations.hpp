@@ -23,39 +23,39 @@ public:
 	operations() = delete;
 
 	template<class T1, class T2>
-	static std::uint32_t add(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t add(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return add(value(a, size), value(b, size), size, sr);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t adda(T1 src, T2 dest, std::uint8_t size, status_register&)
+	static std::uint32_t adda(T1 src, T2 dest, size_type size, status_register&)
 	{
-		if(size == 2)
-			return (std::int16_t)value(src, size) + value(dest, 4 /* always long word */);
+		if(size == size_type::WORD)
+			return (std::int16_t)value(src, size) + value(dest, size_type::LONG);
 		return value(src, size) + value(dest, size);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t addx(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t addx(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return addx(value(a, size), value(b, size), size, sr);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t sub(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t sub(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return sub(value(a, size), value(b, size), size, sr);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t subx(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t subx(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return subx(value(a, size), value(b, size), size, sr);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t cmp(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t cmp(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		// cmp like sub but does not change the result
 		std::uint8_t old_x = sr.X;
@@ -65,27 +65,27 @@ public:
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t cmpa(T1 src, T2 dest, std::uint8_t size, status_register& sr)
+	static std::uint32_t cmpa(T1 src, T2 dest, size_type size, status_register& sr)
 	{
-		std::uint32_t b = value(dest, 4 /* always long word */);
+		std::uint32_t b = value(dest, size_type::LONG);
 		std::uint32_t a;
-		if(size == 2)
+		if(size == size_type::WORD)
 			a = (std::int32_t)(std::int16_t)value(src, size);
 		else
 			a = value(src, size);
-		return cmp(b, a, 4, sr);
+		return cmp(b, a, size_type::LONG, sr);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t suba(T1 src, T2 dest, std::uint8_t size, status_register&)
+	static std::uint32_t suba(T1 src, T2 dest, size_type size, status_register&)
 	{
-		if(size == 2)
-			return value(dest, 4 /* always long word */) - (std::int16_t)value(src, size);
+		if(size == size_type::WORD)
+			return value(dest, size_type::LONG) - (std::int16_t)value(src, size);
 		return value(dest, size) - value(src, size);
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t and_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t and_op(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return and_op(value(a, size), value(b, size), size, sr);
 	}
@@ -103,7 +103,7 @@ public:
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t or_op(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t or_op(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return or_op(value(a, size), value(b, size), size, sr);
 	}
@@ -120,7 +120,7 @@ public:
 	}
 
 	template<class T1, class T2>
-	static std::uint32_t eor(T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t eor(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return eor(value(a, size), value(b, size), size, sr);
 	}
@@ -139,19 +139,19 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t neg(T1 a, std::uint8_t size, status_register& sr)
+	static std::uint32_t neg(T1 a, size_type size, status_register& sr)
 	{
 		return sub(0, value(a, size), size, sr);
 	}
 
 	template<class T1>
-	static std::uint32_t negx(T1 a, std::uint8_t size, status_register& sr)
+	static std::uint32_t negx(T1 a, size_type size, status_register& sr)
 	{
 		return subx(0, value(a, size), size, sr);
 	}
 
 	template<class T1>
-	static std::uint32_t not_op(T1 a, std::uint8_t size, status_register& sr)
+	static std::uint32_t not_op(T1 a, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(~value(a, size), size);
 		sr.N = neg_flag(res, size);
@@ -161,7 +161,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t move(T1 src, std::uint8_t size, status_register& sr)
+	static std::uint32_t move(T1 src, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(src, size);
 		sr.N = neg_flag(res, size);
@@ -171,7 +171,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t movea(T1 src, std::uint8_t size)
+	static std::uint32_t movea(T1 src, size_type size)
 	{
 		if(size == size_type::LONG)
 			return value(src, size);
@@ -461,7 +461,7 @@ public:
 
 	/* helpers */
 	template<class T1, class T2>
-	static std::uint32_t alu(inst_type inst, T1 a, T2 b, std::uint8_t size, status_register& sr)
+	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
 	{
 		switch (inst)
 		{
@@ -518,7 +518,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t alu(inst_type inst, T1 a, std::uint8_t size, status_register& sr)
+	static std::uint32_t alu(inst_type inst, T1 a, size_type size, status_register& sr)
 	{
 		switch (inst)
 		{
@@ -616,14 +616,14 @@ public:
 	}
 
 private:
-	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, std::uint8_t size)
+	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size)
 	{
-		if(size == 1) return std::uint8_t(a + b + x);
-		if(size == 2) return std::uint16_t(a + b + x);
+		if(size == size_type::BYTE) return std::uint8_t(a + b + x);
+		if(size == size_type::WORD) return std::uint16_t(a + b + x);
 		return a + b + x;
 	}
 
-	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t add(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = add(a, b, 0, size);
 		set_carry_and_overflow_flags(a, b, 0, size, sr);
@@ -633,7 +633,7 @@ private:
 		return res;
 	}
 
-	static std::uint32_t addx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t addx(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = add(a, b, sr.X, size);
 		set_carry_and_overflow_flags(a, b, sr.X, size, sr);
@@ -643,14 +643,14 @@ private:
 		return res;
 	}
 
-	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t x, std::uint8_t size)
+	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size)
 	{
-		if(size == 1) return std::uint8_t(a - b - x);
-		if(size == 2) return std::uint16_t(a - b - x);
+		if(size == size_type::BYTE) return std::uint8_t(a - b - x);
+		if(size == size_type::WORD) return std::uint16_t(a - b - x);
 		return a - b - x;
 	}
 
-	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = sub(a, b, 0, size);
 		set_borrow_and_overflow_flags(a, b, 0, size, sr);
@@ -660,7 +660,7 @@ private:
 		return res;
 	}
 
-	static std::uint32_t subx(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t subx(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = sub(a, b, sr.X, size);
 		set_borrow_and_overflow_flags(a, b, sr.X, size, sr);
@@ -670,21 +670,21 @@ private:
 		return res;
 	}
 
-	static std::uint32_t and_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t and_op(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = a & b;
 		set_logical_flags(res, size, sr);
 		return res;
 	}
 
-	static std::uint32_t or_op(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t or_op(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = a | b;
 		set_logical_flags(res, size, sr);
 		return res;
 	}
 
-	static std::uint32_t eor(std::uint32_t a, std::uint32_t b, std::uint8_t size, status_register& sr)
+	static std::uint32_t eor(std::uint32_t a, std::uint32_t b, size_type size, status_register& sr)
 	{
 		std::uint32_t res = a ^ b;
 		set_logical_flags(res, size, sr);
@@ -692,14 +692,14 @@ private:
 	}
 
 	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
-		std::uint8_t size, status_register& sr)
+		size_type size, status_register& sr)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 		{
 			sr.V = cpu_flags::overflow_add<std::int8_t>(a, b, x);
 			sr.C = cpu_flags::carry<std::uint8_t>(a, b, x);
 		}
-		else if(size == 2)
+		else if(size == size_type::WORD)
 		{
 			sr.V = cpu_flags::overflow_add<std::int16_t>(a, b, x);
 			sr.C = cpu_flags::carry<std::uint16_t>(a, b, x);
@@ -712,14 +712,14 @@ private:
 	}
 
 	static void set_borrow_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
-		std::uint8_t size, status_register& sr)
+		size_type size, status_register& sr)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 		{
 			sr.V = cpu_flags::overflow_sub<std::int8_t>(a, b, x);
 			sr.C = cpu_flags::borrow<std::uint8_t>(a, b, x);
 		}
-		else if(size == 2)
+		else if(size == size_type::WORD)
 		{
 			sr.V = cpu_flags::overflow_sub<std::int16_t>(a, b, x);
 			sr.C = cpu_flags::borrow<std::uint16_t>(a, b, x);
@@ -731,17 +731,17 @@ private:
 		}
 	}
 
-	static void set_logical_flags(std::uint32_t res, std::uint8_t size, status_register& sr)
+	static void set_logical_flags(std::uint32_t res, size_type size, status_register& sr)
 	{
 		sr.C = sr.V = 0;
 		sr.Z = res == 0;
 		sr.N = neg_flag(res, size);
 	}
 
-	static std::uint8_t neg_flag(std::uint32_t val, std::uint8_t size)
+	static std::uint8_t neg_flag(std::uint32_t val, size_type size)
 	{
-		if(size == 1) return std::int8_t(val) < 0;
-		if(size == 2) return std::int16_t(val) < 0;
+		if(size == size_type::BYTE) return std::int8_t(val) < 0;
+		if(size == size_type::WORD) return std::int16_t(val) < 0;
 		return std::int32_t(val) < 0;
 	}
 
@@ -763,36 +763,36 @@ private:
 	}
 
 public:
-	static std::uint32_t value(data_register reg, std::uint8_t size)
+	static std::uint32_t value(data_register reg, size_type size)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 			return reg.B;
-		else if(size == 2)
+		else if(size == size_type::WORD)
 			return reg.W;
 		else
 			return reg.LW;
 	}
 
-	static std::uint32_t value(address_register reg, std::uint8_t size)
+	static std::uint32_t value(address_register reg, size_type size)
 	{
-		if(size == 2)
+		if(size == size_type::WORD)
 			return reg.W;
-		else if(size == 4)
+		else if(size == size_type::LONG)
 			return reg.LW;
 
 		throw internal_error();
 	}
 
-	static std::uint32_t value(std::uint32_t val, std::uint8_t size)
+	static std::uint32_t value(std::uint32_t val, size_type size)
 	{
-		if(size == 1)
+		if(size == size_type::BYTE)
 			return val & 0xFF;
-		if (size == 2)
+		if (size == size_type::WORD)
 			return val & 0xFFFF;
 		return val;
 	}
 
-	static std::uint32_t value(operand& op, std::uint8_t size)
+	static std::uint32_t value(operand& op, size_type size)
 	{
 		if(op.is_imm()) return value(op.imm(), size);
 		if(op.is_pointer()) return value(op.pointer().value(), size);

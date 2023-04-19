@@ -392,7 +392,7 @@ private:
 				res = operations::alu(curr_inst, dest, src, size, regs.flags);
 				store(dest, size, res);
 				scheduler.prefetch_one();
-				if(size == 4) scheduler.wait(4);
+				if(size == size_type::LONG) scheduler.wait(4);
 				return exec_state::done;
 			}
 
@@ -421,7 +421,7 @@ private:
 			else
 			{
 				scheduler.prefetch_one();
-				scheduler.write(regs.A(dest_reg).LW, res, (size_type)size);
+				scheduler.write(regs.A(dest_reg).LW, res, size);
 			}
 			return exec_state::done;
 
@@ -474,7 +474,7 @@ private:
 		{
 			auto src_op = dec.result();
 			res = operations::alu(curr_inst, src_op, size, regs.flags);
-			return decode_move_and_write(src_op, res, (size_type)size);
+			return decode_move_and_write(src_op, res, size);
 		}
 
 		default: throw internal_error();
@@ -499,7 +499,7 @@ private:
 				if(op.is_pointer())
 				{
 					std::uint32_t addr = op.pointer().address;
-					scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+					scheduler.write(addr, this->res, this->size, order::msw_first);
 				}
 				else
 				{
@@ -584,7 +584,7 @@ private:
 					scheduler.call([this]()
 					{
 						addr = addr | (regs.IRC & 0xFFFF);
-						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+						scheduler.write(addr, this->res, this->size, order::msw_first);
 						scheduler.prefetch_irc();
 						scheduler.prefetch_one();
 					});
@@ -595,7 +595,7 @@ private:
 					{
 						addr = addr | (regs.IRC & 0xFFFF);
 						scheduler.prefetch_irc();
-						scheduler.write(addr, this->res, (size_type)this->size, order::msw_first);
+						scheduler.write(addr, this->res, this->size, order::msw_first);
 						scheduler.prefetch_one();
 					});
 				}
@@ -708,7 +708,7 @@ private:
 				data = regs.D(reg).LW;
 			}
 
-			scheduler.write(start_addr, data, (size_type)size, order);
+			scheduler.write(start_addr, data, size, order);
 			start_addr += offset;
 		}
 
@@ -775,7 +775,7 @@ private:
 			if(((reg_mask >> i) & 1) == 0)
 				continue;
 
-			scheduler.read(start_addr, (size_type)size, [this](std::uint32_t data, size_type size)
+			scheduler.read(start_addr, size, [this](std::uint32_t data, size_type size)
 			{
 				move_to_register(data, size);
 			});
@@ -1019,11 +1019,11 @@ private:
 		bool is_left_shift = bit_is_set(opcode, 8) == 1;
 		
 		// std::cout << "Shifting " << (int)reg.B << " by " << (int)shift_count << std::endl;
-		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, (size_type)size, regs.flags);
+		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, size, regs.flags);
 		store(reg, size, res);
 
 		scheduler.prefetch_one();
-		scheduler.wait(timings::reg_shift(shift_count, (size_type)size));
+		scheduler.wait(timings::reg_shift(shift_count, size));
 		return exec_state::done;
 	}
 
@@ -1062,7 +1062,7 @@ private:
 		{
 			auto op = dec.result();
 
-			operations::tst(op, (size_type)size, regs.flags);
+			operations::tst(op, size, regs.flags);
 			scheduler.prefetch_one();
 
 			return exec_state::done;
@@ -1161,7 +1161,7 @@ private:
 	}
 
 	// save the result (write to register or to memory), do prefetch
-	void schedule_prefetch_and_write(operand& op, std::uint32_t res, std::uint8_t size)
+	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
 	{
 		scheduler.prefetch_one();
 		if(!op.is_pointer())
@@ -1170,12 +1170,12 @@ private:
 		}
 		else
 		{
-			scheduler.write(op.pointer().address, res, (size_type)size);
+			scheduler.write(op.pointer().address, res, size);
 		}
 	}
 
 private:
-	void store(data_register& d, std::uint8_t size, std::uint32_t res)
+	void store(data_register& d, size_type size, std::uint32_t res)
 	{
 		if(size == size_type::BYTE)
 		{
@@ -1196,7 +1196,7 @@ private:
 		a.LW = res;
 	}
 
-	void store(operand& op, std::uint8_t size, std::uint32_t res)
+	void store(operand& op, size_type size, std::uint32_t res)
 	{
 		if(size == size_type::BYTE)
 		{
@@ -1283,7 +1283,7 @@ private:
 	// some helper variables
 	std::uint32_t res = 0;
 	std::uint32_t addr = 0;
-	std::uint8_t size = 0;
+	size_type size;
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
 	std::uint16_t move_reg_mask;

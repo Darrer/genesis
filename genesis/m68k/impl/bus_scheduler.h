@@ -13,14 +13,6 @@
 namespace genesis::m68k
 {
 
-// TODO: move away
-enum /*class*/ size_type : std::uint8_t
-{
-	BYTE = 1,
-	WORD = 2,
-	LONG = 4,
-};
-
 enum class order : std::uint8_t
 {
 	lsw_first, // least significant word first

@@ -36,9 +36,9 @@ protected:
 protected:
 	/* interface for sub classes */
 
-	void read(std::uint32_t addr, std::uint8_t size);
-	void dec_and_read(std::uint8_t addr_reg, std::uint8_t size);
-	void read_imm(std::uint8_t size);
+	void read(std::uint32_t addr, size_type size);
+	void dec_and_read(std::uint8_t addr_reg, size_type size);
+	void read_imm(size_type size);
 
 private:
 	void executing();

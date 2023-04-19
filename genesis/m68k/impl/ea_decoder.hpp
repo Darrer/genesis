@@ -50,10 +50,10 @@ public:
 	};
 
 public:
-	operand(address_register& _addr_reg, std::uint8_t size) : _addr_reg(_addr_reg), _size(size) { }
-	operand(data_register& _data_reg, std::uint8_t size) : _data_reg(_data_reg), _size(size) { }
-	operand(std::uint32_t _imm, std::uint8_t size) : _imm(_imm), _size(size) { }
-	operand(raw_pointer ptr, std::uint8_t size) : _ptr(ptr), _size(size) { }
+	operand(address_register& _addr_reg, size_type size) : _addr_reg(_addr_reg), _size(size) { }
+	operand(data_register& _data_reg, size_type size) : _data_reg(_data_reg), _size(size) { }
+	operand(std::uint32_t _imm, size_type size) : _imm(_imm), _size(size) { }
+	operand(raw_pointer ptr, size_type size) : _ptr(ptr), _size(size) { }
 
 	bool is_addr_reg() const { return _addr_reg.has_value(); }
 	bool is_data_reg() const { return _data_reg.has_value(); }
@@ -88,13 +88,13 @@ public:
 		return _ptr.value();
 	}
 
-	std::uint8_t size() const
+	size_type size() const
 	{
 		return _size;
 	}
 
 private:
-	std::uint8_t _size;
+	size_type _size;
 	std::optional<std::reference_wrapper<address_register>> _addr_reg;
 	std::optional<std::reference_wrapper<data_register>> _data_reg;
 	std::optional<std::uint32_t> _imm;
@@ -133,7 +133,7 @@ public:
 		res.reset();
 	}
 
-	void schedule_decoding(std::uint8_t ea, std::uint8_t size, flags flags = flags::none)
+	void schedule_decoding(std::uint8_t ea, size_type size, flags flags = flags::none)
 	{
 		if(!scheduler.is_idle())
 			throw internal_error();
