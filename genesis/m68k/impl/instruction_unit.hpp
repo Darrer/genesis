@@ -1131,21 +1131,12 @@ private:
 			auto op = dec.result();
 
 			std::uint32_t dest = dest_reg.LW;
-			std::uint16_t src =  operations::value(op, size_type::WORD);
+			std::uint16_t src = operations::value(op, size_type::WORD);
 
 			if(src == 0)
 			{
-				regs.flags.C = 0;
-				regs.flags.N = regs.flags.V = regs.flags.Z = 0; // undefined
+				operations::divu_zero_division(regs.flags);
 				exman.rise_division_by_zero();
-				return exec_state::done;
-			}
-
-			if(operations::chk_divu_overflow(dest, src, regs.flags))
-			{
-				// do not affect dest in case of overflow
-				scheduler.wait(timings::divu_overflow());
-				scheduler.prefetch_one();
 				return exec_state::done;
 			}
 

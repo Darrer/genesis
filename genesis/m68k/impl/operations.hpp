@@ -181,8 +181,8 @@ public:
 	template<class T1>
 	static std::uint16_t move_to_sr(T1 src)
 	{
-		const std::uint16_t mask = 0b1010011100011111; // I've got no idea why T/M bits are cleared here
-		return value(src, size_type::WORD) & mask;
+		std::uint16_t res = value(src, size_type::WORD);
+		return clear_unimplemented_flags(res);
 	}
 
 	template<class T1>
@@ -318,7 +318,7 @@ public:
 
 			val = val >> 1;
 			std::uint32_t msb_val = sr.X;
-			msb_val = msb_val << (size_raw(size) * 8 - 1);
+			msb_val = msb_val << (size_in_bytes(size) * 8 - 1);
 			val = val | msb_val;
 
 			sr.X = sr.C;
@@ -422,24 +422,11 @@ public:
 		return value(src, size_type::WORD) == 0;
 	}
 
-	template<class T1, class T2>
-	static bool chk_divu_overflow(T1 dest, T2 src, status_register& sr)
+	static void divu_zero_division(status_register& sr)
 	{
-		std::uint32_t dest_val = value(dest, size_type::LONG);
-		std::uint16_t src_val = value(src, size_type::WORD);
-
-		bool is_overflow = (dest_val >> 16) >= src_val;
-
-		// std::uint16_t remainder = dest_val % src_val;
-		// std::uint32_t quotient = (dest_val - remainder) / src_val;
-
-		// bool is_overflow = quotient > (std::uint32_t)std::numeric_limits<std::int16_t>::max();
-
-		if(is_overflow)
-			sr.V = 1;
-
 		sr.C = 0;
-		return is_overflow;
+		// these flags are undefined when zero division, but external tests expect to see 0 there
+		sr.N = sr.V = sr.Z = 0;
 	}
 
 	template<class T1, class T2>
@@ -448,12 +435,20 @@ public:
 		std::uint32_t dest_val = value(dest, size_type::LONG);
 		std::uint16_t src_val = value(src, size_type::WORD);
 
+		sr.C = 0;
+		bool is_overflow = (dest_val >> 16) >= src_val;
+		if(is_overflow)
+		{
+			sr.V = 1;
+			return dest_val;
+		}
+
 		std::uint16_t remainder = dest_val % src_val;
 		std::uint16_t quotient = (dest_val - remainder) / src_val;
 
 		std::uint32_t res = (remainder << 16) | quotient;
 
-		sr.C = sr.V = 0;
+		sr.V = 0;
 		nz_flags(quotient, size_type::WORD, sr);
 
 		return res;
@@ -769,8 +764,7 @@ public:
 			return reg.B;
 		else if(size == size_type::WORD)
 			return reg.W;
-		else
-			return reg.LW;
+		return reg.LW;
 	}
 
 	static std::uint32_t value(address_register reg, size_type size)
@@ -802,15 +796,6 @@ public:
 		throw internal_error();
 	}
 
-	static std::uint8_t size_raw(size_type size)
-	{
-		if(size == size_type::BYTE)
-			return 1;
-		if(size == size_type::WORD)
-			return 2;
-		return 4;
-	}
-
 	// return most significant bit
 	static std::uint8_t msb(std::uint32_t val, size_type size)
 	{
@@ -830,7 +815,7 @@ public:
 	static std::uint32_t min_shift_count(std::uint32_t shift_count, size_type size)
 	{
 		// shift count is rectricted by the amount of bits
-		std::uint32_t num_bits = size_raw(size) * 8;
+		std::uint32_t num_bits = size_in_bytes(size) * 8;
 		if(shift_count > num_bits)
 			return num_bits;
 		return shift_count;

@@ -154,13 +154,12 @@ public:
 		return (17 + m) * 2;
 	}
 
-	static std::uint8_t divu_overflow()
-	{
-		return 6;
-	}
-
 	static std::uint8_t divu(std::uint32_t dividend, std::uint16_t divisor)
 	{
+		bool is_overflow = (dividend >> 16) >= divisor;
+		if(is_overflow)
+			return 6;
+
 		std::uint8_t cycles = 36;
 		std::uint32_t div = divisor << 16;
 		for(int i = 0; i < 15; ++i)

@@ -1,13 +1,11 @@
 #ifndef __M68K_INSTRUCTION_TYPE_H__
 #define __M68K_INSTRUCTION_TYPE_H__
 
-#include <cstdint>
-
 
 namespace genesis::m68k
 {
 
-enum inst_type : std::uint8_t
+enum class inst_type
 {
 	NONE,
 	ADD,
