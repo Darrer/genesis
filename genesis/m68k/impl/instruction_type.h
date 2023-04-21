@@ -62,6 +62,7 @@ enum class inst_type
 	TRAP,
 	TRAPV,
 	DIVU,
+	DIVS,
 };
 
 }

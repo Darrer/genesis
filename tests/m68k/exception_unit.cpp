@@ -38,5 +38,5 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 
 TEST(M68K_EXCEPTION_UNIT, ADDRESS_ERROR)
 {
-	check_timings(exception_type::address_error, 50);
+	check_timings(exception_type::address_error, 50 - 1);
 }

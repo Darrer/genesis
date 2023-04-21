@@ -3,6 +3,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <cstdlib>
 
 #include <iostream>
 
@@ -446,7 +447,38 @@ public:
 		std::uint16_t remainder = dest_val % src_val;
 		std::uint16_t quotient = (dest_val - remainder) / src_val;
 
-		std::uint32_t res = (remainder << 16) | quotient;
+		std::uint32_t res = remainder;
+		res = res << 16;
+		res = res | quotient;
+
+		sr.V = 0;
+		nz_flags(quotient, size_type::WORD, sr);
+
+		return res;
+	}
+
+	template<class T1, class T2>
+	static std::uint32_t divs(T1 dest, T2 src, status_register& sr)
+	{
+		std::int32_t dest_val = value(dest, size_type::LONG);
+		std::int16_t src_val = std::uint16_t(value(src, size_type::WORD));
+
+		sr.C = 0;
+		std::int32_t res = dest_val/src_val;
+		bool is_overflow = res > std::numeric_limits<std::int16_t>::max()
+			|| res < std::numeric_limits<std::int16_t>::min();
+		if(is_overflow)
+		{
+			sr.V = 1;
+			return dest_val;
+		}
+
+		std::int16_t remainder = dest_val % src_val;
+		std::int16_t quotient = (dest_val - remainder) / src_val;
+
+		res = std::uint16_t(remainder);
+		res = res << 16;
+		res = res | std::uint16_t(quotient);
 
 		sr.V = 0;
 		nz_flags(quotient, size_type::WORD, sr);
@@ -507,6 +539,12 @@ public:
 		
 		case inst_type::MULS:
 			return operations::muls(a, b, sr);
+
+		case inst_type::DIVU:
+			return operations::divu(a, b, sr);
+
+		case inst_type::DIVS:
+			return operations::divs(a, b, sr);
 
 		default: throw internal_error();
 		}

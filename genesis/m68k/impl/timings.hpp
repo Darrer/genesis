@@ -2,9 +2,12 @@
 #define __M68K_TIMINGS_HPP__
 
 #include <cstdint>
+#include <cstdlib>
 #include <bit>
 #include "instruction_type.h"
 #include "ea_decoder.hpp"
+
+#include <iostream>
 
 namespace genesis::m68k
 {
@@ -188,6 +191,40 @@ public:
 		return cycles * 2;
 	}
 
+	static std::uint8_t divs(std::int32_t dividend, std::int16_t divisor)
+	{
+		std::uint8_t cycles = 4;
+
+		if(dividend < 0)
+			++cycles;
+
+		std::int32_t sdiv = dividend/divisor;
+		bool is_overflow = sdiv > std::numeric_limits<std::int16_t>::max()
+			|| sdiv < std::numeric_limits<std::int16_t>::min();
+
+		if(is_overflow)
+			return (cycles + 2) * 2;
+
+		cycles += 55;
+		if(divisor >= 0)
+		{
+			if(dividend >= 0)
+				--cycles;
+			else
+				++cycles;
+		}
+
+		std::uint32_t div = std::abs(dividend) / std::abs(divisor);
+		for(int i = 0; i < 15; ++i)
+		{
+			if(std::int16_t(div) >= 0)
+				++cycles;
+			div = div << 1;
+		}
+
+		return cycles * 2;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
@@ -260,6 +297,20 @@ public:
 
 		case inst_type::MULS:
 			return muls(src);
+
+		default: throw internal_error();
+		}
+	}
+
+	static std::uint8_t div(inst_type inst, std::uint32_t dividend, std::uint16_t divisor)
+	{
+		switch (inst)
+		{
+		case inst_type::DIVU:
+			return divu(dividend, divisor);
+
+		case inst_type::DIVS:
+			return divs(dividend, divisor);
 
 		default: throw internal_error();
 		}

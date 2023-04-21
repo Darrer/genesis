@@ -185,6 +185,7 @@ private:
 			return trapv_handler();
 
 		case inst_type::DIVU:
+		case inst_type::DIVS:
 			return div_handler();
 
 		default: throw internal_error();
@@ -1140,8 +1141,8 @@ private:
 			}
 			else
 			{
-				dest_reg.LW = operations::divu(dest, src, regs.flags);
-				scheduler.wait(timings::divu(dest, src));
+				dest_reg.LW = operations::alu(curr_inst, dest, src, size_type::LONG, regs.flags);
+				scheduler.wait(timings::div(curr_inst, dest, src));
 				scheduler.prefetch_one();
 			}
 

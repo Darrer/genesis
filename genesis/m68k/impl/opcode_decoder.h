@@ -109,6 +109,7 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* DIVU/DIVS */
 	{ "1000___011______", inst_type::DIVU },
+	{ "1000___111______", inst_type::DIVS },
 };
 
 
