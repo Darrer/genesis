@@ -194,6 +194,9 @@ private:
 		case inst_type::EXG:
 			return exg_handler();
 
+		case inst_type::SWAP:
+			return swap_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1202,6 +1205,14 @@ private:
 
 		scheduler.prefetch_one();
 		scheduler.wait(timings::exg());
+		return exec_state::done;
+	}
+
+	exec_state swap_handler()
+	{
+		auto& reg = regs.D(opcode & 0x7);
+		reg.LW = operations::swap(reg, regs.flags);
+		scheduler.prefetch_one();
 		return exec_state::done;
 	}
 

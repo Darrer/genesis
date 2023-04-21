@@ -517,6 +517,22 @@ public:
 		b.LW = a_val;
 	}
 
+	template<class T1>
+	static std::uint32_t swap(T1 a, status_register& sr)
+	{
+		std::uint32_t val = value(a, size_type::LONG);
+
+		std::uint32_t lsw = val & 0xFFFF;
+		std::uint32_t msw = val >> 16;
+
+		std::uint32_t res = (lsw << 16) | msw;
+
+		nz_flags(res, size_type::LONG, sr);
+		sr.C = sr.V = 0;
+
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)

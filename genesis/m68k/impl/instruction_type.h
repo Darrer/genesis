@@ -65,6 +65,7 @@ enum class inst_type
 	DIVS,
 	EXT,
 	EXG,
+	SWAP,
 };
 
 }
