@@ -64,6 +64,7 @@ enum class inst_type
 	DIVU,
 	DIVS,
 	EXT,
+	EXG,
 };
 
 }

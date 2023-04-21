@@ -507,6 +507,16 @@ public:
 		return res;
 	}
 
+	template<class T1, class T2>
+	static void exg(T1& a, T2& b)
+	{
+		std::uint32_t a_val = value(a, size_type::LONG);
+		std::uint32_t b_val = value(b, size_type::LONG);
+
+		a.LW = b_val;
+		b.LW = a_val;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)

@@ -113,6 +113,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* EXT */
 	{ "010010001_000___", inst_type::EXT },
+
+	/* EXG */
+	{ "1100___1__00____", inst_type::EXG },
 };
 
 

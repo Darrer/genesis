@@ -191,6 +191,9 @@ private:
 		case inst_type::EXT:
 			return ext_handler();
 
+		case inst_type::EXG:
+			return exg_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1168,6 +1171,37 @@ private:
 		store(reg, new_size, res);
 
 		scheduler.prefetch_one();
+		return exec_state::done;
+	}
+
+	exec_state exg_handler()
+	{
+		std::uint8_t rx = (opcode >> 9) & 0x7;
+		std::uint8_t ry = opcode & 0x7;
+		std::uint8_t opmode = (opcode >> 3) & 0b11111;
+
+		if(opmode == 0b01000)
+		{
+			// data registers
+			operations::exg(regs.D(rx), regs.D(ry));
+		}
+		else if(opmode == 0b01001)
+		{
+			// address registers
+			operations::exg(regs.A(rx), regs.A(ry));
+		}
+		else if(opmode == 0b10001)
+		{
+			// data register <-> address register
+			operations::exg(regs.D(rx), regs.A(ry));
+		}
+		else
+		{
+			throw_invalid_opcode();
+		}
+
+		scheduler.prefetch_one();
+		scheduler.wait(timings::exg());
 		return exec_state::done;
 	}
 

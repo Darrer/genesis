@@ -225,6 +225,11 @@ public:
 		return cycles * 2;
 	}
 
+	static std::uint8_t exg()
+	{
+		return 2;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
