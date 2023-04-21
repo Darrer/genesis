@@ -188,6 +188,9 @@ private:
 		case inst_type::DIVS:
 			return div_handler();
 
+		case inst_type::EXT:
+			return ext_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1000,7 +1003,7 @@ private:
 
 	exec_state shift_reg_handler()
 	{
-		std::uint8_t ir = bit_is_set(opcode, 5);
+		bool ir = bit_is_set(opcode, 5);
 		std::uint8_t count_or_reg = (opcode >> 9) & 0x7;
 
 		std::uint32_t shift_count;
@@ -1017,7 +1020,7 @@ private:
 
 		size = dec_size(opcode >> 6);
 		auto& reg = regs.D(opcode & 0x7);
-		bool is_left_shift = bit_is_set(opcode, 8) == 1;
+		bool is_left_shift = bit_is_set(opcode, 8);
 		
 		// std::cout << "Shifting " << (int)reg.B << " by " << (int)shift_count << std::endl;
 		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, size, regs.flags);
@@ -1039,7 +1042,7 @@ private:
 		case 1:
 		{
 			auto op = dec.result();
-			bool is_left_shift = bit_is_set(opcode, 8) == 1;
+			bool is_left_shift = bit_is_set(opcode, 8);
 			res = operations::shift(curr_inst, op, 1, is_left_shift, size_type::WORD, regs.flags);
 			
 			schedule_prefetch_and_write(op, res, size_type::WORD);
@@ -1153,6 +1156,21 @@ private:
 		}
 	}
 
+	exec_state ext_handler()
+	{
+		auto& reg = regs.D(opcode & 0x7);
+		std::uint8_t opmode = (opcode >> 6) & 1;
+		size = bit_is_set(opcode, 6) ? size_type::WORD : size_type::BYTE;
+
+		res = operations::ext(reg, size, regs.flags);
+		size_type new_size = size == size_type::WORD ? size_type::LONG : size_type::WORD;
+
+		store(reg, new_size, res);
+
+		scheduler.prefetch_one();
+		return exec_state::done;
+	}
+
 	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
 	{
@@ -1253,9 +1271,9 @@ private:
 		return res;
 	}
 
-	static std::uint8_t bit_is_set(std::uint32_t data, std::uint8_t bit_number)
+	static bool bit_is_set(std::uint32_t data, std::uint8_t bit_number)
 	{
-		return (data >> bit_number) & 1;
+		return ((data >> bit_number) & 1) == 1;
 	}
 
 	bool in_supervisory() const

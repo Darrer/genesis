@@ -486,6 +486,27 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static std::uint32_t ext(T1 a, size_type size, status_register& sr)
+	{
+		std::uint32_t res = 0;
+		if(size == size_type::BYTE)
+		{
+			std::int8_t byte = value(a, size_type::BYTE);
+			res = std::int16_t(byte);
+			nz_flags(res, size_type::WORD, sr);
+		}
+		else
+		{
+			std::int16_t word = value(a, size_type::WORD);
+			res = std::int32_t(word);
+			nz_flags(res, size_type::LONG, sr);
+		}
+
+		sr.V = sr.C = 0;
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
