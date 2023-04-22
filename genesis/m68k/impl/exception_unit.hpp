@@ -53,6 +53,9 @@ public:
 		if(exman.is_raised(exception_type::division_by_zero))
 			return true;
 
+		if(exman.is_raised(exception_type::privilege_violations))
+			return true;
+
 		return false;
 	}
 
@@ -90,6 +93,9 @@ private:
 		case exception_type::division_by_zero:
 			return division_by_zero();
 
+		case exception_type::privilege_violations:
+			return privilege_violations();
+
 		default: throw internal_error();
 		}
 	}
@@ -118,6 +124,11 @@ private:
 		{
 			curr_ex = exception_type::division_by_zero;
 			exman.accept_division_by_zero();
+		}
+		else if(exman.is_raised(exception_type::privilege_violations))
+		{
+			curr_ex = exception_type::privilege_violations;
+			exman.accept_privilege_violations();
 		}
 		else
 		{
@@ -210,6 +221,15 @@ private:
 	{
 		scheduler.wait(8 - 1);
 		schedule_trap(regs.SPC, 5);
+		return exec_state::done;
+	}
+
+	exec_state privilege_violations()
+	{
+		throw not_implemented(); // TMP
+
+		scheduler.wait(4);
+		schedule_trap(regs.SPC, 8); 
 		return exec_state::done;
 	}
 

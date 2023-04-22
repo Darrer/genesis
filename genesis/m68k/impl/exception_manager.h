@@ -16,6 +16,7 @@ enum class exception_type : std::uint8_t
 	trap,
 	trapv,
 	division_by_zero,
+	privilege_violations,
 	count
 };
 
@@ -82,6 +83,16 @@ public:
 	void accept_division_by_zero()
 	{
 		accept(exception_type::division_by_zero);
+	}
+
+	void rise_privilege_violations()
+	{
+		rise_unsafe(exception_type::privilege_violations);
+	}
+
+	void accept_privilege_violations()
+	{
+		accept(exception_type::privilege_violations);
 	}
 
 private:

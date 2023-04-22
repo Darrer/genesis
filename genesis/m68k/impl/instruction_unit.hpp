@@ -1457,6 +1457,15 @@ private:
 		return regs.flags.S == 1;
 	}
 
+	bool check_privilege_violations()
+	{
+		if(in_supervisory())
+			return false;
+
+		exman.rise_privilege_violations();
+		return true;
+	}
+
 private:
 	m68k::ea_decoder dec;
 	exception_manager& exman;
