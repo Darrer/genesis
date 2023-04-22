@@ -70,6 +70,8 @@ enum class inst_type
 	BTSTimm,
 	BSETreg,
 	BSETimm,
+	BCLRreg,
+	BCLRimm,
 };
 
 }

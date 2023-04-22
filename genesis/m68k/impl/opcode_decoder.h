@@ -123,8 +123,12 @@ const constexpr mask_inst_pair opcodes[] =
 	/* BIT */
 	{ "0000___100______", inst_type::BTSTreg },
 	{ "0000100000______", inst_type::BTSTimm },
+
 	{ "0000___111______", inst_type::BSETreg },
 	{ "0000100011______", inst_type::BSETimm },
+
+	{ "0000___110______", inst_type::BCLRreg },
+	{ "0000100010______", inst_type::BCLRimm },
 };
 
 

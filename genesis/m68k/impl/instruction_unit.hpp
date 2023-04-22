@@ -204,9 +204,11 @@ private:
 			return btst_imm_handler();
 		
 		case inst_type::BSETreg:
-			return bset_reg_handler();
+		case inst_type::BCLRreg:
+			return bit_reg_handler();
 		case inst_type::BSETimm:
-			return bset_imm_handler();
+		case inst_type::BCLRimm:
+			return bit_imm_handler();
 
 		default: throw internal_error();
 		}
@@ -1279,7 +1281,7 @@ private:
 		}
 	}
 
-	exec_state bset_reg_handler()
+	exec_state bit_reg_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -1294,10 +1296,10 @@ private:
 			size = dec_bit_size(dest);
 			std::uint8_t bit_number = operations::bit_number(reg, dest);
 
-			res = operations::bset(reg, dest, regs.flags);
+			res = operations::bit(curr_inst, reg, dest, regs.flags);
 
 			schedule_prefetch_and_write(dest, res, size);
-			scheduler.wait(timings::bset(dest, bit_number));
+			scheduler.wait(timings::bit(curr_inst, dest, bit_number));
 
 			return exec_state::done;
 		}
@@ -1306,7 +1308,7 @@ private:
 		}
 	}
 
-	exec_state bset_imm_handler()
+	exec_state bit_imm_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -1324,9 +1326,9 @@ private:
 			size = dec_bit_size(dest);
 			std::uint8_t bit_number = operations::bit_number(imm, dest);
 
-			res = operations::bset(imm, dest, regs.flags);
+			res = operations::bit(curr_inst, imm, dest, regs.flags);
 			schedule_prefetch_and_write(dest, res, size);
-			scheduler.wait(timings::bset(dest, bit_number));
+			scheduler.wait(timings::bit(curr_inst, dest, bit_number));
 
 			return exec_state::done;
 		}

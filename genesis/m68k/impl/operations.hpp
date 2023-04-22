@@ -538,51 +538,42 @@ public:
 	{
 		if(dest.is_data_reg())
 			return value(src, size_type::LONG) % 32;
-		else
-			return value(src, size_type::BYTE) % 8;
+		return value(src, size_type::BYTE) % 8;
 	}
 
 	template<class T1>
 	static void btst(T1 src, operand dest, status_register& sr)
 	{
-		std::uint32_t bit_number = value(src, size_type::LONG);
-		std::uint32_t dest_val;
-		if(dest.is_data_reg())
-		{
-			bit_number = bit_number % 32;
-			dest_val = value(dest, size_type::LONG);
-		}
-		else
-		{
-			bit_number = bit_number % 8;
-			dest_val = value(dest, size_type::BYTE);
-		}
+		std::uint32_t bit_num = bit_number(src, dest);
+		std::uint32_t dest_val = bit_value(dest);
 
-		bool bit_is_set = (dest_val >> bit_number) & 1;
+		bool bit_is_set = (dest_val >> bit_num) & 1;
 		sr.Z = bit_is_set ? 0 : 1;
 	}
 
 	template<class T1>
 	static std::uint32_t bset(T1 src, operand dest, status_register& sr)
 	{
-		std::uint32_t bit_number = value(src, size_type::LONG);
-		std::uint32_t dest_val;
-		if(dest.is_data_reg())
-		{
-			bit_number = bit_number % 32;
-			dest_val = value(dest, size_type::LONG);
-		}
-		else
-		{
-			bit_number = bit_number % 8;
-			dest_val = value(dest, size_type::BYTE);
-		}
+		std::uint32_t bit_num = bit_number(src, dest);
+		std::uint32_t dest_val = bit_value(dest);
 
-		bool bit_is_set = (dest_val >> bit_number) & 1;
+		bool bit_is_set = (dest_val >> bit_num) & 1;
 		sr.Z = bit_is_set ? 0 : 1;
 
-		std::uint32_t res = dest_val;
-		res = res | (1 << bit_number);
+		std::uint32_t res = dest_val | (1 << bit_num);
+		return res;
+	}
+
+	template<class T1>
+	static std::uint32_t bclr(T1 src, operand dest, status_register& sr)
+	{
+		std::uint32_t bit_num = bit_number(src, dest);
+		std::uint32_t dest_val = bit_value(dest);
+
+		bool bit_is_set = (dest_val >> bit_num) & 1;
+		sr.Z = bit_is_set ? 0 : 1;
+
+		std::uint32_t res = dest_val & ~(1 << bit_num);
 		return res;
 	}
 
@@ -738,6 +729,23 @@ public:
 			if(is_left_shift)
 				return roxl(src, shift_count, size, sr);
 			return roxr(src, shift_count, size, sr);
+
+		default: throw internal_error();
+		}
+	}
+
+	template<class T1>
+	static std::uint32_t bit(inst_type inst, T1 src, operand dest, status_register& sr)
+	{
+		switch (inst)
+		{
+		case inst_type::BSETimm:
+		case inst_type::BSETreg:
+			return bset(src, dest, sr);
+
+		case inst_type::BCLRimm:
+		case inst_type::BCLRreg:
+			return bclr(src, dest, sr);
 
 		default: throw internal_error();
 		}
@@ -932,6 +940,13 @@ public:
 		if(op.is_addr_reg()) return value(op.addr_reg(), size);
 
 		throw internal_error();
+	}
+
+	static std::uint32_t bit_value(operand& dest)
+	{
+		if(dest.is_data_reg())
+			return value(dest, size_type::LONG);
+		return value(dest, size_type::BYTE);
 	}
 
 	// return most significant bit

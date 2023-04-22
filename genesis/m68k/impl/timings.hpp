@@ -256,6 +256,19 @@ public:
 		return 0;
 	}
 
+	static std::uint8_t bclr(const operand& op, std::uint8_t bit_number)
+	{
+		if(op.is_data_reg())
+			return bit_number < 16 ? 4 : 6;
+
+		// TODO: external tests expect to get this timing for imm operand
+		// howerver, it's not documented
+		if(op.is_imm())
+			return bit_number < 16 ? 4 : 6;
+
+		return 0;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
@@ -342,6 +355,22 @@ public:
 
 		case inst_type::DIVS:
 			return divs(dividend, divisor);
+
+		default: throw internal_error();
+		}
+	}
+
+	static std::uint8_t bit(inst_type inst, operand dest, std::uint8_t bit_number)
+	{
+		switch (inst)
+		{
+		case inst_type::BSETimm:
+		case inst_type::BSETreg:
+			return bset(dest, bit_number);
+
+		case inst_type::BCLRimm:
+		case inst_type::BCLRreg:
+			return bclr(dest, bit_number);
 
 		default: throw internal_error();
 		}
