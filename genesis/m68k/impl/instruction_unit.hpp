@@ -241,6 +241,7 @@ private:
 			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
 			{
 				res = operations::alu(curr_inst, reg, op, size, regs.flags);
+				// TODO: fixme
 				if(curr_inst != inst_type::CMP)
 					store(reg, size, res);
 				scheduler.prefetch_one();
@@ -307,6 +308,7 @@ private:
 
 			res = operations::alu(curr_inst, op, imm, size, regs.flags);
 
+			// TODO: fixme
 			if(curr_inst == inst_type::CMPI)
 			{
 				scheduler.prefetch_one();
@@ -341,6 +343,7 @@ private:
 			auto op = dec.result();
 
 			res = operations::alu(curr_inst, op, data, size, flags);
+			// TODO: pass regs.flags as is, just decide update it or not based on operand and instruction type
 			if(!op.is_addr_reg())
 				update_user_bits(flags);
 
@@ -367,7 +370,7 @@ private:
 			{
 				// address register
 				read(regs.A(src_reg).LW, size);
-				// FIXME: read may rise an exception, register is not inc in such a case
+				// TODO: read may rise an exception, register is not inc in such a case
 				regs.inc_addr(src_reg, size);
 				return exec_state::wait_scheduler;
 			}
@@ -542,16 +545,6 @@ private:
 
 		switch (mode)
 		{
-		// case 0b000:
-		// 	store(regs.D(dest_reg), size, res);
-		// 	scheduler.prefetch_one();
-		// 	return exec_state::done;
-		
-		// case 0b010:
-		// 	scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
-		// 	scheduler.prefetch_one();
-		// 	return exec_state::done;
-
 		case 0b011:
 			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
 			scheduler.prefetch_one();
@@ -580,31 +573,10 @@ private:
 
 			return exec_state::done;
 
-		// case 0b101:
-		// 	scheduler.prefetch_irc();
-		// 	addr = (std::int32_t)regs.A(dest_reg).LW + std::int32_t((std::int16_t)regs.IRC);
-		// 	scheduler.write(addr, res, size, order::msw_first);
-		// 	scheduler.prefetch_one();
-		// 	return exec_state::done;
-
-		// case 0b110:
-		// 	scheduler.wait(2);
-		// 	scheduler.prefetch_irc();
-		// 	addr = ea_decoder::dec_brief_reg(regs.A(dest_reg).LW, regs.IRC, regs);
-		// 	scheduler.write(addr, res, size, order::msw_first);
-		// 	scheduler.prefetch_one();
-		// 	return exec_state::done;
-
 		case 0b111:
 		{
 			switch (dest_reg)
 			{
-			// case 0b000:
-			// 	scheduler.prefetch_irc();
-			// 	scheduler.write((std::int16_t)regs.IRC, res, size, order::msw_first);
-			// 	scheduler.prefetch_one();
-			// 	return exec_state::done;
-
 			case 0b001:
 				addr = regs.IRC << 16;
 				scheduler.prefetch_irc();
@@ -655,7 +627,7 @@ private:
 		switch (exec_stage++)
 		{
 		case 0:
-			size = ((opcode >> 12) & 1) == 0 ? size_type::LONG : size_type::WORD;
+			size = bit_is_set(opcode, 12) ? size_type::WORD : size_type::LONG;
 			dest_reg = (opcode >> 9) & 0x7;
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
@@ -675,7 +647,7 @@ private:
 		switch (exec_stage++)
 		{
 		case 0:
-			size = ((opcode >> 6) & 1) == 0 ? size_type::WORD : size_type::LONG;
+			size = bit_is_set(opcode, 6) ? size_type::LONG : size_type::WORD;
 			read_imm(size_type::WORD);
 			return exec_state::wait_scheduler;
 
@@ -754,7 +726,7 @@ private:
 	void move_to_register(std::uint32_t data, size_type size)
 	{
 		if(size == size_type::WORD)
-			data = std::int32_t(std::int16_t(data & 0xFFFF));
+			data = operations::sign_extend(data);
 
 		for(; dest_reg <= 15; ++dest_reg)
 		{
@@ -833,7 +805,7 @@ private:
 		switch (exec_stage++)
 		{
 		case 0:
-			size = ((opcode >> 6) & 1) == 0 ? size_type::WORD : size_type::LONG;
+			size = bit_is_set(opcode, 6) ? size_type::LONG : size_type::WORD;
 			dest_reg = (opcode >> 9) & 0x7;
 			src_reg = opcode & 0x7;
 
@@ -843,12 +815,12 @@ private:
 		case 1:
 		{
 			addr = regs.A(src_reg).LW + operations::sign_extend(imm & 0xFFFF);
-			bool mem_to_reg = ((opcode >> 7) & 1) == 0;
-			if(mem_to_reg)
-				movep_memory_to_register();
-			else
+			bool reg_to_mem = bit_is_set(opcode, 7);
+			if(reg_to_mem)
 				movep_register_to_memory();
-			
+			else
+				movep_memory_to_register();
+
 			scheduler.prefetch_one();
 			return exec_state::done;
 		}
@@ -922,18 +894,16 @@ private:
 		switch (exec_stage++)
 		{
 		case 0:
-			if(!in_supervisory())
-				throw not_implemented();
-
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 
 		case 1:
+			if(check_privilege_violations())
+				return exec_state::done;
+
 			regs.SR = operations::move_to_sr(dec.result());
 			scheduler.wait(4);
-			regs.PC -= 2;
-			scheduler.prefetch_irc();
-			scheduler.prefetch_one();
+			scheduler.prefetch_two();
 			return exec_state::done;
 
 		default: throw internal_error();
@@ -942,8 +912,8 @@ private:
 
 	exec_state move_usp_handler()
 	{
-		if(!in_supervisory())
-			throw not_implemented();
+		if(check_privilege_violations())
+			return exec_state::done;
 		
 		std::uint8_t dr = (opcode >> 3) & 1;
 		std::uint8_t reg = opcode & 0x7;
@@ -974,9 +944,7 @@ private:
 		case 1:
 			regs.SR = operations::move_to_ccr(dec.result(), regs.SR);
 			scheduler.wait(4);
-			regs.PC -= 2;
-			scheduler.prefetch_irc();
-			scheduler.prefetch_one();
+			scheduler.prefetch_two();
 			return exec_state::done;
 
 		default: throw internal_error();
@@ -994,9 +962,7 @@ private:
 		case 1:
 			operations::alu_to_ccr(curr_inst, imm & 0xFF, regs.SR);
 			scheduler.wait(8);
-			regs.PC -= 2;
-			scheduler.prefetch_irc();
-			scheduler.prefetch_one();
+			scheduler.prefetch_two();
 			return exec_state::done;
 
 		default: throw internal_error();
@@ -1005,9 +971,6 @@ private:
 
 	exec_state alu_to_sr_handler()
 	{
-		if(!in_supervisory())
-			throw not_implemented();
-		
 		switch (exec_stage++)
 		{
 		case 0:
@@ -1015,11 +978,12 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
+			if(check_privilege_violations())
+				return exec_state::done;
+
 			operations::alu_to_sr(curr_inst, imm, regs.SR);
 			scheduler.wait(8);
-			regs.PC -= 2;
-			scheduler.prefetch_irc();
-			scheduler.prefetch_one();
+			scheduler.prefetch_two();
 			return exec_state::done;
 
 		default: throw internal_error();
@@ -1046,8 +1010,7 @@ private:
 		size = dec_size(opcode >> 6);
 		auto& reg = regs.D(opcode & 0x7);
 		bool is_left_shift = bit_is_set(opcode, 8);
-		
-		// std::cout << "Shifting " << (int)reg.B << " by " << (int)shift_count << std::endl;
+
 		res = operations::shift(curr_inst, reg, shift_count, is_left_shift, size, regs.flags);
 		store(reg, size, res);
 
@@ -1140,7 +1103,7 @@ private:
 		scheduler.prefetch_one();
 		if(regs.flags.V == 1)
 		{
-			exman.rise_trap(7);
+			exman.rise_trap(7); // TODO
 		}
 
 		return exec_state::done;
@@ -1522,7 +1485,7 @@ private:
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
 	std::uint16_t move_reg_mask;
-	status_register flags;
+	status_register flags; // TODO: we don't need it, remove
 };
 
 }
