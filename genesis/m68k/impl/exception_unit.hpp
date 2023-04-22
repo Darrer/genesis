@@ -188,7 +188,7 @@ private:
 			regs.PC = data;
 		});
 
-		scheduler.prefetch_two();
+		scheduler.prefetch_two_with_gap();
 		
 		return exec_state::done;
 	}
@@ -199,10 +199,10 @@ private:
 		status |= addr_error.func_codes & 0x7; // first 3 bits
 
 		if(addr_error.in)
-			status |= 1 << 3; // 3rd bit
+			status |= 1 << 3; // 4rd bit
 		
 		if(addr_error.rw)
-			status |= 1 << 4; // 4th bit
+			status |= 1 << 4; // 5th bit
 
 		return status;
 	}
@@ -226,7 +226,7 @@ private:
 
 	exec_state privilege_violations()
 	{
-		throw not_implemented(); // TMP
+		throw not_implemented("implemented but not tested"); // TMP
 
 		scheduler.wait(4);
 		schedule_trap(regs.SPC, 8); 
@@ -262,7 +262,7 @@ private:
 			regs.PC = data;
 		});
 
-		scheduler.prefetch_two();
+		scheduler.prefetch_two_with_gap();
 	}
 
 	static std::uint32_t vector_address(exception_type ex)

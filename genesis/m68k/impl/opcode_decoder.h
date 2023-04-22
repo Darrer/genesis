@@ -118,6 +118,7 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "1100___10100____", inst_type::EXG },
 	{ "1100___11000____", inst_type::EXG },
 
+	/* SWAP */
 	{ "0100100001000___", inst_type::SWAP },
 
 	/* BIT */
@@ -132,6 +133,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	{ "0000___101______", inst_type::BCHGreg },
 	{ "0000100001______", inst_type::BCHGimm },
+
+	/* RTE */
+	{ "0100111001110011", inst_type::RTE },
 };
 
 

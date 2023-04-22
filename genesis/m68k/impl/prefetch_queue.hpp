@@ -16,8 +16,9 @@ private:
 		IDLE,
 		FETCH_ONE,
 		FETCH_TWO,
-		FETCH_TWO_WAIT1,
-		FETCH_TWO_WAIT2,
+		FETCH_TWO_WITH_GAP,
+		FETCH_TWO_WITH_GAP_WAIT1,
+		FETCH_TWO_WITH_GAP_WAIT2,
 		FETCH_IRC
 	};
 
@@ -29,7 +30,10 @@ public:
 		return state == IDLE;
 	}
 
-	// TODO: add reset()
+	void reset()
+	{
+		state = IDLE;
+	}
 
 	// IR/IRD = IRC
 	// IRC = (regs.PC + 2)
@@ -49,6 +53,17 @@ public:
 
 		busm.init_read_word(regs.PC, addr_space::PROGRAM);
 		state = FETCH_TWO;
+	}
+
+	// IR/IRD = (regs.PC)
+	// IRC = (regs.PC + 2)
+	// add 2 wait cycles between prefetches
+	void init_fetch_two_with_gap()
+	{
+		assert_idle();
+
+		busm.init_read_word(regs.PC, addr_space::PROGRAM);
+		state = FETCH_TWO_WITH_GAP;
 	}
 
 	// IR/IRD aren't changed
@@ -78,21 +93,27 @@ public:
 			if(busm.is_idle())
 			{
 				on_read_finished();
-				state = FETCH_TWO_WAIT1;
+				busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
+				state = FETCH_ONE;
 			}
 			break;
 
-		case FETCH_TWO_WAIT1:
-			state = FETCH_TWO_WAIT2;
+		case FETCH_TWO_WITH_GAP:
+			if(busm.is_idle())
+				state = FETCH_TWO_WITH_GAP_WAIT1;
 			break;
 
-		case FETCH_TWO_WAIT2:
+		case FETCH_TWO_WITH_GAP_WAIT1:
+			state = FETCH_TWO_WITH_GAP_WAIT2;
+			break;
+
+		case FETCH_TWO_WITH_GAP_WAIT2:
+			on_read_finished();
 			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
 			state = FETCH_ONE;
 			break;
 
-		default:
-			break;
+		default: throw internal_error();
 		}
 	}
 

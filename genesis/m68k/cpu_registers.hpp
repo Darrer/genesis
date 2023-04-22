@@ -112,6 +112,7 @@ public:
 	address_register SSP;
 
 	std::uint32_t PC;
+	std::uint32_t SPC;
 
 	union {
 		std::uint16_t SR;
@@ -124,7 +125,7 @@ public:
 	std::uint16_t IRD;
 	std::uint16_t SIRD;
 
-	std::uint32_t SPC;
+	// std::uint32_t SPC;
 };
 
 } // namespace genesis::m68k

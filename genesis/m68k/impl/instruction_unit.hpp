@@ -213,6 +213,9 @@ private:
 		case inst_type::BCHGimm:
 			return bit_imm_handler();
 
+		case inst_type::RTE:
+			return rte_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1338,6 +1341,44 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	exec_state rte_handler()
+	{
+		if(check_privilege_violations())
+			return exec_state::done;
+
+		// Read PC High
+		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = data << 16;
+		});
+
+		// Read SR
+		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			res = operations::clear_unimplemented_flags(data);
+		});
+
+		// Read PC Low
+		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = regs.PC | data;
+		});
+
+		scheduler.call([this]()
+		{
+			regs.SSP.LW += 6;
+			regs.SR = res; // save it after reading PC low to generate correct func codes during reading (as S bit affectes it)
+		});
+
+		// TODO
+		scheduler.prefetch_two();
+		// regs.PC -= 2;
+		// scheduler.prefetch_irc();
+		// scheduler.prefetch_one();
+
+		return exec_state::done;
 	}
 
 	// save the result (write to register or to memory), do prefetch

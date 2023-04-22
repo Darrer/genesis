@@ -58,6 +58,7 @@ public:
 
 	void prefetch_one();
 	void prefetch_two();
+	void prefetch_two_with_gap();
 	void prefetch_irc();
 
 	void wait(std::uint16_t cycles);
@@ -77,6 +78,7 @@ private:
 		WRITE,
 		PREFETCH_ONE,
 		PREFETCH_TWO,
+		PREFETCH_TWO_WITH_GAP,
 		PREFETCH_IRC,
 		WAIT,
 		CALL,

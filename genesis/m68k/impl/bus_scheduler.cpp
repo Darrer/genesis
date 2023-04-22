@@ -39,6 +39,7 @@ bool bus_scheduler::current_op_is_over() const
 	case op_type::PREFETCH_IRC:
 	case op_type::PREFETCH_ONE:
 	case op_type::PREFETCH_TWO:
+	case op_type::PREFETCH_TWO_WITH_GAP:
 		return pq.is_idle();
 
 	case op_type::WAIT:
@@ -185,6 +186,11 @@ void bus_scheduler::prefetch_two()
 	queue.push({ op_type::PREFETCH_TWO });
 }
 
+void bus_scheduler::prefetch_two_with_gap()
+{
+	queue.push({ op_type::PREFETCH_TWO_WITH_GAP });
+}
+
 void bus_scheduler::prefetch_irc()
 {
 	queue.push({ op_type::PREFETCH_IRC });
@@ -271,6 +277,10 @@ void bus_scheduler::start_operation(operation op)
 
 	case op_type::PREFETCH_TWO:
 		pq.init_fetch_two();
+		break;
+
+	case op_type::PREFETCH_TWO_WITH_GAP:
+		pq.init_fetch_two_with_gap();
 		break;
 
 	case op_type::WAIT:

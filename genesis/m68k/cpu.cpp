@@ -13,7 +13,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 
 	auto abort_execution = [this]()
 	{
-		// pq->reset(); // TODO: we don't know who rised exception, so reset all components
+		pq->reset();
 		inst_unit->reset();
 		scheduler->reset();
 	};

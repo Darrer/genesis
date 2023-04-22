@@ -777,6 +777,12 @@ public:
 		return std::int32_t(std::int16_t(val));
 	}
 
+	static std::uint16_t clear_unimplemented_flags(std::uint16_t SR)
+	{
+		const std::uint16_t implemented_flags_mask = 0b1010011100011111;
+		return SR & implemented_flags_mask;
+	}
+
 private:
 	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size)
 	{
@@ -916,12 +922,6 @@ private:
 	{
 		sr.N = neg_flag(val, size);
 		sr.Z = zer_flag(val, size);
-	}
-
-	static std::uint16_t clear_unimplemented_flags(std::uint16_t SR)
-	{
-		const std::uint16_t implemented_flags_mask = 0b1010011100011111;
-		return SR & implemented_flags_mask;
 	}
 
 public:

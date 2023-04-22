@@ -74,6 +74,7 @@ enum class inst_type
 	BCLRimm,
 	BCHGreg,
 	BCHGimm,
+	RTE,
 };
 
 }
