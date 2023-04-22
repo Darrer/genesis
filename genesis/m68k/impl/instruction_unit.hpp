@@ -205,9 +205,12 @@ private:
 		
 		case inst_type::BSETreg:
 		case inst_type::BCLRreg:
+		case inst_type::BCHGreg:
 			return bit_reg_handler();
+
 		case inst_type::BSETimm:
 		case inst_type::BCLRimm:
+		case inst_type::BCHGimm:
 			return bit_imm_handler();
 
 		default: throw internal_error();

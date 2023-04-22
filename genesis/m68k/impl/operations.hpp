@@ -577,6 +577,23 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static std::uint32_t bchg(T1 src, operand dest, status_register& sr)
+	{
+		std::uint32_t bit_num = bit_number(src, dest);
+		std::uint32_t dest_val = bit_value(dest);
+
+		bool bit_is_set = (dest_val >> bit_num) & 1;
+		sr.Z = bit_is_set ? 0 : 1;
+
+		std::uint32_t res;
+		if(bit_is_set)
+			res = dest_val & ~(1 << bit_num);
+		else
+			res = dest_val | (1 << bit_num);
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
@@ -746,6 +763,10 @@ public:
 		case inst_type::BCLRimm:
 		case inst_type::BCLRreg:
 			return bclr(src, dest, sr);
+
+		case inst_type::BCHGreg:
+		case inst_type::BCHGimm:
+			return bchg(src, dest, sr);
 
 		default: throw internal_error();
 		}

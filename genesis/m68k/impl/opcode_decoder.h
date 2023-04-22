@@ -129,6 +129,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	{ "0000___110______", inst_type::BCLRreg },
 	{ "0000100010______", inst_type::BCLRimm },
+
+	{ "0000___101______", inst_type::BCHGreg },
+	{ "0000100001______", inst_type::BCHGimm },
 };
 
 
