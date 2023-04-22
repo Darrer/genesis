@@ -202,6 +202,11 @@ private:
 		
 		case inst_type::BTSTimm:
 			return btst_imm_handler();
+		
+		case inst_type::BSETreg:
+			return bset_reg_handler();
+		case inst_type::BSETimm:
+			return bset_imm_handler();
 
 		default: throw internal_error();
 		}
@@ -1274,6 +1279,62 @@ private:
 		}
 	}
 
+	exec_state bset_reg_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto& reg = regs.D((opcode >> 9) & 0x7);
+			auto dest = dec.result();
+			size = dec_bit_size(dest);
+			std::uint8_t bit_number = operations::bit_number(reg, dest);
+
+			res = operations::bset(reg, dest, regs.flags);
+
+			schedule_prefetch_and_write(dest, res, size);
+			scheduler.wait(timings::bset(dest, bit_number));
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state bset_imm_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			read_imm(size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 1:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 2:
+		{
+			auto dest = dec.result();
+			size = dec_bit_size(dest);
+			std::uint8_t bit_number = operations::bit_number(imm, dest);
+
+			res = operations::bset(imm, dest, regs.flags);
+			schedule_prefetch_and_write(dest, res, size);
+			scheduler.wait(timings::bset(dest, bit_number));
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
 	// save the result (write to register or to memory), do prefetch
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
 	{
@@ -1364,6 +1425,13 @@ private:
 		if(size == 0b10) return size_type::LONG;
 
 		throw_invalid_opcode();
+	}
+
+	size_type dec_bit_size(operand& dest)
+	{
+		if(dest.is_data_reg())
+			return size_type::LONG;
+		return size_type::BYTE;
 	}
 
 	inst_type decode_opcode(std::uint16_t opcode)

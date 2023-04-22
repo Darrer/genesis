@@ -534,6 +534,15 @@ public:
 	}
 
 	template<class T1>
+	static std::uint8_t bit_number(T1 src, operand dest)
+	{
+		if(dest.is_data_reg())
+			return value(src, size_type::LONG) % 32;
+		else
+			return value(src, size_type::BYTE) % 8;
+	}
+
+	template<class T1>
 	static void btst(T1 src, operand dest, status_register& sr)
 	{
 		std::uint32_t bit_number = value(src, size_type::LONG);
@@ -551,6 +560,30 @@ public:
 
 		bool bit_is_set = (dest_val >> bit_number) & 1;
 		sr.Z = bit_is_set ? 0 : 1;
+	}
+
+	template<class T1>
+	static std::uint32_t bset(T1 src, operand dest, status_register& sr)
+	{
+		std::uint32_t bit_number = value(src, size_type::LONG);
+		std::uint32_t dest_val;
+		if(dest.is_data_reg())
+		{
+			bit_number = bit_number % 32;
+			dest_val = value(dest, size_type::LONG);
+		}
+		else
+		{
+			bit_number = bit_number % 8;
+			dest_val = value(dest, size_type::BYTE);
+		}
+
+		bool bit_is_set = (dest_val >> bit_number) & 1;
+		sr.Z = bit_is_set ? 0 : 1;
+
+		std::uint32_t res = dest_val;
+		res = res | (1 << bit_number);
+		return res;
 	}
 
 	/* helpers */

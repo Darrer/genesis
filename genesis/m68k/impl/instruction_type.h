@@ -68,6 +68,8 @@ enum class inst_type
 	SWAP,
 	BTSTreg,
 	BTSTimm,
+	BSETreg,
+	BSETimm,
 };
 
 }
