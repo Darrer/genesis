@@ -533,6 +533,26 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static void btst(T1 src, operand dest, status_register& sr)
+	{
+		std::uint32_t bit_number = value(src, size_type::LONG);
+		std::uint32_t dest_val;
+		if(dest.is_data_reg())
+		{
+			bit_number = bit_number % 32;
+			dest_val = value(dest, size_type::LONG);
+		}
+		else
+		{
+			bit_number = bit_number % 8;
+			dest_val = value(dest, size_type::BYTE);
+		}
+
+		bool bit_is_set = (dest_val >> bit_number) & 1;
+		sr.Z = bit_is_set ? 0 : 1;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)

@@ -66,6 +66,8 @@ enum class inst_type
 	EXT,
 	EXG,
 	SWAP,
+	BTSTreg,
+	BTSTimm,
 };
 
 }

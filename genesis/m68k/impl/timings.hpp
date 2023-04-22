@@ -230,6 +230,19 @@ public:
 		return 2;
 	}
 
+	static std::uint8_t btst(const operand& op)
+	{
+		if(op.is_data_reg())
+			return 2;
+
+		// TODO: external tests expect to get this timing for imm operand
+		// howerver, it's not documented
+		if(op.is_imm())
+			return 2;
+
+		return 0;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

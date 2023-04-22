@@ -197,6 +197,12 @@ private:
 		case inst_type::SWAP:
 			return swap_handler();
 
+		case inst_type::BTSTreg:
+			return btst_reg_handler();
+		
+		case inst_type::BTSTimm:
+			return btst_imm_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1214,6 +1220,58 @@ private:
 		reg.LW = operations::swap(reg, regs.flags);
 		scheduler.prefetch_one();
 		return exec_state::done;
+	}
+
+	exec_state btst_reg_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto& reg = regs.D((opcode >> 9) & 0x7);
+			auto dest = dec.result();
+
+			operations::btst(reg, dest, regs.flags);
+
+			scheduler.prefetch_one();
+			scheduler.wait(timings::btst(dest));
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state btst_imm_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			read_imm(size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 1:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 2:
+		{
+			auto dest = dec.result();
+
+			operations::btst(imm, dest, regs.flags);
+			scheduler.prefetch_one();
+			scheduler.wait(timings::btst(dest));
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
 	}
 
 	// save the result (write to register or to memory), do prefetch
