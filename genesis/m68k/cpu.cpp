@@ -10,6 +10,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 	busm = std::make_unique<m68k::bus_manager>(_bus, regs, *mem, exman);
 	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
 	scheduler = std::make_unique<m68k::bus_scheduler>(regs, *busm, *pq);
+	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, *scheduler);
 
 	auto abort_execution = [this]()
 	{
@@ -18,8 +19,6 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 		scheduler->reset();
 	};
 	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *scheduler, abort_execution);
-
-	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, *scheduler);
 }
 
 cpu::~cpu()
@@ -47,6 +46,7 @@ void cpu::cycle()
 	excp_unit->post_cycle();
 	inst_unit->post_cycle();
 
+	// TODO: should we start executing any exceptoins now or only from 0 group?
 	// if exception of group 0 rised - do cycle now
 	if(!exception_cycle && excp_unit->has_work())
 		excp_unit->cycle();

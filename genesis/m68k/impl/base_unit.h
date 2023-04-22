@@ -4,7 +4,6 @@
 #include <cstdint>
 
 #include "m68k/cpu_registers.hpp"
-#include "bus_manager.hpp"
 #include "bus_scheduler.h"
 
 
@@ -14,7 +13,7 @@ namespace genesis::m68k
 class base_unit
 {
 protected:
-	enum class exec_state : std::uint8_t
+	enum class exec_state
 	{
 		done,
 		wait_scheduler,

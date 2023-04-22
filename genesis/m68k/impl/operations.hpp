@@ -155,9 +155,8 @@ public:
 	static std::uint32_t not_op(T1 a, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(~value(a, size), size);
-		sr.N = neg_flag(res, size);
+		set_nz_flags(res, size, sr);
 		sr.V = sr.C = 0;
-		sr.Z = res == 0;
 		return res;
 	}
 
@@ -165,8 +164,7 @@ public:
 	static std::uint32_t move(T1 src, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(src, size);
-		sr.N = neg_flag(res, size);
-		sr.Z = res == 0;
+		set_nz_flags(res, size, sr);
 		sr.V = sr.C = 0;
 		return res;
 	}
@@ -208,8 +206,7 @@ public:
 		}
 
 		val = value(val, size);
-		sr.N = neg_flag(val, size);
-		sr.Z = val == 0;
+		set_nz_flags(val, size, sr);
 
 		return val;
 	}
@@ -238,8 +235,7 @@ public:
 		}
 
 		val = value(val, size);
-		sr.N = neg_flag(val, size);
-		sr.Z = val == 0;
+		set_nz_flags(val, size, sr);
 
 		return val;
 	}
@@ -258,8 +254,7 @@ public:
 			val = std::rotl(val, shift_count);
 
 		sr.C = shift_count == 0 ? 0 : lsb(val);
-		sr.N = neg_flag(val, size);
-		sr.Z = val == 0;
+		set_nz_flags(val, size, sr);
 		sr.V = 0;
 		return val;
 	}
@@ -278,8 +273,7 @@ public:
 			val = std::rotr(val, shift_count);
 
 		sr.C = shift_count == 0 ? 0 : msb(val, size);
-		sr.N = neg_flag(val, size);
-		sr.Z = val == 0;
+		set_nz_flags(val, size, sr);
 		sr.V = 0;
 		return val;
 	}
@@ -301,7 +295,7 @@ public:
 			sr.X = sr.C;
 		}
 
-		nz_flags(val, size, sr);
+		set_nz_flags(val, size, sr);
 		sr.V = 0;
 		return val;
 	}
@@ -325,7 +319,7 @@ public:
 			sr.X = sr.C;
 		}
 
-		nz_flags(val, size, sr);
+		set_nz_flags(val, size, sr);
 		sr.V = 0;
 		return val;
 	}
@@ -349,7 +343,7 @@ public:
 		val = value(val, size);
 
 		sr.V = 0;
-		nz_flags(val, size, sr);
+		set_nz_flags(val, size, sr);
 		return val;
 	}
 
@@ -372,7 +366,7 @@ public:
 		val = value(val, size);
 
 		sr.V = 0;
-		nz_flags(val, size, sr);
+		set_nz_flags(val, size, sr);
 		return val;
 	}
 
@@ -380,11 +374,11 @@ public:
 	static void tst(T1 src, size_type size, status_register& sr)
 	{
 		sr.V = sr.C = 0;
-		nz_flags(value(src, size), size, sr);
+		set_nz_flags(value(src, size), size, sr);
 	}
 
 	template<class T1>
-	static std::uint32_t clr(T1 /* src */, size_type size, status_register& sr)
+	static std::uint32_t clr(T1 /* src */, size_type, status_register& sr)
 	{
 		sr.N = sr.V = sr.C = 0;
 		sr.Z = 1;
@@ -399,7 +393,7 @@ public:
 		std::uint32_t res = a_val * b_val;
 
 		sr.V = sr.C = 0;
-		nz_flags(res, size_type::LONG, sr);
+		set_nz_flags(res, size_type::LONG, sr);
 
 		return res;
 	}
@@ -412,21 +406,15 @@ public:
 		std::int32_t res = a_val * b_val;
 
 		sr.V = sr.C = 0;
-		nz_flags(res, size_type::LONG, sr);
+		set_nz_flags(res, size_type::LONG, sr);
 
 		return res;
-	}
-
-	template<class T1>
-	static bool is_zero_devision(T1 src)
-	{
-		return value(src, size_type::WORD) == 0;
 	}
 
 	static void divu_zero_division(status_register& sr)
 	{
 		sr.C = 0;
-		// these flags are undefined when zero division, but external tests expect to see 0 there
+		// NOTE: these flags are undefined when zero division, but external tests expect to see 0 there
 		sr.N = sr.V = sr.Z = 0;
 	}
 
@@ -452,7 +440,7 @@ public:
 		res = res | quotient;
 
 		sr.V = 0;
-		nz_flags(quotient, size_type::WORD, sr);
+		set_nz_flags(quotient, size_type::WORD, sr);
 
 		return res;
 	}
@@ -481,7 +469,7 @@ public:
 		res = res | std::uint16_t(quotient);
 
 		sr.V = 0;
-		nz_flags(quotient, size_type::WORD, sr);
+		set_nz_flags(quotient, size_type::WORD, sr);
 
 		return res;
 	}
@@ -494,13 +482,13 @@ public:
 		{
 			std::int8_t byte = value(a, size_type::BYTE);
 			res = std::int16_t(byte);
-			nz_flags(res, size_type::WORD, sr);
+			set_nz_flags(res, size_type::WORD, sr);
 		}
 		else
 		{
 			std::int16_t word = value(a, size_type::WORD);
 			res = std::int32_t(word);
-			nz_flags(res, size_type::LONG, sr);
+			set_nz_flags(res, size_type::LONG, sr);
 		}
 
 		sr.V = sr.C = 0;
@@ -527,7 +515,7 @@ public:
 
 		std::uint32_t res = (lsw << 16) | msw;
 
-		nz_flags(res, size_type::LONG, sr);
+		set_nz_flags(res, size_type::LONG, sr);
 		sr.C = sr.V = 0;
 
 		return res;
@@ -796,8 +784,7 @@ private:
 		std::uint32_t res = add(a, b, 0, size);
 		set_carry_and_overflow_flags(a, b, 0, size, sr);
 		sr.X = sr.C;
-		sr.Z = res == 0;
-		sr.N = neg_flag(res, size);
+		set_nz_flags(res, size, sr);
 		return res;
 	}
 
@@ -823,8 +810,7 @@ private:
 		std::uint32_t res = sub(a, b, 0, size);
 		set_borrow_and_overflow_flags(a, b, 0, size, sr);
 		sr.X = sr.C;
-		sr.Z = res == 0;
-		sr.N = neg_flag(res, size);
+		set_nz_flags(res, size, sr);
 		return res;
 	}
 
@@ -902,8 +888,7 @@ private:
 	static void set_logical_flags(std::uint32_t res, size_type size, status_register& sr)
 	{
 		sr.C = sr.V = 0;
-		sr.Z = res == 0;
-		sr.N = neg_flag(res, size);
+		set_nz_flags(res, size, sr);
 	}
 
 	static std::uint8_t neg_flag(std::uint32_t val, size_type size)
@@ -918,7 +903,7 @@ private:
 		return value(val, size) == 0;
 	}
 
-	static void nz_flags(std::uint32_t val, size_type size, status_register& sr)
+	static void set_nz_flags(std::uint32_t val, size_type size, status_register& sr)
 	{
 		sr.N = neg_flag(val, size);
 		sr.Z = zer_flag(val, size);
@@ -984,15 +969,6 @@ public:
 	static std::uint8_t lsb(std::uint32_t val)
 	{
 		return val & 1;
-	}
-
-	static std::uint32_t min_shift_count(std::uint32_t shift_count, size_type size)
-	{
-		// shift count is rectricted by the amount of bits
-		std::uint32_t num_bits = size_in_bytes(size) * 8;
-		if(shift_count > num_bits)
-			return num_bits;
-		return shift_count;
 	}
 };
 

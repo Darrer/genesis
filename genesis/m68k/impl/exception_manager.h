@@ -8,7 +8,7 @@
 namespace genesis::m68k
 {
 
-enum class exception_type : std::uint8_t
+enum class exception_type
 {
 	none,
 	address_error,
@@ -41,7 +41,7 @@ public:
 
 	void rise_address_error(address_error _addr_error)
 	{
-		rise_unsafe(exception_type::address_error);
+		rise(exception_type::address_error);
 		addr_error = _addr_error;
 	}
 
@@ -53,7 +53,7 @@ public:
 
 	void rise_bus_error(bus_error _addr_error)
 	{
-		rise_unsafe(exception_type::bus_error);
+		rise(exception_type::bus_error);
 		addr_error = _addr_error;
 	}
 
@@ -65,7 +65,7 @@ public:
 
 	void rise_trap(std::uint8_t vector)
 	{
-		rise_unsafe(exception_type::trap);
+		rise(exception_type::trap);
 		trap_vector = vector;
 	}
 
@@ -77,7 +77,7 @@ public:
 
 	void rise_division_by_zero()
 	{
-		rise_unsafe(exception_type::division_by_zero);
+		rise(exception_type::division_by_zero);
 	}
 
 	void accept_division_by_zero()
@@ -87,7 +87,7 @@ public:
 
 	void rise_privilege_violations()
 	{
-		rise_unsafe(exception_type::privilege_violations);
+		rise(exception_type::privilege_violations);
 	}
 
 	void accept_privilege_violations()
@@ -98,17 +98,8 @@ public:
 private:
 	void rise(exception_type ex)
 	{
-		if(ex == exception_type::address_error)
-			throw internal_error("rise_address_error should be used to rise address error");
-
-		rise_unsafe(ex);
-	}
-
-	void rise_unsafe(exception_type ex)
-	{
-		// mulltiple exception of the same type are not allowed
 		if(is_raised(ex))
-			throw internal_error();
+			throw not_implemented("multiple exceptions of the same type are not allowed yet");
 
 		exps.set(static_cast<std::uint8_t>(ex), true);
 	}

@@ -7,7 +7,6 @@
 #include "instruction_type.h"
 #include "ea_decoder.hpp"
 
-#include <iostream>
 
 namespace genesis::m68k
 {

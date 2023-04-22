@@ -1369,19 +1369,15 @@ private:
 		scheduler.call([this]()
 		{
 			regs.SSP.LW += 6;
-			regs.SR = res; // save it after reading PC low to generate correct func codes during reading (as S bit affectes it)
+			regs.SR = res; // save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
 		});
 
-		// TODO
 		scheduler.prefetch_two();
-		// regs.PC -= 2;
-		// scheduler.prefetch_irc();
-		// scheduler.prefetch_one();
-
 		return exec_state::done;
 	}
 
-	// save the result (write to register or to memory), do prefetch
+	// Do prefetch one
+	// Write the result to register or memory
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
 	{
 		scheduler.prefetch_one();
@@ -1500,11 +1496,13 @@ private:
 
 	bool check_privilege_violations()
 	{
-		if(in_supervisory())
-			return false;
+		if(!in_supervisory())
+		{
+			exman.rise_privilege_violations();
+			return true;
+		}
 
-		exman.rise_privilege_violations();
-		return true;
+		return false;
 	}
 
 private:

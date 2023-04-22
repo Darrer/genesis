@@ -6,6 +6,7 @@
 #include <optional>
 #include <functional>
 
+#include "m68k/cpu_registers.hpp"
 #include "prefetch_queue.hpp"
 #include "bus_manager.hpp"
 

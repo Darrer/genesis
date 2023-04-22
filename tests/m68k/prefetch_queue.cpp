@@ -2,8 +2,6 @@
 
 #include "test_cpu.hpp"
 #include "m68k/impl/prefetch_queue.hpp"
-// #include "m68k/impl/bus_manager.hpp"
-// #include "m68k/cpu_registers.hpp"
 
 
 using namespace genesis;
@@ -106,6 +104,26 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
 
 	auto actual_fetch_cycles = fetch_two(pq, busm);
 
+	ASSERT_EQ(expected_fetch_cycles * 2, actual_fetch_cycles);
+	ASSERT_EQ(0x100, regs.PC);
+	ASSERT_EQ(val, regs.IRD);
+	ASSERT_EQ(val, regs.IR);
+	ASSERT_EQ(val2, regs.IRC);
+}
+
+TEST(M68K_PREFETCH_QUEUE, FETCH_TWO_WITH_GAP)
+{
+	setup_test();
+
+	regs.PC = 0x100;
+	std::uint16_t val = 42240;
+	std::uint16_t val2 = 11666;
+	mem.write(regs.PC, val);
+	mem.write(regs.PC + 2, val2);
+
+	pq.init_fetch_two_with_gap();
+	auto actual_fetch_cycles = wait_idle(pq, busm);
+
 	// assume 2 idle cycles between fetches
 	ASSERT_EQ(expected_fetch_cycles * 2 + 2, actual_fetch_cycles);
 	ASSERT_EQ(0x100, regs.PC);
@@ -122,5 +140,6 @@ TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 
 	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_two(), std::runtime_error);
+	ASSERT_THROW(pq.init_fetch_two_with_gap(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_irc(), std::runtime_error);
 }

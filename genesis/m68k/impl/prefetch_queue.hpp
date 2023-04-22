@@ -11,7 +11,7 @@ namespace genesis::m68k
 class prefetch_queue
 {
 private:
-	enum fetch_state : std::uint8_t
+	enum class fetch_state
 	{
 		IDLE,
 		FETCH_ONE,
@@ -27,12 +27,12 @@ public:
 
 	bool is_idle() const
 	{
-		return state == IDLE;
+		return state == fetch_state::IDLE;
 	}
 
 	void reset()
 	{
-		state = IDLE;
+		state = fetch_state::IDLE;
 	}
 
 	// IR/IRD = IRC
@@ -42,7 +42,7 @@ public:
 		assert_idle();
 
 		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
-		state = FETCH_ONE;
+		state = fetch_state::FETCH_ONE;
 	}
 
 	// IR/IRD = (regs.PC)
@@ -52,7 +52,7 @@ public:
 		assert_idle();
 
 		busm.init_read_word(regs.PC, addr_space::PROGRAM);
-		state = FETCH_TWO;
+		state = fetch_state::FETCH_TWO;
 	}
 
 	// IR/IRD = (regs.PC)
@@ -63,7 +63,7 @@ public:
 		assert_idle();
 
 		busm.init_read_word(regs.PC, addr_space::PROGRAM);
-		state = FETCH_TWO_WITH_GAP;
+		state = fetch_state::FETCH_TWO_WITH_GAP;
 	}
 
 	// IR/IRD aren't changed
@@ -73,44 +73,46 @@ public:
 		assert_idle();
 
 		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
-		state = FETCH_IRC;
+		state = fetch_state::FETCH_IRC;
 	}
 
 	void cycle()
 	{
 		switch (state)
 		{
-		case IDLE:
+		case fetch_state::IDLE:
 			break;
 		
-		case FETCH_ONE:
-		case FETCH_IRC:
+		case fetch_state::FETCH_ONE:
+		case fetch_state::FETCH_IRC:
 			if(busm.is_idle())
 				on_complete();
 			break;
 
-		case FETCH_TWO:
+		case fetch_state::FETCH_TWO:
 			if(busm.is_idle())
 			{
 				on_read_finished();
 				busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
-				state = FETCH_ONE;
+				state = fetch_state::FETCH_ONE;
 			}
 			break;
 
-		case FETCH_TWO_WITH_GAP:
+		case fetch_state::FETCH_TWO_WITH_GAP:
 			if(busm.is_idle())
-				state = FETCH_TWO_WITH_GAP_WAIT1;
+			{
+				on_read_finished();
+				state = fetch_state::FETCH_TWO_WITH_GAP_WAIT1;
+			}
 			break;
 
-		case FETCH_TWO_WITH_GAP_WAIT1:
-			state = FETCH_TWO_WITH_GAP_WAIT2;
+		case fetch_state::FETCH_TWO_WITH_GAP_WAIT1:
+			state = fetch_state::FETCH_TWO_WITH_GAP_WAIT2;
 			break;
 
-		case FETCH_TWO_WITH_GAP_WAIT2:
-			on_read_finished();
+		case fetch_state::FETCH_TWO_WITH_GAP_WAIT2:
 			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [&](){ on_complete(); });
-			state = FETCH_ONE;
+			state = fetch_state::FETCH_ONE;
 			break;
 
 		default: throw internal_error();
@@ -123,21 +125,21 @@ private:
 		if(!busm.is_idle())
 			throw internal_error("prefetch_queue::on_complete internal error: bus manager must be idle");
 
-		if(state == FETCH_ONE)
+		if(state == fetch_state::FETCH_ONE)
 		{
 			on_read_finished();
 		}
-		else if(state == FETCH_IRC)
+		else if(state == fetch_state::FETCH_IRC)
 		{
 			on_read_finished(/* set only IRC */ true);
 		}
 		else
 		{
-			state = IDLE;
+			state = fetch_state::IDLE;
 			throw internal_error("prefetch_queue::on_complete internal error: unexpected state");
 		}
 
-		state = IDLE;
+		state = fetch_state::IDLE;
 	}
 
 	void on_read_finished(bool irc_only = false)
@@ -158,7 +160,7 @@ private:
 private:
 	m68k::bus_manager& busm;
 	m68k::cpu_registers& regs;
-	fetch_state state = IDLE;
+	fetch_state state = fetch_state::IDLE;
 };
 
 }
