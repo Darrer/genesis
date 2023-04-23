@@ -2,6 +2,7 @@
 #include <array>
 #include <algorithm>
 #include <string>
+#include <bit>
 
 namespace genesis::m68k
 {
@@ -29,10 +30,6 @@ constexpr bool validate_opcodes()
 			auto next_entry = *next;
 			if(entry.inst_template == next_entry.inst_template)
 				return false;
-
-			// so far also assume there should be no duplicate instructions
-			// if(entry.inst == next_entry.inst)
-			// 	return false;
 		}
 	}
 
@@ -149,14 +146,8 @@ private:
 
 	constexpr static std::uint8_t mask_length(std::uint16_t mask)
 	{
-		std::uint8_t length = 0;
-		for(int i = 0; i < sizeof(mask) * 8; ++i)
-		{
-			if((mask >> i) & 1)
-				++length;
-		}
-
-		return length;
+		std::uint8_t ones = std::popcount(mask);
+		return ones;
 	}
 };
 
@@ -165,6 +156,7 @@ const constexpr auto inst_map = opcode_builder::build_opcode_map();
 
 m68k::inst_type opcode_decoder::decode(std::uint16_t opcode)
 {
+	// TODO: doesn't linear search too slow?
 	for(auto entry : inst_map)
 	{
 		if((opcode & entry.mask) == entry.opcode)

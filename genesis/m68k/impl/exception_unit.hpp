@@ -3,6 +3,8 @@
 
 #include "base_unit.h"
 #include "exception_manager.h"
+#include "pc_corrector.hpp"
+
 
 #include "exception.hpp"
 
@@ -150,7 +152,7 @@ private:
 
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, addr_error.PC & 0xFFFF, size_type::WORD);
+		scheduler.write(regs.SSP.LW, regs.PC & 0xFFFF, size_type::WORD);
 
 		// PUSH SR
 		// note, for some reason we first push SR, then PC HIGH
@@ -162,7 +164,7 @@ private:
 
 		// PUSH PC HIGH
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, addr_error.PC >> 16, size_type::WORD);
+		scheduler.write(regs.SSP.LW, regs.PC >> 16, size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		// PUSH IRD
@@ -226,10 +228,10 @@ private:
 
 	exec_state privilege_violations()
 	{
-		throw not_implemented("implemented but not tested"); // TMP
+		throw not_implemented("implemented but not tested"); // TODO
 
 		scheduler.wait(4);
-		schedule_trap(regs.SPC, 8); 
+		schedule_trap(regs.SPC, 8);
 		return exec_state::done;
 	}
 
@@ -282,18 +284,7 @@ private:
 
 	void correct_pc()
 	{
-		bool is_move_long = (regs.SIRD >> 12) == 0b0010;
-		bool is_move_word = (regs.SIRD >> 12) == 0b0011;
-		bool write_op = !addr_error.rw;
-
-		if((is_move_long || is_move_word) && write_op)
-		{
-			std::uint8_t mode = (regs.SIRD >> 6) & 0x7;
-			if(mode == 0b100)
-			{
-				addr_error.PC += 2;
-			}
-		}
+		regs.PC = pc_corrector::correct_address_error(regs, addr_error);
 	}
 
 	void abort_execution()

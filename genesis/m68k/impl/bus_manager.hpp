@@ -326,8 +326,7 @@ private:
 	{
 		std::uint8_t func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		std::uint32_t pc = regs.PC - 2;
-		exman.rise_bus_error( { address, pc, func_codes, read_operation, false } );
+		exman.rise_bus_error( { address, func_codes, read_operation, false } );
 		reset();
 	}
 
@@ -351,8 +350,7 @@ private:
 	{
 		std::uint8_t func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		std::uint32_t pc = regs.PC - 2;
-		exman.rise_address_error( { address, pc, func_codes, read_operation, false } );
+		exman.rise_address_error( { address, func_codes, read_operation, false } );
 		reset();
 	}
 

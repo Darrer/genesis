@@ -23,7 +23,7 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 	cpu.registers().SSP.LW = 2048;
 
 	if(ex == exception_type::address_error)
-		exman.rise_address_error({ 0, 0, 0, false, false });
+		exman.rise_address_error({ 0, 0, false, false });
 	else
 		throw genesis::internal_error();
 

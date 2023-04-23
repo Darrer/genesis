@@ -112,7 +112,7 @@ public:
 	address_register SSP;
 
 	std::uint32_t PC;
-	std::uint32_t SPC;
+	std::uint32_t SPC; // contains initial PC value of instruction being executed
 
 	union {
 		std::uint16_t SR;
@@ -123,7 +123,7 @@ public:
 	std::uint16_t IRC;
 	std::uint16_t IR;
 	std::uint16_t IRD;
-	std::uint16_t SIRD;
+	std::uint16_t SIRD; // contains opcode of instruction being executed
 };
 
 } // namespace genesis::m68k

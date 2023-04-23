@@ -23,7 +23,6 @@ enum class exception_type
 struct address_error
 {
 	std::uint32_t address;
-	std::uint32_t PC;
 	std::uint8_t func_codes;
 	bool rw;
 	bool in;

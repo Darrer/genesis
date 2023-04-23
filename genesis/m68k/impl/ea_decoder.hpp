@@ -79,6 +79,7 @@ public:
 		return _ptr.value();
 	}
 
+	// TODO: nobody uses size, remove it
 	size_type size() const
 	{
 		return _size;
