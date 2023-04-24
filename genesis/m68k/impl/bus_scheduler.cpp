@@ -102,10 +102,10 @@ void bus_scheduler::read_impl(std::uint32_t addr, size_type size, on_read_comple
 	}
 }
 
-void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete)
+void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags)
 {
 	// we don't know the address yet, so schedule as is
-	read_imm_operation read { size, on_complete };
+	read_imm_operation read { size, on_complete, flags };
 	queue.emplace(op_type::READ_IMM, read);
 }
 
@@ -237,7 +237,8 @@ void bus_scheduler::start_operation(operation op)
 				read.on_complete(data, read.size);
 			}
 
-			start_operation({ op_type::PREFETCH_IRC });
+			if(read.flags == read_imm_flags::do_prefetch)
+				start_operation({ op_type::PREFETCH_IRC });
 		}
 		else
 		{
@@ -245,9 +246,13 @@ void bus_scheduler::start_operation(operation op)
 
 			auto on_read_complete = [this]()
 			{
+				bool do_prefetch = std::get<read_imm_operation>(current_op.value().op).flags == read_imm_flags::do_prefetch;
+
 				on_read_finished();
 				regs.PC += 2;
-				start_operation({ op_type::PREFETCH_IRC });
+
+				if(do_prefetch)
+					start_operation({ op_type::PREFETCH_IRC });
 			};
 
 			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, on_read_complete);

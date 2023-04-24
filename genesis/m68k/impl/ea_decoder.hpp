@@ -98,10 +98,11 @@ private:
 class ea_decoder
 {
 public:
-	enum class flags
+	enum class flags : std::uint8_t
 	{
-		none,
-		no_read,
+		none = 0,
+		no_read = 2,
+		no_prefetch = 4,
 	};
 
 public:
@@ -128,7 +129,11 @@ public:
 	void schedule_decoding(std::uint8_t ea, size_type size, flags flags = flags::none)
 	{
 		if(!scheduler.is_idle())
+		{
+			// due to scheduler restriction we cannot scheduler decoding if anything is already scheduled
+			// ('cause scheduled operation can change registers and thereby affect the result)
 			throw internal_error();
+		}
 
 		res.reset();
 		this->flags = flags;
@@ -246,7 +251,7 @@ private:
 	// Address Register Indirect with Displacement Mode
 	void decode_101(std::uint8_t reg, size_type size)
 	{
-		scheduler.prefetch_irc();
+		schedule_prefetch_irc();
 
 		std::uint32_t ptr = (std::int32_t)regs.A(reg).LW + std::int32_t((std::int16_t)regs.IRC);
 		schedule_read_and_save(ptr, size);
@@ -255,17 +260,24 @@ private:
 	// Address Register Indirect with Index (8-Bit Displacement) Mode 
 	void decode_110(std::uint8_t reg, size_type size)
 	{
-		scheduler.wait(2);
-		scheduler.prefetch_irc();
+		if(no_prefetch())
+		{
+			scheduler.wait(6); // decoding takes 6 cycles
+		}
+		else
+		{
+			scheduler.wait(2);
+			scheduler.prefetch_one();
+		}
 
-		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, regs.IRC, regs);
+		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
 	// Absolute Short Addressing Mode 
 	void decode_111_000(size_type size)
 	{
-		scheduler.prefetch_irc();
+		schedule_prefetch_irc();
 		schedule_read_and_save((std::int16_t)regs.IRC, size);
 	}
 
@@ -273,7 +285,8 @@ private:
 	void decode_111_001(size_type size)
 	{
 		this->size = size;
-		scheduler.read_imm(size_type::LONG, [this](std::uint32_t imm, size_type)
+		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
+		scheduler.read_imm(size_type::LONG, flags, [this](std::uint32_t imm, size_type)
 		{
 			schedule_read_and_save(imm, this->size);
 		});
@@ -282,7 +295,7 @@ private:
 	// Program Counter Indirect with Displacement Mode
 	void decode_111_010(size_type size)
 	{
-		scheduler.prefetch_irc();
+		schedule_prefetch_irc();
 
 		std::uint32_t ptr = regs.PC + (std::int16_t)regs.IRC;
 		schedule_read_and_save(ptr, size);
@@ -291,17 +304,25 @@ private:
 	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
 	void decode_111_011(size_type size)
 	{
-		scheduler.wait(2);
-		scheduler.prefetch_irc();
-		
-		std::uint32_t ptr = dec_brief_reg(regs.PC, regs.IRC, regs);
+		if(no_prefetch())
+		{
+			scheduler.wait(6); // decoding takes 6 cycles
+		}
+		else
+		{
+			scheduler.wait(2);
+			scheduler.prefetch_one();
+		}
+
+		std::uint32_t ptr = dec_brief_reg(regs.PC, regs);
 		schedule_read_and_save(ptr, size);
 	}
 
 	// Immediate Data 
 	void decode_111_100(size_type size)
 	{
-		scheduler.read_imm(size, [this](std::uint32_t imm, size_type size)
+		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
+		scheduler.read_imm(size, flags, [this](std::uint32_t imm, size_type size)
 		{
 			res = { imm, size };
 		});
@@ -310,9 +331,17 @@ private:
 
 private:
 	/* helper methods */
+	void schedule_prefetch_irc()
+	{
+		if(!flag_set(flags::no_prefetch))
+			scheduler.prefetch_irc();
+		else
+			scheduler.wait(2); // instead of prefetch
+	}
+
 	void schedule_read_and_save(std::uint32_t addr, size_type size)
 	{
-		if(flags == flags::no_read)
+		if(flag_set(flags::no_read))
 		{
 			res = { operand::raw_pointer(addr), size };
 		}
@@ -324,6 +353,25 @@ private:
 				res = { operand::raw_pointer(ptr, data), size };
 			});
 		}
+	}
+
+	/* flags helpers */
+	bool flag_set(flags flag) const
+	{
+		std::uint8_t raw_flag = std::uint8_t(flag);
+		std::uint8_t raw_flags = std::uint8_t(flags);
+
+		return (raw_flags & raw_flag) > 0;
+	}
+
+	bool no_prefetch() const
+	{
+		return flag_set(flags::no_prefetch);
+	}
+
+	bool no_read() const
+	{
+		return flag_set(flags::no_read);
 	}
 
 private:
@@ -343,9 +391,9 @@ private:
 	};
 
 public:
-	static std::uint32_t dec_brief_reg(std::uint32_t base, std::uint16_t irc, cpu_registers& regs)
+	static std::uint32_t dec_brief_reg(std::uint32_t base, cpu_registers& regs)
 	{
-		brief_ext ext(irc);
+		brief_ext ext(regs.IRC);
 		base += (std::int32_t)(std::int8_t)ext.displacement;
 
 		if(ext.wl)
@@ -366,6 +414,12 @@ private:
 	std::uint32_t ptr;
 	flags flags = flags::none;
 };
+
+
+constexpr enum ea_decoder::flags operator |( const enum ea_decoder::flags selfValue, const enum ea_decoder::flags inValue )
+{
+	return (enum ea_decoder::flags)(std::uint8_t(selfValue) | std::uint8_t(inValue));
+}
 
 }
 

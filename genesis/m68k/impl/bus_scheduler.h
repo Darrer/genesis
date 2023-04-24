@@ -14,10 +14,17 @@
 namespace genesis::m68k
 {
 
-enum class order : std::uint8_t
+enum class order
 {
 	lsw_first, // least significant word first
 	msw_first, // most significant word first
+};
+
+enum class read_imm_flags
+{
+	// specify whether need to prefetch IRC or not after read
+	do_prefetch,
+	no_prefetch,
 };
 
 // TODO: maybe back to scheduler?
@@ -53,6 +60,13 @@ public:
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_imm_impl(size, on_complete);
+	}
+
+	template<class Callable>
+	void read_imm(size_type size, read_imm_flags flags, Callable on_complete)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		read_imm_impl(size, on_complete, flags);
 	}
 
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
@@ -96,6 +110,7 @@ private:
 	{
 		size_type size;
 		on_read_complete on_complete;
+		read_imm_flags flags;
 	};
 
 	struct write_operation
@@ -124,8 +139,8 @@ private:
 	};
 
 private:
-	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete = nullptr);
-	void read_imm_impl(size_type size, on_read_complete on_complete = nullptr);
+	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete);
+	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
 	void call_impl(callback);
 
 	void on_read_finished();

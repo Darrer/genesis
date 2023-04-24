@@ -216,6 +216,9 @@ private:
 		case inst_type::RTE:
 			return rte_handler();
 
+		case inst_type::JMP:
+			return jmp_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1337,6 +1340,26 @@ private:
 
 		scheduler.prefetch_two();
 		return exec_state::done;
+	}
+
+	exec_state jmp_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+		{
+			auto flags = ea_decoder::flags::no_read | ea_decoder::flags::no_prefetch;
+			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, flags);
+			return exec_state::wait_scheduler;
+		}
+
+		case 1:
+			regs.PC = dec.result().pointer().address;
+			scheduler.prefetch_two();
+			return exec_state::done;
+
+		default: throw internal_error();
+		}
 	}
 
 	// Do prefetch one

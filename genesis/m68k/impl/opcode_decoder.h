@@ -136,6 +136,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* RTE */
 	{ "0100111001110011", inst_type::RTE },
+
+	/* JMP */
+	{ "0100111011______", inst_type::JMP },
 };
 
 

@@ -16,7 +16,7 @@
 namespace genesis::m68k
 {
 
-enum class addr_space : std::uint8_t
+enum class addr_space
 {
 	PROGRAM,
 	DATA,
@@ -29,7 +29,7 @@ public:
 	using on_complete = std::function<void()>;
 
 private:
-	enum bus_cycle_state : std::uint8_t
+	enum bus_cycle_state
 	{
 		IDLE,
 
@@ -350,7 +350,7 @@ private:
 	{
 		std::uint8_t func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		exman.rise_address_error( { address, func_codes, read_operation, false } );
+		exman.rise_address_error( { address, func_codes, read_operation, true } );
 		reset();
 	}
 

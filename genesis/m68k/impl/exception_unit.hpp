@@ -108,17 +108,14 @@ private:
 		{
 			curr_ex = exception_type::address_error;
 			addr_error = exman.accept_address_error();
-			abort_execution();
 		}
 		else if(exman.is_raised(exception_type::bus_error))
 		{
 			curr_ex = exception_type::bus_error;
 			addr_error = exman.accept_bus_error();
-			abort_execution();
 		}
 		else if(exman.is_raised(exception_type::trap))
 		{
-			// TODO: do we need to abort / or wait for smth?
 			curr_ex = exception_type::trap;
 			trap_vector = exman.accept_trap();
 		}
@@ -147,7 +144,9 @@ private:
 	*/
 	exec_state address_error()
 	{
+		abort_execution();
 		correct_pc();
+
 		scheduler.wait(4 - 1);
 
 		// PUSH PC LOW

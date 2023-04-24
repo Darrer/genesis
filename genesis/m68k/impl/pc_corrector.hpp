@@ -27,7 +27,7 @@ public:
 		if(is_write && is_predec_move(opcode))
 			return regs.PC;
 
-		if(is_rte(opcode))
+		if(is_rte(opcode) || is_jmp(opcode))
 			return regs.PC - 4;
 
 		return regs.PC - 2;
@@ -50,6 +50,11 @@ private:
 	static bool is_rte(std::uint16_t opcode)
 	{
 		return opcode_decoder::decode(opcode) == inst_type::RTE;
+	}
+
+	static bool is_jmp(std::uint16_t opcode)
+	{
+		return opcode_decoder::decode(opcode) == inst_type::JMP;
 	}
 };
 
