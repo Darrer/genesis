@@ -55,6 +55,8 @@ public:
 		state = fetch_state::FETCH_TWO;
 	}
 
+	// TODO: remove it
+	// TODO: add instead init_fetch_ir - to prefetch at (regs.PC)
 	// IR/IRD = (regs.PC)
 	// IRC = (regs.PC + 2)
 	// add 2 wait cycles between prefetches

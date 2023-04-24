@@ -267,7 +267,7 @@ private:
 		else
 		{
 			scheduler.wait(2);
-			scheduler.prefetch_one();
+			scheduler.prefetch_irc();
 		}
 
 		std::uint32_t ptr = dec_brief_reg(regs.A(reg).LW, regs);
@@ -311,7 +311,7 @@ private:
 		else
 		{
 			scheduler.wait(2);
-			scheduler.prefetch_one();
+			scheduler.prefetch_irc();
 		}
 
 		std::uint32_t ptr = dec_brief_reg(regs.PC, regs);
@@ -333,15 +333,15 @@ private:
 	/* helper methods */
 	void schedule_prefetch_irc()
 	{
-		if(!flag_set(flags::no_prefetch))
-			scheduler.prefetch_irc();
+		if(no_prefetch())
+			scheduler.wait(2); // 2 cycles takes to calc address
 		else
-			scheduler.wait(2); // instead of prefetch
+			scheduler.prefetch_irc();
 	}
 
 	void schedule_read_and_save(std::uint32_t addr, size_type size)
 	{
-		if(flag_set(flags::no_read))
+		if(no_read())
 		{
 			res = { operand::raw_pointer(addr), size };
 		}
