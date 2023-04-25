@@ -36,10 +36,9 @@ bool bus_scheduler::current_op_is_over() const
 	case op_type::WRITE:
 		return busm.is_idle();
 	
+	case op_type::PREFETCH_IRD:
 	case op_type::PREFETCH_IRC:
 	case op_type::PREFETCH_ONE:
-	case op_type::PREFETCH_TWO:
-	case op_type::PREFETCH_TWO_WITH_GAP:
 		return pq.is_idle();
 
 	case op_type::WAIT:
@@ -72,9 +71,6 @@ void bus_scheduler::post_cycle()
 {
 	if(!current_op_is_over())
 		return;
-
-	if(current_op.has_value() && current_op.value().type == op_type::PREFETCH_IRC)
-		regs.PC += 2;
 
 	if(!queue.empty())
 	{
@@ -176,6 +172,16 @@ void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size
 	}
 }
 
+void bus_scheduler::prefetch_ird()
+{
+	queue.push({ op_type::PREFETCH_IRD });
+}
+
+void bus_scheduler::prefetch_irc()
+{
+	queue.push({ op_type::PREFETCH_IRC });
+}
+
 void bus_scheduler::prefetch_one()
 {
 	queue.push({ op_type::PREFETCH_ONE });
@@ -183,17 +189,8 @@ void bus_scheduler::prefetch_one()
 
 void bus_scheduler::prefetch_two()
 {
-	queue.push({ op_type::PREFETCH_TWO });
-}
-
-void bus_scheduler::prefetch_two_with_gap()
-{
-	queue.push({ op_type::PREFETCH_TWO_WITH_GAP });
-}
-
-void bus_scheduler::prefetch_irc()
-{
-	queue.push({ op_type::PREFETCH_IRC });
+	prefetch_ird();
+	prefetch_irc();
 }
 
 void bus_scheduler::wait(std::uint16_t cycles)
@@ -238,7 +235,10 @@ void bus_scheduler::start_operation(operation op)
 			}
 
 			if(read.flags == read_imm_flags::do_prefetch)
+			{
 				start_operation({ op_type::PREFETCH_IRC });
+				regs.PC += 2;
+			}
 		}
 		else
 		{
@@ -252,7 +252,10 @@ void bus_scheduler::start_operation(operation op)
 				regs.PC += 2;
 
 				if(do_prefetch)
+				{
 					start_operation({ op_type::PREFETCH_IRC });
+					regs.PC += 2;
+				}
 			};
 
 			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, on_read_complete);
@@ -272,20 +275,16 @@ void bus_scheduler::start_operation(operation op)
 		break;
 	}
 
-	case op_type::PREFETCH_ONE:
-		pq.init_fetch_one();
+	case op_type::PREFETCH_IRD:
+		pq.init_fetch_ird();
 		break;
 
 	case op_type::PREFETCH_IRC:
 		pq.init_fetch_irc();
 		break;
 
-	case op_type::PREFETCH_TWO:
-		pq.init_fetch_two();
-		break;
-
-	case op_type::PREFETCH_TWO_WITH_GAP:
-		pq.init_fetch_two_with_gap();
+	case op_type::PREFETCH_ONE:
+		pq.init_fetch_one();
 		break;
 
 	case op_type::WAIT:

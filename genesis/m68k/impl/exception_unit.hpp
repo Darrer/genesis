@@ -189,7 +189,7 @@ private:
 			regs.PC = data;
 		});
 
-		scheduler.prefetch_two_with_gap();
+		schedule_prefetch_two_with_gap();
 		
 		return exec_state::done;
 	}
@@ -263,7 +263,7 @@ private:
 			regs.PC = data;
 		});
 
-		scheduler.prefetch_two_with_gap();
+		schedule_prefetch_two_with_gap();
 	}
 
 	static std::uint32_t vector_address(exception_type ex)
@@ -289,6 +289,13 @@ private:
 	void abort_execution()
 	{
 		__abort_execution();
+	}
+
+	void schedule_prefetch_two_with_gap()
+	{
+		scheduler.prefetch_ird();
+		scheduler.wait(2);
+		scheduler.prefetch_irc();
 	}
 
 private:

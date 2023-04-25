@@ -55,15 +55,15 @@ public:
 		read_impl(addr, size, on_complete);
 	}
 
-	template<class Callable>
-	void read_imm(size_type size, Callable on_complete)
+	template<class Callable = std::nullptr_t>
+	void read_imm(size_type size, Callable on_complete = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_imm_impl(size, on_complete);
 	}
 
-	template<class Callable>
-	void read_imm(size_type size, read_imm_flags flags, Callable on_complete)
+	template<class Callable = std::nullptr_t>
+	void read_imm(size_type size, read_imm_flags flags, Callable on_complete = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_imm_impl(size, on_complete, flags);
@@ -71,10 +71,10 @@ public:
 
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
+	void prefetch_ird();
+	void prefetch_irc();
 	void prefetch_one();
 	void prefetch_two();
-	void prefetch_two_with_gap();
-	void prefetch_irc();
 
 	void wait(std::uint16_t cycles);
 
@@ -91,10 +91,9 @@ private:
 		READ,
 		READ_IMM,
 		WRITE,
-		PREFETCH_ONE,
-		PREFETCH_TWO,
-		PREFETCH_TWO_WITH_GAP,
+		PREFETCH_IRD,
 		PREFETCH_IRC,
+		PREFETCH_ONE,
 		WAIT,
 		CALL,
 	};

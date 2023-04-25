@@ -582,14 +582,14 @@ private:
 			{
 			case 0b001:
 				addr = regs.IRC << 16;
-				scheduler.prefetch_irc();
+				scheduler.read_imm(size_type::WORD);
 				if(src_op.is_pointer())
 				{
 					scheduler.call([this]()
 					{
 						addr = addr | (regs.IRC & 0xFFFF);
 						scheduler.write(addr, this->res, this->size, order::msw_first);
-						scheduler.prefetch_irc();
+						scheduler.read_imm(size_type::WORD);
 						scheduler.prefetch_one();
 					});
 				}
@@ -598,7 +598,7 @@ private:
 					scheduler.call([this]()
 					{
 						addr = addr | (regs.IRC & 0xFFFF);
-						scheduler.prefetch_irc();
+						scheduler.read_imm(size_type::WORD);
 						scheduler.write(addr, this->res, this->size, order::msw_first);
 						scheduler.prefetch_one();
 					});

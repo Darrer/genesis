@@ -1,21 +1,15 @@
 #include <gtest/gtest.h>
 
 #include "test_cpu.hpp"
-#include "m68k/impl/prefetch_queue.hpp"
-
 
 using namespace genesis;
 
-#define setup_test() \
-	[[maybe_unused]] test::test_cpu cpu; \
-	[[maybe_unused]] auto& mem = cpu.memory(); \
-	[[maybe_unused]] auto& regs = cpu.registers(); \
-	[[maybe_unused]] auto& busm = cpu.bus_manager(); \
-	[[maybe_unused]] auto& pq = cpu.prefetch_queue();
 
-
-std::uint32_t wait_idle(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
+std::uint32_t wait_idle(test::test_cpu& cpu)
 {
+	m68k::prefetch_queue& pq = cpu.prefetch_queue();
+	m68k::bus_manager& busm = cpu.bus_manager();
+
 	std::uint32_t cycles = 0;
 	while (!pq.is_idle() || !busm.is_idle())
 	{
@@ -27,119 +21,107 @@ std::uint32_t wait_idle(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
 	return cycles;
 }
 
-std::uint32_t fetch_one(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
+void prepare_cpu(test::test_cpu& cpu, std::uint32_t PC, std::uint16_t IRD, std::uint16_t IRC)
 {
-	pq.init_fetch_one();
-	return wait_idle(pq, busm);
-}
+	auto& regs = cpu.registers();
 
-std::uint32_t fetch_irc(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
-{
-	pq.init_fetch_irc();
-	return wait_idle(pq, busm);
-}
+	regs.PC = PC;
+	regs.IRD = regs.IR = IRD;
+	regs.IRC = IRC;
 
-std::uint32_t fetch_two(m68k::prefetch_queue& pq, m68k::bus_manager& busm)
-{
-	pq.init_fetch_two();
-	return wait_idle(pq, busm);
+	auto& mem = cpu.memory();
+
+	mem.write(regs.PC, regs.IRD);
+	mem.write(regs.PC + 2, regs.IRC);
 }
 
 const std::uint32_t expected_fetch_cycles = 4;
 
-TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
+TEST(M68K_PREFETCH_QUEUE, FETCH_IRD)
 {
-	setup_test();
+	test::test_cpu cpu;
 
-	std::uint16_t old_irc = 42;
-	regs.IRC = old_irc;
+	std::uint16_t irc = 42;
+	std::uint16_t ird = 24;
+	std::uint32_t pc = 0x100;
+	
+	prepare_cpu(cpu, pc, ird, irc);
+	
+	auto& regs = cpu.registers();
+	regs.IR = regs.IRD = 0;
 
-	regs.PC = 0x100;
-	std::uint16_t val = 42240;
-	mem.write(regs.PC + 2, val);
+	auto& pq = cpu.prefetch_queue();
 
-	auto actual_fetch_cycles = fetch_one(pq, busm);
+	pq.init_fetch_ird();
+	auto actual_fetch_cycles = wait_idle(cpu);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
-	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, regs.IRC);
-
-	// old irc should go to IR/IRD
-	ASSERT_EQ(old_irc, regs.IR);
-	ASSERT_EQ(old_irc, regs.IRD);
+	ASSERT_EQ(pc, regs.PC);
+	ASSERT_EQ(ird, regs.IRD);
+	ASSERT_EQ(ird, regs.IR);
+	ASSERT_EQ(irc, regs.IRC);
 }
 
 TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 {
-	setup_test();
+	test::test_cpu cpu;
 
-	std::uint16_t old_ir = 24;
-	regs.IRC = 42;
-	regs.IR = regs.IRD = old_ir;
+	std::uint16_t irc = 42;
+	std::uint16_t ird = 24;
+	std::uint32_t pc = 0x100;
+	
+	prepare_cpu(cpu, pc, ird, irc);
+	
+	auto& regs = cpu.registers();
+	regs.IRC = 0;
 
-	regs.PC = 0x100;
-	std::uint16_t val = 42240;
-	mem.write(regs.PC + 2, val);
+	auto& pq = cpu.prefetch_queue();
 
-	auto actual_fetch_cycles = fetch_irc(pq, busm);
+	pq.init_fetch_irc();
+	auto actual_fetch_cycles = wait_idle(cpu);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
-	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, regs.IRC);
-
-	// these should not be changed
-	ASSERT_EQ(old_ir, regs.IR);
-	ASSERT_EQ(old_ir, regs.IRD);
+	ASSERT_EQ(pc, regs.PC);
+	ASSERT_EQ(ird, regs.IRD);
+	ASSERT_EQ(ird, regs.IR);
+	ASSERT_EQ(irc, regs.IRC);
 }
 
-TEST(M68K_PREFETCH_QUEUE, FETCH_TWO)
+TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 {
-	setup_test();
+	test::test_cpu cpu;
 
-	regs.PC = 0x100;
-	std::uint16_t val = 42240;
-	std::uint16_t val2 = 11666;
-	mem.write(regs.PC, val);
-	mem.write(regs.PC + 2, val2);
+	std::uint16_t irc = 42;
+	std::uint16_t old_irc = 88;
+	std::uint16_t ird = 24;
+	std::uint32_t pc = 0x100;
+	
+	prepare_cpu(cpu, pc, ird, irc);
+	
 
-	auto actual_fetch_cycles = fetch_two(pq, busm);
+	auto& regs = cpu.registers();
+	regs.IRC = old_irc;
 
-	ASSERT_EQ(expected_fetch_cycles * 2, actual_fetch_cycles);
-	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, regs.IRD);
-	ASSERT_EQ(val, regs.IR);
-	ASSERT_EQ(val2, regs.IRC);
-}
+	auto& pq = cpu.prefetch_queue();
 
-TEST(M68K_PREFETCH_QUEUE, FETCH_TWO_WITH_GAP)
-{
-	setup_test();
+	pq.init_fetch_one();
+	auto actual_fetch_cycles = wait_idle(cpu);
 
-	regs.PC = 0x100;
-	std::uint16_t val = 42240;
-	std::uint16_t val2 = 11666;
-	mem.write(regs.PC, val);
-	mem.write(regs.PC + 2, val2);
-
-	pq.init_fetch_two_with_gap();
-	auto actual_fetch_cycles = wait_idle(pq, busm);
-
-	// assume 2 idle cycles between fetches
-	ASSERT_EQ(expected_fetch_cycles * 2 + 2, actual_fetch_cycles);
-	ASSERT_EQ(0x100, regs.PC);
-	ASSERT_EQ(val, regs.IRD);
-	ASSERT_EQ(val, regs.IR);
-	ASSERT_EQ(val2, regs.IRC);
+	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
+	ASSERT_EQ(pc, regs.PC);
+	ASSERT_EQ(old_irc, regs.IRD);
+	ASSERT_EQ(old_irc, regs.IR);
+	ASSERT_EQ(irc, regs.IRC);
 }
 
 TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 {
-	setup_test();
+	test::test_cpu cpu;
+	auto& pq = cpu.prefetch_queue();
 
 	pq.init_fetch_one();
 
-	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
-	ASSERT_THROW(pq.init_fetch_two(), std::runtime_error);
-	ASSERT_THROW(pq.init_fetch_two_with_gap(), std::runtime_error);
+	ASSERT_THROW(pq.init_fetch_ird(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_irc(), std::runtime_error);
+	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
 }
