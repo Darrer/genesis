@@ -350,7 +350,7 @@ private:
 	{
 		std::uint8_t func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		exman.rise_address_error( { address, func_codes, read_operation, true } );
+		exman.rise_address_error( { address, func_codes, read_operation, false } );
 		reset();
 	}
 

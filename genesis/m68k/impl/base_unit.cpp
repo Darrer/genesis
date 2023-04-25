@@ -116,23 +116,19 @@ void base_unit::dec_and_read(std::uint8_t addr_reg, size_type size)
 	{
 		regs.dec_addr(addr_reg, size_type::WORD);
 
-		this->reg_to_dec = addr_reg;
-		
-		auto on_read_lsw = [this](std::uint32_t data, size_type)
+		// read LSW
+		scheduler.read(regs.A(addr_reg).LW, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
 			this->data = data;
+		});
 
-			// we cannot dec in earler due to possible exceptions
-			regs.dec_addr(reg_to_dec, size_type::WORD);
-		};
-		scheduler.read(regs.A(addr_reg).LW, size_type::WORD, on_read_lsw);
+		scheduler.dec_addr_reg(addr_reg, size_type::WORD);
 
-		auto on_read_msw = [this](std::uint32_t data, size_type)
+		// read MSW
+		scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
-			// we read MSW
 			this->data |= data << 16;
-		};
-		scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD, on_read_msw);
+		});
 	}
 }
 

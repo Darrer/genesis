@@ -58,23 +58,30 @@ void bus_scheduler::cycle()
 		return;
 	}
 	
-	run_call_operations();
+	run_imm_operations();
 
 	if(queue.empty())
 		return;
 
 	start_operation(queue.front());
+	skip_post_cycle = true;
 	queue.pop();
 }
 
 void bus_scheduler::post_cycle()
 {
+	if(skip_post_cycle)
+	{
+		skip_post_cycle = false;
+		return;
+	}
+
 	if(!current_op_is_over())
 		return;
 
 	if(!queue.empty())
 	{
-		run_call_operations();
+		run_imm_operations();
 	}
 }
 
@@ -207,6 +214,18 @@ void bus_scheduler::call_impl(callback cb)
 	queue.emplace(op_type::CALL, call_op);
 }
 
+void bus_scheduler::inc_addr_reg(std::uint8_t reg, size_type size)
+{
+	register_operation reg_op { reg, size };
+	queue.emplace(op_type::INC_ADDR, reg_op);
+}
+
+void bus_scheduler::dec_addr_reg(std::uint8_t reg, size_type size)
+{
+	register_operation reg_op { reg, size };
+	queue.emplace(op_type::DEC_ADDR, reg_op);
+}
+
 void bus_scheduler::start_operation(operation op)
 {
 	current_op = op;
@@ -298,12 +317,37 @@ void bus_scheduler::start_operation(operation op)
 	}
 }
 
-void bus_scheduler::run_call_operations()
+void bus_scheduler::run_imm_operations()
 {
-	while(!queue.empty() && queue.front().type == op_type::CALL)
+	while(!queue.empty())
 	{
-		auto call_op = std::get<call_operation>(queue.front().op);
-		call_op.cb();
+		auto type = queue.front().type;
+		switch (type)
+		{
+		case op_type::CALL:
+		{
+			auto call_op = std::get<call_operation>(queue.front().op);
+			call_op.cb();
+			break;
+		}
+
+		case op_type::INC_ADDR:
+		case op_type::DEC_ADDR:
+		{
+			auto reg_op = std::get<register_operation>(queue.front().op);
+			if(type == op_type::INC_ADDR)
+				regs.inc_addr(reg_op.reg, reg_op.size);
+			else
+				regs.dec_addr(reg_op.reg, reg_op.size);
+
+			break;
+		}
+
+		default:
+			return;
+		}
+
+
 		queue.pop();
 	}
 }

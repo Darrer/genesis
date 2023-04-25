@@ -136,9 +136,12 @@ public:
 		}
 
 		res.reset();
-		this->flags = flags;
 		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;
+
+		this->flags = flags;
+		this->size = size;
+		this->reg = reg;
 
 		schedule_decoding(mode, reg, size);
 	}
@@ -230,10 +233,14 @@ private:
 	// Address Register Indirect with Postincrement Mode
 	void decode_011(std::uint8_t reg, size_type size)
 	{
-		schedule_read_and_save(regs.A(reg).LW, size);
-		// TODO: if the above call rises exception, we may end up with incorrect reg
 		if(flags == flags::none)
-			regs.inc_addr(reg, size);
+		{
+			// TODO: by common logic it should be below read operation,
+			// however, external tests expects too see this logic
+			scheduler.inc_addr_reg(reg, size);
+		}
+
+		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
 	// Address Register Indirect with Predecrement Mode 
@@ -411,6 +418,7 @@ private:
 	std::optional<operand> res;
 
 	size_type size;
+	std::uint8_t reg;
 	std::uint32_t ptr;
 	flags flags = flags::none;
 };

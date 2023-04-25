@@ -85,6 +85,9 @@ public:
 		call_impl(cb);
 	}
 
+	void inc_addr_reg(std::uint8_t reg, size_type size);
+	void dec_addr_reg(std::uint8_t reg, size_type size);
+
 private:
 	enum class op_type : std::uint8_t
 	{
@@ -96,6 +99,8 @@ private:
 		PREFETCH_ONE,
 		WAIT,
 		CALL,
+		INC_ADDR,
+		DEC_ADDR,
 	};
 
 	struct read_operation
@@ -130,11 +135,18 @@ private:
 		callback cb;
 	};
 
+	struct register_operation
+	{
+		std::uint8_t reg;
+		size_type size;
+	};
+
 	struct operation
 	{
 		op_type type;
 		std::variant<read_operation, read_imm_operation,
-			write_operation, wait_operation, call_operation> op;
+			write_operation, wait_operation, call_operation,
+			register_operation> op;
 	};
 
 private:
@@ -145,7 +157,7 @@ private:
 	void on_read_finished();
 	bool current_op_is_over() const;
 	void start_operation(operation);
-	void run_call_operations();
+	void run_imm_operations();
 
 private:
 	m68k::cpu_registers& regs;
@@ -157,6 +169,7 @@ private:
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;
 	std::uint16_t curr_wait_cycles = 0;
+	bool skip_post_cycle = false;
 };
 
 

@@ -372,9 +372,9 @@ private:
 			if((opcode >> 3) & 1)
 			{
 				// address register
+				// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
+				scheduler.inc_addr_reg(src_reg, size); 
 				read(regs.A(src_reg).LW, size);
-				// TODO: read may rise an exception, register is not inc in such a case
-				regs.inc_addr(src_reg, size);
 				return exec_state::wait_scheduler;
 			}
 			else
@@ -390,9 +390,10 @@ private:
 
 		case 1:
 			res = data;
+
+			// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
+			scheduler.inc_addr_reg(dest_reg, size);
 			read(regs.A(dest_reg).LW, size);
-			// FIXME: read may rise an exception, register is not inc in such a case
-			regs.inc_addr(dest_reg, size);
 			return exec_state::wait_scheduler;
 
 		case 2:
@@ -551,10 +552,7 @@ private:
 		case 0b011:
 			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
 			scheduler.prefetch_one();
-			scheduler.call([this]()
-			{
-				regs.inc_addr(dest_reg, this->size);
-			});
+			scheduler.inc_addr_reg(dest_reg, size);
 			return exec_state::done;
 
 		case 0b100:
@@ -568,10 +566,7 @@ private:
 			{
 				regs.dec_addr(dest_reg, size_type::WORD);
 				scheduler.write(regs.A(dest_reg).LW - 2, res, size);
-				scheduler.call([this]()
-				{
-					regs.dec_addr(dest_reg, size_type::WORD);
-				});
+				scheduler.dec_addr_reg(dest_reg, size_type::WORD);
 			}
 
 			return exec_state::done;

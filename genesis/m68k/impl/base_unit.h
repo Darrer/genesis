@@ -51,7 +51,6 @@ protected:
 
 private:
 	std::uint8_t state;
-	std::uint8_t reg_to_dec = 0;
 };
 
 }
