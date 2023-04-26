@@ -216,6 +216,9 @@ private:
 		case inst_type::RTE:
 			return rte_handler();
 
+		case inst_type::RTR:
+			return rtr_handler();
+
 		case inst_type::JMP:
 			return jmp_handler();
 
@@ -1319,6 +1322,36 @@ private:
 		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
 			res = operations::clear_unimplemented_flags(data);
+		});
+
+		// Read PC Low
+		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = regs.PC | data;
+		});
+
+		scheduler.call([this]()
+		{
+			regs.SSP.LW += 6;
+			regs.SR = res; // save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+		});
+
+		scheduler.prefetch_two();
+		return exec_state::done;
+	}
+
+	exec_state rtr_handler()
+	{
+		// Read PC High
+		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = data << 16;
+		});
+
+		// Read CCR
+		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
+		{
+			res = operations::move_to_ccr(data, regs.SR);
 		});
 
 		// Read PC Low

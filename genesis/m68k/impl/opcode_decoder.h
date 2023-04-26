@@ -134,8 +134,9 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0000___101______", inst_type::BCHGreg },
 	{ "0000100001______", inst_type::BCHGimm },
 
-	/* RTE */
+	/* RTE/RTR/RTS */
 	{ "0100111001110011", inst_type::RTE },
+	{ "0100111001110111", inst_type::RTR },
 
 	/* JMP */
 	{ "0100111011______", inst_type::JMP },

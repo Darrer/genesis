@@ -75,6 +75,8 @@ enum class inst_type
 	BCHGreg,
 	BCHGimm,
 	RTE,
+	RTR,
+	RTS,
 	JMP,
 };
 

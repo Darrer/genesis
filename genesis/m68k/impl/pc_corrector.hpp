@@ -27,7 +27,7 @@ public:
 		if(is_write && is_predec_move(opcode))
 			return regs.PC;
 
-		if(is_rte(opcode) || is_jmp(opcode))
+		if(ex.in) // TODO: that's what external tests want
 			return regs.PC - 4;
 
 		return regs.PC - 2;
