@@ -225,6 +225,9 @@ private:
 		case inst_type::JMP:
 			return jmp_handler();
 
+		case inst_type::CHK:
+			return chk_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1401,6 +1404,39 @@ private:
 			regs.PC = dec.result().pointer().address;
 			scheduler.prefetch_two();
 			return exec_state::done;
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state chk_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+		{
+			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
+			return exec_state::wait_scheduler;
+		}
+
+		case 1:
+		{
+			std::uint8_t reg = (opcode >> 9) & 0x7;
+			auto op = dec.result();
+
+			std::uint16_t reg_val = operations::value(regs.D(reg), size_type::WORD);
+			std::uint16_t src_val = operations::value(op, size_type::WORD);
+
+			bool rise = operations::chk(src_val, reg_val, regs.flags);
+
+			scheduler.prefetch_one();
+			scheduler.wait(timings::chk(src_val, reg_val));
+
+			if(rise)
+				exman.rise_chk_instruction();
+
+			return exec_state::done;
+		}
 
 		default: throw internal_error();
 		}

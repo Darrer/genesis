@@ -141,6 +141,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* JMP */
 	{ "0100111011______", inst_type::JMP },
+
+	/* CHK */
+	{ "0100___110______", inst_type::CHK },
 };
 
 

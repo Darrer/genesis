@@ -582,6 +582,27 @@ public:
 		return res;
 	}
 
+	template<class T1, class T2>
+	static bool chk(T1 src, T2 dest, status_register& sr)
+	{
+		std::int16_t src_val = std::uint16_t(value(src, size_type::WORD));
+		std::int16_t dest_val = std::uint16_t(value(dest, size_type::WORD));
+
+		bool lz = dest_val < 0;
+		bool mu = dest_val > src_val;
+
+		if(lz)
+			sr.N = 1;
+		else if(mu)
+			sr.N = 0;
+
+		// TODO: if exception is not reised, N is undefined, external tests expect to see undefined value
+		// TODO: Z V C flags are undefined, howerver external tests expect to see 0
+		sr.Z = sr.V = sr.C = 0;
+
+		return lz || mu;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)

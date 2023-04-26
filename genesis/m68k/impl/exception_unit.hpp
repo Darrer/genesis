@@ -49,7 +49,7 @@ public:
 		if(exman.is_raised(exception_type::bus_error))
 			return true;
 
-		//
+		// TODO: wait till instruction is over
 		if(exman.is_raised(exception_type::trap))
 			return true;
 
@@ -57,6 +57,9 @@ public:
 			return true;
 
 		if(exman.is_raised(exception_type::privilege_violations))
+			return true;
+
+		if(exman.is_raised(exception_type::chk_instruction))
 			return true;
 
 		return false;
@@ -99,6 +102,9 @@ private:
 		case exception_type::privilege_violations:
 			return privilege_violations();
 
+		case exception_type::chk_instruction:
+			return chk_instruction();
+
 		default: throw internal_error();
 		}
 	}
@@ -129,6 +135,11 @@ private:
 		{
 			curr_ex = exception_type::privilege_violations;
 			exman.accept_privilege_violations();
+		}
+		else if(exman.is_raised(exception_type::chk_instruction))
+		{
+			curr_ex = exception_type::chk_instruction;
+			exman.accept_chk_instruction();
 		}
 		else
 		{
@@ -239,6 +250,14 @@ private:
 
 		scheduler.wait(4);
 		schedule_trap(regs.SPC, 8);
+		return exec_state::done;
+	}
+
+	exec_state chk_instruction()
+	{
+		scheduler.wait(4 - 1);
+
+		schedule_trap(regs.PC, 6);
 		return exec_state::done;
 	}
 

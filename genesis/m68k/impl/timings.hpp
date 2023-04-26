@@ -270,6 +270,15 @@ public:
 
 	static constexpr auto bchg = bset;
 
+	static std::uint8_t chk(std::int16_t src, std::int16_t reg)
+	{
+		if(reg > src)
+			return 0 + 1; // TODO
+		if(reg < 0)
+			return 2 + 1; // TODO
+		return 6;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

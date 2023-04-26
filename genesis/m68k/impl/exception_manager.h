@@ -17,6 +17,7 @@ enum class exception_type
 	trapv,
 	division_by_zero,
 	privilege_violations,
+	chk_instruction,
 	count
 };
 
@@ -92,6 +93,16 @@ public:
 	void accept_privilege_violations()
 	{
 		accept(exception_type::privilege_violations);
+	}
+
+	void rise_chk_instruction()
+	{
+		rise(exception_type::chk_instruction);
+	}
+
+	void accept_chk_instruction()
+	{
+		accept(exception_type::chk_instruction);
 	}
 
 private:
