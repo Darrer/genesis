@@ -219,6 +219,9 @@ private:
 		case inst_type::RTR:
 			return rtr_handler();
 
+		case inst_type::RTS:
+			return rts_handler();
+
 		case inst_type::JMP:
 			return jmp_handler();
 
@@ -1364,6 +1367,19 @@ private:
 		{
 			regs.SSP.LW += 6;
 			regs.SR = res; // save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+		});
+
+		scheduler.prefetch_two();
+		return exec_state::done;
+	}
+
+	exec_state rts_handler()
+	{
+		// Read PC
+		scheduler.read(regs.SSP.LW, size_type::LONG, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = data;
+			regs.SSP.LW += 4;
 		});
 
 		scheduler.prefetch_two();
