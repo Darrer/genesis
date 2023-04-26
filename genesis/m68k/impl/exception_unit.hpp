@@ -4,6 +4,7 @@
 #include "base_unit.h"
 #include "exception_manager.h"
 #include "pc_corrector.hpp"
+#include "prefetch_queue.hpp"
 
 
 #include "exception.hpp"
@@ -22,9 +23,9 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, m68k::bus_scheduler& scheduler,
-		std::function<void()> __abort_execution)
-		: base_unit(regs, scheduler), exman(exman), __abort_execution(__abort_execution)
+	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, prefetch_queue& pq,
+		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution)
+		: base_unit(regs, scheduler), exman(exman), pq(pq), __abort_execution(__abort_execution)
 	{
 		if(__abort_execution == nullptr)
 			throw std::invalid_argument("__abort_execution");
@@ -144,6 +145,13 @@ private:
 	*/
 	exec_state address_error()
 	{
+		if(!pq.is_idle())
+		{
+			// TODO: exception was rised by prefetch queue, in this case external tests
+			// expect to see IN bit of status word set, couldn't find this behavior documented
+			addr_error.in = true;
+		}
+
 		abort_execution();
 		correct_pc();
 
@@ -300,6 +308,7 @@ private:
 
 private:
 	m68k::exception_manager& exman;
+	prefetch_queue& pq;
 	std::function<void()> __abort_execution;
 	exception_type curr_ex;
 	ex_state state;

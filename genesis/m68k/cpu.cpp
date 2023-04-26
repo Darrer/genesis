@@ -18,7 +18,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 		inst_unit->reset();
 		scheduler->reset();
 	};
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *scheduler, abort_execution);
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, *scheduler, abort_execution);
 }
 
 cpu::~cpu()
