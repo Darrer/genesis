@@ -54,6 +54,7 @@ void cpu::cycle()
 
 bool cpu::is_idle() const
 {
+	// TODO: add exman?
 	return busm->is_idle() && pq->is_idle() && scheduler->is_idle()
 		&& inst_unit->is_idle() && excp_unit->is_idle();
 }

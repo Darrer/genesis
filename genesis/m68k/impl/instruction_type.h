@@ -79,6 +79,7 @@ enum class inst_type
 	RTS,
 	JMP,
 	CHK,
+	JSR,
 };
 
 }

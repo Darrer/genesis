@@ -228,6 +228,9 @@ private:
 		case inst_type::CHK:
 			return chk_handler();
 
+		case inst_type::JSR:
+			return jsr_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1434,6 +1437,41 @@ private:
 
 			if(rise)
 				exman.rise_chk_instruction();
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state jsr_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::LONG,
+				ea_decoder::flags::no_prefetch | ea_decoder::flags::no_read);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			std::uint8_t ea = opcode & 0b111111;
+			std::uint32_t old_pc = regs.PC;
+
+			// TODO:
+			if(ea == 0b111001)
+				old_pc += 4;
+			else if((ea >> 3) != 0b010)
+				old_pc += 2;
+
+			regs.PC = dec.result().pointer().address;
+
+			scheduler.prefetch_ird();
+			// TODO: should we pick stack based on S bit or always push to SSP?
+			scheduler.dec_addr_reg(7, size_type::LONG);
+			scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
+			scheduler.prefetch_irc();
 
 			return exec_state::done;
 		}

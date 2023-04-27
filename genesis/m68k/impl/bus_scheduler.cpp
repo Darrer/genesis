@@ -268,10 +268,9 @@ void bus_scheduler::start_operation(operation op)
 				bool do_prefetch = std::get<read_imm_operation>(current_op.value().op).flags == read_imm_flags::do_prefetch;
 
 				on_read_finished();
-				regs.PC += 2;
-
 				if(do_prefetch)
 				{
+					regs.PC += 2;
 					start_operation({ op_type::PREFETCH_IRC });
 					regs.PC += 2;
 				}
