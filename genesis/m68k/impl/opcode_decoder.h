@@ -159,6 +159,7 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* BCC */
 	{ "0110____________", inst_type::BCC },
+	{ "0101____11001___", inst_type::DBCC },
 };
 
 

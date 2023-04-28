@@ -86,6 +86,7 @@ enum class inst_type
 	LINK,
 	UNLK,
 	BCC,
+	DBCC,
 };
 
 }

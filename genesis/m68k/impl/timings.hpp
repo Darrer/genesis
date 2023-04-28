@@ -284,6 +284,11 @@ public:
 		return test_result ? 2 : 4;
 	}
 
+	static std::uint8_t dbcc(bool test_result)
+	{
+		return test_result ? 4 : 2;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

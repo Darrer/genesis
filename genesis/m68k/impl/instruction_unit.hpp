@@ -249,6 +249,9 @@ private:
 		case inst_type::BCC:
 			return bcc_handler();
 
+		case inst_type::DBCC:
+			return dbcc_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1661,6 +1664,38 @@ private:
 		{
 			scheduler.prefetch_one();
 		}
+
+		return exec_state::done;
+	}
+
+	exec_state dbcc_handler()
+	{
+		std::uint8_t cc = (opcode >> 8) & 0b1111;
+		std::int16_t disp = std::int16_t(regs.IRC);
+		auto& reg = regs.D(opcode & 0x7);
+
+		bool cond = operations::cond_test(cc, regs.flags);
+		scheduler.wait(timings::dbcc(cond));
+		
+		if(cond)
+		{
+			regs.PC += 2;
+		}
+		else
+		{
+			--reg.W;
+			bool take_branch = std::int16_t(reg.W) != -1;
+			if(take_branch)
+			{
+				regs.PC += disp;
+			}
+			else
+			{
+				regs.PC += 2;
+			}
+		}
+
+		scheduler.prefetch_two();
 
 		return exec_state::done;
 	}
