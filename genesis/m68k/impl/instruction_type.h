@@ -80,6 +80,7 @@ enum class inst_type
 	JMP,
 	CHK,
 	JSR,
+	BSR,
 };
 
 }

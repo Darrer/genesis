@@ -145,8 +145,9 @@ const constexpr mask_inst_pair opcodes[] =
 	/* CHK */
 	{ "0100___110______", inst_type::CHK },
 
-	/* JSR */
+	/* JSR/BSR */
 	{ "0100111010______", inst_type::JSR },
+	{ "01100001________", inst_type::BSR },
 };
 
 

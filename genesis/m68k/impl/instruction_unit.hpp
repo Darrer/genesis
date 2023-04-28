@@ -231,6 +231,9 @@ private:
 		case inst_type::JSR:
 			return jsr_handler();
 
+		case inst_type::BSR:
+			return bsr_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1468,7 +1471,7 @@ private:
 			regs.PC = dec.result().pointer().address;
 
 			scheduler.prefetch_ird();
-			// TODO: should we pick stack based on S bit or always push to SSP?
+			// TODO: maybe add an alias for stack register?
 			scheduler.dec_addr_reg(7, size_type::LONG);
 			scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
 			scheduler.prefetch_irc();
@@ -1478,6 +1481,26 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	exec_state bsr_handler()
+	{
+		std::int16_t disp = std::int8_t(opcode & 0xFF);
+		std::uint32_t old_pc = regs.PC;
+		if(disp == 0)
+		{
+			disp = std::int16_t(regs.IRC);
+			old_pc += 2;
+		}
+
+		regs.PC += disp;
+
+		scheduler.wait(2);
+		scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
+		scheduler.dec_addr_reg(7, size_type::LONG);
+		scheduler.prefetch_two();
+
+		return exec_state::done;
 	}
 
 	// Do prefetch one
