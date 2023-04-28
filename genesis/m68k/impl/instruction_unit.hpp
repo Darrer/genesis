@@ -246,6 +246,9 @@ private:
 		case inst_type::UNLK:
 			return unlk_handler();
 
+		case inst_type::BCC:
+			return bcc_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1624,6 +1627,40 @@ private:
 		});
 
 		scheduler.prefetch_one();
+
+		return exec_state::done;
+	}
+
+	exec_state bcc_handler()
+	{
+		std::uint8_t cc = (opcode >> 8) & 0b1111;
+		std::int16_t disp = std::int8_t(opcode & 0xFF);
+		size_type size = disp == 0 ? size_type::WORD : size_type::BYTE;
+
+		if(disp == 0)
+		{
+			disp = std::int16_t(regs.IRC);
+		}
+
+		bool cond = operations::cond_test(cc, regs.flags);
+		scheduler.wait(timings::bcc(cond));
+
+		if(cond)
+		{
+			regs.PC += disp;
+		}
+		
+		if(cond || size == size_type::WORD)
+		{
+			if(cond == false)
+				regs.PC += 2;
+
+			scheduler.prefetch_two();
+		}
+		else
+		{
+			scheduler.prefetch_one();
+		}
 
 		return exec_state::done;
 	}

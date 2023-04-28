@@ -279,6 +279,11 @@ public:
 		return 6;
 	}
 
+	static std::uint8_t bcc(bool test_result)
+	{
+		return test_result ? 2 : 4;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

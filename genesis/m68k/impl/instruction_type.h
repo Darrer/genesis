@@ -85,6 +85,7 @@ enum class inst_type
 	PEA,
 	LINK,
 	UNLK,
+	BCC,
 };
 
 }

@@ -603,6 +603,63 @@ public:
 		return lz || mu;
 	}
 
+	static bool cond_test(std::uint8_t cc, const status_register& sr)
+	{
+		cc = cc & 0b1111;
+		switch (cc)
+		{
+		case 0b0000:
+			return true;
+		
+		case 0b0001:
+			return false;
+
+		case 0b0010:
+			return sr.C == 0 && sr.Z == 0;
+		
+		case 0b0011:
+			return sr.C == 1 || sr.Z == 1;
+
+		case 0b0100:
+			return sr.C == 0;
+
+		case 0b0101:
+			return sr.C == 1;
+
+		case 0b0110:
+			return sr.Z == 0;
+
+		case 0b0111:
+			return sr.Z == 1;
+
+		case 0b1000:
+			return sr.V == 0;
+
+		case 0b1001:
+			return sr.V == 1;
+
+		case 0b1010:
+			return sr.N == 0;
+
+		case 0b1011:
+			return sr.N == 1;
+
+		case 0b1100:
+			return sr.N == sr.V;
+
+		case 0b1101:
+			return (sr.N == 1 && sr.V == 0) || (sr.N == 0 && sr.V == 1);
+
+		case 0b1110:
+			return (sr.Z == 0) && (sr.N == sr.V);
+
+		case 0b1111:
+			return (sr.Z == 1) || (sr.N == 1 && sr.V == 0) || (sr.N == 0 && sr.V == 1);
+
+		default: throw internal_error();
+		}
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
