@@ -81,6 +81,7 @@ enum class inst_type
 	CHK,
 	JSR,
 	BSR,
+	LEA,
 };
 
 }

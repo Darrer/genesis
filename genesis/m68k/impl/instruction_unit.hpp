@@ -234,6 +234,9 @@ private:
 		case inst_type::BSR:
 			return bsr_handler();
 
+		case inst_type::LEA:
+			return lea_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1495,12 +1498,39 @@ private:
 
 		regs.PC += disp;
 
-		scheduler.wait(2);
+		scheduler.wait(2); // TODO: move to timings
 		scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
 		scheduler.dec_addr_reg(7, size_type::LONG);
 		scheduler.prefetch_two();
 
 		return exec_state::done;
+	}
+
+	exec_state lea_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, ea_decoder::flags::no_read);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto& reg = regs.A((opcode >> 9) & 0x7);
+
+			// TODO:
+			std::uint8_t ea = opcode & 0b111111;
+			if((ea >> 3) == 0b110 || ea == 0b111011)
+				scheduler.wait(2);
+
+			reg.LW = dec.result().pointer().address;
+			scheduler.prefetch_one();
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
 	}
 
 	// Do prefetch one

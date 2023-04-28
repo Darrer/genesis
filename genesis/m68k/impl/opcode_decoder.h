@@ -148,6 +148,9 @@ const constexpr mask_inst_pair opcodes[] =
 	/* JSR/BSR */
 	{ "0100111010______", inst_type::JSR },
 	{ "01100001________", inst_type::BSR },
+
+	/* LEA */
+	{ "0100___111______", inst_type::LEA },
 };
 
 
