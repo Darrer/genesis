@@ -289,6 +289,13 @@ public:
 		return test_result ? 4 : 2;
 	}
 
+	static std::uint8_t scc(bool test_result, operand& op)
+	{
+		if(test_result && op.is_data_reg())
+			return 2;
+		return 0;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

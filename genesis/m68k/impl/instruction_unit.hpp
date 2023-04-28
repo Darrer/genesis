@@ -252,6 +252,9 @@ private:
 		case inst_type::DBCC:
 			return dbcc_handler();
 
+		case inst_type::SCC:
+			return scc_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1698,6 +1701,31 @@ private:
 		scheduler.prefetch_two();
 
 		return exec_state::done;
+	}
+
+	exec_state scc_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			std::uint8_t cc = (opcode >> 8) & 0b1111;
+			bool cond = operations::cond_test(cc, regs.flags);
+			res = cond ? 0xFF : 0;
+
+			auto op = dec.result();
+			schedule_prefetch_and_write(op, res, size_type::BYTE);
+			scheduler.wait(timings::scc(cond, op));
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
 	}
 
 	// Do prefetch one

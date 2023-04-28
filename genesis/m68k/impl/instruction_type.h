@@ -87,6 +87,7 @@ enum class inst_type
 	UNLK,
 	BCC,
 	DBCC,
+	SCC,
 };
 
 }

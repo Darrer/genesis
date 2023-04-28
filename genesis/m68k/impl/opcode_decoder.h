@@ -157,9 +157,10 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100111001010___", inst_type::LINK },
 	{ "0100111001011___", inst_type::UNLK },
 
-	/* BCC */
+	/* BCC/DBCC/SCC */
 	{ "0110____________", inst_type::BCC },
 	{ "0101____11001___", inst_type::DBCC },
+	{ "0101____11______", inst_type::SCC },
 };
 
 
