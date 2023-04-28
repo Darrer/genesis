@@ -82,6 +82,7 @@ enum class inst_type
 	JSR,
 	BSR,
 	LEA,
+	PEA,
 };
 
 }

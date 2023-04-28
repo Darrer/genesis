@@ -237,6 +237,9 @@ private:
 		case inst_type::LEA:
 			return lea_handler();
 
+		case inst_type::PEA:
+			return pea_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1525,6 +1528,41 @@ private:
 
 			reg.LW = dec.result().pointer().address;
 			scheduler.prefetch_one();
+
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state pea_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, ea_decoder::flags::no_read);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			// TODO:
+			std::uint8_t ea = opcode & 0b111111;
+			if((ea >> 3) == 0b110 || ea == 0b111011)
+				scheduler.wait(2);
+
+			addr = dec.result().pointer().address;
+			
+			bool prefetch_after_push = ea == 0b111000 || ea == 0b111001;
+			if(!prefetch_after_push)
+				scheduler.prefetch_one();
+
+			// TODO: add schedule_push method
+			scheduler.write(regs.A(7).LW - 4, addr, size_type::LONG, order::msw_first);
+			scheduler.dec_addr_reg(7, size_type::LONG);
+
+			if(prefetch_after_push)
+				scheduler.prefetch_one();
 
 			return exec_state::done;
 		}

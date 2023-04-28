@@ -51,6 +51,8 @@ public:
 	bool is_imm() const { return _imm.has_value(); }
 	bool is_pointer() const { return _ptr.has_value(); }
 
+	// TODO: add move() method to return decoded Addressing Mode
+
 	address_register& addr_reg()
 	{
 		if(!is_addr_reg()) throw internal_error();
