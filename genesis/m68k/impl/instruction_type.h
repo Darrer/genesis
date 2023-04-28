@@ -84,7 +84,7 @@ enum class inst_type
 	LEA,
 	PEA,
 	LINK,
-	UNLINK,
+	UNLK,
 };
 
 }

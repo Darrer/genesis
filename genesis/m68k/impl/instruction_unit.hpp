@@ -243,6 +243,9 @@ private:
 		case inst_type::LINK:
 			return link_handler();
 
+		case inst_type::UNLK:
+			return unlk_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1604,6 +1607,25 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	exec_state unlk_handler()
+	{
+		dest_reg = opcode & 0x7;
+		auto& reg = regs.A(dest_reg);
+		auto& sp = regs.A(7);
+		sp.LW = reg.LW;
+
+		scheduler.read(sp.LW, size_type::LONG, [this](std::uint32_t data, size_type)
+		{
+			// TODO: shoudn't the order be different? First load reg, then update stack pointer?
+			regs.A(7).LW += 4;
+			regs.A(dest_reg).LW = data;
+		});
+
+		scheduler.prefetch_one();
+
+		return exec_state::done;
 	}
 
 	// Do prefetch one

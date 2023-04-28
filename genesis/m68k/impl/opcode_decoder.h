@@ -153,8 +153,9 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100___111______", inst_type::LEA },
 	{ "0100100001______", inst_type::PEA },
 
-	/* LINK/UNLINK */
+	/* LINK/UNLK */
 	{ "0100111001010___", inst_type::LINK },
+	{ "0100111001011___", inst_type::UNLK },
 };
 
 
