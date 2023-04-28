@@ -88,6 +88,8 @@ public:
 	void inc_addr_reg(std::uint8_t reg, size_type size);
 	void dec_addr_reg(std::uint8_t reg, size_type size);
 
+	// TODO: add push
+
 private:
 	enum class op_type : std::uint8_t
 	{

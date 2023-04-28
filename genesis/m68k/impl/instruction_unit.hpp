@@ -240,6 +240,9 @@ private:
 		case inst_type::PEA:
 			return pea_handler();
 
+		case inst_type::LINK:
+			return link_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1564,6 +1567,38 @@ private:
 			if(prefetch_after_push)
 				scheduler.prefetch_one();
 
+			return exec_state::done;
+		}
+
+		default: throw internal_error();
+		}
+	}
+
+	exec_state link_handler()
+	{
+		switch (exec_stage++)
+		{
+		case 0:
+			read_imm(size_type::WORD);
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto& reg = regs.A(opcode & 0x7);
+
+			regs.A(7).LW -= 4;
+
+			addr = regs.A(7).LW;
+			scheduler.write(addr, reg.LW, size_type::LONG, order::msw_first);
+
+			reg.LW = addr;
+			
+			scheduler.call([this]()
+			{
+				regs.A(7).LW += std::int16_t(imm);
+			});
+
+			scheduler.prefetch_one();
 			return exec_state::done;
 		}
 

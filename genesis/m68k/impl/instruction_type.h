@@ -83,6 +83,8 @@ enum class inst_type
 	BSR,
 	LEA,
 	PEA,
+	LINK,
+	UNLINK,
 };
 
 }
