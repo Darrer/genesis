@@ -224,10 +224,13 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 		++cycles_in_curr_trans;
 
 		// save data for rw transition
-		if(in_bus_cycle && cycles_in_curr_trans == 3)
+		if(in_bus_cycle && cycles_in_curr_trans % 3 == 0)
 		{
-			// most of the buses are set on 3rd cycle, so save required data here
-			type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
+			if(cycles_in_curr_trans <= 4)
+				type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
+			else
+				type = trans_type::READ_MODIFY_WRITE;
+
 			rw_trans.address = bus.address();
 			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
 			rw_trans.func_code = bus.func_codes();
@@ -242,24 +245,11 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 
 
 		// transition bus cycle -> idle
-		// bus cycle is over
-		bool rw_over = (in_bus_cycle && (cycles_in_curr_trans == 4 || busm.is_idle()));
-		if(rw_over)
+		if(in_bus_cycle && busm.is_idle())
 		{
-			if(cycles_in_curr_trans != 4)
-			{
-				// bus cycle was interrupted (probably due to exception)
-				// treat these cycles as idle (as external tests do so)
-				in_bus_cycle = false;
-			}
-			else
-			{
-				// push bus transition, assume data was saved
-				res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
-				// in_bus_cycle = false;
-				in_bus_cycle = !busm.is_idle();
-				cycles_in_curr_trans = 0;
-			}
+			res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
+			in_bus_cycle = false;
+			cycles_in_curr_trans = 0;
 		}
 
 		// transition idle -> bus cycle
@@ -318,6 +308,7 @@ bool should_skip_test(std::string_view test_name)
 {
 	// These are faulty tests
 	auto tests_to_skip = { "e502 [ASL.b Q, D2] 1583", "e502 [ASL.b Q, D2] 1761" };
+		// , "ea23 [ASR.b D5, D3] 8" };
 	for(auto& test : tests_to_skip)
 	{
 		if(test_name == test)
@@ -342,7 +333,7 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 	{
 		if(should_skip_test(test.name))
 		{
-			// std::cout << "Skipping " << test.name << std::endl;
+			std::cout << "Skipping " << test.name << std::endl;
 			++skipped;
 			continue;
 		}
@@ -355,7 +346,7 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 			++num_succeded;
 
 		EXPECT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
-		// if(!succeded) return false;
+		if(!succeded) return false;
 	}
 
 	// if(num_succeded == tests.size())
@@ -447,7 +438,7 @@ TEST(M68K, THT)
 // keep it here for debug
 TEST(M68K, TMP)
 {
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\ASL)", "json");
+	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\TAS)", "json");
 	std::sort(all_tests.begin(), all_tests.end());
 
 	for(auto& test : all_tests)

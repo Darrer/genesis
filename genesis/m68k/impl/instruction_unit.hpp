@@ -1820,6 +1820,8 @@ private:
 				return exec_state::done;
 			}
 
+			++exec_stage;
+
 			if(op.is_imm())
 				addr = op.imm();
 			else if(op.is_addr_reg())
@@ -1830,13 +1832,21 @@ private:
 			std::uint8_t mode = (opcode >> 3) & 0x7;
 			std::uint8_t reg = opcode & 0x7;
 			if(mode == 0b011)
+			{
 				regs.inc_addr(reg, size_type::BYTE);
+			}
 			if(mode == 0b100)
 			{
+				scheduler.wait(2);
 				regs.dec_addr(reg, size_type::BYTE);
 				addr = regs.A(reg).LW;
+				return exec_state::wait_scheduler;
 			}
 
+			[[fallthrough]];
+		}
+
+		case 2:
 			busm.init_read_modify_write(addr, [this](std::uint8_t data)
 			{
 				std::uint8_t res = operations::tas(data, regs.flags);
@@ -1844,9 +1854,9 @@ private:
 			});
 
 			++exec_stage;
-		}
+			return exec_state::in_progress;
 
-		case 2:
+		case 3:
 			if(!busm.is_idle())
 				return exec_state::in_progress;
 			scheduler.prefetch_one();
