@@ -255,6 +255,12 @@ private:
 		case inst_type::SCC:
 			return scc_handler();
 
+		case inst_type::ABCDreg:
+			return abcd_reg_handler();
+
+		case inst_type::ABCDmem:
+			return abcd_mem_handler();
+
 		default: throw internal_error();
 		}
 	}
@@ -1726,6 +1732,47 @@ private:
 
 		default: throw internal_error();
 		}
+	}
+
+	exec_state abcd_reg_handler()
+	{
+		auto& dest = regs.D((opcode >> 9) & 0x7);
+		auto& src =  regs.D(opcode & 0x7);
+
+		res = operations::abcd(src, dest, regs.flags);
+		store(dest, size_type::BYTE, res);
+
+		scheduler.prefetch_one();
+		scheduler.wait(2);
+
+		return exec_state::done;
+	}
+
+	exec_state abcd_mem_handler()
+	{
+		src_reg = opcode & 0x7;
+		dest_reg = (opcode >> 9) & 0x7;
+
+		auto& src =  regs.A(src_reg);
+		auto& dest = regs.A(dest_reg);
+
+		scheduler.wait(2);
+		regs.dec_addr(src_reg, size_type::BYTE);
+		scheduler.read(src.LW, size_type::BYTE, [this](std::uint32_t src, size_type)
+		{
+			res = src & 0xFF;
+
+			regs.dec_addr(dest_reg, size_type::BYTE);
+
+			scheduler.read(regs.A(dest_reg).LW, size_type::BYTE, [this](std::uint32_t dest, size_type)
+			{
+				res = operations::abcd(res, dest, regs.flags);
+				scheduler.prefetch_one();
+				scheduler.write(regs.A(dest_reg).LW, res, size_type::BYTE);
+			});
+		});
+
+		return exec_state::done;
 	}
 
 	// Do prefetch one

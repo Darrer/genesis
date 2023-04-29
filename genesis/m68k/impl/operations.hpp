@@ -660,6 +660,62 @@ public:
 		}
 	}
 
+	template <class T>
+	static std::uint8_t check_half_carry(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+		static_assert(sizeof(T) <= 2);
+
+		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
+
+		long sum = (long)(a & mask) + (long)(b & mask) + c;
+		if (sum > mask)
+			return 1;
+
+		return 0;
+	}
+
+	template<class T1, class T2>
+	static std::uint32_t abcd(T1 src, T2 dest, status_register& sr)
+	{
+		std::uint32_t src_val = value(src, size_type::BYTE);
+		std::uint32_t dest_val = value(dest, size_type::BYTE);
+
+		std::uint32_t res = src_val + dest_val + sr.X;
+		std::uint8_t msb_flag = msb(res, size_type::BYTE);
+		sr.C = cpu_flags::carry<std::uint8_t>(src_val, dest_val, sr.X);
+
+		bool half_carry = check_half_carry(std::uint8_t(src_val), std::uint8_t(dest_val), sr.X) == 1;
+
+		std::uint8_t low = res & 0b1111;
+		std::uint8_t high = (res >> 4) & 0b1111;
+
+		std::uint8_t corr = 0;
+		if(low > 9 || half_carry)
+			corr += 6;
+
+		if(high > 9 || sr.C == 1 || (high >= 9 && low > 9))
+		{
+			corr += 0x60;
+			sr.X = sr.C = 1;
+		}
+		else
+		{
+			sr.X = sr.C = 0;
+		}
+
+		res += corr;
+		res = value(res, size_type::BYTE);
+
+		if(res != 0)
+			sr.Z = 0;
+
+		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
+		sr.V = msb_flag == 0 && msb(res, size_type::BYTE) == 1; // Undocumented behavior
+
+		return res;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
@@ -921,6 +977,21 @@ private:
 		std::uint32_t res = a ^ b;
 		set_logical_flags(res, size, sr);
 		return res;
+	}
+
+	static std::uint8_t to_bcd(std::uint8_t num)
+	{
+		num = num % 100;
+		std::uint8_t low = num % 10;
+		std::uint8_t high = num / 10;
+		return (high << 4) | low;
+	}
+
+	static std::uint8_t from_bcd(std::uint8_t num)
+	{
+		std::uint8_t low = num & 0b1111;
+		std::uint8_t high = num >> 4;
+		return high * 10 + low;
 	}
 
 	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,

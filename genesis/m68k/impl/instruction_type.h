@@ -88,6 +88,8 @@ enum class inst_type
 	BCC,
 	DBCC,
 	SCC,
+	ABCDreg,
+	ABCDmem,
 };
 
 }
