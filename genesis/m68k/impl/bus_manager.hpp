@@ -44,6 +44,24 @@ private:
 		WRITE1,
 		WRITE2,
 		WRITE3,
+
+		/* bus read modify write cycle */
+
+		// Read states
+		RMW_READ0,
+		RMW_READ1,
+		RMW_READ2,
+		RMW_READ3,
+
+		// Modify
+		RMW_MODIFY0,
+		RMW_MODIFY1,
+
+		// Write
+		RMW_WRITE0,
+		RMW_WRITE1,
+		RMW_WRITE2,
+		RMW_WRITE3,
 	};
 
 public:
@@ -107,7 +125,115 @@ public:
 		space = addr_space::DATA; // TODO: can write be to PROGRAM space?
 	}
 
+	void init_read_modify_write(std::uint32_t address, std::function<std::uint8_t(std::uint8_t)> modify,
+		addr_space space = addr_space::DATA)
+	{
+		if(modify == nullptr)
+			throw std::invalid_argument("modify");
+
+		assert_idle("init_read_modify_write");
+
+		reset();
+		this->address = address;
+		this->space = space;
+		modify_cb = modify;
+		state = RMW_READ0;
+		byte_op = true;
+	}
+
 	void cycle()
+	{
+		switch (state)
+		{
+		case IDLE:
+			break;
+
+		case READ0:
+			if(check_exceptions())
+				return;
+			do_state(state);
+			state = READ1;
+			break;
+		case READ1:
+			do_state(state);
+			state = READ2;
+			break;
+		case READ2:
+			do_state(state);
+			state = READ3;
+			break;
+		case READ3:
+			do_state(state);
+			set_idle();
+			break;
+
+		case WRITE0:
+			if(check_exceptions())
+				return;
+			do_state(state);
+			state = WRITE1;
+			break;
+		case WRITE1:
+			do_state(state);
+			state = WRITE2;
+			break;
+		case WRITE2:
+			do_state(state);
+			state = WRITE3;
+			break;
+		case WRITE3:
+			do_state(state);
+			set_idle();
+			break;
+
+		case RMW_READ0:
+			do_state(READ0);
+			state = RMW_READ1;
+			break;
+		case RMW_READ1:
+			do_state(READ1);
+			state = RMW_READ2;
+			break;
+		case RMW_READ2:
+			do_state(READ2);
+			state = RMW_READ3;
+			break;
+		case RMW_READ3:
+			do_state(READ3);
+			bus.set(bus::AS); // keep it on
+			state = RMW_MODIFY0;
+			break;
+
+		case RMW_MODIFY0:
+			state = RMW_MODIFY1;
+			break;
+		case RMW_MODIFY1:
+			data_to_write = modify_cb(_letched_byte.value());
+			state = RMW_WRITE0;
+			break;
+
+		case RMW_WRITE0:
+			do_state(WRITE0);
+			state = RMW_WRITE1;
+			break;
+		case RMW_WRITE1:
+			do_state(WRITE1);
+			state = RMW_WRITE2;
+			break;
+		case RMW_WRITE2:
+			do_state(WRITE2);
+			state = RMW_WRITE3;
+			break;
+		case RMW_WRITE3:
+			do_state(WRITE3);
+			set_idle();
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	void old_cycle()
 	{
 		// using bus_cycle_state;
 		switch (state)
@@ -197,6 +323,93 @@ public:
 		default:
 			throw std::runtime_error("bus_manager::cycle internal error: unknown state");
 		}
+	}
+
+private:
+	void do_state(bus_cycle_state state)
+	{
+		switch(state)
+		{
+		/* bus ready cycle */
+		case READ0:
+			bus.func_codes(gen_func_codes());
+			bus.set(bus::RW);
+			bus.address(address);
+			return;
+
+		case READ1:
+			bus.set(bus::AS);
+			set_data_strobe_bus();
+			return;
+
+		case READ2:
+		{
+			// emulate read
+			std::uint16_t data = 0;
+			if(byte_op)
+				data = mem.read<std::uint8_t>(bus.address());
+			else
+				data = mem.read<std::uint16_t>(bus.address());
+			set_data_bus(data);
+
+			// immidiate DTACK
+			bus.set(bus::DTACK);
+			return;
+		}
+
+		case READ3:
+			if(byte_op)
+			{
+				if(bus.is_set(bus::LDS))
+					_letched_byte = bus.data() & 0xFF;
+				else
+					_letched_byte = bus.data() >> 8;
+			}
+			else
+			{
+				_letched_word = bus.data();
+			}
+			clear_bus();
+			return;
+
+		/* bus write cycle */
+		case WRITE0:
+			bus.func_codes(gen_func_codes());
+			bus.set(bus::RW);
+			bus.address(address);
+			return;
+
+		case WRITE1:
+			bus.set(bus::AS);
+			bus.clear(bus::RW);
+			set_data_bus(data_to_write);
+			return;
+
+		case WRITE2:
+			set_data_strobe_bus();
+
+			// emulate write
+			if(byte_op)
+				mem.write<std::uint8_t>(bus.address(), data_to_write & 0xFF);
+			else
+				mem.write<std::uint16_t>(bus.address(), data_to_write);
+
+			// immidiate DTACK
+			bus.set(bus::DTACK);
+			return;
+
+		case WRITE3:
+			clear_bus();
+			bus.set(bus::RW);
+			return;
+
+		default: throw internal_error();
+		}
+	}
+
+	bus_cycle_state advance_state(bus_cycle_state state)
+	{
+		return bus_cycle_state(state + 1);
 	}
 
 private:
@@ -364,6 +577,7 @@ private:
 	addr_space space;
 	std::uint16_t data_to_write;
 	on_complete on_complete_cb = nullptr;
+	std::function<std::uint8_t(std::uint8_t)> modify_cb = nullptr;
 
 	bool byte_op = false;
 	std::optional<std::uint8_t> _letched_byte;

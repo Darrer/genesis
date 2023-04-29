@@ -763,6 +763,19 @@ public:
 		return sbcd(src, 0, sr);
 	}
 
+	template<class T1>
+	static std::uint32_t tas(T1 src, status_register& sr)
+	{
+		std::uint32_t src_val = value(src, size_type::BYTE);
+
+		set_nz_flags(src_val, size_type::BYTE, sr);
+		sr.V = sr.C = 0;
+
+		src_val = src_val | (1 << 7);
+
+		return src_val;
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)

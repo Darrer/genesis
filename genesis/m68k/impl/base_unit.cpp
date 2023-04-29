@@ -84,6 +84,10 @@ void base_unit::executing()
 				state = WAITING_SCHEDULER_AND_IDLE;
 			return;
 
+		case exec_state::in_progress:
+			state = EXECUTING;
+			return;
+
 		default: throw internal_error();
 		}
 	}

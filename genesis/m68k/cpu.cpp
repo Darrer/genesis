@@ -10,7 +10,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 	busm = std::make_unique<m68k::bus_manager>(_bus, regs, *mem, exman);
 	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
 	scheduler = std::make_unique<m68k::bus_scheduler>(regs, *busm, *pq);
-	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, *scheduler);
+	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, *busm, *scheduler);
 
 	auto abort_execution = [this]()
 	{

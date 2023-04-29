@@ -37,8 +37,8 @@ private:
 
 public:
 	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman,
-		cpu_bus& bus, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman), bus(bus)
+		cpu_bus& bus, bus_manager& busm, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman), bus(bus), busm(busm)
 	{
 		reset();
 	}
@@ -267,6 +267,9 @@ private:
 
 		case inst_type::RESET:
 			return reset_handler();
+
+		case inst_type::TAS:
+			return tas_handler();
 
 		default: throw internal_error();
 		}
@@ -1797,6 +1800,62 @@ private:
 		return exec_state::done;
 	}
 
+	exec_state tas_handler()
+	{
+		switch (exec_stage)
+		{
+		case 0:
+			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE, ea_decoder::flags::no_read);
+			++exec_stage;
+			return exec_state::wait_scheduler;
+
+		case 1:
+		{
+			auto op = dec.result();
+			if(op.is_data_reg())
+			{
+				auto& reg = op.data_reg();
+				reg.B = operations::tas(reg, regs.flags);
+				scheduler.prefetch_one();
+				return exec_state::done;
+			}
+
+			if(op.is_imm())
+				addr = op.imm();
+			else if(op.is_addr_reg())
+				addr = op.addr_reg().LW;
+			else
+				addr = op.pointer().address;
+
+			std::uint8_t mode = (opcode >> 3) & 0x7;
+			std::uint8_t reg = opcode & 0x7;
+			if(mode == 0b011)
+				regs.inc_addr(reg, size_type::BYTE);
+			if(mode == 0b100)
+			{
+				regs.dec_addr(reg, size_type::BYTE);
+				addr = regs.A(reg).LW;
+			}
+
+			busm.init_read_modify_write(addr, [this](std::uint8_t data)
+			{
+				std::uint8_t res = operations::tas(data, regs.flags);
+				return res;
+			});
+
+			++exec_stage;
+		}
+
+		case 2:
+			if(!busm.is_idle())
+				return exec_state::in_progress;
+			scheduler.prefetch_one();
+			return exec_state::done;
+
+		default: throw internal_error();
+		}
+	}
+
 	// Do prefetch one
 	// Write the result to register or memory
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
@@ -1930,6 +1989,7 @@ private:
 	m68k::ea_decoder dec;
 	exception_manager& exman;
 	cpu_bus& bus;
+	bus_manager& busm;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;

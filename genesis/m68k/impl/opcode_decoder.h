@@ -171,6 +171,9 @@ const constexpr mask_inst_pair opcodes[] =
 
 	/* RESET */
 	{ "0100111001110000", inst_type::RESET },
+
+	/* TAS */
+	{ "0100101011______", inst_type::TAS }
 };
 
 

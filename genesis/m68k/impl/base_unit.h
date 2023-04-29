@@ -17,6 +17,7 @@ protected:
 	{
 		done,
 		wait_scheduler,
+		in_progress,
 	};
 
 public:

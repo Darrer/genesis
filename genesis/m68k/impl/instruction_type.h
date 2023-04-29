@@ -94,6 +94,7 @@ enum class inst_type
 	SBCDmem,
 	NBCD,
 	RESET,
+	TAS
 };
 
 }
