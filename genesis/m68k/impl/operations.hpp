@@ -675,6 +675,21 @@ public:
 		return 0;
 	}
 
+	template <class T>
+	static std::uint8_t check_half_borrow(T a, T b, std::uint8_t c = 0)
+	{
+		static_assert(std::numeric_limits<T>::is_signed == false);
+		static_assert(sizeof(T) <= 2);
+
+		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
+
+		long sum = (long)(b & mask) + c;
+		if (sum > (long)(a & mask))
+			return 1;
+
+		return 0;
+	}
+
 	template<class T1, class T2>
 	static std::uint32_t abcd(T1 src, T2 dest, status_register& sr)
 	{
@@ -712,6 +727,32 @@ public:
 
 		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
 		sr.V = msb_flag == 0 && msb(res, size_type::BYTE) == 1; // Undocumented behavior
+
+		return res;
+	}
+
+	template<class T1, class T2>
+	static std::uint32_t sbcd(T1 src, T2 dest, status_register& sr)
+	{
+		std::uint32_t src_val = value(src, size_type::BYTE);
+		std::uint32_t dest_val = value(dest, size_type::BYTE);
+
+		std::uint32_t res = sub(dest_val, src_val, sr.X, size_type::BYTE);
+		std::uint8_t msb_flag = msb(res, size_type::BYTE);
+
+		// Algorithm taken from https://gendev.spritesmind.net/forum/viewtopic.php?f=2&t=1964
+		std::uint8_t bc = ((~dest_val & src_val) | (res & ~dest_val) | (res & src_val)) & 0x88;
+		std::uint8_t corf = bc - (bc >> 2);
+		std::uint8_t rr = res - corf;
+
+		sr.X = sr.C = (bc | (~res & rr)) >> 7;
+		res = rr;
+
+		if(res != 0)
+			sr.Z = 0;
+
+		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
+		sr.V = msb_flag == 1 && msb(res, size_type::BYTE) == 0; // Undocumented behavior
 
 		return res;
 	}
@@ -775,6 +816,14 @@ public:
 
 		case inst_type::DIVS:
 			return operations::divs(a, b, sr);
+
+		case inst_type::ABCDreg:
+		case inst_type::ABCDmem:
+			return operations::abcd(a, b, sr);
+
+		case inst_type::SBCDreg:
+		case inst_type::SBCDmem:
+			return operations::sbcd(a, b, sr);
 
 		default: throw internal_error();
 		}

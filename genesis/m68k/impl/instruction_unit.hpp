@@ -256,10 +256,12 @@ private:
 			return scc_handler();
 
 		case inst_type::ABCDreg:
-			return abcd_reg_handler();
+		case inst_type::SBCDreg:
+			return bcd_reg_handler();
 
 		case inst_type::ABCDmem:
-			return abcd_mem_handler();
+		case inst_type::SBCDmem:
+			return bcd_mem_handler();
 
 		default: throw internal_error();
 		}
@@ -1734,21 +1736,21 @@ private:
 		}
 	}
 
-	exec_state abcd_reg_handler()
+	exec_state bcd_reg_handler()
 	{
 		auto& dest = regs.D((opcode >> 9) & 0x7);
 		auto& src =  regs.D(opcode & 0x7);
 
-		res = operations::abcd(src, dest, regs.flags);
+		res = operations::alu(curr_inst, src, dest, size_type::BYTE, regs.flags);
 		store(dest, size_type::BYTE, res);
 
 		scheduler.prefetch_one();
-		scheduler.wait(2);
+		scheduler.wait(timings::bcd_reg());
 
 		return exec_state::done;
 	}
 
-	exec_state abcd_mem_handler()
+	exec_state bcd_mem_handler()
 	{
 		src_reg = opcode & 0x7;
 		dest_reg = (opcode >> 9) & 0x7;
@@ -1766,7 +1768,7 @@ private:
 
 			scheduler.read(regs.A(dest_reg).LW, size_type::BYTE, [this](std::uint32_t dest, size_type)
 			{
-				res = operations::abcd(res, dest, regs.flags);
+				res = operations::alu(curr_inst, res, dest, size_type::BYTE, regs.flags);
 				scheduler.prefetch_one();
 				scheduler.write(regs.A(dest_reg).LW, res, size_type::BYTE);
 			});

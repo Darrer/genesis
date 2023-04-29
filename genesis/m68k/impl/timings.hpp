@@ -296,6 +296,11 @@ public:
 		return 0;
 	}
 
+	static std::uint8_t bcd_reg()
+	{
+		return 2;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

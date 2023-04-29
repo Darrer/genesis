@@ -90,6 +90,8 @@ enum class inst_type
 	SCC,
 	ABCDreg,
 	ABCDmem,
+	SBCDreg,
+	SBCDmem,
 };
 
 }
