@@ -107,9 +107,28 @@ void bus_scheduler::read_impl(std::uint32_t addr, size_type size, on_read_comple
 
 void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags)
 {
-	// we don't know the address yet, so schedule as is
-	read_imm_operation read { size, on_complete, flags };
-	queue.emplace(op_type::READ_IMM, read);
+	if(size == size_type::BYTE || size == size_type::WORD)
+	{
+		// we don't know the address yet, so schedule as is
+		read_imm_operation read { size, on_complete, flags };
+		queue.emplace(op_type::READ_IMM, read);
+	}
+	else
+	{
+		if(flags == read_imm_flags::do_prefetch)
+		{
+			read_imm_operation read_msw { size, nullptr, flags };
+			read_imm_operation read_lsw { size, on_complete, flags };
+
+			queue.emplace(op_type::READ_IMM, read_msw);
+			queue.emplace(op_type::READ_IMM, read_lsw);
+		}
+		else
+		{
+			read_imm_operation read { size, on_complete, flags };
+			queue.emplace(op_type::READ_IMM, read);
+		}
+	}
 }
 
 void bus_scheduler::on_read_finished()
@@ -246,38 +265,29 @@ void bus_scheduler::start_operation(operation op)
 	{
 		read_imm_operation read = std::get<read_imm_operation>(op.op);
 		if(read.size == size_type::BYTE || read.size == size_type::WORD)
-		{
-			std::uint32_t data = read.size == size_type::WORD ? regs.IRC : regs.IRC & 0xFF;
-			if(read.on_complete)
-			{
-				read.on_complete(data, read.size);
-			}
+			data = read.size == size_type::BYTE ? regs.IRC & 0xFF : regs.IRC;
+		else
+			data = (data << 16) | regs.IRC;
 
-			if(read.flags == read_imm_flags::do_prefetch)
-			{
-				start_operation({ op_type::PREFETCH_IRC });
-				regs.PC += 2;
-			}
+		if(read.flags == read_imm_flags::do_prefetch)
+		{
+			start_operation({ op_type::PREFETCH_IRC });
+			regs.PC += 2;
+		}
+		// Even if we're requested to not do a prefetch, we must read second word for a long operation
+		else if(read.size == size_type::LONG)
+		{
+			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_finished(); });
+			return;
 		}
 		else
 		{
-			data = regs.IRC;
-
-			auto on_read_complete = [this]()
-			{
-				bool do_prefetch = std::get<read_imm_operation>(current_op.value().op).flags == read_imm_flags::do_prefetch;
-
-				on_read_finished();
-				if(do_prefetch)
-				{
-					regs.PC += 2;
-					start_operation({ op_type::PREFETCH_IRC });
-					regs.PC += 2;
-				}
-			};
-
-			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, on_read_complete);
+			// Read imm with no_prefetch flag for byte/word are cycle-free, if got here - we have a cycle issue
+			throw internal_error();
 		}
+
+		if(read.on_complete)
+			read.on_complete(data, read.size);
 
 		break;
 	}
