@@ -168,6 +168,9 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "1000___100000___", inst_type::SBCDreg },
 	{ "1000___100001___", inst_type::SBCDmem },
 	{ "0100100000______", inst_type::NBCD },
+
+	/* RESET */
+	{ "0100111001110000", inst_type::RESET },
 };
 
 

@@ -36,8 +36,9 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman)
+	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman,
+		cpu_bus& bus, m68k::bus_scheduler& scheduler)
+		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman), bus(bus)
 	{
 		reset();
 	}
@@ -263,6 +264,9 @@ private:
 		case inst_type::ABCDmem:
 		case inst_type::SBCDmem:
 			return bcd_mem_handler();
+
+		case inst_type::RESET:
+			return reset_handler();
 
 		default: throw internal_error();
 		}
@@ -1778,6 +1782,21 @@ private:
 		return exec_state::done;
 	}
 
+	exec_state reset_handler()
+	{
+		if(check_privilege_violations())
+			return exec_state::done;
+
+		bus.set(bus::RESET);
+		scheduler.wait(timings::reset());
+		scheduler.call([this]()
+		{
+			bus.clear(bus::RESET);
+		});
+		scheduler.prefetch_one();
+		return exec_state::done;
+	}
+
 	// Do prefetch one
 	// Write the result to register or memory
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
@@ -1910,6 +1929,7 @@ private:
 private:
 	m68k::ea_decoder dec;
 	exception_manager& exman;
+	cpu_bus& bus;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;

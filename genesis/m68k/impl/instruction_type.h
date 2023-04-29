@@ -93,6 +93,7 @@ enum class inst_type
 	SBCDreg,
 	SBCDmem,
 	NBCD,
+	RESET,
 };
 
 }
