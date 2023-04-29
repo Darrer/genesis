@@ -757,6 +757,12 @@ public:
 		return res;
 	}
 
+	template<class T1>
+	static std::uint32_t nbcd(T1 src, status_register& sr)
+	{
+		return sbcd(src, 0, sr);
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
@@ -844,6 +850,8 @@ public:
 			return move(a, size, sr);
 		case inst_type::CLR:
 			return clr(a, (size_type)size, sr);
+		case inst_type::NBCD:
+			return nbcd(a, sr);
 
 		default: throw internal_error();
 		}

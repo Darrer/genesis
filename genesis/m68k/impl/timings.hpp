@@ -301,6 +301,13 @@ public:
 		return 2;
 	}
 
+	static std::uint8_t nbcd(const operand& op)
+	{
+		if(op.is_data_reg())
+			return 2;
+		return 0;
+	}
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{
@@ -359,6 +366,8 @@ public:
 			return 0;
 		case inst_type::CLR:
 			return clr(size, op);
+		case inst_type::NBCD:
+			return nbcd(op);
 
 		default: throw internal_error();
 		}

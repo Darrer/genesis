@@ -92,6 +92,7 @@ enum class inst_type
 	ABCDmem,
 	SBCDreg,
 	SBCDmem,
+	NBCD,
 };
 
 }

@@ -113,6 +113,7 @@ private:
 		case inst_type::NEGX:
 		case inst_type::NOT:
 		case inst_type::CLR:
+		case inst_type::NBCD:
 			return unary_handler();
 
 		case inst_type::ADDX:
