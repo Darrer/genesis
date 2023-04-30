@@ -12,6 +12,59 @@
 namespace genesis::m68k
 {
 
+enum class addressing_mode
+{
+	// Data Register Direct
+	// Dn
+	data_reg,
+
+	// Address Register Direct
+	// An
+	addr_reg,
+
+	// Address Register Indirect
+	// (An)
+	indir,
+
+	// Address Register Indirect with Postincrement
+	// (An)+
+	postinc,
+
+	// Address Register Indirect with Predecrement
+	// –(An)
+	predec,
+
+	// Address Register Indirect with Displacement
+	// (d16, An)
+	disp_indir,
+
+	// Address Register Indirect with Index
+	// (d8, An, Xn)
+	index_indir,
+
+	// Absolute Short
+	// (xxx).W
+	abs_short,
+
+	// Absolute Long
+	// (xxx).L
+	abs_long,
+
+	// Program Counter Indirect with Displacement
+	// (d8, PC)
+	disp_pc,
+
+	// Program Counter Indirect with Index
+	// (d16, PC, Xn)
+	index_pc,
+
+	// Immediate
+	// #<data>
+	imm,
+
+	unknown
+};
+
 class operand
 {
 public:
@@ -41,17 +94,24 @@ public:
 	};
 
 public:
-	operand(address_register& _addr_reg, size_type size) : _addr_reg(_addr_reg), _size(size) { }
-	operand(data_register& _data_reg, size_type size) : _data_reg(_data_reg), _size(size) { }
-	operand(std::uint32_t _imm, size_type size) : _imm(_imm), _size(size) { }
-	operand(raw_pointer ptr, size_type size) : _ptr(ptr), _size(size) { }
+	operand(address_register& _addr_reg, size_type size) : _addr_reg(_addr_reg), _size(size),
+		_mode(addressing_mode::addr_reg) { }
+
+	operand(data_register& _data_reg, size_type size) : _data_reg(_data_reg), _size(size),
+		_mode(addressing_mode::data_reg) { }
+
+	operand(std::uint32_t _imm, size_type size) : _imm(_imm), _size(size),
+		_mode(addressing_mode::imm) { }
+
+	operand(raw_pointer ptr, size_type size, addressing_mode mode) : _ptr(ptr), _size(size),
+		_mode(mode) { }
 
 	bool is_addr_reg() const { return _addr_reg.has_value(); }
 	bool is_data_reg() const { return _data_reg.has_value(); }
 	bool is_imm() const { return _imm.has_value(); }
 	bool is_pointer() const { return _ptr.has_value(); }
 
-	// TODO: add move() method to return decoded Addressing Mode
+	addressing_mode mode() const { return _mode; }
 
 	address_register& addr_reg()
 	{
@@ -81,18 +141,18 @@ public:
 		return _ptr.value();
 	}
 
-	// TODO: nobody uses size, remove it
 	size_type size() const
 	{
 		return _size;
 	}
 
 private:
-	size_type _size;
 	std::optional<std::reference_wrapper<address_register>> _addr_reg;
 	std::optional<std::reference_wrapper<data_register>> _data_reg;
 	std::optional<std::uint32_t> _imm;
 	std::optional<raw_pointer> _ptr;
+	size_type _size;
+	addressing_mode _mode;
 };
 
 
@@ -138,102 +198,150 @@ public:
 		}
 
 		res.reset();
-		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;
 
 		this->flags = flags;
 		this->size = size;
 		this->reg = reg;
+		mode = decode_mode(ea);
 
 		schedule_decoding(mode, reg, size);
 	}
 
 private:
-	void schedule_decoding(std::uint8_t mode, std::uint8_t reg, size_type size)
+	void schedule_decoding(addressing_mode mode, std::uint8_t reg, size_type size)
 	{
 		switch (mode)
 		{
-		case 0b000:
-			decode_000(reg, size);
+		case addressing_mode::data_reg:
+			decode_data_reg(reg, size);
 			break;
+
+		case addressing_mode::addr_reg:
+			decode_addr_reg(reg, size);
+			break;
+
+		case addressing_mode::indir:
+			decode_indir(reg, size);
+			break;
+
+		case addressing_mode::postinc:
+			decode_postinc(reg, size);
+			break;
+
+		case addressing_mode::predec:
+			decode_predec(reg, size);
+			break;
+
+		case addressing_mode::disp_indir:
+			decode_disp_indir(reg, size);
+			break;
+
+		case addressing_mode::index_indir:
+			decode_index_indir(reg, size);
+			break;
+
+		case addressing_mode::abs_short:
+			decode_abs_short(size);
+			break;
+
+		case addressing_mode::abs_long:
+			decode_abs_long(size);
+			break;
+
+		case addressing_mode::disp_pc:
+			decode_disp_pc(size);
+			break;
+
+		case addressing_mode::index_pc:
+			decode_index_pc(size);
+			break;
+
+		case addressing_mode::imm:
+			decode_imm(size);
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	addressing_mode decode_mode(std::uint8_t ea)
+	{
+		std::uint8_t mode = (ea >> 3) & 0x7;
+		std::uint8_t reg = ea & 0x7;
+
+		switch (mode)
+		{
+		case 0b000:
+			return addressing_mode::data_reg;
 
 		case 0b001:
-			decode_001(reg, size);
-			break;
+			return addressing_mode::addr_reg;
 
 		case 0b010:
-			decode_010(reg, size);
-			break;
+			return addressing_mode::indir;
 
 		case 0b011:
-			decode_011(reg, size);
-			break;
+			return addressing_mode::postinc;
 
 		case 0b100:
-			decode_100(reg, size);
-			break;
+			return addressing_mode::predec;
 
 		case 0b101:
-			decode_101(reg, size);
-			break;
+			return addressing_mode::disp_indir;
 
 		case 0b110:
-			decode_110(reg, size);
-			break;
+			return addressing_mode::index_indir;
 
 		case 0b111:
 		{
 		switch (reg)
 		{
 		case 0b000:
-			decode_111_000(size);
-			break;
+			return addressing_mode::abs_short;
 
 		case 0b001:
-			decode_111_001(size);
-			break;
+			return addressing_mode::abs_long;
 
 		case 0b010:
-			decode_111_010(size);
-			break;
+			return addressing_mode::disp_pc;
 
 		case 0b011:
-			decode_111_011(size);
-			break;
+			return addressing_mode::index_pc;
 
 		case 0b100:
-			decode_111_100(size);
-			break;
+			return addressing_mode::imm;
 
-		default: throw internal_error();
-		}
-			break;
+		default:
+			return addressing_mode::unknown;
 		}
 
-		default: throw internal_error();
+		default:
+			return addressing_mode::unknown;
+		}
 		}
 	}
 
 private:
 	/* immediately decoding */
-	void decode_000(std::uint8_t reg, size_type size)
+	void decode_data_reg(std::uint8_t reg, size_type size)
 	{
 		res = { regs.D(reg), size };
 	}
 
-	void decode_001(std::uint8_t reg, size_type size)
+	void decode_addr_reg(std::uint8_t reg, size_type size)
 	{
 		res = { regs.A(reg), size };
 	}
 
 	// Address Register Indirect Mode 
-	void decode_010(std::uint8_t reg, size_type size)
+	void decode_indir(std::uint8_t reg, size_type size)
 	{
 		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
 	// Address Register Indirect with Postincrement Mode
-	void decode_011(std::uint8_t reg, size_type size)
+	void decode_postinc(std::uint8_t reg, size_type size)
 	{
 		if(flags == flags::none)
 		{
@@ -246,7 +354,7 @@ private:
 	}
 
 	// Address Register Indirect with Predecrement Mode 
-	void decode_100(std::uint8_t reg, size_type size)
+	void decode_predec(std::uint8_t reg, size_type size)
 	{
 		if(flags == flags::none)
 		{
@@ -258,7 +366,7 @@ private:
 	}
 
 	// Address Register Indirect with Displacement Mode
-	void decode_101(std::uint8_t reg, size_type size)
+	void decode_disp_indir(std::uint8_t reg, size_type size)
 	{
 		schedule_prefetch_irc();
 
@@ -267,7 +375,7 @@ private:
 	}
 
 	// Address Register Indirect with Index (8-Bit Displacement) Mode 
-	void decode_110(std::uint8_t reg, size_type size)
+	void decode_index_indir(std::uint8_t reg, size_type size)
 	{
 		if(no_prefetch())
 		{
@@ -284,14 +392,14 @@ private:
 	}
 
 	// Absolute Short Addressing Mode 
-	void decode_111_000(size_type size)
+	void decode_abs_short(size_type size)
 	{
 		schedule_prefetch_irc();
 		schedule_read_and_save((std::int16_t)regs.IRC, size);
 	}
 
 	// Absolute Long Addressing Mode
-	void decode_111_001(size_type size)
+	void decode_abs_long(size_type size)
 	{
 		this->size = size;
 		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
@@ -302,7 +410,7 @@ private:
 	}
 
 	// Program Counter Indirect with Displacement Mode
-	void decode_111_010(size_type size)
+	void decode_disp_pc(size_type size)
 	{
 		schedule_prefetch_irc();
 
@@ -311,7 +419,7 @@ private:
 	}
 
 	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
-	void decode_111_011(size_type size)
+	void decode_index_pc(size_type size)
 	{
 		if(no_prefetch())
 		{
@@ -328,7 +436,7 @@ private:
 	}
 
 	// Immediate Data 
-	void decode_111_100(size_type size)
+	void decode_imm(size_type size)
 	{
 		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
 		scheduler.read_imm(size, flags, [this](std::uint32_t imm, size_type size)
@@ -352,14 +460,14 @@ private:
 	{
 		if(no_read())
 		{
-			res = { operand::raw_pointer(addr), size };
+			res = { operand::raw_pointer(addr), size, mode };
 		}
 		else
 		{
 			ptr = addr;
 			scheduler.read(addr, size, [this](std::uint32_t data, size_type size)
 			{
-				res = { operand::raw_pointer(ptr, data), size };
+				res = { operand::raw_pointer(ptr, data), size, mode };
 			});
 		}
 	}
@@ -421,6 +529,7 @@ private:
 
 	size_type size;
 	std::uint8_t reg;
+	addressing_mode mode;
 	std::uint32_t ptr;
 	flags flags = flags::none;
 };
