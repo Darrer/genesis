@@ -29,6 +29,15 @@ public:
 		return add(value(a, size), value(b, size), size, sr);
 	}
 
+	template<class T1>
+	static std::uint32_t addq(T1 src, operand dest, size_type size, status_register& sr)
+	{
+		// do not update flags if dest is addr reg
+		if(dest.is_addr_reg())
+			return add(value(src, size), value(dest, size_type::LONG), 0, size_type::LONG);
+		return add(src, dest, size, sr);
+	}
+
 	template<class T1, class T2>
 	static std::uint32_t adda(T1 src, T2 dest, size_type size, status_register&)
 	{
@@ -47,6 +56,15 @@ public:
 	static std::uint32_t sub(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return sub(value(a, size), value(b, size), size, sr);
+	}
+
+	template<class T1>
+	static std::uint32_t subq(T1 src, operand dest, size_type size, status_register& sr)
+	{
+		// do not update flags if dest is addr reg
+		if(dest.is_addr_reg())
+			return sub(value(dest, size_type::LONG), value(src, size), 0, size_type::LONG);
+		return sub(dest, src, size, sr);
 	}
 
 	template<class T1, class T2>
@@ -798,7 +816,6 @@ public:
 		{
 		case inst_type::ADD:
 		case inst_type::ADDI:
-		case inst_type::ADDQ:
 			return operations::add(a, b, size, sr);
 
 		case inst_type::ADDA:
@@ -809,7 +826,6 @@ public:
 
 		case inst_type::SUB:
 		case inst_type::SUBI:
-		case inst_type::SUBQ:
 			return operations::sub(a, b, size, sr);
 
 		case inst_type::SUBA:
@@ -880,6 +896,21 @@ public:
 		case inst_type::NBCD:
 			return nbcd(a, sr);
 
+		default: throw internal_error();
+		}
+	}
+
+	template<class T1>
+	static std::uint32_t aluq(inst_type inst, T1 src, operand dest, size_type size, status_register& sr)
+	{
+		switch (inst)
+		{
+		case inst_type::ADDQ:
+			return addq(src, dest, size, sr);
+
+		case inst_type::SUBQ:
+			return subq(src, dest, size, sr);
+		
 		default: throw internal_error();
 		}
 	}

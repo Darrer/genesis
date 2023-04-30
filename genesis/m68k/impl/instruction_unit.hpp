@@ -397,10 +397,7 @@ private:
 
 			auto op = dec.result();
 
-			res = operations::alu(curr_inst, op, data, size, flags);
-			// TODO: pass regs.flags as is, just decide update it or not based on operand and instruction type
-			if(!op.is_addr_reg())
-				update_user_bits(flags);
+			res = operations::aluq(curr_inst, data, op, size, regs.flags);
 
 			schedule_prefetch_and_write(op, res, size);
 
@@ -1903,16 +1900,6 @@ private:
 		}
 	}
 
-	void update_user_bits(status_register sr)
-	{
-		auto& f = regs.flags;
-		f.C = sr.C;
-		f.V = sr.V;
-		f.Z = sr.Z;
-		f.N = sr.N;
-		f.X = sr.X;
-	}
-
 private:
 	size_type dec_size(std::uint8_t size)
 	{
@@ -1989,7 +1976,6 @@ private:
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
 	std::uint16_t move_reg_mask;
-	status_register flags; // TODO: we don't need it, remove
 };
 
 }
