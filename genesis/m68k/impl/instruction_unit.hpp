@@ -421,24 +421,11 @@ private:
 			dest_reg = (opcode >> 9) & 0x7;
 			size = dec_size(opcode >> 6);
 
-			if((opcode >> 3) & 1)
-			{
-				// address register
-				// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
-				scheduler.inc_addr_reg(src_reg, size); 
-				read(regs.A(src_reg).LW, size);
-				return exec_state::wait_scheduler;
-			}
-			else
-			{
-				// data register
-				auto src = regs.D(src_reg);
-				auto dest = regs.D(dest_reg);
-				res = operations::alu(curr_inst, data, res, size, regs.flags);
-				store(dest, size, res);
-				scheduler.prefetch_one();
-				return exec_state::done;
-			}
+			// address register
+			// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
+			scheduler.inc_addr_reg(src_reg, size); 
+			read(regs.A(src_reg).LW, size);
+			return exec_state::wait_scheduler;
 
 		case 1:
 			res = data;
@@ -1496,19 +1483,13 @@ private:
 
 		case 1:
 		{
-			std::uint8_t ea = opcode & 0b111111;
-			std::uint32_t old_pc = regs.PC;
+			auto op = dec.result();
+			std::uint32_t advanced_pc = operations::advance_pc(regs.PC, op.mode(), size_type::LONG);
 
-			// TODO:
-			if(ea == 0b111001)
-				old_pc += 4;
-			else if((ea >> 3) != 0b010)
-				old_pc += 2;
-
-			regs.PC = dec.result().pointer().address;
+			regs.PC = op.pointer().address;
 
 			scheduler.prefetch_ird();
-			scheduler.push(old_pc, size_type::LONG);
+			scheduler.push(advanced_pc, size_type::LONG);
 			scheduler.prefetch_irc();
 
 			return exec_state::done;
@@ -1549,12 +1530,10 @@ private:
 		{
 			auto& reg = regs.A((opcode >> 9) & 0x7);
 
-			// TODO:
-			std::uint8_t ea = opcode & 0b111111;
-			if((ea >> 3) == 0b110 || ea == 0b111011)
-				scheduler.wait(2);
+			auto op = dec.result();
+			scheduler.wait(timings::lea(op));
 
-			reg.LW = dec.result().pointer().address;
+			reg.LW = op.pointer().address;
 			scheduler.prefetch_one();
 
 			return exec_state::done;
@@ -1574,14 +1553,14 @@ private:
 
 		case 1:
 		{
-			// TODO:
-			std::uint8_t ea = opcode & 0b111111;
-			if((ea >> 3) == 0b110 || ea == 0b111011)
-				scheduler.wait(2);
+			auto op = dec.result();
+			scheduler.wait(timings::pea(op));
 
-			addr = dec.result().pointer().address;
-			
-			bool prefetch_after_push = ea == 0b111000 || ea == 0b111001;
+			addr = op.pointer().address;
+
+			bool prefetch_after_push = op.mode() == addressing_mode::abs_short
+				|| op.mode() == addressing_mode::abs_long;
+
 			if(!prefetch_after_push)
 				scheduler.prefetch_one();
 
@@ -1826,6 +1805,7 @@ private:
 
 			std::uint8_t mode = (opcode >> 3) & 0x7;
 			std::uint8_t reg = opcode & 0x7;
+			// TODO:
 			if(mode == 0b011)
 			{
 				regs.inc_addr(reg, size_type::BYTE);

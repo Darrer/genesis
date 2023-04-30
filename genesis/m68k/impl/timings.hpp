@@ -318,6 +318,17 @@ public:
 		return 128;
 	}
 
+	static std::uint8_t lea(const operand& op)
+	{
+		auto mode = op.mode();
+		if(mode == addressing_mode::index_indir || mode == addressing_mode::index_pc)
+			return 2;
+
+		return 0;
+	}
+
+	static constexpr auto pea = lea;
+
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
 	{

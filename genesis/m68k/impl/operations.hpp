@@ -760,6 +760,36 @@ public:
 		return src_val;
 	}
 
+	static std::uint32_t advance_pc(std::uint32_t pc, addressing_mode mode, size_type size)
+	{
+		switch (mode)
+		{
+		case addressing_mode::data_reg:
+		case addressing_mode::addr_reg:
+		case addressing_mode::indir:
+		case addressing_mode::postinc:
+		case addressing_mode::predec:
+			return pc;
+
+		case addressing_mode::disp_indir:
+		case addressing_mode::index_indir:
+		case addressing_mode::abs_short:
+		case addressing_mode::disp_pc:
+		case addressing_mode::index_pc:
+			return pc + 2;
+
+		case addressing_mode::abs_long:
+			return pc + 4;
+
+		case addressing_mode::imm:
+			if(size == size_type::BYTE || size == size_type::WORD)
+				return pc + 2;
+			return pc + 4;
+
+		default: throw internal_error();
+		}
+	}
+
 	/* helpers */
 	template<class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
