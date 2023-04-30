@@ -1508,9 +1508,7 @@ private:
 			regs.PC = dec.result().pointer().address;
 
 			scheduler.prefetch_ird();
-			// TODO: maybe add an alias for stack register?
-			scheduler.dec_addr_reg(7, size_type::LONG);
-			scheduler.write(regs.SP().LW - 4, old_pc, size_type::LONG, order::msw_first);
+			scheduler.push(old_pc, size_type::LONG);
 			scheduler.prefetch_irc();
 
 			return exec_state::done;
@@ -1532,9 +1530,8 @@ private:
 
 		regs.PC += disp;
 
-		scheduler.wait(2); // TODO: move to timings
-		scheduler.write(regs.SP().LW - 4, old_pc, size_type::LONG, order::msw_first);
-		scheduler.dec_addr_reg(7, size_type::LONG);
+		scheduler.wait(timings::bsr());
+		scheduler.push(old_pc, size_type::LONG);
 		scheduler.prefetch_two();
 
 		return exec_state::done;
@@ -1588,9 +1585,7 @@ private:
 			if(!prefetch_after_push)
 				scheduler.prefetch_one();
 
-			// TODO: add schedule_push method
-			scheduler.write(regs.SP().LW - 4, addr, size_type::LONG, order::msw_first);
-			scheduler.dec_addr_reg(7, size_type::LONG);
+			scheduler.push(addr, size_type::LONG);
 
 			if(prefetch_after_push)
 				scheduler.prefetch_one();

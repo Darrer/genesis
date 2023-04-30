@@ -301,6 +301,11 @@ public:
 		return 2;
 	}
 
+	static std::uint8_t bsr()
+	{
+		return 2;
+	}
+
 	static std::uint8_t nbcd(const operand& op)
 	{
 		if(op.is_data_reg())

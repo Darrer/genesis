@@ -88,7 +88,7 @@ public:
 	void inc_addr_reg(std::uint8_t reg, size_type size);
 	void dec_addr_reg(std::uint8_t reg, size_type size);
 
-	// TODO: add push
+	void push(std::uint32_t data, size_type size, order order = order::msw_first);
 
 private:
 	enum class op_type : std::uint8_t
@@ -103,6 +103,7 @@ private:
 		CALL,
 		INC_ADDR,
 		DEC_ADDR,
+		PUSH,
 	};
 
 	struct read_operation
@@ -143,12 +144,19 @@ private:
 		size_type size;
 	};
 
+	struct push_operation
+	{
+		std::uint32_t data;
+		size_type size;
+		std::int8_t offset = 0;
+	};
+
 	struct operation
 	{
 		op_type type;
 		std::variant<read_operation, read_imm_operation,
 			write_operation, wait_operation, call_operation,
-			register_operation> op;
+			register_operation, push_operation> op;
 	};
 
 private:

@@ -34,8 +34,9 @@ bool bus_scheduler::current_op_is_over() const
 	case op_type::READ:
 	case op_type::READ_IMM:
 	case op_type::WRITE:
+	case op_type::PUSH:
 		return busm.is_idle();
-	
+
 	case op_type::PREFETCH_IRD:
 	case op_type::PREFETCH_IRC:
 	case op_type::PREFETCH_ONE:
@@ -245,6 +246,33 @@ void bus_scheduler::dec_addr_reg(std::uint8_t reg, size_type size)
 	queue.emplace(op_type::DEC_ADDR, reg_op);
 }
 
+void bus_scheduler::push(std::uint32_t data, size_type size, order order)
+{
+	if(size == size_type::LONG)
+	{
+		push_operation push_lsw { data & 0xFFFF, size_type::WORD };
+		push_operation push_msw { data >> 16, size_type::WORD };
+
+		if(order == order::lsw_first)
+		{
+			queue.emplace(op_type::PUSH, push_lsw);
+			queue.emplace(op_type::PUSH, push_msw);
+		}
+		else
+		{
+			push_msw.offset = -2;
+			push_lsw.offset = 2;
+			queue.emplace(op_type::PUSH, push_msw);
+			queue.emplace(op_type::PUSH, push_lsw);
+		}
+	}
+	else
+	{
+		push_operation push { data, size };
+		queue.emplace(op_type::PUSH, push);
+	}
+}
+
 void bus_scheduler::start_operation(operation op)
 {
 	current_op = op;
@@ -299,6 +327,20 @@ void bus_scheduler::start_operation(operation op)
 			busm.init_write<std::uint8_t>(write.addr, write.data);
 		else
 			busm.init_write<std::uint16_t>(write.addr, write.data);
+
+		break;
+	}
+
+	case op_type::PUSH:
+	{
+		push_operation push = std::get<push_operation>(op.op);
+
+		regs.dec_addr(7, push.size);
+
+		if(push.size == size_type::BYTE)
+			busm.init_write<std::uint8_t>(regs.SP().LW + push.offset, push.data);
+		else
+			busm.init_write<std::uint16_t>(regs.SP().LW + push.offset, push.data);
 
 		break;
 	}
