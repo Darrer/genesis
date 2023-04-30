@@ -596,9 +596,8 @@ public:
 		else if(mu)
 			sr.N = 0;
 
-		// TODO: if exception is not reised, N is undefined, external tests expect to see undefined value
-		// TODO: Z V C flags are undefined, howerver external tests expect to see 0
-		sr.Z = sr.V = sr.C = 0;
+		sr.Z = zer_flag(dest_val, size_type::WORD); // Undocumented behavior
+		sr.V = sr.C = 0; // Undocumented behavior
 
 		return lz || mu;
 	}
@@ -670,21 +669,6 @@ public:
 
 		long sum = (long)(a & mask) + (long)(b & mask) + c;
 		if (sum > mask)
-			return 1;
-
-		return 0;
-	}
-
-	template <class T>
-	static std::uint8_t check_half_borrow(T a, T b, std::uint8_t c = 0)
-	{
-		static_assert(std::numeric_limits<T>::is_signed == false);
-		static_assert(sizeof(T) <= 2);
-
-		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
-
-		long sum = (long)(b & mask) + c;
-		if (sum > (long)(a & mask))
 			return 1;
 
 		return 0;

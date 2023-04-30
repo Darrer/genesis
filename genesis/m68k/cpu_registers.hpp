@@ -54,7 +54,7 @@ public:
 	{
 		D0.LW = D1.LW = D2.LW = D3.LW = D4.LW = D5.LW = D6.LW = D7.LW = 0x0;
 		A0.LW = A1.LW = A2.LW = A3.LW = A4.LW = A5.LW = A6.LW = 0x0;
-		PC = 0x0;
+		PC = SPC = 0x0;
 		SR = 0x0;
 		USP.LW = SSP.LW = 0x0;
 		IRC = IR = IRD = SIRD = 0x0;
@@ -87,9 +87,14 @@ public:
 		case 4: return A4;
 		case 5: return A5;
 		case 6: return A6;
-		case 7: return flags.S ? SSP : USP;
+		case 7: return SP();
 		default: throw internal_error();
 		}
+	}
+
+	address_register& SP()
+	{
+		return flags.S ? SSP : USP;
 	}
 
 	void inc_addr(std::uint8_t reg, size_type size)

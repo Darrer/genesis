@@ -39,7 +39,6 @@ void cpu::cycle()
 	}
 
 	scheduler->cycle();
-	pq->cycle();
 	busm->cycle();
 
 	scheduler->post_cycle();

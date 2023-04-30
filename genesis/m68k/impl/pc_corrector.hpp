@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-#include <iostream>
-
 #include "m68k/cpu_registers.hpp"
 #include "opcode_decoder.h"
 #include "exception_manager.h"
@@ -45,16 +43,6 @@ private:
 		}
 
 		return false;
-	}
-
-	static bool is_rte(std::uint16_t opcode)
-	{
-		return opcode_decoder::decode(opcode) == inst_type::RTE;
-	}
-
-	static bool is_jmp(std::uint16_t opcode)
-	{
-		return opcode_decoder::decode(opcode) == inst_type::JMP;
 	}
 };
 

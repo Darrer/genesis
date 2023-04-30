@@ -13,7 +13,6 @@ std::uint32_t wait_idle(test::test_cpu& cpu)
 	std::uint32_t cycles = 0;
 	while (!pq.is_idle() || !busm.is_idle())
 	{
-		pq.cycle();
 		busm.cycle();
 		++cycles;
 	}

@@ -1510,7 +1510,7 @@ private:
 			scheduler.prefetch_ird();
 			// TODO: maybe add an alias for stack register?
 			scheduler.dec_addr_reg(7, size_type::LONG);
-			scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
+			scheduler.write(regs.SP().LW - 4, old_pc, size_type::LONG, order::msw_first);
 			scheduler.prefetch_irc();
 
 			return exec_state::done;
@@ -1533,7 +1533,7 @@ private:
 		regs.PC += disp;
 
 		scheduler.wait(2); // TODO: move to timings
-		scheduler.write(regs.A(7).LW - 4, old_pc, size_type::LONG, order::msw_first);
+		scheduler.write(regs.SP().LW - 4, old_pc, size_type::LONG, order::msw_first);
 		scheduler.dec_addr_reg(7, size_type::LONG);
 		scheduler.prefetch_two();
 
@@ -1589,7 +1589,7 @@ private:
 				scheduler.prefetch_one();
 
 			// TODO: add schedule_push method
-			scheduler.write(regs.A(7).LW - 4, addr, size_type::LONG, order::msw_first);
+			scheduler.write(regs.SP().LW - 4, addr, size_type::LONG, order::msw_first);
 			scheduler.dec_addr_reg(7, size_type::LONG);
 
 			if(prefetch_after_push)
@@ -1614,16 +1614,16 @@ private:
 		{
 			auto& reg = regs.A(opcode & 0x7);
 
-			regs.A(7).LW -= 4;
+			regs.SP().LW -= 4;
 
-			addr = regs.A(7).LW;
+			addr = regs.SP().LW;
 			scheduler.write(addr, reg.LW, size_type::LONG, order::msw_first);
 
 			reg.LW = addr;
 			
 			scheduler.call([this]()
 			{
-				regs.A(7).LW += std::int16_t(imm);
+				regs.SP().LW += std::int16_t(imm);
 			});
 
 			scheduler.prefetch_one();
@@ -1638,13 +1638,13 @@ private:
 	{
 		dest_reg = opcode & 0x7;
 		auto& reg = regs.A(dest_reg);
-		auto& sp = regs.A(7);
+		auto& sp = regs.SP();
 		sp.LW = reg.LW;
 
 		scheduler.read(sp.LW, size_type::LONG, [this](std::uint32_t data, size_type)
 		{
 			// TODO: shoudn't the order be different? First load reg, then update stack pointer?
-			regs.A(7).LW += 4;
+			regs.SP().LW += 4;
 			regs.A(dest_reg).LW = data;
 		});
 

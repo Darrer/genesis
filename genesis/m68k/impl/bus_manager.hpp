@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <optional>
 #include <functional>
-#include <limits>
 
 #include "m68k/cpu_memory.h"
 #include "m68k/cpu_bus.hpp"
@@ -27,8 +26,14 @@ class bus_manager
 {
 public:
 	using on_complete = std::function<void()>;
+	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
 
 private:
+	// all callbacks are restricted in size to the size of the pointer
+	// this is required for std::function small-size optimizations
+	// (though it's not guaranteed by standard, so we purely rely on implementation)
+	constexpr const static std::size_t max_callable_size = sizeof(void*);
+
 	enum bus_cycle_state
 	{
 		IDLE,
@@ -47,7 +52,7 @@ private:
 
 		/* bus read modify write cycle */
 
-		// Read states
+		// Read
 		RMW_READ0,
 		RMW_READ1,
 		RMW_READ2,
@@ -93,50 +98,55 @@ public:
 		return _letched_word.value();
 	}
 
-	void init_read_byte(std::uint32_t address, addr_space _space, on_complete cb = nullptr)
+	template<class Callable = std::nullptr_t>
+	void init_read_byte(std::uint32_t address, addr_space space, Callable cb = nullptr)
 	{
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_byte");
 
 		init_new_cycle(address, READ0, cb);
 		byte_op = true;
-		space = _space;
+		this->space = space;
 	}
 
-	void init_read_word(std::uint32_t address, addr_space _space, on_complete cb = nullptr)
+	template<class Callable = std::nullptr_t>
+	void init_read_word(std::uint32_t address, addr_space space, Callable cb = nullptr)
 	{
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_word");
 
 		init_new_cycle(address, READ0, cb);
 		byte_op = false;
-		space = _space;
+		this->space = space;
 	}
 
-	template<class T>
-	void init_write(std::uint32_t address, T data, on_complete cb = nullptr)
+	template<class T, class Callable = std::nullptr_t>
+	void init_write(std::uint32_t address, T data, Callable cb = nullptr)
 	{
 		static_assert(sizeof(T) <= 2);
-		static_assert(std::numeric_limits<T>::is_signed == false);
-
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_write");
 
 		init_new_cycle(address, WRITE0, cb);
 		data_to_write = data;
 		byte_op = sizeof(T) == 1;
-		space = addr_space::DATA; // TODO: can write be to PROGRAM space?
+		space = addr_space::DATA;
 	}
 
-	void init_read_modify_write(std::uint32_t address, std::function<std::uint8_t(std::uint8_t)> modify,
-		addr_space space = addr_space::DATA)
+	template<class Callable>
+	void init_read_modify_write(std::uint32_t address, Callable modify, addr_space space = addr_space::DATA)
 	{
-		if(modify == nullptr)
-			throw std::invalid_argument("modify");
-
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_modify_write");
 
 		reset();
+
+		modify_cb = modify;
+		if(modify_cb == nullptr)
+			throw std::invalid_argument("modify");
+
 		this->address = address;
 		this->space = space;
-		modify_cb = modify;
 		state = RMW_READ0;
 		byte_op = true;
 	}
@@ -230,98 +240,6 @@ public:
 			break;
 
 		default: throw internal_error();
-		}
-	}
-
-	void old_cycle()
-	{
-		// using bus_cycle_state;
-		switch (state)
-		{
-		case IDLE:
-			break;
-
-		/* bus ready cycle */
-		case READ0:
-			if(check_exceptions())
-				return;
-
-			bus.func_codes(gen_func_codes());
-			bus.set(bus::RW);
-			bus.address(address);
-			state = READ1; break;
-
-		case READ1:
-			bus.set(bus::AS);
-			set_data_strobe_bus();
-			state = READ2; break;
-
-		case READ2:
-		{
-			// emulate read
-			std::uint16_t data = 0;
-			if(byte_op)
-				data = mem.read<std::uint8_t>(bus.address());
-			else
-				data = mem.read<std::uint16_t>(bus.address());
-			set_data_bus(data);
-
-			// immidiate DTACK
-			bus.set(bus::DTACK);
-		}
-			state = READ3; break;
-
-		case READ3:
-			if(byte_op)
-			{
-				if(bus.is_set(bus::LDS))
-					_letched_byte = bus.data() & 0xFF;
-				else
-					_letched_byte = bus.data() >> 8;
-			}
-			else
-			{
-				_letched_word = bus.data();
-			}
-			clear_bus();
-			set_idle(); break;
-
-		/* bus write cycle */
-		case WRITE0:
-			if(check_exceptions())
-				return;
-
-			bus.func_codes(gen_func_codes());
-			bus.set(bus::RW);
-			bus.address(address);
-			state = WRITE1; break;
-
-		case WRITE1:
-			bus.set(bus::AS);
-			bus.clear(bus::RW);
-			set_data_bus(data_to_write);
-			state = WRITE2; break;
-
-		case WRITE2:
-			set_data_strobe_bus();
-
-			// emulate write
-			if(byte_op)
-				mem.write<std::uint8_t>(bus.address(), data_to_write & 0xFF);
-			else
-				mem.write<std::uint16_t>(bus.address(), data_to_write);
-
-			// immidiate DTACK
-			bus.set(bus::DTACK);
-			state = WRITE3; break;
-
-		case WRITE3:
-			clear_bus();
-			bus.set(bus::RW);
-			set_idle(); break;
-
-		default:
-			throw std::runtime_error("bus_manager::cycle internal error: unknown state");
 		}
 	}
 
@@ -438,6 +356,7 @@ private:
 
 		state = IDLE;
 
+		// TODO: do not allow chaining
 		auto cb = on_complete_cb; // to allow chaining
 		on_complete_cb = nullptr; // to prevent extra calls
 
@@ -514,7 +433,7 @@ private:
 	// exceptions
 	bool check_exceptions()
 	{
-		return check_bus_error() || check_address_error();
+		return check_address_error() || check_bus_error();
 	}
 
 	bool check_bus_error()
@@ -577,7 +496,7 @@ private:
 	addr_space space;
 	std::uint16_t data_to_write;
 	on_complete on_complete_cb = nullptr;
-	std::function<std::uint8_t(std::uint8_t)> modify_cb = nullptr;
+	on_modify modify_cb = nullptr;
 
 	bool byte_op = false;
 	std::optional<std::uint8_t> _letched_byte;

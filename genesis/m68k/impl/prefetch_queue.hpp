@@ -62,11 +62,6 @@ public:
 		state = fetch_state::FETCH_ONE;
 	}
 
-	void cycle()
-	{
-		// nothing to do, rely on bus manager callback
-	}
-
 private:
 	void on_complete()
 	{
