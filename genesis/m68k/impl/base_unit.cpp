@@ -101,12 +101,10 @@ void base_unit::post_cycle()
 
 void base_unit::read(std::uint32_t addr, size_type size)
 {
-	auto on_read = [this](std::uint32_t data, size_type)
+	scheduler.read(addr, size, [this](std::uint32_t data, size_type)
 	{
 		this->data = data;
-	};
-
-	scheduler.read(addr, size, on_read);
+	});
 }
 
 void base_unit::dec_and_read(std::uint8_t addr_reg, size_type size)
@@ -142,8 +140,6 @@ void base_unit::read_imm(size_type size)
 	{
 		this->imm = data;
 	});
-
-	state = WAITING_SCHEDULER;
 }
 
 }

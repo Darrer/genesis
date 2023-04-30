@@ -59,6 +59,7 @@ public:
 		
 		if(type == trans_type::IDLE)
 			return true;
+
 		return rw_data.value() == other.rw_data.value();
 	}
 

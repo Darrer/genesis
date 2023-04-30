@@ -2,7 +2,7 @@
 #include <iostream>
 #include <filesystem>
 #include <chrono>
-#include<stdlib.h>
+#include <stdlib.h>
 
 #include "tests_loader.h"
 #include "test_cpu.hpp"
@@ -173,7 +173,8 @@ bool check_transitions(const run_result& res, const std::vector<bus_transition>&
 	return res.cycles == expected_cycles;
 }
 
-void execute(test::test_cpu& cpu, std::uint16_t cycles, std::function<void()> on_cycle)
+template<class Callable>
+void execute(test::test_cpu& cpu, std::uint16_t cycles, Callable on_cycle)
 {
 	const std::uint16_t bonus_cycles = 10;
 	bool in_bonus_cycles = false;
@@ -182,9 +183,8 @@ void execute(test::test_cpu& cpu, std::uint16_t cycles, std::function<void()> on
 	{
 		cpu.cycle();
 		--cycles;
-		
-		if(on_cycle != nullptr)
-			on_cycle();
+
+		on_cycle();
 
 		if(cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
 		{
@@ -203,12 +203,12 @@ void execute(test::test_cpu& cpu, std::uint16_t cycles, std::function<void()> on
 	}
 }
 
-run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
+void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& res)
 {
 	using namespace m68k;
 
-	run_result res;
-	res.transitions.reserve(16);
+	res.cycles = 0;
+	res.transitions.clear();
 
 	bool in_bus_cycle = false;
 	std::uint16_t cycles_in_curr_trans = 0;
@@ -224,7 +224,7 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 		++cycles_in_curr_trans;
 
 		// save data for rw transition
-		if(in_bus_cycle && cycles_in_curr_trans % 3 == 0)
+		if(in_bus_cycle && cycles_in_curr_trans == 3 || cycles_in_curr_trans == 9)
 		{
 			if(cycles_in_curr_trans <= 4)
 				type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
@@ -276,15 +276,14 @@ run_result execute_and_track(test::test_cpu& cpu, std::uint16_t cycles)
 	// push idle cycles
 	if(busm.is_idle() && cycles_in_curr_trans > 0)
 		res.transitions.push_back({cycles_in_curr_trans});
-
-	return res;
 }
 
 bool run_test(test::test_cpu& cpu, const test_case& test)
 {
 	set_preconditions(cpu, test.initial_state);
 
-	auto res = execute_and_track(cpu, test.length);
+	static run_result res;
+	execute_and_track(cpu, test.length, res);
 
 	bool post = check_postconditions(cpu, test.final_state);
 	bool trans = check_transitions(res, test.transitions, test.length);
@@ -308,7 +307,6 @@ bool should_skip_test(std::string_view test_name)
 {
 	// These are faulty tests
 	auto tests_to_skip = { "e502 [ASL.b Q, D2] 1583", "e502 [ASL.b Q, D2] 1761" };
-		// , "ea23 [ASR.b D5, D3] 8" };
 	for(auto& test : tests_to_skip)
 	{
 		if(test_name == test)
@@ -383,7 +381,7 @@ bool load_and_run(std::string test_path)
 	auto tests = load_tests(test_path);
 	std::cout << test_name << ": executing " << tests.size() << " tests" << std::endl;
 
-	test::test_cpu cpu;
+	static test::test_cpu cpu;
 	return run_tests(cpu, tests, test_name);
 }
 
