@@ -24,7 +24,6 @@ ram_state parse_ram_state(json& ram)
 		rt.push_back({addr, value});
 	}
 
-	rt.shrink_to_fit();
 	return rt;
 }
 
@@ -41,7 +40,6 @@ std::vector<std::uint16_t> parse_prefetch(json& pref)
 	for(auto& val : pref)
 		prefetch.push_back(val.get<std::uint16_t>());
 
-	prefetch.shrink_to_fit();
 	return prefetch;
 }
 
@@ -163,7 +161,6 @@ std::vector<bus_transition> parse_transitions(json& transitions)
 	}
 
 	merge_neighboring_idle_transitions(res);
-	res.shrink_to_fit();
 	return res;
 }
 
@@ -197,6 +194,5 @@ std::vector<test_case> load_tests(std::string path_to_json_tests)
 	for(auto& test : data)
 		tests.push_back(parse_test_case(test));
 
-	tests.shrink_to_fit();
 	return tests;
 }

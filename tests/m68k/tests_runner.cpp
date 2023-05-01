@@ -226,7 +226,7 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 		// save data for rw transition
 		if(in_bus_cycle && cycles_in_curr_trans == 3 || cycles_in_curr_trans == 9)
 		{
-			if(cycles_in_curr_trans <= 4)
+			if(cycles_in_curr_trans == 3)
 				type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
 			else
 				type = trans_type::READ_MODIFY_WRITE;
@@ -242,7 +242,6 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 			else
 				rw_trans.data = bus.data() & 0xFF;
 		}
-
 
 		// transition bus cycle -> idle
 		if(in_bus_cycle && busm.is_idle())

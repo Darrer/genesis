@@ -418,7 +418,6 @@ private:
 			dest_reg = (opcode >> 9) & 0x7;
 			size = dec_size(opcode >> 6);
 
-			// address register
 			// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
 			scheduler.inc_addr_reg(src_reg, size); 
 			read(regs.A(src_reg).LW, size);
@@ -559,6 +558,7 @@ private:
 		std::uint8_t mode = ea & 0x7;
 		dest_reg = (ea >> 3) & 0x7;
 
+		// TODO
 		if(mode == 0b000 || mode == 0b010 || mode == 0b101 || mode == 0b110 || (mode == 0b111 && dest_reg == 0b000))
 		{
 			std::uint8_t ea_move = (mode << 3) | dest_reg;
@@ -698,7 +698,7 @@ private:
 			std::uint8_t dr = (opcode >> 10) & 1;
 			std::uint16_t reg_mask = imm & 0xFFFF;
 
-			if(dr == 1) 
+			if(dr == 1)
 				movem_memory_to_register(reg_mask);
 			else
 				movem_register_to_memory(reg_mask);
@@ -1098,7 +1098,7 @@ private:
 		}
 	}
 
-	exec_state mulu_handler()
+	exec_state mulu_handler() // TODO: rename to mul_handler
 	{
 		switch (exec_stage++)
 		{

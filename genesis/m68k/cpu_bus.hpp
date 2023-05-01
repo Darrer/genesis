@@ -65,7 +65,7 @@ public:
 
 	void address(std::uint32_t val)
 	{
-		// address bus is 24 bits only, so clear hight byte
+		// address bus is 24 bits only, so clear high byte
 		addr_bus = val & 0xFFFFFF;
 	}
 

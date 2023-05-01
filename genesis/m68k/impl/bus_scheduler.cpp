@@ -398,7 +398,6 @@ void bus_scheduler::run_imm_operations()
 			return;
 		}
 
-
 		queue.pop();
 	}
 }

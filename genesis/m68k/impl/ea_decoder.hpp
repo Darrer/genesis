@@ -208,63 +208,6 @@ public:
 		schedule_decoding(mode, reg, size);
 	}
 
-private:
-	void schedule_decoding(addressing_mode mode, std::uint8_t reg, size_type size)
-	{
-		switch (mode)
-		{
-		case addressing_mode::data_reg:
-			decode_data_reg(reg, size);
-			break;
-
-		case addressing_mode::addr_reg:
-			decode_addr_reg(reg, size);
-			break;
-
-		case addressing_mode::indir:
-			decode_indir(reg, size);
-			break;
-
-		case addressing_mode::postinc:
-			decode_postinc(reg, size);
-			break;
-
-		case addressing_mode::predec:
-			decode_predec(reg, size);
-			break;
-
-		case addressing_mode::disp_indir:
-			decode_disp_indir(reg, size);
-			break;
-
-		case addressing_mode::index_indir:
-			decode_index_indir(reg, size);
-			break;
-
-		case addressing_mode::abs_short:
-			decode_abs_short(size);
-			break;
-
-		case addressing_mode::abs_long:
-			decode_abs_long(size);
-			break;
-
-		case addressing_mode::disp_pc:
-			decode_disp_pc(size);
-			break;
-
-		case addressing_mode::index_pc:
-			decode_index_pc(size);
-			break;
-
-		case addressing_mode::imm:
-			decode_imm(size);
-			break;
-
-		default: throw internal_error();
-		}
-	}
-
 	addressing_mode decode_mode(std::uint8_t ea)
 	{
 		std::uint8_t mode = (ea >> 3) & 0x7;
@@ -319,6 +262,63 @@ private:
 		default:
 			return addressing_mode::unknown;
 		}
+		}
+	}
+
+private:
+	void schedule_decoding(addressing_mode mode, std::uint8_t reg, size_type size)
+	{
+		switch (mode)
+		{
+		case addressing_mode::data_reg:
+			decode_data_reg(reg, size);
+			break;
+
+		case addressing_mode::addr_reg:
+			decode_addr_reg(reg, size);
+			break;
+
+		case addressing_mode::indir:
+			decode_indir(reg, size);
+			break;
+
+		case addressing_mode::postinc:
+			decode_postinc(reg, size);
+			break;
+
+		case addressing_mode::predec:
+			decode_predec(reg, size);
+			break;
+
+		case addressing_mode::disp_indir:
+			decode_disp_indir(reg, size);
+			break;
+
+		case addressing_mode::index_indir:
+			decode_index_indir(reg, size);
+			break;
+
+		case addressing_mode::abs_short:
+			decode_abs_short(size);
+			break;
+
+		case addressing_mode::abs_long:
+			decode_abs_long(size);
+			break;
+
+		case addressing_mode::disp_pc:
+			decode_disp_pc(size);
+			break;
+
+		case addressing_mode::index_pc:
+			decode_index_pc(size);
+			break;
+
+		case addressing_mode::imm:
+			decode_imm(size);
+			break;
+
+		default: throw internal_error();
 		}
 	}
 
