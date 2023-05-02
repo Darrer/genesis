@@ -90,6 +90,16 @@ public:
 		trap_vector = vector;
 	}
 
+	void rise_trapv()
+	{
+		rise(exception_type::trapv);
+	}
+
+	void accept_trapv()
+	{
+		accept(exception_type::trapv);
+	}
+
 	std::uint8_t accept_trap()
 	{
 		accept(exception_type::trap);

@@ -1137,7 +1137,7 @@ private:
 		scheduler.prefetch_one();
 		if(regs.flags.V == 1)
 		{
-			exman.rise_trap(7); // TODO
+			exman.rise_trapv();
 		}
 
 		return exec_state::done;

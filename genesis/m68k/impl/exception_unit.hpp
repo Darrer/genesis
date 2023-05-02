@@ -84,6 +84,9 @@ private:
 		case exception_type::trap:
 			return trap();
 
+		case exception_type::trapv:
+			return trapv();
+
 		case exception_type::division_by_zero:
 			return division_by_zero();
 
@@ -153,6 +156,11 @@ private:
 		{
 			curr_ex = exception_type::trap;
 			trap_vector = exman.accept_trap();
+		}
+		else if(exman.is_raised(exception_type::trapv))
+		{
+			curr_ex = exception_type::trapv;
+			exman.accept_trapv();
 		}
 		else if(exman.is_raised(exception_type::division_by_zero))
 		{
@@ -262,11 +270,14 @@ private:
 
 	exec_state trap()
 	{
-		// TODO:
-		if(trap_vector != 7)
-			scheduler.wait(3);
-
+		scheduler.wait(3);
 		schedule_trap(regs.PC, trap_vector);
+		return exec_state::done;
+	}
+
+	exec_state trapv()
+	{
+		schedule_trap(regs.PC, 7);
 		return exec_state::done;
 	}
 
