@@ -26,7 +26,7 @@ public:
 
 	void cycle();
 	void post_cycle();
-	bool is_idle() const;
+	virtual bool is_idle() const;
 	virtual void reset();
 
 protected:

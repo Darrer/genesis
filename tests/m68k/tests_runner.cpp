@@ -315,9 +315,18 @@ bool should_skip_test(std::string_view test_name)
 	return false;
 }
 
+void accept_reset(test::test_cpu& cpu)
+{
+	auto& exman = cpu.exception_manager();
+	if(exman.is_raised(m68k::exception_type::reset))
+		exman.accept_reset();
+}
+
 bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)
 {
 	EXPECT_FALSE(tests.empty()) << test_name << ": tests cannot be empty";
+
+	accept_reset(cpu);
 
 	std::uint32_t total_cycles = 0;
 	auto start = std::chrono::high_resolution_clock::now();

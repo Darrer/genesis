@@ -18,7 +18,14 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 		inst_unit->reset();
 		scheduler->reset();
 	};
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, *scheduler, abort_execution);
+	
+	auto instruction_unit_is_idle = [this]()
+	{
+		return inst_unit->is_idle();
+	};
+
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, *scheduler,
+		abort_execution, instruction_unit_is_idle);
 }
 
 cpu::~cpu()
@@ -28,8 +35,7 @@ cpu::~cpu()
 void cpu::cycle()
 {
 	// only instruction or exception cycle
-	const bool exception_cycle = !excp_unit->is_idle() || excp_unit->has_work();
-	if(exception_cycle)
+	if(!excp_unit->is_idle())
 	{
 		excp_unit->cycle();
 	}
@@ -44,11 +50,6 @@ void cpu::cycle()
 	scheduler->post_cycle();
 	excp_unit->post_cycle();
 	inst_unit->post_cycle();
-
-	// TODO: should we start executing any exceptoins now or only from 0 group?
-	// if exception of group 0 rised - do cycle now
-	if(!exception_cycle && excp_unit->has_work())
-		excp_unit->cycle();
 }
 
 bool cpu::is_idle() const

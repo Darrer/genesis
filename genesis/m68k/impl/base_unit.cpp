@@ -95,7 +95,7 @@ void base_unit::executing()
 
 void base_unit::post_cycle()
 {
-	if(is_idle())
+	if(base_unit::is_idle())
 		state = IDLE;
 }
 

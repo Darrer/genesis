@@ -24,13 +24,26 @@ private:
 
 public:
 	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, prefetch_queue& pq,
-		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution)
-		: base_unit(regs, scheduler), exman(exman), pq(pq), __abort_execution(__abort_execution)
+		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution,
+		std::function<bool()> __instruction_unit_is_idle)
+		: base_unit(regs, scheduler), exman(exman), pq(pq), __abort_execution(__abort_execution),
+		__instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__abort_execution == nullptr)
 			throw std::invalid_argument("__abort_execution");
 
+		if(__instruction_unit_is_idle == nullptr)
+			throw std::invalid_argument("__instruction_unit_is_idle");
+
 		reset();
+	}
+
+	bool is_idle() const override
+	{
+		return base_unit::is_idle() &&
+			!exception_0_group_is_rised() &&
+			!exception_1_group_is_rised() &&
+			!exception_2_group_is_rised();
 	}
 
 	void reset() override
@@ -38,31 +51,6 @@ public:
 		state = IDLE;
 		curr_ex = exception_type::none;
 		base_unit::reset();
-	}
-
-	bool has_work() const
-	{
-		/* We should process these exceptions as soon as possible */
-		if(exman.is_raised(exception_type::address_error))
-			return true;
-
-		if(exman.is_raised(exception_type::bus_error))
-			return true;
-
-		// TODO: wait till instruction is over
-		if(exman.is_raised(exception_type::trap))
-			return true;
-
-		if(exman.is_raised(exception_type::division_by_zero))
-			return true;
-
-		if(exman.is_raised(exception_type::privilege_violations))
-			return true;
-
-		if(exman.is_raised(exception_type::chk_instruction))
-			return true;
-
-		return false;
 	}
 
 protected:
@@ -109,6 +97,46 @@ private:
 		}
 	}
 
+	// Checks if any of the following exceptions are reised:
+	// 1. Reset
+	// 2. Address error
+	// 3. Bus error
+	bool exception_0_group_is_rised() const
+	{
+		auto exps = { exception_type::reset, exception_type::address_error, exception_type::bus_error };
+		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+	}
+
+	// Checks if current executing instruction is over and any of the following exceptions are reised:
+	// 1. Trace
+	// 2. Interrupt
+	// 3. Illegal
+	// 4. Privilege
+	bool exception_1_group_is_rised() const
+	{
+		if(!instruction_unit_is_idle())
+			return false;
+
+		auto exps = { exception_type::trace, exception_type::interrupt,
+			exception_type::illegal_instruction, exception_type::privilege_violations };
+		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+	}
+
+	// Checks if current executing instruction is over and any of the following exceptions are reised:
+	// 1. Trap
+	// 2. Trapv
+	// 3. CHK
+	// 4. Zero Divide
+	bool exception_2_group_is_rised() const
+	{
+		if(!instruction_unit_is_idle())
+			return false;
+
+		auto exps = { exception_type::trap, exception_type::trapv,
+			exception_type::chk_instruction, exception_type::division_by_zero };
+		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+	}
+
 	void accept_exception()
 	{
 		if(exman.is_raised(exception_type::address_error))
@@ -147,6 +175,12 @@ private:
 		}
 	}
 
+	/*
+		Note: Almost in all cases we start processing exception within 4 IDLE cycles,
+		howerver, as we rise exceptoin on N cycle, but start processing it on N+1 cycle (e.g. on the next cycle)
+		we wait for 3 cycles to compensate for this delay.
+	*/
+
 	/* Sequence of actions
 	 * 1. Push PC
 	 * 2. Push SR
@@ -166,7 +200,7 @@ private:
 		abort_execution();
 		correct_pc();
 
-		scheduler.wait(4 - 1);
+		scheduler.wait(3);
 
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
@@ -187,7 +221,6 @@ private:
 
 		// PUSH IRD
 		regs.SSP.LW -= 2;
-		// TODO: IRD not always contains the current instruction
 		scheduler.write(regs.SSP.LW, regs.SIRD, size_type::WORD);
 
 		// PUSH address LOW
@@ -231,7 +264,7 @@ private:
 	{
 		// TODO:
 		if(trap_vector != 7)
-			scheduler.wait(4 - 1);
+			scheduler.wait(3);
 
 		schedule_trap(regs.PC, trap_vector);
 		return exec_state::done;
@@ -239,7 +272,7 @@ private:
 
 	exec_state division_by_zero()
 	{
-		scheduler.wait(8 - 1);
+		scheduler.wait(7);
 		schedule_trap(regs.SPC, 5);
 		return exec_state::done;
 	}
@@ -248,14 +281,14 @@ private:
 	{
 		throw not_implemented("implemented but not tested"); // TODO
 
-		scheduler.wait(4);
+		scheduler.wait(3);
 		schedule_trap(regs.SPC, 8);
 		return exec_state::done;
 	}
 
 	exec_state chk_instruction()
 	{
-		scheduler.wait(4 - 1);
+		scheduler.wait(3);
 
 		schedule_trap(regs.PC, 6);
 		return exec_state::done;
@@ -318,6 +351,11 @@ private:
 		__abort_execution();
 	}
 
+	bool instruction_unit_is_idle() const
+	{
+		return __instruction_unit_is_idle();
+	}
+
 	void schedule_prefetch_two_with_gap()
 	{
 		scheduler.prefetch_ird();
@@ -329,6 +367,7 @@ private:
 	m68k::exception_manager& exman;
 	prefetch_queue& pq;
 	std::function<void()> __abort_execution;
+	std::function<bool()> __instruction_unit_is_idle;
 	exception_type curr_ex;
 	ex_state state;
 

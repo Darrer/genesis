@@ -11,13 +11,24 @@ namespace genesis::m68k
 enum class exception_type
 {
 	none,
+
+	/* 0 group */
+	reset,
 	address_error,
 	bus_error,
+
+	/* 1 group */
+	trace,
+	interrupt,
+	illegal_instruction,
+	privilege_violations,
+
+	/* 2 group */
 	trap,
 	trapv,
-	division_by_zero,
-	privilege_violations,
 	chk_instruction,
+	division_by_zero,
+
 	count
 };
 
@@ -37,6 +48,16 @@ public:
 	bool is_raised(exception_type ex) const
 	{
 		return exps.test(static_cast<std::uint8_t>(ex));
+	}
+
+	void rise_reset()
+	{
+		rise(exception_type::reset);
+	}
+
+	void accept_reset()
+	{
+		accept(exception_type::reset);
 	}
 
 	void rise_address_error(address_error _addr_error)
@@ -120,11 +141,6 @@ private:
 			throw internal_error();
 
 		exps.set(static_cast<std::uint8_t>(ex), false);
-	}
-
-	void accept_all()
-	{
-		exps.reset();
 	}
 
 private:
