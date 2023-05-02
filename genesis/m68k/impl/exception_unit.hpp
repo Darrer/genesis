@@ -77,9 +77,19 @@ private:
 	{
 		switch (curr_ex)
 		{
+	
+		/* group 0 */
+
 		case exception_type::address_error:
 		case exception_type::bus_error:
 			return address_error();
+
+		/* group 1 */
+
+		case exception_type::privilege_violations:
+			return privilege_violations();
+
+		/* group 2 */
 
 		case exception_type::trap:
 			return trap();
@@ -87,14 +97,11 @@ private:
 		case exception_type::trapv:
 			return trapv();
 
-		case exception_type::division_by_zero:
-			return division_by_zero();
-
-		case exception_type::privilege_violations:
-			return privilege_violations();
-
 		case exception_type::chk_instruction:
 			return chk_instruction();
+
+		case exception_type::division_by_zero:
+			return division_by_zero();
 
 		default: throw internal_error();
 		}
@@ -142,45 +149,100 @@ private:
 
 	void accept_exception()
 	{
+		if(accept_group_0())
+			return;
+		
+		if(accept_group_1())
+			return;
+		
+		if(accept_group_2())
+			return;
+		
+		throw internal_error(); // why we were called?
+	}
+
+	bool accept_group_0()
+	{
+		if(exman.is_raised(exception_type::reset))
+		{
+			throw not_implemented();
+		}
+
 		if(exman.is_raised(exception_type::address_error))
 		{
 			curr_ex = exception_type::address_error;
 			addr_error = exman.accept_address_error();
+			return true;
 		}
-		else if(exman.is_raised(exception_type::bus_error))
+
+		if(exman.is_raised(exception_type::bus_error))
 		{
 			curr_ex = exception_type::bus_error;
 			addr_error = exman.accept_bus_error();
+			return true;
 		}
-		else if(exman.is_raised(exception_type::trap))
-		{
-			curr_ex = exception_type::trap;
-			trap_vector = exman.accept_trap();
-		}
-		else if(exman.is_raised(exception_type::trapv))
-		{
-			curr_ex = exception_type::trapv;
-			exman.accept_trapv();
-		}
-		else if(exman.is_raised(exception_type::division_by_zero))
-		{
-			curr_ex = exception_type::division_by_zero;
-			exman.accept_division_by_zero();
-		}
-		else if(exman.is_raised(exception_type::privilege_violations))
-		{
-			curr_ex = exception_type::privilege_violations;
-			exman.accept_privilege_violations();
-		}
-		else if(exman.is_raised(exception_type::chk_instruction))
-		{
-			curr_ex = exception_type::chk_instruction;
-			exman.accept_chk_instruction();
-		}
-		else
+
+		return false;
+	}
+
+	bool accept_group_1()
+	{
+		if(exman.is_raised(exception_type::trace))
 		{
 			throw not_implemented();
 		}
+
+		if(exman.is_raised(exception_type::interrupt))
+		{
+			throw not_implemented();
+		}
+
+		if(exman.is_raised(exception_type::illegal_instruction))
+		{
+			throw not_implemented();
+		}
+
+		if(exman.is_raised(exception_type::privilege_violations))
+		{
+			curr_ex = exception_type::privilege_violations;
+			exman.accept_privilege_violations();
+			return true;
+		}
+
+		return false;
+	}
+
+	bool accept_group_2()
+	{
+		if(exman.is_raised(exception_type::trap))
+		{
+			curr_ex = exception_type::trap;
+			trap_vector = exman.accept_trap();
+			return true;
+		}
+
+		if(exman.is_raised(exception_type::trapv))
+		{
+			curr_ex = exception_type::trapv;
+			exman.accept_trapv();
+			return true;
+		}
+
+		if(exman.is_raised(exception_type::chk_instruction))
+		{
+			curr_ex = exception_type::chk_instruction;
+			exman.accept_chk_instruction();
+			return true;
+		}
+
+		if(exman.is_raised(exception_type::division_by_zero))
+		{
+			curr_ex = exception_type::division_by_zero;
+			exman.accept_division_by_zero();
+			return true;
+		}
+
+		return false;
 	}
 
 	/*
@@ -345,8 +407,6 @@ private:
 			return 0x08;
 		case exception_type::address_error:
 			return 0x00C;
-		case exception_type::trap:
-			return 0x80;
 
 		default: throw internal_error();
 		}
