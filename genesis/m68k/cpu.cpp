@@ -24,7 +24,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 		return inst_unit->is_idle();
 	};
 
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, *scheduler,
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, _bus, *scheduler,
 		abort_execution, instruction_unit_is_idle);
 }
 

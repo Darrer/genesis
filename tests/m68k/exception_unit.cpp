@@ -13,6 +13,23 @@ void setup_exception_vectors(memory& mem)
 		mem.write(addr, std::uint8_t(0));
 }
 
+void rise_exception(exception_manager& exman, exception_type ex)
+{
+	switch (ex)
+	{
+	case exception_type::reset:
+		exman.rise_reset();
+		break;
+
+	case exception_type::address_error:
+	case exception_type::bus_error:
+		exman.rise_address_error({ 0, 0, false, false });
+		break;
+	
+	default: throw genesis::not_implemented();
+	}
+}
+
 
 void check_timings(exception_type ex, std::uint8_t expected_cycles)
 {
@@ -22,10 +39,7 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 	setup_exception_vectors(cpu.memory());
 	cpu.registers().SSP.LW = 2048;
 
-	if(ex == exception_type::address_error)
-		exman.rise_address_error({ 0, 0, false, false });
-	else
-		throw genesis::internal_error();
+	rise_exception(exman, ex);
 
 	ASSERT_TRUE(exman.is_raised(ex));
 
@@ -39,4 +53,9 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 TEST(M68K_EXCEPTION_UNIT, ADDRESS_ERROR)
 {
 	check_timings(exception_type::address_error, 50 - 1);
+}
+
+TEST(M68K_EXCEPTION_UNIT, RESET_EXCEPTION)
+{
+	check_timings(exception_type::reset, 40);
 }

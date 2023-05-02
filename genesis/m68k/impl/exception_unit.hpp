@@ -23,10 +23,10 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, prefetch_queue& pq,
+	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, prefetch_queue& pq, cpu_bus& bus,
 		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution,
 		std::function<bool()> __instruction_unit_is_idle)
-		: base_unit(regs, scheduler), exman(exman), pq(pq), __abort_execution(__abort_execution),
+		: base_unit(regs, scheduler), exman(exman), pq(pq), bus(bus), __abort_execution(__abort_execution),
 		__instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__abort_execution == nullptr)
@@ -79,6 +79,9 @@ private:
 		{
 	
 		/* group 0 */
+
+		case exception_type::reset:
+			return reset_handler();
 
 		case exception_type::address_error:
 		case exception_type::bus_error:
@@ -165,7 +168,9 @@ private:
 	{
 		if(exman.is_raised(exception_type::reset))
 		{
-			throw not_implemented();
+			curr_ex = exception_type::reset;
+			exman.accept_reset();
+			return true;
 		}
 
 		if(exman.is_raised(exception_type::address_error))
@@ -250,6 +255,50 @@ private:
 		howerver, as we rise exceptoin on N cycle, but start processing it on N+1 cycle (e.g. on the next cycle)
 		we wait for 3 cycles to compensate for this delay.
 	*/
+
+	exec_state reset_handler()
+	{
+		abort_execution();
+
+		// update SR
+		regs.flags.S = 1;
+		regs.flags.TR = 0;
+
+		// TODO: set interrupt priority mask at level 7
+
+		// NOTE: this behavior is not clear for me
+		// Set RESET and HALT for 10 cycles
+		bus.set(bus::RESET);
+		bus.set(bus::HALT);
+
+		scheduler.wait(10);
+
+		scheduler.call([this]()
+		{
+			bus.clear(bus::RESET);
+			bus.clear(bus::HALT);
+		});
+
+		scheduler.wait(4);
+
+		// TODO: read from supervisor program space
+
+		// Read SSP
+		scheduler.read(0, size_type::LONG, [this](std::uint32_t data, size_type)
+		{
+			regs.SSP.LW = data;
+		});
+
+		// Read PC
+		scheduler.read(4, size_type::LONG, [this](std::uint32_t data, size_type)
+		{
+			regs.PC = data;
+		});
+
+		schedule_prefetch_two_with_gap();
+
+		return exec_state::done;
+	}
 
 	/* Sequence of actions
 	 * 1. Push PC
@@ -437,6 +486,7 @@ private:
 private:
 	m68k::exception_manager& exman;
 	prefetch_queue& pq;
+	cpu_bus& bus;
 	std::function<void()> __abort_execution;
 	std::function<bool()> __instruction_unit_is_idle;
 	exception_type curr_ex;

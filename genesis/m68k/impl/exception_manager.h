@@ -50,6 +50,8 @@ public:
 		return exps.test(static_cast<std::uint8_t>(ex));
 	}
 
+	/* Group 0 */
+
 	void rise_reset()
 	{
 		rise(exception_type::reset);
@@ -84,36 +86,36 @@ public:
 		return addr_error.value();
 	}
 
-	void rise_trap(std::uint8_t vector)
+	/* Group 1 */
+
+	void rise_trace()
 	{
-		rise(exception_type::trap);
-		trap_vector = vector;
+		rise(exception_type::trace);
 	}
 
-	void rise_trapv()
+	void accept_trace()
 	{
-		rise(exception_type::trapv);
+		accept(exception_type::trace);
 	}
 
-	void accept_trapv()
+	void rise_interrupt()
 	{
-		accept(exception_type::trapv);
+		rise(exception_type::interrupt);
 	}
 
-	std::uint8_t accept_trap()
+	void accept_interrupt()
 	{
-		accept(exception_type::trap);
-		return trap_vector.value();
+		accept(exception_type::interrupt);
 	}
 
-	void rise_division_by_zero()
+	void rise_illegal_instruction()
 	{
-		rise(exception_type::division_by_zero);
+		rise(exception_type::illegal_instruction);
 	}
 
-	void accept_division_by_zero()
+	void accept_illegal_instruction()
 	{
-		accept(exception_type::division_by_zero);
+		accept(exception_type::illegal_instruction);
 	}
 
 	void rise_privilege_violations()
@@ -126,6 +128,30 @@ public:
 		accept(exception_type::privilege_violations);
 	}
 
+	/* Group 2 */
+
+	void rise_trap(std::uint8_t vector)
+	{
+		rise(exception_type::trap);
+		trap_vector = vector;
+	}
+
+	std::uint8_t accept_trap()
+	{
+		accept(exception_type::trap);
+		return trap_vector.value();
+	}
+
+	void rise_trapv()
+	{
+		rise(exception_type::trapv);
+	}
+
+	void accept_trapv()
+	{
+		accept(exception_type::trapv);
+	}
+
 	void rise_chk_instruction()
 	{
 		rise(exception_type::chk_instruction);
@@ -134,6 +160,16 @@ public:
 	void accept_chk_instruction()
 	{
 		accept(exception_type::chk_instruction);
+	}
+
+	void rise_division_by_zero()
+	{
+		rise(exception_type::division_by_zero);
+	}
+
+	void accept_division_by_zero()
+	{
+		accept(exception_type::division_by_zero);
 	}
 
 private:
