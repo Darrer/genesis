@@ -50,6 +50,11 @@ public:
 		return exps.test(static_cast<std::uint8_t>(ex));
 	}
 
+	void accept_all()
+	{
+		exps.reset();
+	}
+
 	/* Group 0 */
 
 	void rise_reset()

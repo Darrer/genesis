@@ -36,12 +36,12 @@ struct status_register
 	std::uint8_t U3 : 1;
 
 	/* system byte */
-	// TODO: remove unimplemented bits
 	std::uint8_t IPM : 3;
 	std::uint8_t U4 : 1;
-	std::uint8_t M : 1;
+	std::uint8_t U5 : 1;
 	std::uint8_t S : 1;
-	std::uint8_t TR : 2;
+	std::uint8_t U6 : 1;
+	std::uint8_t TR : 1;
 };
 
 static_assert(sizeof(status_register) == 2);

@@ -89,6 +89,9 @@ private:
 
 		/* group 1 */
 
+		case exception_type::trace:
+			return trace();
+
 		case exception_type::privilege_violations:
 			return privilege_violations();
 
@@ -154,13 +157,14 @@ private:
 	{
 		if(accept_group_0())
 			return;
-		
-		if(accept_group_1())
-			return;
-		
+
+		/* In practice 2nd group has priority over 1st group */
 		if(accept_group_2())
 			return;
-		
+
+		if(accept_group_1())
+			return;
+
 		throw internal_error(); // why we were called?
 	}
 
@@ -194,7 +198,9 @@ private:
 	{
 		if(exman.is_raised(exception_type::trace))
 		{
-			throw not_implemented();
+			curr_ex = exception_type::trace;
+			exman.accept_trace();
+			return true;
 		}
 
 		if(exman.is_raised(exception_type::interrupt))
@@ -259,12 +265,12 @@ private:
 	exec_state reset_handler()
 	{
 		abort_execution();
+		exman.accept_all();
 
 		// update SR
 		regs.flags.S = 1;
 		regs.flags.TR = 0;
-
-		// TODO: set interrupt priority mask at level 7
+		regs.flags.IPM = 7;
 
 		// NOTE: this behavior is not clear for me
 		// Set RESET and HALT for 10 cycles
@@ -377,6 +383,13 @@ private:
 			status |= 1 << 4; // 5th bit
 
 		return status;
+	}
+
+	exec_state trace()
+	{
+		scheduler.wait(4);
+		schedule_trap(regs.PC, 9);
+		return exec_state::done;
 	}
 
 	exec_state trap()
