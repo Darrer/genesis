@@ -208,7 +208,7 @@ public:
 		schedule_decoding(mode, reg, size);
 	}
 
-	addressing_mode decode_mode(std::uint8_t ea)
+	static addressing_mode decode_mode(std::uint8_t ea)
 	{
 		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;

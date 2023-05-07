@@ -1,4 +1,6 @@
 #include "opcode_decoder.h"
+#include "instruction_ea_modes.hpp"
+
 #include <array>
 #include <algorithm>
 #include <string>
@@ -160,10 +162,35 @@ m68k::inst_type opcode_decoder::decode(std::uint16_t opcode)
 	for(auto entry : inst_map)
 	{
 		if((opcode & entry.mask) == entry.opcode)
-			return entry.inst;
+		{
+			if(is_ea_valid(opcode, entry.inst))
+				return entry.inst;
+			return inst_type::NONE;
+		}
 	}
 
 	return inst_type::NONE;
+}
+
+bool opcode_decoder::is_ea_valid(std::uint16_t opcode, inst_type inst)
+{
+	for(auto entry : impl::ea_modes)
+	{
+		if(entry.inst == inst)
+		{
+			// this instruction supports EA operand, check current mode is supported
+			auto mode = ea_decoder::decode_mode(opcode & 0xFF);
+			if(mode == addressing_mode::unknown)
+				return false;
+
+			for(auto smode : entry.supported_modes)
+				if(smode == mode)
+					return true;
+			return false;
+		}
+	}
+
+	return true;
 }
 
 }

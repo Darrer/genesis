@@ -45,6 +45,10 @@ PRIVATE
 	m68k/THT/tests_loader.h
 	m68k/THT/tests_loader.cpp
 	m68k/THT/tests_runner.cpp
+
+	m68k/decoding/opcode_loader.cpp
+	m68k/decoding/opcode_loader.h
+	m68k/decoding/opcode_decoder.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

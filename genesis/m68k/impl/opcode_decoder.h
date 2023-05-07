@@ -183,6 +183,9 @@ public:
 	opcode_decoder() = delete;
 
 	static m68k::inst_type decode(std::uint16_t opcode);
+
+private:
+	static bool is_ea_valid(std::uint16_t opcode, inst_type inst);
 };
 
 }
