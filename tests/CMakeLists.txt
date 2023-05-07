@@ -37,12 +37,14 @@ PRIVATE
 	m68k/bus_manager.cpp
 	m68k/prefetch_queue.cpp
 	m68k/ea_decoder.cpp
-	m68k/test_case.h
-	m68k/tests_loader.h
-	m68k/tests_loader.cpp
-	m68k/tests_runner.cpp
-	m68k/test_cpu.hpp
 	m68k/exception_unit.cpp
+	m68k/test_cpu.hpp
+
+	# Tom Harte's Tests
+	m68k/THT/test_case.h
+	m68k/THT/tests_loader.h
+	m68k/THT/tests_loader.cpp
+	m68k/THT/tests_runner.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #include "tests_loader.h"
-#include "test_cpu.hpp"
+#include "../test_cpu.hpp"
 
 
 using namespace genesis;
