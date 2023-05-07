@@ -95,6 +95,7 @@ enum class inst_type
 	NBCD,
 	RESET,
 	TAS
+	// TODO: add STOP
 };
 
 }

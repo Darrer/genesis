@@ -13,6 +13,7 @@
 #include "ea_decoder.hpp"
 #include "timings.hpp"
 #include "operations.hpp"
+#include "privilege_checker.hpp"
 
 #include "exception.hpp"
 
@@ -62,9 +63,13 @@ protected:
 		case IDLE:
 			opcode = regs.IRD;
 			regs.SIRD = regs.IRD;
+			regs.SPC = regs.PC;
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
-			regs.SPC = regs.PC;
+
+			if(check_privilege_violations(curr_inst))
+				return exec_state::done;
+
 			regs.PC += 2;
 			state = EXECUTING;
 			[[fallthrough]];
@@ -932,9 +937,6 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
-			if(check_privilege_violations())
-				return exec_state::done;
-
 			regs.SR = operations::move_to_sr(dec.result());
 			scheduler.wait(4);
 			scheduler.prefetch_two();
@@ -946,9 +948,6 @@ private:
 
 	exec_state move_usp_handler()
 	{
-		if(check_privilege_violations())
-			return exec_state::done;
-		
 		std::uint8_t dr = (opcode >> 3) & 1;
 		std::uint8_t reg = opcode & 0x7;
 
@@ -1012,9 +1011,6 @@ private:
 			return exec_state::wait_scheduler;
 
 		case 1:
-			if(check_privilege_violations())
-				return exec_state::done;
-
 			operations::alu_to_sr(curr_inst, imm, regs.SR);
 			scheduler.wait(8);
 			scheduler.prefetch_two();
@@ -1342,9 +1338,6 @@ private:
 
 	exec_state rte_handler()
 	{
-		if(check_privilege_violations())
-			return exec_state::done;
-
 		// Read PC High
 		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
@@ -1758,9 +1751,6 @@ private:
 
 	exec_state reset_handler()
 	{
-		if(check_privilege_violations())
-			return exec_state::done;
-
 		bus.set(bus::RESET);
 		scheduler.wait(timings::reset());
 		scheduler.call([this]()
@@ -1941,20 +1931,13 @@ private:
 		return ((data >> bit_number) & 1) == 1;
 	}
 
-	bool in_supervisory() const
+	bool check_privilege_violations(inst_type inst)
 	{
-		return regs.flags.S == 1;
-	}
+		if(impl::privilege_checker::is_authorized(inst, regs))
+			return false;
 
-	bool check_privilege_violations()
-	{
-		if(!in_supervisory())
-		{
-			exman.rise_privilege_violations();
-			return true;
-		}
-
-		return false;
+		exman.rise_privilege_violations();
+		return true;
 	}
 
 private:
