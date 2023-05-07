@@ -172,21 +172,43 @@ m68k::inst_type opcode_decoder::decode(std::uint16_t opcode)
 	return inst_type::NONE;
 }
 
+template<class T>
+bool is_valid(std::uint8_t ea, const T& supported_modes)
+{
+	auto mode = ea_decoder::decode_mode(ea);
+	if(mode == addressing_mode::unknown)
+		return false;
+
+	for(auto smode : supported_modes)
+		if(smode == mode)
+			return true;
+	return false;
+}
+
 bool opcode_decoder::is_ea_valid(std::uint16_t opcode, inst_type inst)
 {
 	for(auto entry : impl::ea_modes)
 	{
 		if(entry.inst == inst)
 		{
-			// this instruction supports EA operand, check current mode is supported
+			if(inst == inst_type::MOVE)
+			{
+				// move has 2 EA operands
+				std::uint8_t dest_reg = (opcode >> 9) & 0x7;
+				std::uint8_t dest_mode = (opcode >> 6) & 0x7;
+				std::uint8_t ea_dest = (dest_mode << 3) | dest_reg;
+
+				if(!is_valid(ea_dest, impl::movem_dest))
+					return false;
+
+			}
+
 			auto mode = ea_decoder::decode_mode(opcode & 0xFF);
-			if(mode == addressing_mode::unknown)
+			if((opcode >> 12) == 0b0001 && mode == addressing_mode::addr_reg)
 				return false;
 
-			for(auto smode : entry.supported_modes)
-				if(smode == mode)
-					return true;
-			return false;
+			// this instruction supports EA operand, check current mode is supported
+			return is_valid(opcode & 0xFF, entry.supported_modes);
 		}
 	}
 

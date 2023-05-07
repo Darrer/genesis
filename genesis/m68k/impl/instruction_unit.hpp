@@ -138,7 +138,8 @@ private:
 		case inst_type::MOVEA:
 			return movea_handler();
 
-		case inst_type::MOVEM:
+		case inst_type::MOVEMtoMEM:
+		case inst_type::MOVEMtoREG:
 			return movem_handler();
 
 		case inst_type::MOVEP:
