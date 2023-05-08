@@ -67,6 +67,9 @@ protected:
 			curr_inst = decode_opcode(opcode);
 			// std::cout << "Executing: " << (int)curr_inst << std::endl;
 
+			if(check_illegal_instruction(curr_inst, opcode))
+				return exec_state::done;
+
 			if(check_privilege_violations(curr_inst))
 				return exec_state::done;
 
@@ -1938,6 +1941,22 @@ private:
 			return false;
 
 		exman.rise_privilege_violations();
+		return true;
+	}
+
+	bool check_illegal_instruction(inst_type inst, std::uint16_t opcode)
+	{
+		if(inst != inst_type::NONE)
+			return false;
+		
+		std::uint8_t high_nibble = opcode >> 12;
+		if(high_nibble == 0b1010)
+			exman.rise_line_1010_emulator();
+		else if(high_nibble == 0b1111)
+			exman.rise_line_1111_emulator();
+		else
+			exman.rise_illegal_instruction();
+
 		return true;
 	}
 

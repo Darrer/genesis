@@ -84,7 +84,6 @@ const constexpr instruction_ea_modes ea_modes[] =
 
 	{ inst_type::NOT, data_alterable },
 
-	// TODO: according to doc, MOVE src operand supports all modes
 	{ inst_type::MOVE, all }, // NOTE: only SRC operand is specified here
 	{ inst_type::MOVEA, all },
 	{ inst_type::MOVEtoCCR, data},

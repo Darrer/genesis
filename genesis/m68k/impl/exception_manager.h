@@ -22,6 +22,8 @@ enum class exception_type
 	interrupt,
 	illegal_instruction,
 	privilege_violations,
+	line_1010_emulator,
+	line_1111_emulator,
 
 	/* 2 group */
 	trap,
@@ -54,6 +56,8 @@ public:
 	{
 		exps.reset();
 	}
+
+	// TOOD: we've got too many methods
 
 	/* Group 0 */
 
@@ -131,6 +135,26 @@ public:
 	void accept_privilege_violations()
 	{
 		accept(exception_type::privilege_violations);
+	}
+
+	void rise_line_1010_emulator()
+	{
+		rise(exception_type::line_1010_emulator);
+	}
+
+	void accept_line_1010_emulator()
+	{
+		accept(exception_type::line_1010_emulator);
+	}
+
+	void rise_line_1111_emulator()
+	{
+		rise(exception_type::line_1111_emulator);
+	}
+
+	void accept_line_1111_emulator()
+	{
+		accept(exception_type::line_1111_emulator);
 	}
 
 	/* Group 2 */

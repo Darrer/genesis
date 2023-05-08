@@ -127,14 +127,17 @@ private:
 	// 1. Trace
 	// 2. Interrupt
 	// 3. Illegal
-	// 4. Privilege
+	// 4. Line 1010 Emulator
+	// 5. Line 1111 Emulator
+	// 6. Privilege
 	bool exception_1_group_is_rised() const
 	{
 		if(!instruction_unit_is_idle())
 			return false;
 
 		auto exps = { exception_type::trace, exception_type::interrupt,
-			exception_type::illegal_instruction, exception_type::privilege_violations };
+			exception_type::illegal_instruction, exception_type::line_1010_emulator,
+			exception_type::line_1111_emulator, exception_type::privilege_violations };
 		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
 	}
 
@@ -209,6 +212,16 @@ private:
 		}
 
 		if(exman.is_raised(exception_type::illegal_instruction))
+		{
+			throw not_implemented();
+		}
+
+		if(exman.is_raised(exception_type::line_1010_emulator))
+		{
+			throw not_implemented();
+		}
+
+		if(exman.is_raised(exception_type::line_1111_emulator))
 		{
 			throw not_implemented();
 		}
