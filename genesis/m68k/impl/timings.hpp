@@ -334,17 +334,21 @@ public:
 	{
 		switch (inst)
 		{
-		case inst_type::ADD:
+		case inst_type::ADDsrc:
+		case inst_type::ADDdst:
 			return add(opmode, op);
 		case inst_type::ADDA:
 			return adda(opmode, op);
-		case inst_type::AND:
+		case inst_type::ANDsrc:
+		case inst_type::ANDdst:
 			return and_op(opmode, op);
-		case inst_type::SUB:
+		case inst_type::SUBsrc:
+		case inst_type::SUBdst:
 			return sub(opmode, op);
 		case inst_type::SUBA:
 			return suba(opmode, op);
-		case inst_type::OR:
+		case inst_type::ORsrc:
+		case inst_type::ORdst:
 			return or_op(opmode, op);
 		case inst_type::EOR:
 			return eor(opmode, op);

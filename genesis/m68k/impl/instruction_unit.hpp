@@ -90,10 +90,14 @@ private:
 	{
 		switch (curr_inst)
 		{
-		case inst_type::ADD:
-		case inst_type::SUB:
-		case inst_type::AND:
-		case inst_type::OR:
+		case inst_type::ADDsrc:
+		case inst_type::ADDdst:
+		case inst_type::SUBsrc:
+		case inst_type::SUBdst:
+		case inst_type::ANDsrc:
+		case inst_type::ANDdst:
+		case inst_type::ORsrc:
+		case inst_type::ORdst:
 		case inst_type::EOR:
 		case inst_type::CMP:
 			return alu_mode_handler();

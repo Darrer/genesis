@@ -56,20 +56,24 @@ static constexpr mode postincrement[] = { mode::indir, mode::postinc, mode::disp
 
 const constexpr instruction_ea_modes ea_modes[] =
 {
-	{ inst_type::ADD, all },
+	{ inst_type::ADDsrc, all },
+	{ inst_type::ADDdst, memory_alterable },
 	{ inst_type::ADDA, all },
 	{ inst_type::ADDI, data_alterable },
 	{ inst_type::ADDQ, alterable },
 
-	{ inst_type::SUB, memory_alterable },
+	{ inst_type::SUBsrc, all },
+	{ inst_type::SUBdst, memory_alterable },
 	{ inst_type::SUBA, all },
 	{ inst_type::SUBI, data_alterable },
 	{ inst_type::SUBQ, alterable },
 
-	{ inst_type::AND, all },
+	{ inst_type::ANDsrc, data },
+	{ inst_type::ANDdst, memory_alterable },
 	{ inst_type::ANDI, data_alterable },
 
-	{ inst_type::OR, memory_alterable },
+	{ inst_type::ORsrc, data },
+	{ inst_type::ORdst, memory_alterable },
 	{ inst_type::ORI, data_alterable },
 
 	{ inst_type::EOR, data_alterable },

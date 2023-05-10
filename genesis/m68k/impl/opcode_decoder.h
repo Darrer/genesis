@@ -23,7 +23,8 @@ struct mask_inst_pair
 const constexpr mask_inst_pair opcodes[] =
 {
 	/* ADD */
-	{ "1101____sz______", inst_type::ADD },
+	{ "1101___0sz______", inst_type::ADDsrc },
+	{ "1101___1sz______", inst_type::ADDdst },
 	{ "1101____11______", inst_type::ADDA },
 	{ "00000110sz______", inst_type::ADDI },
 	{ "0101___0sz______", inst_type::ADDQ },
@@ -32,18 +33,21 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0000001001111100", inst_type::ANDItoSR },
 
 	/* SUB */
-	{ "1001____sz______", inst_type::SUB },
+	{ "1001___0sz______", inst_type::SUBsrc },
+	{ "1001___1sz______", inst_type::SUBdst },
 	{ "1001____11______", inst_type::SUBA },
 	{ "00000100sz______", inst_type::SUBI },
 	{ "0101___1sz______", inst_type::SUBQ },
 	{ "1001___1sz00____", inst_type::SUBX },
 
 	/* AND */
-	{ "1100____sz______", inst_type::AND },
+	{ "1100___0sz______", inst_type::ANDsrc },
+	{ "1100___1sz______", inst_type::ANDdst },
 	{ "00000010sz______", inst_type::ANDI },
 
 	/* OR */
-	{ "1000____sz______", inst_type::OR },
+	{ "1000___0sz______", inst_type::ORsrc },
+	{ "1000___1sz______", inst_type::ORdst },
 	{ "00000000sz______", inst_type::ORI },
 	{ "0000000000111100", inst_type::ORItoCCR },
 	{ "0000000001111100", inst_type::ORItoSR },
