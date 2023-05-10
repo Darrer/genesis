@@ -66,7 +66,7 @@ const constexpr instruction_ea_modes ea_modes[] =
 	{ inst_type::SUBI, data_alterable },
 	{ inst_type::SUBQ, alterable },
 
-	{ inst_type::AND, memory_alterable },
+	{ inst_type::AND, all },
 	{ inst_type::ANDI, data_alterable },
 
 	{ inst_type::OR, memory_alterable },
