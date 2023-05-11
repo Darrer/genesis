@@ -43,7 +43,8 @@ TEST(M68K, OPCODE_DECODER)
 		if(expected != actual)
 			++failed;
 
-		EXPECT_EQ(expected, actual) << "failed to decode " << test.opcode << ", decoded to " << (int)inst;
+		if(expected == false && actual == true)
+			EXPECT_EQ(expected, actual) << "failed to decode " << test.opcode << ", decoded to " << (int)inst;
 	}
 
 	ASSERT_EQ(failed, 0);

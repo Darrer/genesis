@@ -3,15 +3,19 @@
 
 #include <string_view>
 #include "instruction_type.h"
-
+#include "ea_modes.h"
 
 namespace genesis::m68k
 {
 
-struct mask_inst_pair
+using namespace genesis::m68k::impl;
+
+struct instruction
 {
 	std::string_view inst_template;
 	inst_type inst;
+	ea_modes src_ea_mode = ea_modes::none;
+	ea_modes dst_ea_mode = ea_modes::none; // MOVE instruction only
 };
 
 /* Placeholders:
@@ -20,101 +24,102 @@ struct mask_inst_pair
 	- sz -- any of 00 01 10
 */
 
-const constexpr mask_inst_pair opcodes[] =
+const constexpr instruction opcodes[] =
 {
 	/* ADD */
-	{ "1101___0sz______", inst_type::ADDsrc },
-	{ "1101___1sz______", inst_type::ADDdst },
-	{ "1101____11______", inst_type::ADDA },
-	{ "00000110sz______", inst_type::ADDI },
-	{ "0101___0sz______", inst_type::ADDQ },
+	{ "1101___0sz<-ea->", inst_type::ADD,  ea_modes::all },
+	{ "1101___1sz<-ea->", inst_type::ADD,  ea_modes::memory_alterable },
+	{ "1101____11<-ea->", inst_type::ADDA, ea_modes::all },
+	{ "00000110sz<-ea->", inst_type::ADDI, ea_modes::data_alterable },
+	{ "0101___0sz<-ea->", inst_type::ADDQ, ea_modes::alterable },
 	{ "1101___1sz00____", inst_type::ADDX },
 	{ "0000001000111100", inst_type::ANDItoCCR },
 	{ "0000001001111100", inst_type::ANDItoSR },
 
 	/* SUB */
-	{ "1001___0sz______", inst_type::SUBsrc },
-	{ "1001___1sz______", inst_type::SUBdst },
-	{ "1001____11______", inst_type::SUBA },
-	{ "00000100sz______", inst_type::SUBI },
-	{ "0101___1sz______", inst_type::SUBQ },
+	{ "1001___0sz<-ea->", inst_type::SUB,  ea_modes::all },
+	{ "1001___1sz<-ea->", inst_type::SUB,  ea_modes::memory_alterable },
+	{ "1001____11<-ea->", inst_type::SUBA, ea_modes::all },
+	{ "00000100sz<-ea->", inst_type::SUBI, ea_modes::data_alterable },
+	{ "0101___1sz<-ea->", inst_type::SUBQ, ea_modes::alterable },
 	{ "1001___1sz00____", inst_type::SUBX },
 
 	/* AND */
-	{ "1100___0sz______", inst_type::ANDsrc },
-	{ "1100___1sz______", inst_type::ANDdst },
-	{ "00000010sz______", inst_type::ANDI },
+	{ "1100___0sz<-ea->", inst_type::AND,  ea_modes::data },
+	{ "1100___1sz<-ea->", inst_type::AND,  ea_modes::memory_alterable },
+	{ "00000010sz<-ea->", inst_type::ANDI, ea_modes::data_alterable },
 
 	/* OR */
-	{ "1000___0sz______", inst_type::ORsrc },
-	{ "1000___1sz______", inst_type::ORdst },
-	{ "00000000sz______", inst_type::ORI },
+	{ "1000___0sz<-ea->", inst_type::OR,  ea_modes::data },
+	{ "1000___1sz<-ea->", inst_type::OR,  ea_modes::memory_alterable },
+	{ "00000000sz<-ea->", inst_type::ORI, ea_modes::data_alterable },
 	{ "0000000000111100", inst_type::ORItoCCR },
 	{ "0000000001111100", inst_type::ORItoSR },
 
 	/* EOR */
-	{ "1011___1sz______", inst_type::EOR },
-	{ "00001010sz______", inst_type::EORI },
+	{ "1011___1sz<-ea->", inst_type::EOR,  ea_modes::data_alterable },
+	{ "00001010sz<-ea->", inst_type::EORI, ea_modes::data_alterable },
 	{ "0000101000111100", inst_type::EORItoCCR },
 	{ "0000101001111100", inst_type::EORItoSR },
 
 	/* CMP */
-	{ "1011___0sz______", inst_type::CMP },
-	{ "1011____11______", inst_type::CMPA },
+	{ "1011___0sz<-ea->", inst_type::CMP,  ea_modes::all },
+	{ "1011____11<-ea->", inst_type::CMPA, ea_modes::all },
+	{ "00001100sz<-ea->", inst_type::CMPI, ea_modes::data_alterable },
 	{ "1011___1sz001___", inst_type::CMPM },
-	{ "00001100sz______", inst_type::CMPI },
 
 	/* NEG */
-	{ "01000100sz______", inst_type::NEG },
-	{ "01000000sz______", inst_type::NEGX },
+	{ "01000100sz<-ea->", inst_type::NEG,  ea_modes::data_alterable },
+	{ "01000000sz<-ea->", inst_type::NEGX, ea_modes::data_alterable },
 
 	/* NOT */
-	{ "01000110sz______", inst_type::NOT },
+	{ "01000110sz<-ea->", inst_type::NOT, ea_modes::data_alterable },
 
 	/* NOP */
 	{ "0100111001110001", inst_type::NOP },
 
 	/* MOVE */
-	{ "0001____________", inst_type::MOVE },
-	{ "0011____________", inst_type::MOVE },
-	{ "0010____________", inst_type::MOVE },
-	{ "0111___0________", inst_type::MOVEQ },
-	{ "001____001______", inst_type::MOVEA },
-	{ "010010001_______", inst_type::MOVEMtoMEM },
-	{ "010011001_______", inst_type::MOVEMtoREG },
-	{ "0000___1__001___", inst_type::MOVEP },
-	{ "0100000011______", inst_type::MOVEfromSR },
-	{ "0100011011______", inst_type::MOVEtoSR },
-	{ "0100010011______", inst_type::MOVEtoCCR },
+	{ "0001<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
+	{ "0011<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
+	{ "0010<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
+	{ "001____001<-ea->", inst_type::MOVEA, ea_modes::all },
+	{ "010010001_<-ea->", inst_type::MOVEMtoMEM, ea_modes::predecrement },
+	{ "010011001_<-ea->", inst_type::MOVEMtoREG, ea_modes::postincrement },
+	{ "0100000011<-ea->", inst_type::MOVEfromSR, ea_modes::data_alterable },
+	{ "0100011011<-ea->", inst_type::MOVEtoSR, ea_modes::data },
+	{ "0100010011<-ea->", inst_type::MOVEtoCCR, ea_modes::data },
 	{ "010011100110____", inst_type::MOVE_USP },
+	{ "0000___1__001___", inst_type::MOVEP },
+	{ "0111___0________", inst_type::MOVEQ },
 
 	/* ASL/ASR/ROL/ROR/LSL/LSR */
+	{ "1110000_11<-ea->", inst_type::ASLRmem,  ea_modes::memory_alterable },
+	{ "1110011_11<-ea->", inst_type::ROLRmem,  ea_modes::memory_alterable },
+	{ "1110001_11<-ea->", inst_type::LSLRmem,  ea_modes::memory_alterable },
+	{ "1110010_11<-ea->", inst_type::ROXLRmem, ea_modes::memory_alterable},
 	{ "1110____sz_00___", inst_type::ASLRreg },
-	{ "1110000_11______", inst_type::ASLRmem },
 	{ "1110____sz_11___", inst_type::ROLRreg },
-	{ "1110011_11______", inst_type::ROLRmem },
 	{ "1110____sz_01___", inst_type::LSLRreg },
-	{ "1110001_11______", inst_type::LSLRmem },
 	{ "1110____sz_10___", inst_type::ROXLRreg },
-	{ "1110010_11______", inst_type::ROXLRmem },
 
 	/* TST */
-	{ "01001010sz______", inst_type::TST },
+	{ "01001010sz<-ea->", inst_type::TST, ea_modes::data_alterable },
 
 	/* CLR */
-	{ "01000010sz______", inst_type::CLR },
+	{ "01000010sz<-ea->", inst_type::CLR, ea_modes::data_alterable },
 
 	/* MULU/MULS */
-	{ "1100___011______", inst_type::MULU },
-	{ "1100___111______", inst_type::MULS },
+	{ "1100___011<-ea->", inst_type::MULU, ea_modes::data },
+	{ "1100___111<-ea->", inst_type::MULS, ea_modes::data },
+
+	/* DIVU/DIVS */
+	{ "1000___011<-ea->", inst_type::DIVU, ea_modes::data },
+	{ "1000___111<-ea->", inst_type::DIVS, ea_modes::data },
 
 	/* TRAP */
 	{ "010011100100____", inst_type::TRAP },
 	{ "0100111001110110", inst_type::TRAPV },
 
-	/* DIVU/DIVS */
-	{ "1000___011______", inst_type::DIVU },
-	{ "1000___111______", inst_type::DIVS },
 
 	/* EXT */
 	{ "010010001_000___", inst_type::EXT },
@@ -127,17 +132,17 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100100001000___", inst_type::SWAP },
 
 	/* BIT */
-	{ "0000___100______", inst_type::BTSTreg },
-	{ "0000100000______", inst_type::BTSTimm },
+	{ "0000___100<-ea->", inst_type::BTSTreg, ea_modes::data },
+	{ "0000100000<-ea->", inst_type::BTSTimm, ea_modes::data_except_imm },
 
-	{ "0000___111______", inst_type::BSETreg },
-	{ "0000100011______", inst_type::BSETimm },
+	{ "0000___111<-ea->", inst_type::BSETreg, ea_modes::data_alterable },
+	{ "0000100011<-ea->", inst_type::BSETimm, ea_modes::data_alterable },
 
-	{ "0000___110______", inst_type::BCLRreg },
-	{ "0000100010______", inst_type::BCLRimm },
+	{ "0000___110<-ea->", inst_type::BCLRreg, ea_modes::data_alterable },
+	{ "0000100010<-ea->", inst_type::BCLRimm, ea_modes::data_alterable },
 
-	{ "0000___101______", inst_type::BCHGreg },
-	{ "0000100001______", inst_type::BCHGimm },
+	{ "0000___101<-ea->", inst_type::BCHGreg, ea_modes::data_alterable },
+	{ "0000100001<-ea->", inst_type::BCHGimm, ea_modes::data_alterable },
 
 	/* RTE/RTR/RTS */
 	{ "0100111001110011", inst_type::RTE },
@@ -145,18 +150,18 @@ const constexpr mask_inst_pair opcodes[] =
 	{ "0100111001110101", inst_type::RTS },
 
 	/* JMP */
-	{ "0100111011______", inst_type::JMP },
+	{ "0100111011<-ea->", inst_type::JMP, ea_modes::control },
 
 	/* CHK */
-	{ "0100___110______", inst_type::CHK },
+	{ "0100___110<-ea->", inst_type::CHK, ea_modes::data },
 
 	/* JSR/BSR */
-	{ "0100111010______", inst_type::JSR },
+	{ "0100111010<-ea->", inst_type::JSR, ea_modes::control },
 	{ "01100001________", inst_type::BSR },
 
 	/* LEA/PEA */
-	{ "0100___111______", inst_type::LEA },
-	{ "0100100001______", inst_type::PEA },
+	{ "0100___111<-ea->", inst_type::LEA, ea_modes::control },
+	{ "0100100001<-ea->", inst_type::PEA, ea_modes::control },
 
 	/* LINK/UNLK */
 	{ "0100111001010___", inst_type::LINK },
@@ -165,20 +170,20 @@ const constexpr mask_inst_pair opcodes[] =
 	/* BCC/DBCC/SCC */
 	{ "0110____________", inst_type::BCC },
 	{ "0101____11001___", inst_type::DBCC },
-	{ "0101____11______", inst_type::SCC },
+	{ "0101____11<-ea->", inst_type::SCC, ea_modes::control },
 
 	/* ABCD/SBCD/NBCD */
 	{ "1100___100000___", inst_type::ABCDreg },
 	{ "1100___100001___", inst_type::ABCDmem },
 	{ "1000___100000___", inst_type::SBCDreg },
 	{ "1000___100001___", inst_type::SBCDmem },
-	{ "0100100000______", inst_type::NBCD },
+	{ "0100100000<-ea->", inst_type::NBCD, ea_modes::data_alterable },
 
 	/* RESET */
 	{ "0100111001110000", inst_type::RESET },
 
 	/* TAS */
-	{ "0100101011______", inst_type::TAS }
+	{ "0100101011<-ea->", inst_type::TAS, ea_modes::data_alterable }
 };
 
 
@@ -188,9 +193,6 @@ public:
 	opcode_decoder() = delete;
 
 	static m68k::inst_type decode(std::uint16_t opcode);
-
-private:
-	static bool is_ea_valid(std::uint16_t opcode, inst_type inst);
 };
 
 }

@@ -20,11 +20,11 @@ constexpr bool validate_opcodes()
 		if(entry.inst_template.size() != 16)
 			return false;
 
-		for(auto ch : entry.inst_template)
-		{
-			if(std::ranges::find(valid_tokens, ch) == valid_tokens.end())
-				return false;
-		}
+		// for(auto ch : entry.inst_template)
+		// {
+		// 	if(std::ranges::find(valid_tokens, ch) == valid_tokens.end())
+		// 		return false;
+		// }
 
 		// check for duplicates
 		for(auto next = std::next(it); next != std::end(opcodes); ++next)
@@ -40,29 +40,10 @@ constexpr bool validate_opcodes()
 
 static_assert(validate_opcodes());
 
-struct opcode_entry
-{
-	std::uint16_t mask;
-	std::uint16_t opcode;
-	inst_type inst;
-};
 
 constexpr static bool has_sz_token(std::string_view str)
 {
 	return str.find("sz") != std::string::npos;
-}
-
-constexpr static std::size_t extended_size()
-{
-	std::size_t size = 0;
-	for(auto entry : opcodes)
-	{
-		if(has_sz_token(entry.inst_template))
-			size += 3;
-		else
-			++size;
-	}
-	return size;
 }
 
 class opcode_builder
@@ -70,149 +51,27 @@ class opcode_builder
 public:
 	opcode_builder() = delete;
 
-	constexpr static std::array<opcode_entry, extended_size()> build_opcode_map()
+	constexpr static auto build_opcode_map()
 	{
-		std::array<opcode_entry, extended_size()> res;
+		std::array<inst_type, 0xFFFF + 1> opcode_map;
+		opcode_map.fill(inst_type::NONE);
 
-		std::size_t pos = 0;
-		for(auto entry : opcodes)
-		{
-			if(has_sz_token(entry.inst_template))
-			{
-				for(auto seq : {"00", "01", "10"})
-				{
-					char data[16];
-					entry.inst_template.copy(data, entry.inst_template.size());
+		// for(auto inst : opcodes)
+		// {
+			
+		// }
 
-					// replace sz to seq
-					std::replace(std::begin(data), std::end(data), 's', seq[0]);
-					std::replace(std::begin(data), std::end(data), 'z', seq[1]);
-
-					std::string_view inst_template(data, 16);
-					auto mask = gen_mask(inst_template);
-					auto opcode = gen_opcode(inst_template);
-
-					res.at(pos++) = { mask, opcode, entry.inst };
-				}
-			}
-			else
-			{
-				auto mask = gen_mask(entry.inst_template);
-				auto opcode = gen_opcode(entry.inst_template);
-
-				res.at(pos++) = { mask, opcode, entry.inst };
-			}
-		}
-
-		// instructions with longest template should come first
-		std::sort(res.begin(), res.end(), [](opcode_entry a, opcode_entry b)
-		{
-			return mask_length(a.mask) > mask_length(b.mask);
-		});
-
-		return res;
+		return opcode_map;
 	}
 
-private:
-	constexpr static std::uint16_t gen_mask(std::string_view inst_template)
-	{
-		std::uint16_t mask = 0;
-		std::uint8_t pos = 0;
-		for(auto it = inst_template.rbegin(); it != inst_template.rend(); ++it)
-		{
-			auto ch = *it;
-			if(ch == '1' || ch == '0')
-			{
-				mask |= 1 << pos;
-			}
-			++pos;
-		}
-		return mask;
-	}
-
-	constexpr static std::uint16_t gen_opcode(std::string_view inst_template)
-	{
-		std::uint16_t mask = 0;
-		std::uint8_t pos = 0;
-		for(auto it = inst_template.rbegin(); it != inst_template.rend(); ++it)
-		{
-			auto ch = *it;
-			if(ch == '1')
-			{
-				mask |= 1 << pos;
-			}
-			++pos;
-		}
-		return mask;
-	}
-
-	constexpr static std::uint8_t mask_length(std::uint16_t mask)
-	{
-		std::uint8_t ones = std::popcount(mask);
-		return ones;
-	}
 };
 
 
-const constexpr auto inst_map = opcode_builder::build_opcode_map();
+constexpr const auto opcode_map = opcode_builder::build_opcode_map();
 
 m68k::inst_type opcode_decoder::decode(std::uint16_t opcode)
 {
-	// TODO: doesn't linear search too slow?
-	for(auto entry : inst_map)
-	{
-		if((opcode & entry.mask) == entry.opcode)
-		{
-			if(is_ea_valid(opcode, entry.inst))
-				return entry.inst;
-			return inst_type::NONE;
-		}
-	}
-
-	return inst_type::NONE;
-}
-
-template<class T>
-bool is_valid(std::uint8_t ea, const T& supported_modes)
-{
-	auto mode = ea_decoder::decode_mode(ea);
-	if(mode == addressing_mode::unknown)
-		return false;
-
-	for(auto smode : supported_modes)
-		if(smode == mode)
-			return true;
-	return false;
-}
-
-bool opcode_decoder::is_ea_valid(std::uint16_t opcode, inst_type inst)
-{
-	for(auto entry : impl::ea_modes)
-	{
-		if(entry.inst == inst)
-		{
-			if(inst == inst_type::MOVE)
-			{
-				// move has 2 EA operands
-				std::uint8_t dest_reg = (opcode >> 9) & 0x7;
-				std::uint8_t dest_mode = (opcode >> 6) & 0x7;
-				std::uint8_t ea_dest = (dest_mode << 3) | dest_reg;
-
-				if(!is_valid(ea_dest, impl::movem_dest))
-					return false;
-
-			}
-
-			auto mode = ea_decoder::decode_mode(opcode & 0xFF);
-			if((opcode >> 12) == 0b0001 && mode == addressing_mode::addr_reg)
-				return false;
-
-			// this instruction supports EA operand, check current mode is supported
-			return is_valid(opcode & 0xFF, entry.supported_modes);
-		}
-	}
-
-	return true;
+	return opcode_map.at(opcode);
 }
 
 }

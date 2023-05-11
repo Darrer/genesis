@@ -814,8 +814,7 @@ public:
 	{
 		switch (inst)
 		{
-		case inst_type::ADDsrc:
-		case inst_type::ADDdst:
+		case inst_type::ADD:
 		case inst_type::ADDI:
 			return operations::add(a, b, size, sr);
 
@@ -825,8 +824,7 @@ public:
 		case inst_type::ADDX:
 			return operations::addx(a, b, size, sr);
 
-		case inst_type::SUBsrc:
-		case inst_type::SUBdst:
+		case inst_type::SUB:
 		case inst_type::SUBI:
 			return operations::sub(a, b, size, sr);
 
@@ -836,13 +834,11 @@ public:
 		case inst_type::SUBX:
 			return operations::subx(a, b, size, sr);
 
-		case inst_type::ANDsrc:
-		case inst_type::ANDdst:
+		case inst_type::AND:
 		case inst_type::ANDI:
 			return operations::and_op(a, b, size, sr);
 
-		case inst_type::ORsrc:
-		case inst_type::ORdst:
+		case inst_type::OR:
 		case inst_type::ORI:
 			return operations::or_op(a, b, size, sr);
 
