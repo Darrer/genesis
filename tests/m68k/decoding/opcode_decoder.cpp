@@ -20,6 +20,12 @@ void patch_tests(std::vector<opcode_test>& tests)
 		std::uint8_t high_nibble = test.opcode >> 12;
 		if(high_nibble == 0b1010 || high_nibble == 0b1111)
 			test.is_valid = false;
+
+		if(test.opcode == 0b0100101011111100)
+		{
+			// it's ILLEGAL instruction
+			test.is_valid = true;
+		}
 	}
 }
 

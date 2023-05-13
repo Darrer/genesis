@@ -170,6 +170,7 @@ const constexpr instruction opcodes[] =
 
 	/* BCC/DBCC/SCC */
 	{ "0110____________", inst_type::BCC },
+	// { "01100000________", inst_type::BRA }, // TODO: do we need it?
 	{ "0101____11001___", inst_type::DBCC },
 	{ "0101____11<-ea->", inst_type::SCC, ea_modes::data_alterable },
 
@@ -184,7 +185,12 @@ const constexpr instruction opcodes[] =
 	{ "0100111001110000", inst_type::RESET },
 
 	/* TAS */
-	{ "0100101011<-ea->", inst_type::TAS, ea_modes::data_alterable }
+	{ "0100101011<-ea->", inst_type::TAS, ea_modes::data_alterable },
+
+	/* STOP */
+	{ "0100111001110010", inst_type::STOP },
+
+	{ "0100101011111100", inst_type::ILLEGAL },
 };
 
 
