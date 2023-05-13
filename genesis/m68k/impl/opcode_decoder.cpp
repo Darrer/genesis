@@ -134,13 +134,14 @@ private:
 	{
 		bool first_ea_mode = true;
 		std::uint8_t pos = 0;
+		std::uint8_t size = 0xFF;
 		while (true)
 		{
 			auto token = tokenizer::next(inst.inst_template, pos);
 			if(token == token::end)
 				return true;
 
-			std::uint8_t bit_pos = 16 - pos;// - token_advance_num(token); // 0 based
+			std::uint8_t bit_pos = 16 - pos;
 
 			switch (token)
 			{
@@ -161,6 +162,7 @@ private:
 			case token::size:
 				if(!size_matches(opcode, bit_pos))
 					return false;
+				size = (opcode >> bit_pos) & 0b11;
 				break;
 
 			case token::ea_mode:
@@ -176,12 +178,18 @@ private:
 					modes = inst.src_ea_mode;
 				}
 
-				if(inst.inst != inst_type::MOVE && bit_pos != 0)
-					throw std::runtime_error("failed!");
-				if(modes == ea_modes::none)
-					throw std::runtime_error("unexpected modes");
+				std::uint8_t ea = (opcode >> bit_pos) & 0b111111;
 
-				if(!ea_mode_matches(opcode, bit_pos, modes))
+				if(bit_pos != 0 && inst.inst == inst_type::MOVE)
+				{
+					// destination ea in move instruction has swapped mode/register bit fields
+					// swap it back
+					std::uint8_t mode = ea & 0x7;
+					std::uint8_t dest_reg = (ea >> 3) & 0x7;
+					ea = (mode << 3) | dest_reg;
+				}
+
+				if(!ea_mode_matches(ea, modes, size))
 					return false;
 				break;
 			}
@@ -193,31 +201,20 @@ private:
 		
 	}
 
-	constexpr static std::uint8_t token_advance_num(token token)
-	{
-		switch (token)
-		{
-		case token::size:
-			return 1;
-
-		case token::ea_mode:
-			return 5;
-
-		default:
-			return 0;
-		}
-	}
-
 	constexpr static bool size_matches(std::uint16_t value,std::uint8_t pos)
 	{
 		std::uint8_t size = (value >> pos) & 0b11;
 		return size != 0b11; // only 0b11 does not match
 	}
 
-	static bool ea_mode_matches(std::uint16_t value, std::uint8_t pos, ea_modes modes)
+	static bool ea_mode_matches(std::uint8_t ea, ea_modes modes, std::uint8_t size)
 	{
-		std::uint8_t ea = (value >> pos) & 0b111111;
 		auto ea_mode = ea_decoder::decode_mode(ea);
+
+		// general rule, address register is not supporeted with byte size
+		if(size == 0b00 && ea_mode == addressing_mode::addr_reg)
+			return false;
+
 		return mode_is_supported(modes, ea_mode);
 	}
 };

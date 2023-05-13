@@ -125,8 +125,9 @@ const constexpr instruction opcodes[] =
 	{ "010010001_000___", inst_type::EXT },
 
 	/* EXG */
-	{ "1100___10100____", inst_type::EXG },
-	{ "1100___11000____", inst_type::EXG },
+	{ "1100___101000___", inst_type::EXG },
+	{ "1100___101001___", inst_type::EXG },
+	{ "1100___110001___", inst_type::EXG },
 
 	/* SWAP */
 	{ "0100100001000___", inst_type::SWAP },
