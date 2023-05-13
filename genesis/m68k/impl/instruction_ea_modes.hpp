@@ -54,7 +54,7 @@ static constexpr mode control[] = { mode::indir, mode::disp_indir,
 static constexpr mode postincrement[] = { mode::indir, mode::postinc, mode::disp_indir,
 		mode::index_indir, mode::abs_short, mode::abs_long, mode::disp_pc, mode::index_pc };
 
-const constexpr instruction_ea_modes ea_modes[] =
+const constexpr instruction_ea_modes ea_modess[] =
 {
 	// { inst_type::ADDsrc, all },
 	// { inst_type::ADDdst, memory_alterable },

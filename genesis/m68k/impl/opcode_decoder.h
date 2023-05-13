@@ -79,7 +79,7 @@ const constexpr instruction opcodes[] =
 	{ "0100111001110001", inst_type::NOP },
 
 	/* MOVE */
-	{ "0001<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
+	{ "0001<-ea-><-ea->", inst_type::MOVE,  ea_modes::data, ea_modes::data_alterable },
 	{ "0011<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
 	{ "0010<-ea-><-ea->", inst_type::MOVE,  ea_modes::all, ea_modes::data_alterable },
 	{ "001____001<-ea->", inst_type::MOVEA, ea_modes::all },
@@ -170,7 +170,7 @@ const constexpr instruction opcodes[] =
 	/* BCC/DBCC/SCC */
 	{ "0110____________", inst_type::BCC },
 	{ "0101____11001___", inst_type::DBCC },
-	{ "0101____11<-ea->", inst_type::SCC, ea_modes::control },
+	{ "0101____11<-ea->", inst_type::SCC, ea_modes::data_alterable },
 
 	/* ABCD/SBCD/NBCD */
 	{ "1100___100000___", inst_type::ABCDreg },

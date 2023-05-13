@@ -6,6 +6,8 @@
 #include <string>
 #include <bit>
 
+#include <iostream>
+
 namespace genesis::m68k
 {
 
@@ -67,6 +69,7 @@ constexpr bool validate_opcodes()
 			return false;
 
 		std::uint8_t pos = 0;
+		bool has_ea_mode = false;
 		while(true)
 		{
 			auto token = tokenizer::next(entry.inst_template, pos);
@@ -74,7 +77,12 @@ constexpr bool validate_opcodes()
 				return false;
 			if(token == token::end)
 				break;
+			if(token == token::ea_mode)
+				has_ea_mode = true;
 		}
+
+		if(has_ea_mode && entry.src_ea_mode == ea_modes::none)
+			return false;
 
 		// check for duplicates
 		for(auto next = std::next(it); next != std::end(opcodes); ++next)
@@ -91,40 +99,131 @@ constexpr bool validate_opcodes()
 static_assert(validate_opcodes());
 
 
-constexpr static bool has_sz_token(std::string_view str)
-{
-	return str.find("sz") != std::string::npos;
-}
-
-constexpr const std::array<std::uint8_t, 3> size_bits = { 0b00, 0b01, 0b10 };
-
-constexpr const std::array<std::uint8_t, 12> ea_all_bits = {
-	0b000, 0b001, 0b010, 0b011, 0b100, 0b101, 0b110,
-	0b111000, 0b111001, 0b111010, 0b111011, 0b111100
-};
-
 class opcode_builder
 {
 public:
 	opcode_builder() = delete;
 
-	constexpr static auto build_opcode_map()
+	static auto build_opcode_map()
 	{
 		std::array<inst_type, 0xFFFF + 1> opcode_map;
 		opcode_map.fill(inst_type::NONE);
 
-		// for(auto inst : opcodes)
-		// {
-			
-		// }
+		std::uint16_t opcode = 0;
+		while (true)
+		{
+			for(auto inst : opcodes)
+			{
+				if(matches(opcode, inst))
+				{
+					opcode_map.at(opcode) = inst.inst;
+					break;
+				}
+			}
+
+			if(opcode == 0xFFFF)
+				break;
+			++opcode;
+		}
 
 		return opcode_map;
 	}
 
+private:
+	constexpr static bool matches(std::uint16_t opcode, instruction inst)
+	{
+		bool first_ea_mode = true;
+		std::uint8_t pos = 0;
+		while (true)
+		{
+			auto token = tokenizer::next(inst.inst_template, pos);
+			if(token == token::end)
+				return true;
+
+			std::uint8_t bit_pos = 16 - pos;// - token_advance_num(token); // 0 based
+
+			switch (token)
+			{
+			case token::one:
+			case token::zero:
+			{
+				std::uint8_t val = (opcode >> bit_pos) & 1;
+				if(token == token::one && val != 1)
+					return false;
+				if(token == token::zero && val != 0)
+					return false;
+				break;
+			}
+
+			case token::any:
+				break;
+
+			case token::size:
+				if(!size_matches(opcode, bit_pos))
+					return false;
+				break;
+
+			case token::ea_mode:
+			{
+				ea_modes modes;
+				if(first_ea_mode)
+				{
+					first_ea_mode = false;
+					modes = inst.dst_ea_mode != ea_modes::none ? inst.dst_ea_mode : inst.src_ea_mode;
+				}
+				else
+				{
+					modes = inst.src_ea_mode;
+				}
+
+				if(inst.inst != inst_type::MOVE && bit_pos != 0)
+					throw std::runtime_error("failed!");
+				if(modes == ea_modes::none)
+					throw std::runtime_error("unexpected modes");
+
+				if(!ea_mode_matches(opcode, bit_pos, modes))
+					return false;
+				break;
+			}
+
+			default:
+				return false;
+			}
+		}
+		
+	}
+
+	constexpr static std::uint8_t token_advance_num(token token)
+	{
+		switch (token)
+		{
+		case token::size:
+			return 1;
+
+		case token::ea_mode:
+			return 5;
+
+		default:
+			return 0;
+		}
+	}
+
+	constexpr static bool size_matches(std::uint16_t value,std::uint8_t pos)
+	{
+		std::uint8_t size = (value >> pos) & 0b11;
+		return size != 0b11; // only 0b11 does not match
+	}
+
+	static bool ea_mode_matches(std::uint16_t value, std::uint8_t pos, ea_modes modes)
+	{
+		std::uint8_t ea = (value >> pos) & 0b111111;
+		auto ea_mode = ea_decoder::decode_mode(ea);
+		return mode_is_supported(modes, ea_mode);
+	}
 };
 
 
-constexpr const auto opcode_map = opcode_builder::build_opcode_map();
+const auto opcode_map = opcode_builder::build_opcode_map();
 
 m68k::inst_type opcode_decoder::decode(std::uint16_t opcode)
 {
