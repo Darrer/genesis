@@ -49,6 +49,10 @@ PRIVATE
 	m68k/OPCLOGR3/opcode_loader.cpp
 	m68k/OPCLOGR3/opcode_loader.h
 	m68k/OPCLOGR3/opcode_decoder.cpp
+
+	m68k/THT_MAP/map_loader.h
+	m68k/THT_MAP/map_loader.cpp
+	m68k/THT_MAP/map_test.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
