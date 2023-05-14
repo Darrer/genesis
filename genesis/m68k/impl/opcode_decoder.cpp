@@ -198,7 +198,6 @@ private:
 				return false;
 			}
 		}
-		
 	}
 
 	constexpr static bool size_matches(std::uint16_t value,std::uint8_t pos)

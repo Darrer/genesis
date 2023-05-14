@@ -325,15 +325,11 @@ private:
 		}
 	}
 
-	bus_cycle_state advance_state(bus_cycle_state state)
-	{
-		return bus_cycle_state(state + 1);
-	}
-
 private:
 	void init_new_cycle(std::uint32_t addr, bus_cycle_state first_state, on_complete cb)
 	{
-		reset();
+		_letched_byte.reset();
+		_letched_word.reset();
 
 		address = addr;
 		state = first_state;
@@ -357,10 +353,9 @@ private:
 		state = IDLE;
 
 		// TODO: do not allow chaining
-		auto cb = on_complete_cb; // to allow chaining
-		on_complete_cb = nullptr; // to prevent extra calls
-
-		if(cb) cb();
+		if(on_complete_cb)
+			on_complete_cb();
+		on_complete_cb = nullptr;
 	}
 
 	void set_data_strobe_bus()

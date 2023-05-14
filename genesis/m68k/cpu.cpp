@@ -5,18 +5,16 @@
 namespace genesis::m68k
 {
 
-cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
+cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory), busm(_bus, regs, *mem, exman),
+	pq(busm, regs), scheduler(regs, busm, pq)
 {
-	busm = std::make_unique<m68k::bus_manager>(_bus, regs, *mem, exman);
-	pq = std::make_unique<m68k::prefetch_queue>(*busm, regs);
-	scheduler = std::make_unique<m68k::bus_scheduler>(regs, *busm, *pq);
-	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, *busm, *scheduler);
+	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, busm, scheduler);
 
 	auto abort_execution = [this]()
 	{
-		pq->reset();
+		pq.reset();
 		inst_unit->reset();
-		scheduler->reset();
+		scheduler.reset();
 		tracer->reset();
 	};
 
@@ -25,7 +23,7 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory)
 		return inst_unit->is_idle();
 	};
 
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, *pq, _bus, *scheduler,
+	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, pq, _bus, scheduler,
 		abort_execution, instruction_unit_is_idle);
 	
 	tracer = std::make_unique<impl::trace_riser>(regs, exman, instruction_unit_is_idle);
@@ -49,10 +47,10 @@ void cpu::cycle()
 		inst_unit->cycle();
 	}
 
-	scheduler->cycle();
-	busm->cycle();
+	scheduler.cycle();
+	busm.cycle();
 
-	scheduler->post_cycle();
+	scheduler.post_cycle();
 	excp_unit->post_cycle();
 	inst_unit->post_cycle();
 	tracer->post_cycle();
@@ -61,7 +59,7 @@ void cpu::cycle()
 bool cpu::is_idle() const
 {
 	// TODO: add exman?
-	return busm->is_idle() && pq->is_idle() && scheduler->is_idle()
+	return busm.is_idle() && pq.is_idle() && scheduler.is_idle()
 		&& inst_unit->is_idle() && excp_unit->is_idle();
 }
 

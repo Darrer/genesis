@@ -37,13 +37,14 @@ protected:
 	cpu_bus _bus;
 	std::shared_ptr<m68k::memory> mem;
 
+	m68k::exception_manager exman;
+	m68k::bus_manager busm;
+	m68k::prefetch_queue pq;
+	m68k::bus_scheduler scheduler;
+
 	// TODO: do we really need pointers here?
-	std::unique_ptr<m68k::bus_manager> busm;
-	std::unique_ptr<m68k::prefetch_queue> pq;
-	std::unique_ptr<m68k::bus_scheduler> scheduler;
 	std::unique_ptr<m68k::base_unit> inst_unit;
 	std::unique_ptr<m68k::exception_unit> excp_unit;
-	exception_manager exman;
 	std::unique_ptr<impl::trace_riser> tracer;
 };
 

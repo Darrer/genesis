@@ -53,16 +53,16 @@ void bus_scheduler::cycle()
 {
 	if(!current_op_is_over())
 	{
-		if(current_op.has_value() && current_op.value().type == op_type::WAIT)
+		if(curr_wait_cycles > 0)
 			--curr_wait_cycles;
 
 		return;
 	}
-	
-	run_imm_operations();
 
 	if(queue.empty())
 		return;
+
+	run_imm_operations();
 
 	start_operation(queue.front());
 	skip_post_cycle = true;

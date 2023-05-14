@@ -11,6 +11,40 @@
 using namespace genesis;
 
 
+// test memory consumption
+#include <stdlib.h>
+
+static bool log_memory_allocations = false;
+
+void * operator new(size_t size)
+{
+	if(log_memory_allocations)
+		std::cout << "Allocating " << size << " bytes" << std::endl;
+	return malloc(size);
+}
+ 
+void operator delete(void * p)
+{
+	if(log_memory_allocations)
+		std::cout << "Deallocating" << std::endl;
+	free(p);
+}
+
+void* operator new[](size_t size)
+{
+	if(log_memory_allocations)
+		std::cout << "Allocating[] " << size << " bytes" << std::endl;
+	return malloc(size);
+}
+
+void operator delete[](void* m)
+{
+	if(log_memory_allocations)
+		std::cout << "Deallocating[]" << std::endl;
+	free(m);
+}
+
+
 void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 {
 	// setup registers
@@ -290,18 +324,6 @@ bool run_test(test::test_cpu& cpu, const test_case& test)
 	return post && trans;
 }
 
-// using namespace std;
-// void * operator new(size_t size)
-// {
-// 	void * p = malloc(size);
-// 	return p;
-// }
- 
-// void operator delete(void * p)
-// {
-// 	free(p);
-// }
-
 bool should_skip_test(std::string_view test_name)
 {
 	// These are faulty tests
@@ -335,6 +357,9 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 	const std::uint32_t skip_limit = 2;
 	std::uint32_t skipped = 0;
+
+	log_memory_allocations = false;
+
 	for(const auto& test : tests)
 	{
 		if(should_skip_test(test.name))
@@ -355,7 +380,9 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 		if(!succeded) return false;
 	}
 
-	// if(num_succeded == tests.size())
+	log_memory_allocations = false;
+
+	if(num_succeded + skipped == tests.size())
 	{
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -372,13 +399,13 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 		// ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
 
 		// std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
-		std::cout << "Ns per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
+		std::cout << "NS per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
 	}
 
 	EXPECT_EQ(tests.size(), num_succeded + skipped);
 	EXPECT_TRUE(skipped <= skip_limit);
 
-	return true || num_succeded == tests.size();
+	return num_succeded + skipped == tests.size();
 }
 
 bool load_and_run(std::string test_path)
