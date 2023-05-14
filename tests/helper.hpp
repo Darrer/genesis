@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 
-std::filesystem::path get_exec_path()
+static std::filesystem::path get_exec_path()
 {
 	// I'm sorry for that...
 	std::filesystem::path exec_path = testing::internal::GetArgvs()[0];

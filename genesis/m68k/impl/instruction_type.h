@@ -98,8 +98,6 @@ enum class inst_type
 	RESET,
 	TAS,
 	STOP, // TODO: implement it
-	ILLEGAL, // TODO: implement it
-	BRA, // TODO: implement it
 };
 
 }
