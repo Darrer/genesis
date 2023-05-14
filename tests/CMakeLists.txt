@@ -46,9 +46,9 @@ PRIVATE
 	m68k/THT/tests_loader.cpp
 	m68k/THT/tests_runner.cpp
 
-	m68k/decoding/opcode_loader.cpp
-	m68k/decoding/opcode_loader.h
-	m68k/decoding/opcode_decoder.cpp
+	m68k/OPCLOGR3/opcode_loader.cpp
+	m68k/OPCLOGR3/opcode_loader.h
+	m68k/OPCLOGR3/opcode_decoder.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
@@ -66,4 +66,4 @@ file(COPY z80/exercisers/z80full.tap DESTINATION z80)
 file(COPY z80/exercisers/z80doc.tap DESTINATION z80)
 
 # copy m68k test files
-file(COPY m68k/decoding/OPCLOGR3.BIN DESTINATION M68K)
+file(COPY m68k/OPCLOGR3/OPCLOGR3.BIN DESTINATION M68K)
