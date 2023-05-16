@@ -3,12 +3,13 @@
 
 #include <cstdint>
 #include <array>
+#include <type_traits>
 
 
 namespace genesis::m68k
 {
 
-enum bus : std::uint8_t
+enum class bus
 {
 	/* Asynchronous bus control */
 	AS,
@@ -36,31 +37,33 @@ enum bus : std::uint8_t
 	BERR,
 	RESET,
 	HALT,
-
-	count,
 };
 
 class cpu_bus
 {
+private:
+	static const std::size_t num_buses = 17;
+	using index_type = std::underlying_type_t<bus>;
+
 public:
 	cpu_bus()
 	{
-		bus_state.fill(false);
+		std::fill(std::begin(bus_state), std::end(bus_state), false);
 	}
 
 	void set(m68k::bus bus)
 	{
-		bus_state.at(bus) = true;
+		bus_state[bus_index(bus)] = true;
 	}
 
 	void clear(m68k::bus bus)
 	{
-		bus_state.at(bus) = false;
+		bus_state[bus_index(bus)] = false;
 	}
 
 	bool is_set(m68k::bus bus) const
 	{
-		return bus_state.at(bus);
+		return bus_state[bus_index(bus)];
 	}
 
 	void address(std::uint32_t val)
@@ -76,9 +79,9 @@ public:
 
 	void func_codes(std::uint8_t fc)
 	{
-		bus_state.at(bus::FC0) = fc & 0b001;
-		bus_state.at(bus::FC1) = fc & 0b010;
-		bus_state.at(bus::FC2) = fc & 0b100;
+		bus_state[bus_index(bus::FC0)] = fc & 0b001;
+		bus_state[bus_index(bus::FC1)] = fc & 0b010;
+		bus_state[bus_index(bus::FC2)] = fc & 0b100;
 	}
 
 	std::uint8_t func_codes() const
@@ -91,9 +94,15 @@ public:
 	}
 
 private:
+	static index_type bus_index(m68k::bus val)
+	{
+		return static_cast<index_type>(val);
+	}
+
+private:
 	std::uint32_t addr_bus = 0;
 	std::uint16_t data_bus = 0;
-	std::array<bool, bus::count> bus_state;
+	bool bus_state[num_buses];
 };
 
 }

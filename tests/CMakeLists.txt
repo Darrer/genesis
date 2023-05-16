@@ -53,6 +53,8 @@ PRIVATE
 	m68k/THT_MAP/map_loader.h
 	m68k/THT_MAP/map_loader.cpp
 	m68k/THT_MAP/map_test.cpp
+
+	m68k/performance/performance.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

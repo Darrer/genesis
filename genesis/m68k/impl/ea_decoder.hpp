@@ -160,7 +160,7 @@ private:
 class ea_decoder
 {
 public:
-	enum class flags : std::uint8_t
+	enum class flags
 	{
 		none = 0,
 		no_read = 2,

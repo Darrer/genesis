@@ -34,7 +34,7 @@ std::vector<opcode_entry> load_map(std::string path_to_map)
 
 	for(auto& [opcode, desc] : data.items())
 	{
-		opcodes.push_back(parse_opcode(opcode, desc));
+		opcodes.push_back(parse_opcode(opcode, desc.get<std::string>()));
 	}
 		
 

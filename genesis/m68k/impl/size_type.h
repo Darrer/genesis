@@ -6,9 +6,9 @@ namespace genesis::m68k
 
 enum class size_type
 {
-	BYTE = 1,
-	WORD = 2,
-	LONG = 4,
+	BYTE,
+	WORD,
+	LONG
 };
 
 static unsigned int size_in_bytes(size_type size)

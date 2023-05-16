@@ -18,6 +18,8 @@ class memory
 {
 public:
 	using address = address_t;
+	static const std::size_t max_capacity = capacity;
+
 	memory()
 	{
 		static_assert(std::numeric_limits<address>::max() >= capacity,
