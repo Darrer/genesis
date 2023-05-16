@@ -2,8 +2,8 @@
 #define __M68K_BUS_MANAGER_HPP__
 
 #include <cstdint>
-#include <optional>
 #include <functional>
+#include <type_traits>
 
 #include "m68k/cpu_memory.h"
 #include "m68k/cpu_bus.hpp"
@@ -81,65 +81,52 @@ public:
 	std::uint8_t letched_byte() const
 	{
 		assert_idle("letched_byte");
-
-		if(!_letched_byte.has_value())
-			throw std::runtime_error("bus_manager::letched_byte error: don't have letched byte");
-		
-		return _letched_byte.value();
+		return std::uint8_t(_letched_data);
 	}
 
 	std::uint16_t letched_word() const
 	{
 		assert_idle("letched_word");
-
-		if(!_letched_word.has_value())
-			throw std::runtime_error("bus_manager::letched_word error: don't have letched word");
-
-		return _letched_word.value();
+		return std::uint16_t(_letched_data);
 	}
 
 	template<class Callable = std::nullptr_t>
-	void init_read_byte(std::uint32_t address, addr_space space, Callable cb = nullptr)
+	void init_read_byte(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_byte");
 
-		init_new_cycle(address, READ0, cb);
+		init_new_cycle(address, space, READ0, cb);
 		byte_op = true;
-		this->space = space;
 	}
 
 	template<class Callable = std::nullptr_t>
-	void init_read_word(std::uint32_t address, addr_space space, Callable cb = nullptr)
+	void init_read_word(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_word");
 
-		init_new_cycle(address, READ0, cb);
+		init_new_cycle(address, space, READ0, cb);
 		byte_op = false;
-		this->space = space;
 	}
 
 	template<class T, class Callable = std::nullptr_t>
-	void init_write(std::uint32_t address, T data, Callable cb = nullptr)
+	void init_write(std::uint32_t address, T data, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(T) <= 2);
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_write");
 
-		init_new_cycle(address, WRITE0, cb);
+		init_new_cycle(address, addr_space::DATA, WRITE0, cb);
 		data_to_write = data;
 		byte_op = sizeof(T) == 1;
-		space = addr_space::DATA;
 	}
 
 	template<class Callable>
-	void init_read_modify_write(std::uint32_t address, Callable modify, addr_space space = addr_space::DATA)
+	void init_read_modify_write(std::uint32_t address, const Callable& modify, addr_space space = addr_space::DATA)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_modify_write");
-
-		reset();
 
 		modify_cb = modify;
 		if(modify_cb == nullptr)
@@ -159,80 +146,61 @@ public:
 			break;
 
 		case READ0:
-			if(check_exceptions())
-				return;
-			do_state(state);
-			state = READ1;
+			do_state(READ0);
 			break;
 		case READ1:
-			do_state(state);
-			state = READ2;
+			do_state(READ1);
 			break;
 		case READ2:
-			do_state(state);
-			state = READ3;
+			do_state(READ2);
 			break;
 		case READ3:
-			do_state(state);
+			do_state(READ3);
 			set_idle();
 			break;
 
 		case WRITE0:
-			if(check_exceptions())
-				return;
-			do_state(state);
-			state = WRITE1;
+			do_state(WRITE0);
 			break;
 		case WRITE1:
-			do_state(state);
-			state = WRITE2;
+			do_state(WRITE1);
 			break;
 		case WRITE2:
-			do_state(state);
-			state = WRITE3;
+			do_state(WRITE2);
 			break;
 		case WRITE3:
-			do_state(state);
+			do_state(WRITE3);
 			set_idle();
 			break;
 
 		case RMW_READ0:
 			do_state(READ0);
-			state = RMW_READ1;
 			break;
 		case RMW_READ1:
 			do_state(READ1);
-			state = RMW_READ2;
 			break;
 		case RMW_READ2:
 			do_state(READ2);
-			state = RMW_READ3;
 			break;
 		case RMW_READ3:
-			do_state(READ3);
-			bus.set(bus::AS); // keep it on
-			state = RMW_MODIFY0;
+			do_state(RMW_READ3);
 			break;
 
 		case RMW_MODIFY0:
-			state = RMW_MODIFY1;
+			do_state(RMW_MODIFY0);
 			break;
 		case RMW_MODIFY1:
-			data_to_write = modify_cb(_letched_byte.value());
-			state = RMW_WRITE0;
+			do_state(RMW_MODIFY1);
 			break;
 
 		case RMW_WRITE0:
 			do_state(WRITE0);
-			state = RMW_WRITE1;
 			break;
 		case RMW_WRITE1:
 			do_state(WRITE1);
-			state = RMW_WRITE2;
 			break;
 		case RMW_WRITE2:
 			do_state(WRITE2);
-			state = RMW_WRITE3;
 			break;
 		case RMW_WRITE3:
 			do_state(WRITE3);
@@ -241,15 +209,21 @@ public:
 
 		default: throw internal_error();
 		}
+
+		if(state != IDLE)
+			state = (bus_cycle_state)(std::underlying_type_t<bus_cycle_state>(state) + 1);
 	}
 
 private:
 	void do_state(bus_cycle_state state)
 	{
+		// return;
 		switch(state)
 		{
 		/* bus ready cycle */
 		case READ0:
+			if(check_exceptions())
+				return;
 			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
 			bus.address(address);
@@ -263,12 +237,11 @@ private:
 		case READ2:
 		{
 			// emulate read
-			std::uint16_t data = 0;
 			if(byte_op)
-				data = mem.read<std::uint8_t>(bus.address());
+				_letched_data = mem.read<std::uint8_t>(bus.address());
 			else
-				data = mem.read<std::uint16_t>(bus.address());
-			set_data_bus(data);
+				_letched_data = mem.read<std::uint16_t>(bus.address());
+			set_data_bus(_letched_data);
 
 			// immidiate DTACK
 			bus.set(bus::DTACK);
@@ -276,22 +249,27 @@ private:
 		}
 
 		case READ3:
-			if(byte_op)
-			{
-				if(bus.is_set(bus::LDS))
-					_letched_byte = bus.data() & 0xFF;
-				else
-					_letched_byte = bus.data() >> 8;
-			}
-			else
-			{
-				_letched_word = bus.data();
-			}
 			clear_bus();
+			return;
+
+		/* bus read-modify-write cycles */
+		case RMW_READ3:
+			clear_bus();
+			bus.set(bus::AS); // keep it on
+			return;
+
+		case RMW_MODIFY0:
+			// IDLE CYCLE
+			return;
+
+		case RMW_MODIFY1:
+			data_to_write = modify_cb(std::uint8_t(_letched_data));
 			return;
 
 		/* bus write cycle */
 		case WRITE0:
+			if(check_exceptions())
+				return;
 			bus.func_codes(gen_func_codes());
 			bus.set(bus::RW);
 			bus.address(address);
@@ -308,7 +286,7 @@ private:
 
 			// emulate write
 			if(byte_op)
-				mem.write<std::uint8_t>(bus.address(), data_to_write & 0xFF);
+				mem.write<std::uint8_t>(bus.address(), std::uint8_t(data_to_write));
 			else
 				mem.write<std::uint16_t>(bus.address(), data_to_write);
 
@@ -326,12 +304,11 @@ private:
 	}
 
 private:
-	void init_new_cycle(std::uint32_t addr, bus_cycle_state first_state, on_complete cb)
+	template<class Callable = std::nullptr_t>
+	void init_new_cycle(std::uint32_t addr, addr_space sp, bus_cycle_state first_state, const Callable& cb)
 	{
-		_letched_byte.reset();
-		_letched_word.reset();
-
 		address = addr;
+		space = sp;
 		state = first_state;
 		on_complete_cb = cb;
 	}
@@ -352,10 +329,14 @@ private:
 
 		state = IDLE;
 
-		// TODO: do not allow chaining
 		if(on_complete_cb)
 			on_complete_cb();
 		on_complete_cb = nullptr;
+
+		// If callback started a new operation, throw an exception
+		// chaining leads to occupying bus for 2 (or more) bus cycles,
+		// we should not allow that
+		assert_idle("set_idle");
 	}
 
 	void set_data_strobe_bus()
@@ -407,9 +388,6 @@ private:
 	void reset()
 	{
 		on_complete_cb = nullptr;
-		data_to_write = 0;
-		_letched_byte.reset();
-		_letched_word.reset();
 		state = bus_cycle_state::IDLE;
 		clear_bus();
 	}
@@ -470,7 +448,7 @@ private:
 
 	bool should_rise_address_error() const
 	{
-		return !byte_op && (address % 2) == 1;
+		return !byte_op && (address & 1) == 1;
 	}
 
 	void rise_address_error()
@@ -494,8 +472,7 @@ private:
 	on_modify modify_cb = nullptr;
 
 	bool byte_op = false;
-	std::optional<std::uint8_t> _letched_byte;
-	std::optional<std::uint16_t> _letched_word;
+	std::uint16_t _letched_data;
 
 	bus_cycle_state state = bus_cycle_state::IDLE;
 };

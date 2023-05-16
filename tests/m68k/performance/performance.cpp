@@ -7,6 +7,43 @@
 
 using namespace genesis::m68k;
 
+template<class Callable>
+long long measure_in_ns(const Callable& fn)
+{
+	auto start = std::chrono::high_resolution_clock::now();
+
+	fn();
+
+	auto stop = std::chrono::high_resolution_clock::now();
+
+	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+	return dur.count();
+}
+
+TEST(M68K_PERFORMANCE, TMP)
+{
+	const std::size_t num_copies = 1'000'000;
+
+	std::size_t num_calls = 0;
+	auto callback = [&num_calls]()
+	{
+		++num_calls;
+	};
+
+	auto time = measure_in_ns([&]()
+	{
+		for(std::size_t i = 0; i < num_copies; ++i)
+		{
+			std::function<void()> tmp = callback;
+			// tmp();
+			// callback();
+		}
+	});
+
+	std::cout << "NS per copy: " << time / num_copies << std::endl;
+	ASSERT_EQ(num_copies, num_calls);
+}
+
 TEST(M68K, THT_MAP_PERFORMANCE)
 {
 	const unsigned int num_measurements = 1'000'000;
@@ -50,7 +87,8 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	const unsigned long long num_cycles = num_reads * 4;
 
 	unsigned long long num_callbacks = 0;
-	auto on_read_finish = [&num_callbacks](std::uint32_t, size_type)
+	// auto on_read_finish = [&num_callbacks](std::uint32_t, size_type)
+	auto on_read_finish = [&num_callbacks]()
 	{
 		++num_callbacks;
 	};
@@ -62,15 +100,22 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	unsigned long long cycles = 0;
 	for(auto i = 0; i < num_reads; ++i)
 	{
-		// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM, on_read_finish);
-		scheduler.read(0, size_type::WORD, on_read_finish);
-		while (!busm.is_idle() || !scheduler.is_idle())
+		busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
+		while (!busm.is_idle())
 		{
-			scheduler.cycle();
 			busm.cycle();
-			scheduler.post_cycle();
 			++cycles;
 		}
+
+		// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
+		// scheduler.read(0, size_type::WORD, on_read_finish);
+		// while (!busm.is_idle() || !scheduler.is_idle())
+		// {
+		// 	scheduler.cycle();
+		// 	busm.cycle();
+		// 	scheduler.post_cycle();
+		// 	++cycles;
+		// }
 	}
 
 	auto stop = std::chrono::high_resolution_clock::now();
@@ -78,15 +123,17 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 	auto ns_per_cycle = dur.count() / num_cycles;
 	
-	// Takes 10-20 ns per cycle for read operation
+	// Takes 10-20 ns per cycle for bus_manager read operation
+	// Takes ~37 ns per cycle for scheduler read operation
 	std::cout << "Reading takes " << ns_per_cycle << " ns per cycle, total reads: " << num_callbacks << std::endl;
 	std::cout << "Operation size: " << sizeof(genesis::m68k::bus_scheduler::operation) << std::endl;
+	std::cout << "On read complete cb size: " << sizeof(genesis::m68k::bus_scheduler::on_read_complete) << std::endl;
 	ASSERT_EQ(num_cycles, cycles);
 }
 
 TEST(M68K_PERFORMANCE, NOP)
 {
-	const unsigned long long num_executions = 1'000'000;
+	const unsigned long long num_executions = 10'000'000;
 
 	const std::uint16_t nop_opcode = 0b0100111001110001;
 	const unsigned long long num_cycles = num_executions * 4; // NOP takes 4 cycles to execute
@@ -118,6 +165,8 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 	auto ns_per_cycle = dur.count() / num_cycles;
+
+	// inst unit, busm and scheduler takes about 40ns per cycle
 
 	// It takes 60-65 ns
 	std::cout << "NS per cycle for NOP: " << ns_per_cycle << ", PC: " << cpu.registers().PC

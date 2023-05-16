@@ -36,13 +36,7 @@ public:
 	{
 		check_addr(addr, sizeof(T));
 
-		T data{};
-
-		for (size_t i = 0; i < sizeof(T); ++i)
-		{
-			std::byte* b = reinterpret_cast<std::byte*>(&data) + i;
-			*b = mem[addr + i];
-		}
+		T data = *reinterpret_cast<T*>(&mem[addr]);
 
 		// convert to sys byte order
 		if constexpr (byte_order == std::endian::little)

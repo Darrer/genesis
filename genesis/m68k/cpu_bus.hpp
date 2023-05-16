@@ -79,9 +79,9 @@ public:
 
 	void func_codes(std::uint8_t fc)
 	{
-		bus_state[bus_index(bus::FC0)] = fc & 0b001;
-		bus_state[bus_index(bus::FC1)] = fc & 0b010;
-		bus_state[bus_index(bus::FC2)] = fc & 0b100;
+		bus_state[bus_index(bus::FC0)] = (fc & 0b001) != 0;
+		bus_state[bus_index(bus::FC1)] = (fc & 0b010) != 0;
+		bus_state[bus_index(bus::FC2)] = (fc & 0b100) != 0;
 	}
 
 	std::uint8_t func_codes() const
