@@ -81,12 +81,18 @@ public:
 	std::uint8_t letched_byte() const
 	{
 		assert_idle("letched_byte");
+		if(!byte_op)
+			throw std::runtime_error("bus_manager::letched_byte error: don't have letched byte");
+
 		return std::uint8_t(_letched_data);
 	}
 
 	std::uint16_t letched_word() const
 	{
 		assert_idle("letched_word");
+		if(byte_op)
+			throw std::runtime_error("bus_manager::letched_word error: don't have letched word");
+
 		return std::uint16_t(_letched_data);
 	}
 
