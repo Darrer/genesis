@@ -5,8 +5,8 @@
 namespace genesis::m68k
 {
 
-bus_scheduler::bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq):
-	regs(regs), busm(busm), pq(pq)
+bus_scheduler::bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm):
+	regs(regs), busm(busm), pq(busm, regs)
 {
 }
 
@@ -15,6 +15,7 @@ void bus_scheduler::reset()
 	current_op.reset();
 	while(!queue.empty())
 		queue.pop();
+	pq.reset();
 }
 
 bool bus_scheduler::is_idle() const
@@ -24,6 +25,7 @@ bool bus_scheduler::is_idle() const
 
 bool bus_scheduler::current_op_is_over() const
 {
+	// return busm.is_idle();
 	if(!current_op.has_value())
 		return true;
 
@@ -51,10 +53,15 @@ bool bus_scheduler::current_op_is_over() const
 
 void bus_scheduler::cycle()
 {
+	// return;
 	if(!current_op_is_over())
 	{
 		if(curr_wait_cycles > 0)
+		{
 			--curr_wait_cycles;
+			if(curr_wait_cycles == 0)
+				run_imm_operations();
+		}
 
 		return;
 	}
@@ -71,6 +78,7 @@ void bus_scheduler::cycle()
 
 void bus_scheduler::post_cycle()
 {
+	// return;
 	if(skip_post_cycle)
 	{
 		skip_post_cycle = false;
@@ -86,20 +94,27 @@ void bus_scheduler::post_cycle()
 	}
 }
 
-void bus_scheduler::read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete)
+void bus_scheduler::read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete)
 {
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
-		read_operation read { addr, size, on_complete };
+		read_operation read { addr, size, space, on_complete };
 		queue.emplace(op_type::READ, read);
+
+		// current_op = { op_type::READ, read };
+		// busm.init_read_word(read.addr, addr_space::DATA, [this]() { on_read_finished(); });
+		// busm.init_read_word(addr, addr_space::DATA, [this]() { on_read_finished(); });
+
+		// operation op{ op_type::READ, read };
+		// start_operation(op);
 	}
 	else
 	{
 		// m68k bus does not support long read/write, so
 		// split to two word operations
 
-		read_operation read_msw { addr, size, nullptr }; // call back only when second word is read
-		read_operation read_lsw { addr + 2, size, on_complete};
+		read_operation read_msw { addr, size, space, nullptr }; // call back only when second word is read
+		read_operation read_lsw { addr + 2, size, space, on_complete};
 
 		queue.emplace(op_type::READ, read_msw);
 		queue.emplace(op_type::READ, read_lsw);
@@ -132,43 +147,40 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 	}
 }
 
-void bus_scheduler::on_read_finished()
+void bus_scheduler::latch_data(size_type size)
 {
-	if(!current_op.has_value())
-		throw internal_error();
-	
-	auto curr_type = current_op.value().type;
-	if(curr_type != op_type::READ && curr_type != op_type::READ_IMM)
-		throw internal_error();
-
-	auto op = current_op.value().op;
-
-	size_type size;
-	on_read_complete on_complete;
-	if(curr_type == op_type::READ)
-	{
-		size = std::get<read_operation>(op).size;
-		on_complete = std::get<read_operation>(op).on_complete;
-	}
-	else
-	{
-		size = std::get<read_imm_operation>(op).size;
-		on_complete = std::get<read_imm_operation>(op).on_complete;
-	}
-	
 	if(size == size_type::BYTE)
 		data = busm.letched_byte();
 	else if(size == size_type::WORD)
 		data = busm.letched_word();
 	else
 		data = (data << 16) | busm.letched_word();
+}
 
-	if(on_complete != nullptr)
-	{
-		on_complete(data, size);
-	}
+void bus_scheduler::on_read_finished()
+{
+	read_operation& read = std::get<read_operation>(current_op.value().op);
+
+	latch_data(read.size);
+
+	if(read.on_complete != nullptr)
+		read.on_complete(data, read.size);
 
 	current_op.reset();
+	run_imm_operations();
+}
+
+void bus_scheduler::on_read_imm_finished()
+{
+	read_imm_operation& imm = std::get<read_imm_operation>(current_op.value().op);
+
+	latch_data(imm.size);
+
+	if(imm.on_complete != nullptr)
+		imm.on_complete(data, imm.size);
+
+	current_op.reset();
+	run_imm_operations();
 }
 
 void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size, order order)
@@ -273,7 +285,7 @@ void bus_scheduler::push(std::uint32_t data, size_type size, order order)
 	}
 }
 
-void bus_scheduler::start_operation(operation op)
+void bus_scheduler::start_operation(operation& op)
 {
 	current_op = op;
 	switch (op.type)
@@ -282,9 +294,9 @@ void bus_scheduler::start_operation(operation op)
 	{
 		read_operation read = std::get<read_operation>(op.op);
 		if(read.size == size_type::BYTE)
-			busm.init_read_byte(read.addr, addr_space::DATA, [this]() { on_read_finished(); });
+			busm.init_read_byte(read.addr, read.space, [this]() { on_read_finished(); });
 		else
-			busm.init_read_word(read.addr, addr_space::DATA, [this]() { on_read_finished(); });
+			busm.init_read_word(read.addr, read.space, [this]() { on_read_finished(); });
 
 		break;
 	}
@@ -299,13 +311,16 @@ void bus_scheduler::start_operation(operation op)
 
 		if(read.flags == read_imm_flags::do_prefetch)
 		{
-			start_operation({ op_type::PREFETCH_IRC });
+			current_op = { op_type::PREFETCH_IRC };
+			pq.init_fetch_irc([this]() { run_imm_operations(); });
+			// TODO: do prefetch irc
+			// busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { regs.IRC = busm.letched_word(); });
 			regs.PC += 2;
 		}
 		// Even if we're requested to not do a prefetch, we must read second word for a long operation
 		else if(read.size == size_type::LONG)
 		{
-			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_finished(); });
+			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_imm_finished(); });
 			return;
 		}
 		else
@@ -346,15 +361,15 @@ void bus_scheduler::start_operation(operation op)
 	}
 
 	case op_type::PREFETCH_IRD:
-		pq.init_fetch_ird();
+		pq.init_fetch_ird([this]() { run_imm_operations(); });
 		break;
 
 	case op_type::PREFETCH_IRC:
-		pq.init_fetch_irc();
+		pq.init_fetch_irc([this]() { run_imm_operations(); });
 		break;
 
 	case op_type::PREFETCH_ONE:
-		pq.init_fetch_one();
+		pq.init_fetch_one([this]() { run_imm_operations(); });
 		break;
 
 	case op_type::WAIT:

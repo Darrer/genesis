@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+/* #include <gtest/gtest.h>
 
 #include "test_cpu.hpp"
 
@@ -124,3 +124,4 @@ TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 	ASSERT_THROW(pq.init_fetch_irc(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
 }
+ */

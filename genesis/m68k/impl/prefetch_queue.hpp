@@ -20,6 +20,16 @@ private:
 	};
 
 public:
+	using on_complete = std::function<void()>;
+	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
+
+private:
+	// all callbacks are restricted in size to the size of the pointer
+	// this is required for std::function small-size optimizations
+	// (though it's not guaranteed by standard, so we purely rely on implementation)
+	constexpr const static std::size_t max_callable_size = sizeof(void*);
+
+public:
 	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs) { }
 
 	bool is_idle() const
@@ -30,44 +40,51 @@ public:
 	void reset()
 	{
 		state = fetch_state::IDLE;
+		on_complete_cb = nullptr;
 	}
 
 	// IR/IRD = (regs.PC)
 	// IRC is not changed
-	void init_fetch_ird()
+	template<class Callable = std::nullptr_t>
+	void init_fetch_ird(Callable cb = nullptr)
 	{
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC, addr_space::PROGRAM, [this](){ on_complete(); });
+		busm.init_read_word(regs.PC, addr_space::PROGRAM, [this](){ on_read_finished(); });
 		state = fetch_state::FETCH_IRD;
+		on_complete_cb = cb;
 	}
 
 	// IR/IRD aren't changed
 	// IRC = (regs.PC + 2)
-	void init_fetch_irc()
+	template<class Callable = std::nullptr_t>
+	void init_fetch_irc(Callable cb = nullptr)
 	{
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_read_finished(); });
 		state = fetch_state::FETCH_IRC;
+		on_complete_cb = cb;
 	}
 
 	// IR/IRD = IRC
 	// IRC = (regs.PC + 2)
-	void init_fetch_one()
+	template<class Callable = std::nullptr_t>
+	void init_fetch_one(Callable cb = nullptr)
 	{
+		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_complete(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_read_finished(); });
 		state = fetch_state::FETCH_ONE;
+		on_complete_cb = cb;
 	}
 
 private:
-	void on_complete()
+	void on_read_finished()
 	{
-		if(!busm.is_idle())
-			throw internal_error("prefetch_queue::on_complete internal error: bus manager must be idle");
-
 		std::uint16_t reg = busm.letched_word();
 
 		switch (state)
@@ -88,6 +105,9 @@ private:
 		default: throw internal_error();
 		}
 
+		if(on_complete_cb != nullptr)
+			on_complete_cb();
+
 		reset();
 	}
 
@@ -103,6 +123,7 @@ private:
 	m68k::bus_manager& busm;
 	m68k::cpu_registers& regs;
 	fetch_state state = fetch_state::IDLE;
+	on_complete on_complete_cb;
 };
 
 }

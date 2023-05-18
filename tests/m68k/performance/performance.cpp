@@ -87,8 +87,8 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	const unsigned long long num_cycles = num_reads * 4;
 
 	unsigned long long num_callbacks = 0;
-	// auto on_read_finish = [&num_callbacks](std::uint32_t, size_type)
-	auto on_read_finish = [&num_callbacks]()
+	// auto on_read_finish = [&num_callbacks]()
+	auto on_read_finish = [&num_callbacks](std::uint32_t, size_type)
 	{
 		++num_callbacks;
 	};
@@ -100,22 +100,22 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	unsigned long long cycles = 0;
 	for(auto i = 0; i < num_reads; ++i)
 	{
-		busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
-		while (!busm.is_idle())
-		{
-			busm.cycle();
-			++cycles;
-		}
-
-		// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
-		// scheduler.read(0, size_type::WORD, on_read_finish);
-		// while (!busm.is_idle() || !scheduler.is_idle())
+		// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
+		// while (!busm.is_idle())
 		// {
-		// 	scheduler.cycle();
 		// 	busm.cycle();
-		// 	scheduler.post_cycle();
 		// 	++cycles;
 		// }
+
+		// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
+		scheduler.read(0, size_type::WORD, on_read_finish);
+		while (!busm.is_idle() || !scheduler.is_idle())
+		{
+			scheduler.cycle();
+			busm.cycle();
+			scheduler.post_cycle();
+			++cycles;
+		}
 	}
 
 	auto stop = std::chrono::high_resolution_clock::now();

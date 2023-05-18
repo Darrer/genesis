@@ -2,7 +2,7 @@
 #include "exception.hpp"
 
 
-enum handler_state : std::uint8_t
+enum handler_state
 {
 	IDLE,
 	EXECUTING,
@@ -28,9 +28,6 @@ void base_unit::reset()
 
 bool base_unit::is_idle() const
 {
-	if(state == WAITING_SCHEDULER_AND_IDLE)
-		return scheduler.is_idle();
-
 	return state == IDLE;
 }
 
@@ -95,7 +92,7 @@ void base_unit::executing()
 
 void base_unit::post_cycle()
 {
-	if(base_unit::is_idle())
+	if(state == WAITING_SCHEDULER_AND_IDLE && scheduler.is_idle())
 		state = IDLE;
 }
 

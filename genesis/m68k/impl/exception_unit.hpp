@@ -4,7 +4,6 @@
 #include "base_unit.h"
 #include "exception_manager.h"
 #include "pc_corrector.hpp"
-#include "prefetch_queue.hpp"
 
 
 #include "exception.hpp"
@@ -23,10 +22,10 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, prefetch_queue& pq, cpu_bus& bus,
+	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, cpu_bus& bus,
 		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution,
 		std::function<bool()> __instruction_unit_is_idle)
-		: base_unit(regs, scheduler), exman(exman), pq(pq), bus(bus), __abort_execution(__abort_execution),
+		: base_unit(regs, scheduler), exman(exman), bus(bus), __abort_execution(__abort_execution),
 		__instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__abort_execution == nullptr)
@@ -40,8 +39,13 @@ public:
 
 	bool is_idle() const override
 	{
-		return base_unit::is_idle() &&
-			!exception_0_group_is_rised() &&
+		if(!base_unit::is_idle())
+			return false;
+
+		if(!exman.is_raised_any())
+			return true;
+
+		return !exception_0_group_is_rised() &&
 			!exception_1_group_is_rised() &&
 			!exception_2_group_is_rised();
 	}
@@ -300,16 +304,14 @@ private:
 
 		scheduler.wait(4);
 
-		// TODO: read from supervisor program space
-
 		// Read SSP
-		scheduler.read(0, size_type::LONG, [this](std::uint32_t data, size_type)
+		scheduler.read(0, size_type::LONG, addr_space::PROGRAM, [this](std::uint32_t data, size_type)
 		{
 			regs.SSP.LW = data;
 		});
 
 		// Read PC
-		scheduler.read(4, size_type::LONG, [this](std::uint32_t data, size_type)
+		scheduler.read(4, size_type::LONG, addr_space::PROGRAM, [this](std::uint32_t data, size_type)
 		{
 			regs.PC = data;
 		});
@@ -328,13 +330,6 @@ private:
 	*/
 	exec_state address_error()
 	{
-		if(!pq.is_idle())
-		{
-			// TODO: exception was rised by prefetch queue, in this case external tests
-			// expect to see IN bit of status word set, couldn't find this behavior documented
-			addr_error.in = true;
-		}
-
 		abort_execution();
 		correct_pc();
 
@@ -511,7 +506,6 @@ private:
 
 private:
 	m68k::exception_manager& exman;
-	prefetch_queue& pq;
 	cpu_bus& bus;
 	std::function<void()> __abort_execution;
 	std::function<bool()> __instruction_unit_is_idle;

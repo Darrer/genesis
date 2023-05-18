@@ -11,6 +11,7 @@ namespace genesis::m68k::impl
 {
 
 /* Rises trace exception on instruction completion */
+// NOTE: implemented but not tested
 class trace_riser
 {
 public:
@@ -28,7 +29,6 @@ public:
 	}
 
 	/* Must be called in the begining of cycle */
-	// NOTE: implemented but not tested
 	void cycle()
 	{
 		// We have to save TR flag before executing instruction

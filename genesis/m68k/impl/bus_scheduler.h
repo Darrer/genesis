@@ -7,8 +7,8 @@
 #include <functional>
 
 #include "m68k/cpu_registers.hpp"
-#include "prefetch_queue.hpp"
 #include "bus_manager.hpp"
+#include "prefetch_queue.hpp"
 
 
 namespace genesis::m68k
@@ -40,7 +40,7 @@ public:
 	using on_read_complete = std::function<void(std::uint32_t /*data*/, size_type)>;
 
 public:
-	bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm, m68k::prefetch_queue& pq);
+	bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm);
 	~bus_scheduler() = default;
 
 	void cycle();
@@ -51,8 +51,14 @@ public:
 	template<class Callable>
 	void read(std::uint32_t addr, size_type size, Callable on_complete)
 	{
+		read(addr, size, addr_space::DATA, on_complete);
+	}
+
+	template<class Callable>
+	void read(std::uint32_t addr, size_type size, addr_space space, Callable on_complete)
+	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		read_impl(addr, size, on_complete);
+		read_impl(addr, size, space, on_complete);
 	}
 
 	template<class Callable = std::nullptr_t>
@@ -90,8 +96,8 @@ public:
 
 	void push(std::uint32_t data, size_type size, order order = order::msw_first);
 
-private:
-	enum class op_type : std::uint8_t
+public:
+	enum class op_type
 	{
 		READ,
 		READ_IMM,
@@ -110,6 +116,7 @@ private:
 	{
 		std::uint32_t addr;
 		size_type size;
+		addr_space space;
 		on_read_complete on_complete;
 	};
 
@@ -160,19 +167,22 @@ private:
 	};
 
 private:
-	void read_impl(std::uint32_t addr, size_type size, on_read_complete on_complete);
+	void read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete);
 	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
 	void call_impl(callback);
 
+	void latch_data(size_type size);
 	void on_read_finished();
+	void on_read_imm_finished();
+
 	bool current_op_is_over() const;
-	void start_operation(operation);
+	void start_operation(operation&);
 	void run_imm_operations();
 
 private:
 	m68k::cpu_registers& regs;
 	m68k::bus_manager& busm;
-	m68k::prefetch_queue& pq;
+	m68k::prefetch_queue pq;
 
 	// TODO: replace to stack-allocated queue
 	std::queue<operation> queue;

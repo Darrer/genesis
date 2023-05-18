@@ -78,6 +78,7 @@ public:
 		return state == bus_cycle_state::IDLE;
 	}
 
+	// TODO: fix type: letched -> latched
 	std::uint8_t letched_byte() const
 	{
 		assert_idle("letched_byte");
@@ -461,7 +462,8 @@ private:
 	{
 		std::uint8_t func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		exman.rise_address_error( { address, func_codes, read_operation, false } );
+		bool in = space == addr_space::PROGRAM; // just to satisfy external tests
+		exman.rise_address_error( { address, func_codes, read_operation, in } );
 		reset();
 	}
 

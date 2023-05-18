@@ -8,7 +8,6 @@
 #include "impl/base_unit.h"
 
 #include "impl/bus_manager.hpp"
-#include "impl/prefetch_queue.hpp"
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
@@ -39,7 +38,6 @@ protected:
 
 	m68k::exception_manager exman;
 	m68k::bus_manager busm;
-	m68k::prefetch_queue pq;
 	m68k::bus_scheduler scheduler;
 
 	// TODO: do we really need pointers here?

@@ -52,6 +52,11 @@ public:
 		return exps.test(static_cast<std::uint8_t>(ex));
 	}
 
+	bool is_raised_any() const
+	{
+		return ex_counter != 0;
+	}
+
 	void accept_all()
 	{
 		exps.reset();
@@ -208,6 +213,7 @@ private:
 			throw not_implemented("multiple exceptions of the same type are not allowed yet");
 
 		exps.set(static_cast<std::uint8_t>(ex), true);
+		++ex_counter;
 	}
 
 	void accept(exception_type ex)
@@ -216,12 +222,14 @@ private:
 			throw internal_error();
 
 		exps.set(static_cast<std::uint8_t>(ex), false);
+		--ex_counter;
 	}
 
 private:
 	std::bitset<static_cast<std::uint8_t>(exception_type::count)> exps;
 	std::optional<address_error> addr_error;
 	std::optional<std::uint8_t> trap_vector;
+	unsigned int ex_counter = 0;
 };
 
 }

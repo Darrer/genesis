@@ -23,14 +23,10 @@
 namespace genesis::m68k
 {
 
-// TODO: add exception class
-#define throw_invalid_opcode() \
-	throw std::runtime_error(std::string("executioner::") + __func__ + " error: invalid opcode")
-
 class instruction_unit : public base_unit
 {
 private:
-	enum inst_state : std::uint8_t
+	enum inst_state
 	{
 		IDLE,
 		EXECUTING,
@@ -84,6 +80,29 @@ protected:
 			throw internal_error();
 		}
 	}
+
+	/* exec_state on_executing() override
+	{
+		if(state == IDLE)
+		{
+			opcode = regs.IRD;
+			regs.SIRD = regs.IRD;
+			regs.SPC = regs.PC;
+			curr_inst = decode_opcode(opcode);
+			// std::cout << "Executing: " << (int)curr_inst << std::endl;
+
+			if(check_illegal_instruction(curr_inst, opcode))
+				return exec_state::done;
+
+			if(check_privilege_violations(curr_inst))
+				return exec_state::done;
+
+			regs.PC += 2;
+			state = EXECUTING;
+		}
+
+		return execute();
+	} */
 
 private:
 	exec_state execute()
@@ -284,9 +303,6 @@ private:
 		}
 	}
 
-	// TODO: in most cases we do not handle invalid opcodes properly
-	// especially with some N/A EA decoding
-
 	exec_state alu_mode_handler()
 	{
 		switch (exec_stage++)
@@ -328,7 +344,7 @@ private:
 	{
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
 		if(opmode != 0b011 && opmode != 0b111)
-			throw_invalid_opcode();
+			throw internal_error();
 
 		switch (exec_stage++)
 		{
@@ -702,7 +718,7 @@ private:
 		case 2:
 		{
 			if(!dec.result().is_pointer())
-				throw_invalid_opcode();
+				throw internal_error();
 
 			std::uint8_t dr = (opcode >> 10) & 1;
 			std::uint16_t reg_mask = imm & 0xFFFF;
@@ -1216,7 +1232,7 @@ private:
 		}
 		else
 		{
-			throw_invalid_opcode();
+			throw internal_error();
 		}
 
 		scheduler.prefetch_one();
@@ -1876,7 +1892,7 @@ private:
 			if(op.is_data_reg())
 				op.data_reg().B = (std::uint8_t)res;
 			else
-				throw_invalid_opcode();
+				throw internal_error();
 		}
 		else if(size == size_type::WORD)
 		{
@@ -1902,7 +1918,7 @@ private:
 		if(size == 1) return size_type::WORD;
 		if(size == 2) return size_type::LONG;
 
-		throw_invalid_opcode();
+		throw internal_error();
 	}
 
 	size_type dec_move_size(std::uint8_t size)
@@ -1912,7 +1928,7 @@ private:
 		if(size == 0b11) return size_type::WORD;
 		if(size == 0b10) return size_type::LONG;
 
-		throw_invalid_opcode();
+		throw internal_error();
 	}
 
 	size_type dec_bit_size(operand& dest)
@@ -1922,12 +1938,9 @@ private:
 		return size_type::BYTE;
 	}
 
-	inst_type decode_opcode(std::uint16_t opcode)
+	static inst_type decode_opcode(std::uint16_t opcode)
 	{
-		auto res = opcode_decoder::decode(opcode);
-		if(res == inst_type::NONE)
-			throw not_implemented();
-		return res;
+		return opcode_decoder::decode(opcode);
 	}
 
 	static bool bit_is_set(std::uint32_t data, std::uint8_t bit_number)

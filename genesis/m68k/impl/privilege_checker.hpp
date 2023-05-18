@@ -12,7 +12,6 @@ class privilege_checker
 public:
 	privilege_checker() = delete;
 
-
 	static bool is_authorized(m68k::inst_type inst, m68k::cpu_registers& regs)
 	{
 		if(regs.flags.S == 1)
@@ -27,7 +26,7 @@ public:
 		case inst_type::EORItoSR:
 		case inst_type::RTE:
 		case inst_type::RESET:
-		// TODO: add STOP
+		case inst_type::STOP:
 			return false;
 
 		default:
