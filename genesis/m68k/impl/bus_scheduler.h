@@ -44,7 +44,6 @@ public:
 	~bus_scheduler() = default;
 
 	void cycle();
-	void post_cycle();
 	bool is_idle() const;
 	void reset();
 
@@ -179,6 +178,8 @@ private:
 	void start_operation(operation&);
 	void run_imm_operations();
 
+	// TODO: add bus_read / bus_write operations to hide all busm calls
+
 private:
 	m68k::cpu_registers& regs;
 	m68k::bus_manager& busm;
@@ -189,7 +190,6 @@ private:
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;
 	std::uint16_t curr_wait_cycles = 0;
-	bool skip_post_cycle = false;
 };
 
 

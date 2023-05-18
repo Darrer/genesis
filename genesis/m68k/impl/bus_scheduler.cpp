@@ -25,35 +25,11 @@ bool bus_scheduler::is_idle() const
 
 bool bus_scheduler::current_op_is_over() const
 {
-	// return busm.is_idle();
-	if(!current_op.has_value())
-		return true;
-
-	auto curr_type = current_op.value().type;
-
-	switch (curr_type)
-	{
-	case op_type::READ:
-	case op_type::READ_IMM:
-	case op_type::WRITE:
-	case op_type::PUSH:
-		return busm.is_idle();
-
-	case op_type::PREFETCH_IRD:
-	case op_type::PREFETCH_IRC:
-	case op_type::PREFETCH_ONE:
-		return pq.is_idle();
-
-	case op_type::WAIT:
-		return curr_wait_cycles == 0;
-
-	default: throw internal_error();
-	}
+	return !current_op.has_value();
 }
 
 void bus_scheduler::cycle()
 {
-	// return;
 	if(!current_op_is_over())
 	{
 		if(curr_wait_cycles > 0)
@@ -72,26 +48,7 @@ void bus_scheduler::cycle()
 	run_imm_operations();
 
 	start_operation(queue.front());
-	skip_post_cycle = true;
 	queue.pop();
-}
-
-void bus_scheduler::post_cycle()
-{
-	// return;
-	if(skip_post_cycle)
-	{
-		skip_post_cycle = false;
-		return;
-	}
-
-	if(!current_op_is_over())
-		return;
-
-	if(!queue.empty())
-	{
-		run_imm_operations();
-	}
 }
 
 void bus_scheduler::read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete)
@@ -110,9 +67,6 @@ void bus_scheduler::read_impl(std::uint32_t addr, size_type size, addr_space spa
 	}
 	else
 	{
-		// m68k bus does not support long read/write, so
-		// split to two word operations
-
 		read_operation read_msw { addr, size, space, nullptr }; // call back only when second word is read
 		read_operation read_lsw { addr + 2, size, space, on_complete};
 
@@ -313,8 +267,6 @@ void bus_scheduler::start_operation(operation& op)
 		{
 			current_op = { op_type::PREFETCH_IRC };
 			pq.init_fetch_irc([this]() { run_imm_operations(); });
-			// TODO: do prefetch irc
-			// busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { regs.IRC = busm.letched_word(); });
 			regs.PC += 2;
 		}
 		// Even if we're requested to not do a prefetch, we must read second word for a long operation
@@ -337,11 +289,12 @@ void bus_scheduler::start_operation(operation& op)
 
 	case op_type::WRITE:
 	{
+		// TODO: call back when write is finished?
 		write_operation write = std::get<write_operation>(op.op);
 		if(write.size == size_type::BYTE)
-			busm.init_write<std::uint8_t>(write.addr, write.data);
+			busm.init_write<std::uint8_t>(write.addr, write.data, [this]() { run_imm_operations(); });
 		else
-			busm.init_write<std::uint16_t>(write.addr, write.data);
+			busm.init_write<std::uint16_t>(write.addr, write.data, [this]() { run_imm_operations(); });
 
 		break;
 	}
@@ -353,9 +306,9 @@ void bus_scheduler::start_operation(operation& op)
 		regs.dec_addr(7, push.size);
 
 		if(push.size == size_type::BYTE)
-			busm.init_write<std::uint8_t>(regs.SP().LW + push.offset, push.data);
+			busm.init_write<std::uint8_t>(regs.SP().LW + push.offset, push.data, [this]() { run_imm_operations(); });
 		else
-			busm.init_write<std::uint16_t>(regs.SP().LW + push.offset, push.data);
+			busm.init_write<std::uint16_t>(regs.SP().LW + push.offset, push.data, [this]() { run_imm_operations(); });
 
 		break;
 	}
@@ -376,6 +329,8 @@ void bus_scheduler::start_operation(operation& op)
 	{
 		wait_operation wait = std::get<wait_operation>(op.op);
 		curr_wait_cycles = wait.cycles - 1; // took current cycle
+		if(curr_wait_cycles == 0)
+			run_imm_operations();
 		break;
 	}
 
@@ -385,6 +340,8 @@ void bus_scheduler::start_operation(operation& op)
 
 void bus_scheduler::run_imm_operations()
 {
+	current_op.reset();
+
 	while(!queue.empty())
 	{
 		auto type = queue.front().type;

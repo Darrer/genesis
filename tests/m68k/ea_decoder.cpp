@@ -38,8 +38,6 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::s
 	{
 		cpu.bus_scheduler().cycle();
 		cpu.bus_manager().cycle();
-
-		cpu.bus_scheduler().post_cycle();
 	}
 }
 
@@ -105,8 +103,6 @@ void check_timings(std::uint8_t ea, m68k::size_type size,
 	{
 		cpu.bus_scheduler().cycle();
 		cpu.bus_manager().cycle();
-
-		cpu.bus_scheduler().post_cycle();
 
 		++cycles;
 

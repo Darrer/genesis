@@ -50,8 +50,6 @@ void cpu::cycle()
 	scheduler.cycle();
 	busm.cycle();
 
-	scheduler.post_cycle();
-
 	if(exception_cycle)
 	{
 		excp_unit->post_cycle();

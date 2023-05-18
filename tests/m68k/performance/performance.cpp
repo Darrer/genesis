@@ -113,7 +113,6 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 		{
 			scheduler.cycle();
 			busm.cycle();
-			scheduler.post_cycle();
 			++cycles;
 		}
 	}
