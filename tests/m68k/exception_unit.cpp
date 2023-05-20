@@ -17,10 +17,6 @@ void rise_exception(exception_manager& exman, exception_type ex)
 {
 	switch (ex)
 	{
-	case exception_type::reset:
-		exman.rise_reset();
-		break;
-
 	case exception_type::address_error:
 	case exception_type::bus_error:
 		exman.rise_address_error({ 0, 0, false, false });
@@ -30,7 +26,9 @@ void rise_exception(exception_manager& exman, exception_type ex)
 		exman.rise_trace();
 		break;
 
-	default: throw genesis::not_implemented();
+	default:
+		exman.rise(ex);
+		break;
 	}
 }
 
@@ -67,4 +65,11 @@ TEST(M68K_EXCEPTION_UNIT, ADDRESS_ERROR)
 TEST(M68K_EXCEPTION_UNIT, TRACE)
 {
 	check_timings(exception_type::trace, 34);
+}
+
+TEST(M68K_EXCEPTION_UNIT, ILLIGAL)
+{
+	check_timings(exception_type::illegal_instruction, 34);
+	check_timings(exception_type::line_1010_emulator, 34);
+	check_timings(exception_type::line_1111_emulator, 34);
 }

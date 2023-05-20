@@ -96,8 +96,17 @@ private:
 		case exception_type::trace:
 			return trace();
 
+		case exception_type::illegal_instruction:
+			return illegal_instruction();
+
 		case exception_type::privilege_violations:
 			return privilege_violations();
+
+		case exception_type::line_1010_emulator:
+			return line_1010_emulator();
+
+		case exception_type::line_1111_emulator:
+			return line_1111_emulator();
 
 		/* group 2 */
 
@@ -123,8 +132,7 @@ private:
 	// 3. Bus error
 	bool exception_0_group_is_rised() const
 	{
-		auto exps = { exception_type::reset, exception_type::address_error, exception_type::bus_error };
-		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+		return exman.is_raised(exception_group::group_0);
 	}
 
 	// Checks if current executing instruction is over and any of the following exceptions are reised:
@@ -139,10 +147,7 @@ private:
 		if(!instruction_unit_is_idle())
 			return false;
 
-		auto exps = { exception_type::trace, exception_type::interrupt,
-			exception_type::illegal_instruction, exception_type::line_1010_emulator,
-			exception_type::line_1111_emulator, exception_type::privilege_violations };
-		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+		return exman.is_raised(exception_group::group_1);
 	}
 
 	// Checks if current executing instruction is over and any of the following exceptions are reised:
@@ -155,127 +160,67 @@ private:
 		if(!instruction_unit_is_idle())
 			return false;
 
-		auto exps = { exception_type::trap, exception_type::trapv,
-			exception_type::chk_instruction, exception_type::division_by_zero };
-		return std::any_of(exps.begin(), exps.end(), [this](auto ex) { return exman.is_raised(ex); } );
+		return exman.is_raised(exception_group::group_2);
 	}
 
 	void accept_exception()
 	{
-		if(accept_group_0())
+		if(accept_group(exception_group::group_0))
 			return;
 
 		/* In practice 2nd group has priority over 1st group */
-		if(accept_group_2())
+		if(accept_group(exception_group::group_2))
 			return;
 
-		if(accept_group_1())
+		if(accept_group(exception_group::group_1))
 			return;
 
 		throw internal_error(); // why we were called?
 	}
 
-	bool accept_group_0()
+	bool accept(exception_type ex)
 	{
-		if(exman.is_raised(exception_type::reset))
-		{
-			curr_ex = exception_type::reset;
-			exman.accept_reset();
-			return true;
-		}
+		if(!exman.is_raised(ex))
+			return false;
 
-		if(exman.is_raised(exception_type::address_error))
+		curr_ex = ex;
+		switch (curr_ex)
 		{
-			curr_ex = exception_type::address_error;
+		case exception_type::address_error:
 			addr_error = exman.accept_address_error();
-			return true;
-		}
+			break;
 
-		if(exman.is_raised(exception_type::bus_error))
-		{
-			curr_ex = exception_type::bus_error;
+		case exception_type::bus_error:
 			addr_error = exman.accept_bus_error();
-			return true;
-		}
+			break;
 
-		return false;
-	}
-
-	bool accept_group_1()
-	{
-		if(exman.is_raised(exception_type::trace))
-		{
-			curr_ex = exception_type::trace;
-			exman.accept_trace();
-			return true;
-		}
-
-		if(exman.is_raised(exception_type::interrupt))
-		{
-			throw not_implemented();
-		}
-
-		if(exman.is_raised(exception_type::illegal_instruction))
-		{
-			throw not_implemented();
-		}
-
-		if(exman.is_raised(exception_type::line_1010_emulator))
-		{
-			throw not_implemented();
-		}
-
-		if(exman.is_raised(exception_type::line_1111_emulator))
-		{
-			throw not_implemented();
-		}
-
-		if(exman.is_raised(exception_type::privilege_violations))
-		{
-			curr_ex = exception_type::privilege_violations;
-			exman.accept_privilege_violations();
-			return true;
-		}
-
-		return false;
-	}
-
-	bool accept_group_2()
-	{
-		if(exman.is_raised(exception_type::trap))
-		{
-			curr_ex = exception_type::trap;
+		case exception_type::trap:
 			trap_vector = exman.accept_trap();
-			return true;
+			break;
+
+		default:
+			exman.accept(curr_ex);
+			break;
 		}
 
-		if(exman.is_raised(exception_type::trapv))
+		return true;
+	}
+
+	// accept 1 exception from group according to its priority
+	bool accept_group(exception_group group)
+	{
+		auto exps = group_exceptions(group);
+		for(auto ex : exps)
 		{
-			curr_ex = exception_type::trapv;
-			exman.accept_trapv();
-			return true;
+			if(accept(ex))
+				return true;
 		}
-
-		if(exman.is_raised(exception_type::chk_instruction))
-		{
-			curr_ex = exception_type::chk_instruction;
-			exman.accept_chk_instruction();
-			return true;
-		}
-
-		if(exman.is_raised(exception_type::division_by_zero))
-		{
-			curr_ex = exception_type::division_by_zero;
-			exman.accept_division_by_zero();
-			return true;
-		}
-
 		return false;
 	}
 
 	/*
 		Note: Almost in all cases we start processing exception within 4 IDLE cycles,
-		howerver, as we rise exceptoin on N cycle, but start processing it on N+1 cycle (e.g. on the next cycle)
+		howerver, as we rise exceptoin on N cycle, but start processing it on N+1 cycle (i.e. on the next cycle)
 		we wait for 3 cycles to compensate for this delay.
 	*/
 
@@ -396,7 +341,7 @@ private:
 	exec_state trace()
 	{
 		scheduler.wait(4);
-		schedule_trap(regs.PC, 9);
+		schedule_trap(regs.PC, vector_nummber(exception_type::trace));
 		return exec_state::done;
 	}
 
@@ -409,31 +354,49 @@ private:
 
 	exec_state trapv()
 	{
-		schedule_trap(regs.PC, 7);
+		schedule_trap(regs.PC, vector_nummber(exception_type::trapv));
 		return exec_state::done;
 	}
 
 	exec_state division_by_zero()
 	{
 		scheduler.wait(7);
-		schedule_trap(regs.SPC, 5);
+		schedule_trap(regs.SPC, vector_nummber(exception_type::division_by_zero));
 		return exec_state::done;
 	}
 
 	exec_state privilege_violations()
 	{
-		throw not_implemented("implemented but not tested"); // TODO
-
 		scheduler.wait(3);
-		schedule_trap(regs.SPC, 8);
+		schedule_trap(regs.SPC, vector_nummber(exception_type::privilege_violations));
 		return exec_state::done;
 	}
 
 	exec_state chk_instruction()
 	{
 		scheduler.wait(3);
+		schedule_trap(regs.PC, vector_nummber(exception_type::chk_instruction));
+		return exec_state::done;
+	}
 
-		schedule_trap(regs.PC, 6);
+	exec_state illegal_instruction()
+	{
+		scheduler.wait(4);
+		schedule_trap(regs.PC, vector_nummber(exception_type::illegal_instruction));
+		return exec_state::done;
+	}
+
+	exec_state line_1010_emulator()
+	{
+		scheduler.wait(4);
+		schedule_trap(regs.PC, vector_nummber(exception_type::line_1010_emulator));
+		return exec_state::done;
+	}
+
+	exec_state line_1111_emulator()
+	{
+		scheduler.wait(4);
+		schedule_trap(regs.PC, vector_nummber(exception_type::line_1111_emulator));
 		return exec_state::done;
 	}
 
@@ -469,17 +432,37 @@ private:
 		schedule_prefetch_two_with_gap();
 	}
 
-	static std::uint32_t vector_address(exception_type ex)
+	static std::uint32_t vector_nummber(exception_type ex)
 	{
 		switch (ex)
 		{
 		case exception_type::bus_error:
-			return 0x08;
+			return 2;
 		case exception_type::address_error:
-			return 0x00C;
-
+			return 3;
+		case exception_type::illegal_instruction:
+			return 4;
+		case exception_type::division_by_zero:
+			return 5;
+		case exception_type::chk_instruction:
+			return 6;
+		case exception_type::trapv:
+			return 7;
+		case exception_type::privilege_violations:
+			return 8;
+		case exception_type::trace:
+			return 9;
+		case exception_type::line_1010_emulator:
+			return 10;
+		case exception_type::line_1111_emulator:
+			return 11;
 		default: throw internal_error();
 		}
+	}
+
+	static std::uint32_t vector_address(exception_type ex)
+	{
+		return vector_nummber(ex) * 4;
 	}
 
 	void correct_pc()

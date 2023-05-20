@@ -1,8 +1,9 @@
 #ifndef __M68K_EXCEPTION_MANAGER_H__
 #define __M68K_EXCEPTION_MANAGER_H__
 
-#include <optional>
-#include <bitset>
+#include <array>
+#include <type_traits>
+#include <span>
 #include "exception.hpp"
 
 namespace genesis::m68k
@@ -34,6 +35,46 @@ enum class exception_type
 	count
 };
 
+
+enum class exception_group
+{
+	group_0,
+	group_1,
+	group_2,
+};
+
+namespace groups
+{
+static constexpr const exception_type ex_group_0[] = { exception_type::reset,
+	exception_type::address_error, exception_type::bus_error };
+
+static constexpr const exception_type ex_group_1[] = { exception_type::trace, exception_type::interrupt,
+	exception_type::illegal_instruction, exception_type::privilege_violations,
+	exception_type::line_1010_emulator, exception_type::line_1111_emulator, };
+
+
+static constexpr const exception_type ex_group_2[] = { exception_type::trap, exception_type::trapv,
+	exception_type::chk_instruction, exception_type::division_by_zero };
+};
+
+static constexpr std::span<const exception_type> group_exceptions(exception_group group)
+{
+	switch (group)
+	{
+	case exception_group::group_0:
+		return groups::ex_group_0;
+
+	case exception_group::group_1:
+		return groups::ex_group_1;
+
+	case exception_group::group_2:
+		return groups::ex_group_2;
+	
+	default: return { };
+	}
+}
+
+
 struct address_error
 {
 	std::uint32_t address;
@@ -46,10 +87,28 @@ using bus_error = address_error;
 
 class exception_manager
 {
+private:
+	using index_type = std::underlying_type_t<exception_type>;
+
 public:
+	exception_manager()
+	{
+		exps.fill(false);
+	}
+
 	bool is_raised(exception_type ex) const
 	{
-		return exps.test(static_cast<std::uint8_t>(ex));
+		return exps[index(ex)];
+	}
+
+	bool is_raised(exception_group group) const
+	{
+		for(auto ex : group_exceptions(group))
+		{
+			if(is_raised(ex))
+				return true;
+		}
+		return false;
 	}
 
 	bool is_raised_any() const
@@ -57,9 +116,32 @@ public:
 		return ex_counter != 0;
 	}
 
+	void accept(exception_type ex)
+	{
+		if(!is_raised(ex))
+			throw internal_error();
+
+		exps[index(ex)] = false;
+		--ex_counter;
+	}
+
 	void accept_all()
 	{
-		exps.reset();
+		exps.fill(false);
+	}
+
+	void rise(exception_type ex)
+	{
+		// some exceptions required data to be provided, so we cannot allow use generic rise method for them
+		switch (ex)
+		{
+		case exception_type::address_error:
+		case exception_type::bus_error:
+		case exception_type::trap:
+			throw internal_error("Specialized rise method should be used for this exception");
+		}
+
+		rise_unsafe(ex);
 	}
 
 	// TOOD: we've got too many methods
@@ -68,167 +150,113 @@ public:
 
 	void rise_reset()
 	{
-		rise(exception_type::reset);
-	}
-
-	void accept_reset()
-	{
-		accept(exception_type::reset);
+		rise_unsafe(exception_type::reset);
 	}
 
 	void rise_address_error(address_error _addr_error)
 	{
-		rise(exception_type::address_error);
+		rise_unsafe(exception_type::address_error);
 		addr_error = _addr_error;
 	}
 
 	address_error accept_address_error()
 	{
 		accept(exception_type::address_error);
-		return addr_error.value();
+		return addr_error;
 	}
 
 	void rise_bus_error(bus_error _addr_error)
 	{
-		rise(exception_type::bus_error);
+		rise_unsafe(exception_type::bus_error);
 		addr_error = _addr_error;
 	}
 
 	bus_error accept_bus_error()
 	{
 		accept(exception_type::bus_error);
-		return addr_error.value();
+		return addr_error;
 	}
 
 	/* Group 1 */
 
 	void rise_trace()
 	{
-		rise(exception_type::trace);
-	}
-
-	void accept_trace()
-	{
-		accept(exception_type::trace);
+		rise_unsafe(exception_type::trace);
 	}
 
 	void rise_interrupt()
 	{
-		rise(exception_type::interrupt);
-	}
-
-	void accept_interrupt()
-	{
-		accept(exception_type::interrupt);
+		rise_unsafe(exception_type::interrupt);
 	}
 
 	void rise_illegal_instruction()
 	{
-		rise(exception_type::illegal_instruction);
-	}
-
-	void accept_illegal_instruction()
-	{
-		accept(exception_type::illegal_instruction);
+		rise_unsafe(exception_type::illegal_instruction);
 	}
 
 	void rise_privilege_violations()
 	{
-		rise(exception_type::privilege_violations);
-	}
-
-	void accept_privilege_violations()
-	{
-		accept(exception_type::privilege_violations);
+		rise_unsafe(exception_type::privilege_violations);
 	}
 
 	void rise_line_1010_emulator()
 	{
-		rise(exception_type::line_1010_emulator);
-	}
-
-	void accept_line_1010_emulator()
-	{
-		accept(exception_type::line_1010_emulator);
+		rise_unsafe(exception_type::line_1010_emulator);
 	}
 
 	void rise_line_1111_emulator()
 	{
-		rise(exception_type::line_1111_emulator);
-	}
-
-	void accept_line_1111_emulator()
-	{
-		accept(exception_type::line_1111_emulator);
+		rise_unsafe(exception_type::line_1111_emulator);
 	}
 
 	/* Group 2 */
 
 	void rise_trap(std::uint8_t vector)
 	{
-		rise(exception_type::trap);
+		rise_unsafe(exception_type::trap);
 		trap_vector = vector;
 	}
 
 	std::uint8_t accept_trap()
 	{
 		accept(exception_type::trap);
-		return trap_vector.value();
+		return trap_vector;
 	}
 
 	void rise_trapv()
 	{
-		rise(exception_type::trapv);
-	}
-
-	void accept_trapv()
-	{
-		accept(exception_type::trapv);
+		rise_unsafe(exception_type::trapv);
 	}
 
 	void rise_chk_instruction()
 	{
-		rise(exception_type::chk_instruction);
-	}
-
-	void accept_chk_instruction()
-	{
-		accept(exception_type::chk_instruction);
+		rise_unsafe(exception_type::chk_instruction);
 	}
 
 	void rise_division_by_zero()
 	{
-		rise(exception_type::division_by_zero);
-	}
-
-	void accept_division_by_zero()
-	{
-		accept(exception_type::division_by_zero);
+		rise_unsafe(exception_type::division_by_zero);
 	}
 
 private:
-	void rise(exception_type ex)
+	void rise_unsafe(exception_type ex)
 	{
 		if(is_raised(ex))
 			throw not_implemented("multiple exceptions of the same type are not allowed yet");
 
-		exps.set(static_cast<std::uint8_t>(ex), true);
+		exps[index(ex)] = true;
 		++ex_counter;
 	}
 
-	void accept(exception_type ex)
+	static constexpr index_type index(exception_type exp)
 	{
-		if(!is_raised(ex))
-			throw internal_error();
-
-		exps.set(static_cast<std::uint8_t>(ex), false);
-		--ex_counter;
+		return static_cast<index_type>(exp);
 	}
 
 private:
-	std::bitset<static_cast<std::uint8_t>(exception_type::count)> exps;
-	std::optional<address_error> addr_error;
-	std::optional<std::uint8_t> trap_vector;
+	std::array<bool, static_cast<index_type>(exception_type::count)> exps;
+	address_error addr_error;
+	std::uint8_t trap_vector;
 	unsigned int ex_counter = 0;
 };
 
