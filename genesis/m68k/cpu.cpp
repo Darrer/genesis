@@ -25,16 +25,23 @@ cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory), busm(_bus, regs, *
 		abort_execution, instruction_unit_is_idle);
 	
 	tracer = std::make_unique<impl::trace_riser>(regs, exman, instruction_unit_is_idle);
+
+	reset();
 }
 
 cpu::~cpu()
 {
 }
 
+void cpu::reset()
+{
+	exman.rise(exception_type::reset);
+}
+
 void cpu::cycle()
 {
 	// TODO: move to instruction unit
-	tracer->cycle();
+	// tracer->cycle();
 
 	// only instruction or exception cycle
 	bool exception_cycle = !excp_unit->is_idle();
@@ -59,9 +66,7 @@ void cpu::cycle()
 		inst_unit->post_cycle();
 	}
 
-	// excp_unit->post_cycle();
-	// inst_unit->post_cycle();
-	tracer->post_cycle();
+	// tracer->post_cycle();
 }
 
 bool cpu::is_idle() const

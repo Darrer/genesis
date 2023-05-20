@@ -12,7 +12,11 @@ const auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
 class test_cpu : public genesis::m68k::cpu
 {
 public:
-	test_cpu() : cpu(std::make_shared<m68k::memory>()) { }
+	test_cpu() : cpu(std::make_shared<m68k::memory>())
+	{
+		if(exman.is_raised(m68k::exception_type::reset))
+			exman.accept(m68k::exception_type::reset);
+	}
 
 	m68k::memory& memory() { return *mem; }
 	m68k::bus_manager& bus_manager() { return busm; }

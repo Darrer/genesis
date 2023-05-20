@@ -25,6 +25,8 @@ public:
 	cpu(std::shared_ptr<m68k::memory> memory);
 	~cpu();
 
+	void reset();
+
 	cpu_registers& registers() { return regs; }
 	cpu_bus& bus() { return _bus; }
 
