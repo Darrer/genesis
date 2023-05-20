@@ -18,51 +18,49 @@ public:
 	timings() = delete;
 
 	/* ADD */
-	static std::uint8_t add(std::uint8_t opmode, const operand& op)
+	static constexpr std::uint8_t add(addressing_mode mode, std::uint8_t opmode)
 	{
 		if(opmode != 0b010 && opmode != 0b110)
 			return 0;
 
-		if(opmode == 0b110 && op.is_pointer())
+		bool indir_mode = indirect_mode(mode);
+		if(opmode == 0b110 && indir_mode)
 			return 0;
 
-		if(op.is_addr_reg() || op.is_data_reg() || op.is_imm())
+		if(!indir_mode)
 			return 4;
 
 		return 2;
 	}
 
-	static std::uint8_t addi(size_type size, const operand& op)
+	static constexpr std::uint8_t addi(addressing_mode mode, size_type size)
 	{
-		if(size != size_type::LONG || op.is_pointer())
+		if(size != size_type::LONG || indirect_mode(mode))
 			return 0;
-		
 		return 4;
 	}
 
-	static std::uint8_t addq(size_type size, const operand& op)
+	static constexpr std::uint8_t addq(addressing_mode mode, size_type size)
 	{
-		if(size == size_type::BYTE || op.is_pointer())
+		if(size == size_type::BYTE || indirect_mode(mode))
 			return 0;
 
 		if(size == size_type::WORD)
 		{
-			if(op.is_addr_reg())
-				return 4;
-			return 0;
+			return mode == addressing_mode::addr_reg ? 4 : 0;
 		}
 
 		// TODO: it looks like writing to address register also takes 4 extra cycles (not 2 as specified here)
 		// however, there are 2 extra cycles in the test, so keep it 2 for now.
-		if(op.is_data_reg() || op.is_imm())
+		if(mode == addressing_mode::data_reg || mode == addressing_mode::imm)
 			return 4;
-
 		return 2;
 	}
 	
-	static std::uint8_t adda(std::uint8_t opmode, const operand& op)
+	static constexpr std::uint8_t adda(addressing_mode mode, std::uint8_t opmode)
 	{
-		if(opmode == 0b011 || op.is_addr_reg() || op.is_data_reg() || op.is_imm())
+		if(opmode == 0b011 || mode == addressing_mode::data_reg ||
+			mode == addressing_mode::addr_reg || mode == addressing_mode::imm)
 			return 4;
 
 		return 2;
@@ -75,21 +73,20 @@ public:
 	static constexpr auto suba = adda;
 
 	/* CMP */
-	static std::uint8_t cmp(std::uint8_t opmode, const operand&)
+	static constexpr std::uint8_t cmp(std::uint8_t opmode)
 	{
-		if(opmode == 0b010)
+		// TODO: provide size, not opmode?
+		return opmode == 0b010 ? 2 : 0;
+	}
+
+	static constexpr std::uint8_t cmpi(addressing_mode mode, size_type size)
+	{
+		if(size == size_type::LONG && mode == addressing_mode::data_reg)
 			return 2;
 		return 0;
 	}
 
-	static std::uint8_t cmpi(size_type size, const operand& op)
-	{
-		if(size == size_type::LONG && op.is_data_reg())
-			return 2;
-		return 0;
-	}
-
-	static std::uint8_t cmpa(std::uint8_t, const operand&)
+	static constexpr std::uint8_t cmpa()
 	{
 		return 2;
 	}
@@ -114,17 +111,15 @@ public:
 	static constexpr auto not_op = neg;
 
 	/* MOVE */
-	static std::uint8_t move_from_sr(const operand& op)
+	static constexpr std::uint8_t move_from_sr(addressing_mode mode)
 	{
-		if(op.is_data_reg())
-			return 2;
-		return 0;
+		return mode == addressing_mode::data_reg ? 2 : 0;
 	}
 
 	/* ASL/ASR/ROL/ROR/LSL/LSR */
-	static std::uint16_t reg_shift(std::uint32_t shift_count, size_type size)
+	static constexpr std::uint8_t reg_shift(std::uint32_t shift_count, size_type size)
 	{
-		std::uint16_t cycles = 2 * (shift_count % 64) + 2;
+		std::uint8_t cycles = 2 * (shift_count % 64) + 2;
 		if(size == size_type::LONG)
 			cycles += 2;
 		return cycles;
@@ -134,7 +129,7 @@ public:
 	static constexpr auto clr = cmpi;
 
 	/* MULU/MULS */
-	static std::uint8_t mulu(std::uint16_t src)
+	static constexpr std::uint8_t mulu(std::uint16_t src)
 	{
 		std::uint8_t ones = std::popcount(src);
 		return (17 + ones) * 2;
@@ -224,45 +219,45 @@ public:
 		return cycles * 2;
 	}
 
-	static std::uint8_t exg()
+	static constexpr std::uint8_t exg()
 	{
 		return 2;
 	}
 
-	static std::uint8_t btst(const operand& op)
+	static constexpr std::uint8_t btst(addressing_mode mode)
 	{
-		if(op.is_data_reg())
+		if(mode == addressing_mode::data_reg) 
 			return 2;
 
 		// TODO: external tests expect to get this timing for imm operand
 		// howerver, it's not documented
-		if(op.is_imm())
+		if(mode == addressing_mode::imm)
 			return 2;
 
 		return 0;
 	}
 
-	static std::uint8_t bset(const operand& op, std::uint8_t bit_number)
+	static constexpr std::uint8_t bset(addressing_mode mode, std::uint8_t bit_number)
 	{
-		if(op.is_data_reg())
+		if(mode == addressing_mode::data_reg) 
 			return bit_number < 16 ? 2 : 4;
 
 		// TODO: external tests expect to get this timing for imm operand
 		// howerver, it's not documented
-		if(op.is_imm())
+		if(mode == addressing_mode::imm)
 			return bit_number < 16 ? 2 : 4;
 
 		return 0;
 	}
 
-	static std::uint8_t bclr(const operand& op, std::uint8_t bit_number)
+	static constexpr std::uint8_t bclr(addressing_mode mode, std::uint8_t bit_number)
 	{
-		if(op.is_data_reg())
+		if(mode == addressing_mode::data_reg) 
 			return bit_number < 16 ? 4 : 6;
 
 		// TODO: external tests expect to get this timing for imm operand
 		// howerver, it's not documented
-		if(op.is_imm())
+		if(mode == addressing_mode::imm)
 			return bit_number < 16 ? 4 : 6;
 
 		return 0;
@@ -270,7 +265,7 @@ public:
 
 	static constexpr auto bchg = bset;
 
-	static std::uint8_t chk(std::int16_t src, std::int16_t reg)
+	static constexpr std::uint8_t chk(std::int16_t src, std::int16_t reg)
 	{
 		if(reg > src)
 			return 0 + 1; // TODO
@@ -279,116 +274,112 @@ public:
 		return 6;
 	}
 
-	static std::uint8_t bcc(bool test_result)
+	static constexpr std::uint8_t bcc(bool test_result)
 	{
 		return test_result ? 2 : 4;
 	}
 
-	static std::uint8_t dbcc(bool test_result)
+	static constexpr std::uint8_t dbcc(bool test_result)
 	{
 		return test_result ? 4 : 2;
 	}
 
-	static std::uint8_t scc(bool test_result, operand& op)
+	static constexpr std::uint8_t scc(bool test_result, addressing_mode mode)
 	{
-		if(test_result && op.is_data_reg())
+		if(test_result && mode == addressing_mode::data_reg)
 			return 2;
 		return 0;
 	}
 
-	static std::uint8_t bcd_reg()
+	static constexpr std::uint8_t bcd_reg()
 	{
 		return 2;
 	}
 
-	static std::uint8_t bsr()
+	static constexpr std::uint8_t bsr()
 	{
 		return 2;
 	}
 
-	static std::uint8_t nbcd(const operand& op)
+	static constexpr std::uint8_t nbcd(addressing_mode mode)
 	{
-		if(op.is_data_reg())
-			return 2;
-		return 0;
+		return mode == addressing_mode::data_reg ? 2 : 0;
 	}
 
-	static std::uint8_t reset()
+	static constexpr std::uint8_t reset()
 	{
 		return 128;
 	}
 
-	static std::uint8_t lea(const operand& op)
+	static constexpr std::uint8_t lea(addressing_mode mode)
 	{
-		auto mode = op.mode();
 		if(mode == addressing_mode::index_indir || mode == addressing_mode::index_pc)
 			return 2;
-
 		return 0;
 	}
 
 	static constexpr auto pea = lea;
 
 	/* helpers */
-	static std::uint8_t alu_mode(inst_type inst, std::uint8_t opmode, const operand& op)
+	static std::uint8_t alu_mode(inst_type inst, addressing_mode mode, std::uint8_t opmode)
 	{
 		switch (inst)
 		{
 		case inst_type::ADD:
-			return add(opmode, op);
+			return add(mode, opmode);
 		case inst_type::ADDA:
-			return adda(opmode, op);
+			return adda(mode, opmode);
 		case inst_type::AND:
-			return and_op(opmode, op);
+			return and_op(mode, opmode);
 		case inst_type::SUB:
-			return sub(opmode, op);
+			return sub(mode, opmode);
 		case inst_type::SUBA:
-			return suba(opmode, op);
+			return suba(mode, opmode);
 		case inst_type::OR:
-			return or_op(opmode, op);
+			return or_op(mode, opmode);
 		case inst_type::EOR:
-			return eor(opmode, op);
+			return eor(mode, opmode);
 		case inst_type::CMP:
-			return cmp(opmode, op);
+			return cmp(opmode);
 		case inst_type::CMPA:
-			return cmpa(opmode, op);
+			return cmpa();
 
 		default: throw internal_error();
 		}
 	}
 
-	static std::uint8_t alu_size(inst_type inst, size_type size, const operand& op)
+	static std::uint8_t alu_size(inst_type inst, addressing_mode mode, size_type size)
 	{
 		switch (inst)
 		{
 		case inst_type::ADDI:
-			return addi(size, op);
+			return addi(mode, size);
 		case inst_type::ADDQ:
-			return addq(size, op);
+			return addq(mode, size);
 		case inst_type::SUBI:
-			return subi(size, op);
+			return subi(mode, size);
 		case inst_type::SUBQ:
-			return subq(size, op);
+			return subq(mode, size);
 		case inst_type::ANDI:
-			return andi(size, op);
+			return andi(mode, size);
 		case inst_type::ORI:
-			return ori(size, op);
+			return ori(mode, size);
 		case inst_type::EORI:
-			return eori(size, op);
+			return eori(mode, size);
 		case inst_type::CMPI:
-			return cmpi(size, op);
+			return cmpi(mode, size);
 		case inst_type::NEG:
-			return neg(size, op);
+			return neg(mode, size);
 		case inst_type::NEGX:
-			return negx(size, op);
+			return negx(mode, size);
 		case inst_type::NOT:
-			return not_op(size, op);
+			return not_op(mode, size);
 		case inst_type::CMPM:
 			return 0;
 		case inst_type::CLR:
-			return clr(size, op);
+			return clr(mode, size);
 		case inst_type::NBCD:
-			return nbcd(op);
+			return nbcd(mode);
 
 		default: throw internal_error();
 		}
@@ -422,24 +413,33 @@ public:
 		}
 	}
 
-	static std::uint8_t bit(inst_type inst, operand dest, std::uint8_t bit_number)
+	static std::uint8_t bit(inst_type inst, addressing_mode mode, std::uint8_t bit_number)
 	{
 		switch (inst)
 		{
 		case inst_type::BSETimm:
 		case inst_type::BSETreg:
-			return bset(dest, bit_number);
+			return bset(mode, bit_number);
 
 		case inst_type::BCLRimm:
 		case inst_type::BCLRreg:
-			return bclr(dest, bit_number);
+			return bclr(mode, bit_number);
 
 		case inst_type::BCHGreg:
 		case inst_type::BCHGimm:
-			return bchg(dest, bit_number);
+			return bchg(mode, bit_number);
 
 		default: throw internal_error();
 		}
+	}
+
+private:
+	static constexpr bool indirect_mode(addressing_mode mode)
+	{
+		if(mode == addressing_mode::data_reg || mode == addressing_mode::addr_reg ||
+			mode == addressing_mode::imm)
+			return false;
+		return true;
 	}
 };
 

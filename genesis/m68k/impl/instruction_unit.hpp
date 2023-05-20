@@ -334,7 +334,7 @@ private:
 				schedule_prefetch_and_write(op, res, size);
 			}
 
-			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
+			scheduler.wait(timings::alu_mode(curr_inst, op.mode(), opmode));
 			return exec_state::done;
 		}
 
@@ -360,7 +360,7 @@ private:
 			reg.LW = operations::alu(curr_inst, op, reg.LW, size, regs.flags);
 
 			scheduler.prefetch_one();
-			scheduler.wait(timings::alu_mode(curr_inst, opmode, op));
+			scheduler.wait(timings::alu_mode(curr_inst, op.mode(), opmode));
 			return exec_state::done;
 		}
 
@@ -397,7 +397,7 @@ private:
 				schedule_prefetch_and_write(op, res, size);
 			}
 
-			scheduler.wait(timings::alu_size(curr_inst, size, op));
+			scheduler.wait(timings::alu_size(curr_inst, op.mode(), size));
 			return exec_state::done;
 		}
 
@@ -425,7 +425,7 @@ private:
 
 			schedule_prefetch_and_write(op, res, size);
 
-			scheduler.wait(timings::alu_size(curr_inst, size, op));
+			scheduler.wait(timings::alu_size(curr_inst, op.mode(), size));
 			return exec_state::done;
 		}
 
@@ -540,7 +540,7 @@ private:
 			res = operations::alu(curr_inst, op, size, regs.flags);
 
 			schedule_prefetch_and_write(op, res, size);
-			scheduler.wait(timings::alu_size(curr_inst, size, op));
+			scheduler.wait(timings::alu_size(curr_inst, op.mode(), size));
 
 			return exec_state::done;
 		}
@@ -933,7 +933,7 @@ private:
 			res = regs.SR; // TODO: do I need to set unimplemented bits to zero?
 			auto op = dec.result();
 			schedule_prefetch_and_write(op, res, size_type::WORD);
-			scheduler.wait(timings::move_from_sr(op));
+			scheduler.wait(timings::move_from_sr(op.mode()));
 			return exec_state::done;
 		}
 
@@ -1255,7 +1255,7 @@ private:
 			operations::btst(reg, dest, regs.flags);
 
 			scheduler.prefetch_one();
-			scheduler.wait(timings::btst(dest));
+			scheduler.wait(timings::btst(dest.mode()));
 
 			return exec_state::done;
 		}
@@ -1282,7 +1282,7 @@ private:
 
 			operations::btst(imm, dest, regs.flags);
 			scheduler.prefetch_one();
-			scheduler.wait(timings::btst(dest));
+			scheduler.wait(timings::btst(dest.mode()));
 
 			return exec_state::done;
 		}
@@ -1309,7 +1309,7 @@ private:
 			res = operations::bit(curr_inst, reg, dest, regs.flags);
 
 			schedule_prefetch_and_write(dest, res, size);
-			scheduler.wait(timings::bit(curr_inst, dest, bit_number));
+			scheduler.wait(timings::bit(curr_inst, dest.mode(), bit_number));
 
 			return exec_state::done;
 		}
@@ -1338,7 +1338,7 @@ private:
 
 			res = operations::bit(curr_inst, imm, dest, regs.flags);
 			schedule_prefetch_and_write(dest, res, size);
-			scheduler.wait(timings::bit(curr_inst, dest, bit_number));
+			scheduler.wait(timings::bit(curr_inst, dest.mode(), bit_number));
 
 			return exec_state::done;
 		}
@@ -1529,7 +1529,7 @@ private:
 			auto& reg = regs.A((opcode >> 9) & 0x7);
 
 			auto op = dec.result();
-			scheduler.wait(timings::lea(op));
+			scheduler.wait(timings::lea(op.mode()));
 
 			reg.LW = op.pointer().address;
 			scheduler.prefetch_one();
@@ -1552,7 +1552,7 @@ private:
 		case 1:
 		{
 			auto op = dec.result();
-			scheduler.wait(timings::pea(op));
+			scheduler.wait(timings::pea(op.mode()));
 
 			addr = op.pointer().address;
 
@@ -1709,7 +1709,7 @@ private:
 
 			auto op = dec.result();
 			schedule_prefetch_and_write(op, res, size_type::BYTE);
-			scheduler.wait(timings::scc(cond, op));
+			scheduler.wait(timings::scc(cond, op.mode()));
 
 			return exec_state::done;
 		}
