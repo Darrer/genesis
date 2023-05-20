@@ -1,4 +1,4 @@
-/* #include <gtest/gtest.h>
+#include <gtest/gtest.h>
 
 #include "test_cpu.hpp"
 
@@ -7,12 +7,13 @@ using namespace genesis;
 
 std::uint32_t wait_idle(test::test_cpu& cpu)
 {
-	m68k::prefetch_queue& pq = cpu.prefetch_queue();
+	m68k::bus_scheduler& scheduler = cpu.bus_scheduler();
 	m68k::bus_manager& busm = cpu.bus_manager();
 
 	std::uint32_t cycles = 0;
-	while (!pq.is_idle() || !busm.is_idle())
+	while (!scheduler.is_idle() || !busm.is_idle())
 	{
+		scheduler.cycle();
 		busm.cycle();
 		++cycles;
 	}
@@ -49,9 +50,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRD)
 	auto& regs = cpu.registers();
 	regs.IR = regs.IRD = 0;
 
-	auto& pq = cpu.prefetch_queue();
-
-	pq.init_fetch_ird();
+	cpu.bus_scheduler().prefetch_ird();
 	auto actual_fetch_cycles = wait_idle(cpu);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
@@ -74,9 +73,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 	auto& regs = cpu.registers();
 	regs.IRC = 0;
 
-	auto& pq = cpu.prefetch_queue();
-
-	pq.init_fetch_irc();
+	cpu.bus_scheduler().prefetch_irc();
 	auto actual_fetch_cycles = wait_idle(cpu);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
@@ -101,9 +98,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 	auto& regs = cpu.registers();
 	regs.IRC = old_irc;
 
-	auto& pq = cpu.prefetch_queue();
-
-	pq.init_fetch_one();
+	cpu.bus_scheduler().prefetch_one();
 	auto actual_fetch_cycles = wait_idle(cpu);
 
 	ASSERT_EQ(expected_fetch_cycles, actual_fetch_cycles);
@@ -116,7 +111,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 {
 	test::test_cpu cpu;
-	auto& pq = cpu.prefetch_queue();
+	m68k::prefetch_queue pq(cpu.bus_manager(), cpu.registers());
 
 	pq.init_fetch_one();
 
@@ -124,4 +119,3 @@ TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 	ASSERT_THROW(pq.init_fetch_irc(), std::runtime_error);
 	ASSERT_THROW(pq.init_fetch_one(), std::runtime_error);
 }
- */
