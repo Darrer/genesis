@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include <iostream>
-
 #include "cpu_flags.hpp"
 #include "exception.hpp"
 
@@ -30,7 +28,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t addq(T1 src, operand dest, size_type size, status_register& sr)
+	static std::uint32_t addq(T1 src, operand& dest, size_type size, status_register& sr)
 	{
 		// do not update flags if dest is addr reg
 		if(dest.is_addr_reg())
@@ -59,7 +57,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t subq(T1 src, operand dest, size_type size, status_register& sr)
+	static std::uint32_t subq(T1 src, operand& dest, size_type size, status_register& sr)
 	{
 		// do not update flags if dest is addr reg
 		if(dest.is_addr_reg())
@@ -395,8 +393,7 @@ public:
 		set_nz_flags(value(src, size), size, sr);
 	}
 
-	template<class T1>
-	static std::uint32_t clr(T1 /* src */, size_type, status_register& sr)
+	static std::uint32_t clr(status_register& sr)
 	{
 		sr.N = sr.V = sr.C = 0;
 		sr.Z = 1;
@@ -540,7 +537,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint8_t bit_number(T1 src, operand dest)
+	static std::uint8_t bit_number(T1 src, operand& dest)
 	{
 		if(dest.is_data_reg())
 			return value(src, size_type::LONG) % 32;
@@ -548,7 +545,7 @@ public:
 	}
 
 	template<class T1>
-	static void btst(T1 src, operand dest, status_register& sr)
+	static void btst(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
 		std::uint32_t dest_val = bit_value(dest);
@@ -558,7 +555,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t bset(T1 src, operand dest, status_register& sr)
+	static std::uint32_t bset(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
 		std::uint32_t dest_val = bit_value(dest);
@@ -571,7 +568,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t bclr(T1 src, operand dest, status_register& sr)
+	static std::uint32_t bclr(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
 		std::uint32_t dest_val = bit_value(dest);
@@ -584,7 +581,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t bchg(T1 src, operand dest, status_register& sr)
+	static std::uint32_t bchg(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
 		std::uint32_t dest_val = bit_value(dest);
@@ -592,12 +589,7 @@ public:
 		bool bit_is_set = (dest_val >> bit_num) & 1;
 		sr.Z = bit_is_set ? 0 : 1;
 
-		std::uint32_t res;
-		if(bit_is_set)
-			res = dest_val & ~(1 << bit_num);
-		else
-			res = dest_val | (1 << bit_num);
-		return res;
+		return dest_val ^ (1 << bit_num);
 	}
 
 	template<class T1, class T2>
@@ -620,7 +612,7 @@ public:
 		return lz || mu;
 	}
 
-	static bool cond_test(std::uint8_t cc, const status_register& sr)
+	static bool cond_test(std::uint8_t cc, status_register sr)
 	{
 		cc = cc & 0b1111;
 		switch (cc)
@@ -892,7 +884,7 @@ public:
 		case inst_type::MOVE:
 			return move(a, size, sr);
 		case inst_type::CLR:
-			return clr(a, (size_type)size, sr);
+			return clr(sr);
 		case inst_type::NBCD:
 			return nbcd(a, sr);
 
@@ -901,7 +893,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t aluq(inst_type inst, T1 src, operand dest, size_type size, status_register& sr)
+	static std::uint32_t aluq(inst_type inst, T1 src, operand& dest, size_type size, status_register& sr)
 	{
 		switch (inst)
 		{
@@ -989,7 +981,7 @@ public:
 	}
 
 	template<class T1>
-	static std::uint32_t bit(inst_type inst, T1 src, operand dest, status_register& sr)
+	static std::uint32_t bit(inst_type inst, T1 src, operand& dest, status_register& sr)
 	{
 		switch (inst)
 		{
@@ -1016,7 +1008,7 @@ public:
 
 	static std::uint16_t clear_unimplemented_flags(std::uint16_t SR)
 	{
-		const std::uint16_t implemented_flags_mask = 0b1010011100011111;
+		static constexpr const std::uint16_t implemented_flags_mask = 0b1010011100011111;
 		return SR & implemented_flags_mask;
 	}
 
@@ -1094,21 +1086,6 @@ private:
 		return res;
 	}
 
-	static std::uint8_t to_bcd(std::uint8_t num)
-	{
-		num = num % 100;
-		std::uint8_t low = num % 10;
-		std::uint8_t high = num / 10;
-		return (high << 4) | low;
-	}
-
-	static std::uint8_t from_bcd(std::uint8_t num)
-	{
-		std::uint8_t low = num & 0b1111;
-		std::uint8_t high = num >> 4;
-		return high * 10 + low;
-	}
-
 	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
 		size_type size, status_register& sr)
 	{
@@ -1149,12 +1126,6 @@ private:
 		}
 	}
 
-	static void set_logical_flags(std::uint32_t res, size_type size, status_register& sr)
-	{
-		sr.C = sr.V = 0;
-		set_nz_flags(res, size, sr);
-	}
-
 	static std::uint8_t neg_flag(std::uint32_t val, size_type size)
 	{
 		if(size == size_type::BYTE) return std::int8_t(val) < 0;
@@ -1171,6 +1142,12 @@ private:
 	{
 		sr.N = neg_flag(val, size);
 		sr.Z = zer_flag(val, size);
+	}
+
+	static void set_logical_flags(std::uint32_t res, size_type size, status_register& sr)
+	{
+		sr.C = sr.V = 0;
+		set_nz_flags(res, size, sr);
 	}
 
 public:

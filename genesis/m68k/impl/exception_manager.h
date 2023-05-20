@@ -128,6 +128,7 @@ public:
 	void accept_all()
 	{
 		exps.fill(false);
+		ex_counter = 0;
 	}
 
 	void rise(exception_type ex)

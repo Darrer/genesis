@@ -59,8 +59,7 @@ public:
 	
 	static constexpr std::uint8_t adda(addressing_mode mode, std::uint8_t opmode)
 	{
-		if(opmode == 0b011 || mode == addressing_mode::data_reg ||
-			mode == addressing_mode::addr_reg || mode == addressing_mode::imm)
+		if(opmode == 0b011 || !indirect_mode(mode))
 			return 4;
 
 		return 2;

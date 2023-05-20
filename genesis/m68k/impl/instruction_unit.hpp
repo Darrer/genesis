@@ -323,9 +323,7 @@ private:
 			if(save_to_register)
 			{
 				res = operations::alu(curr_inst, reg, op, size, regs.flags);
-				// TODO: fixme
-				if(curr_inst != inst_type::CMP)
-					store(reg, size, res);
+				store(reg, size, res);
 				scheduler.prefetch_one();
 			}
 			else
