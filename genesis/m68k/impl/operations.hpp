@@ -800,9 +800,9 @@ public:
 			return pc + 4;
 
 		case addressing_mode::imm:
-			if(size == size_type::BYTE || size == size_type::WORD)
-				return pc + 2;
-			return pc + 4;
+			if(size == size_type::LONG)
+				return pc + 4;
+			return pc + 2;
 
 		default: throw internal_error();
 		}

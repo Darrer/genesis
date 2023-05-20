@@ -318,7 +318,9 @@ private:
 			auto op = dec.result();
 
 			const std::uint8_t opmode = (opcode >> 6) & 0x7;
-			if(opmode == 0b000 || opmode == 0b001 || opmode == 0b010)
+
+			bool save_to_register = !bit_is_set(opcode, 8);
+			if(save_to_register)
 			{
 				res = operations::alu(curr_inst, reg, op, size, regs.flags);
 				// TODO: fixme
@@ -343,9 +345,6 @@ private:
 	exec_state alu_address_mode_handler()
 	{
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
-		if(opmode != 0b011 && opmode != 0b111)
-			throw internal_error();
-
 		switch (exec_stage++)
 		{
 		case 0:
@@ -717,13 +716,9 @@ private:
 
 		case 2:
 		{
-			if(!dec.result().is_pointer())
-				throw internal_error();
-
-			std::uint8_t dr = (opcode >> 10) & 1;
 			std::uint16_t reg_mask = imm & 0xFFFF;
 
-			if(dr == 1)
+			if(bit_is_set(opcode, 10))
 				movem_memory_to_register(reg_mask);
 			else
 				movem_register_to_memory(reg_mask);
@@ -739,10 +734,10 @@ private:
 	void movem_register_to_memory(std::uint16_t reg_mask)
 	{
 		std::uint32_t start_addr = dec.result().pointer().address;
-		std::int8_t offset = size == size_type::WORD ? 2 : 4;
+		std::int8_t offset = size_in_bytes(size);
 		order order = order::msw_first;
 
-		bool predec_mode = ((opcode >> 3) & 0x7) == 0b100;
+		bool predec_mode = dec.result().mode() == addressing_mode::predec;
 		if(predec_mode)
 		{
 			order = order::lsw_first;
@@ -752,7 +747,7 @@ private:
 
 		for(int i = 0; i <= 15; ++i)
 		{
-			if(((reg_mask >> i) & 1) == 0)
+			if(!bit_is_set(reg_mask, i))
 				continue;
 
 			std::uint8_t reg = predec_mode ? (15 - i) : i;
@@ -789,7 +784,7 @@ private:
 
 		for(; dest_reg <= 15; ++dest_reg)
 		{
-			if(((move_reg_mask >> dest_reg) & 1) == 0)
+			if(!bit_is_set(move_reg_mask, dest_reg))
 				continue;
 
 			if(dest_reg >= 8)
@@ -817,7 +812,7 @@ private:
 	{
 		move_reg_mask = reg_mask;
 		dest_reg = 0;
-		bool postinc_mode = ((opcode >> 3) & 0x7) == 0b011;
+		bool postinc_mode = dec.result().mode() == addressing_mode::postinc;
 		if(postinc_mode)
 		{
 			// in the end of execution we update reg with address value,
@@ -830,9 +825,10 @@ private:
 		}
 
 		std::uint32_t start_addr = dec.result().pointer().address;
+		auto offset = size_in_bytes(size);
 		for(int i = 0; i <= 15; ++i)
 		{
-			if(((reg_mask >> i) & 1) == 0)
+			if(!bit_is_set(reg_mask, i))
 				continue;
 
 			scheduler.read(start_addr, size, [this](std::uint32_t data, size_type size)
@@ -840,10 +836,7 @@ private:
 				move_to_register(data, size);
 			});
 
-			if(size == size_type::WORD)
-				start_addr += 2;
-			else
-				start_addr += 4;
+			start_addr += offset;
 		}
 
 		// some weird uncodumented read
@@ -968,11 +961,10 @@ private:
 
 	exec_state move_usp_handler()
 	{
-		std::uint8_t dr = (opcode >> 3) & 1;
 		std::uint8_t reg = opcode & 0x7;
 
 		// USP -> address register
-		if(dr == 1)
+		if(bit_is_set(opcode, 3))
 		{
 			regs.A(reg).LW = regs.USP.LW;
 		}
@@ -1197,7 +1189,6 @@ private:
 	exec_state ext_handler()
 	{
 		auto& reg = regs.D(opcode & 0x7);
-		std::uint8_t opmode = (opcode >> 6) & 1;
 		size = bit_is_set(opcode, 6) ? size_type::WORD : size_type::BYTE;
 
 		res = operations::ext(reg, size, regs.flags);
@@ -1356,6 +1347,7 @@ private:
 		}
 	}
 
+	// TODO: merge rte/rtr handlers
 	exec_state rte_handler()
 	{
 		// Read PC High
@@ -1374,12 +1366,10 @@ private:
 		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
 			regs.PC = regs.PC | data;
-		});
 
-		scheduler.call([this]()
-		{
 			regs.SSP.LW += 6;
-			regs.SR = res; // save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+			// save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+			regs.SR = res;
 		});
 
 		scheduler.prefetch_two();
@@ -1404,12 +1394,10 @@ private:
 		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
 			regs.PC = regs.PC | data;
-		});
-
-		scheduler.call([this]()
-		{
+		
 			regs.SSP.LW += 6;
-			regs.SR = res; // save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+			// save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+			regs.SR = res;
 		});
 
 		scheduler.prefetch_two();
@@ -1601,6 +1589,8 @@ private:
 			regs.SP().LW -= 4;
 
 			addr = regs.SP().LW;
+
+			// TODO: add callback to write method, change SP there
 			scheduler.write(addr, reg.LW, size_type::LONG, order::msw_first);
 
 			reg.LW = addr;
@@ -1758,6 +1748,7 @@ private:
 
 			regs.dec_addr(dest_reg, size_type::BYTE);
 
+			// TODO: it would be better to get rid of nested scheduler calls
 			scheduler.read(regs.A(dest_reg).LW, size_type::BYTE, [this](std::uint32_t dest, size_type)
 			{
 				res = operations::alu(curr_inst, res, dest, size_type::BYTE, regs.flags);
@@ -1810,14 +1801,12 @@ private:
 			else
 				addr = op.pointer().address;
 
-			std::uint8_t mode = (opcode >> 3) & 0x7;
 			std::uint8_t reg = opcode & 0x7;
-			// TODO:
-			if(mode == 0b011)
+			if(op.mode() == addressing_mode::postinc)
 			{
 				regs.inc_addr(reg, size_type::BYTE);
 			}
-			if(mode == 0b100)
+			else if(op.mode() == addressing_mode::predec)
 			{
 				scheduler.wait(2);
 				regs.dec_addr(reg, size_type::BYTE);
@@ -1831,8 +1820,7 @@ private:
 		case 2:
 			busm.init_read_modify_write(addr, [this](std::uint8_t data)
 			{
-				std::uint8_t res = operations::tas(data, regs.flags);
-				return res;
+				return operations::tas(data, regs.flags);
 			});
 
 			++exec_stage;
