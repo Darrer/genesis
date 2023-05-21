@@ -1,0 +1,10 @@
+FROM ubuntu:latest
+
+RUN apt update -y
+RUN apt install -y build-essential git cmake
+
+WORKDIR /genesis
+COPY . .
+
+RUN mkdir build
+RUN cd build && cmake -G "Unix Makefiles" .. && make
