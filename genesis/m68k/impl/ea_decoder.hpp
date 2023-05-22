@@ -192,7 +192,7 @@ public:
 	{
 		if(!scheduler.is_idle())
 		{
-			// due to scheduler restriction we cannot scheduler decoding if anything is already scheduled
+			// due to scheduler restrictions we cannot schedule decoding if smth is already scheduled
 			// ('cause scheduled operation can change registers and thereby affect the result)
 			throw internal_error();
 		}

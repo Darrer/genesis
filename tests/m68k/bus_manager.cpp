@@ -80,12 +80,12 @@ void test_read(T test_values)
 		if constexpr (sizeof(expected) == 1)
 		{
 			cycles = read_byte(busm, addr);
-			actual = busm.letched_byte();
+			actual = busm.latched_byte();
 		}
 		else
 		{
 			cycles = read_word(busm, addr);
-			actual = busm.letched_word();
+			actual = busm.latched_word();
 		}
 
 		ASSERT_EQ(cycles_per_read, cycles);
@@ -161,9 +161,9 @@ TEST(M68K_BUS_MANAGER, INTERRUPT_CYCLE_THROW)
 	ASSERT_THROW(busm.init_read_word(0x100, m68k::addr_space::DATA), std::runtime_error);
 	ASSERT_THROW(busm.init_write(0x100, (std::uint16_t)0x101), std::runtime_error);
 
-	// should not allow to get letched data while in the middle of a cycle
-	ASSERT_THROW(busm.letched_byte(), std::runtime_error);
-	ASSERT_THROW(busm.letched_word(), std::runtime_error);
+	// should not allow to get latched data while in the middle of a cycle
+	ASSERT_THROW(busm.latched_byte(), std::runtime_error);
+	ASSERT_THROW(busm.latched_word(), std::runtime_error);
 }
 
 TEST(M68K_BUS_MANAGER, LETCH_WRONG_DATA_THROW)
@@ -172,10 +172,10 @@ TEST(M68K_BUS_MANAGER, LETCH_WRONG_DATA_THROW)
 	auto& busm = cpu.bus_manager();
 
 	read_byte(busm, 0x101);
-	ASSERT_THROW(busm.letched_word(), std::runtime_error);
+	ASSERT_THROW(busm.latched_word(), std::runtime_error);
 
 	read_word(busm, 0x102);
-	ASSERT_THROW(busm.letched_byte(), std::runtime_error);
+	ASSERT_THROW(busm.latched_byte(), std::runtime_error);
 }
 
 struct bus_state

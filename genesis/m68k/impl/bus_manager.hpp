@@ -26,7 +26,7 @@ class bus_manager
 {
 public:
 	using on_complete = std::function<void()>;
-	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
+	using on_modify = std::function<std::uint_fast8_t(std::uint_fast8_t)>;
 
 private:
 	// all callbacks are restricted in size to the size of the pointer
@@ -78,23 +78,22 @@ public:
 		return state == bus_cycle_state::IDLE;
 	}
 
-	// TODO: fix type: letched -> latched
-	std::uint8_t letched_byte() const
+	std::uint_fast8_t latched_byte() const
 	{
-		assert_idle("letched_byte");
+		assert_idle("latched_byte");
 		if(!byte_op)
-			throw std::runtime_error("bus_manager::letched_byte error: don't have letched byte");
+			throw std::runtime_error("bus_manager::latched_byte error: don't have latched byte");
 
-		return std::uint8_t(_letched_data);
+		return std::uint_fast8_t(_letched_data);
 	}
 
-	std::uint16_t letched_word() const
+	std::uint_fast16_t latched_word() const
 	{
-		assert_idle("letched_word");
+		assert_idle("latched_word");
 		if(byte_op)
-			throw std::runtime_error("bus_manager::letched_word error: don't have letched word");
+			throw std::runtime_error("bus_manager::latched_word error: don't have latched word");
 
-		return std::uint16_t(_letched_data);
+		return std::uint_fast16_t(_letched_data);
 	}
 
 	template<class Callable = std::nullptr_t>
@@ -360,7 +359,7 @@ private:
 		}
 	}
 
-	void set_data_bus(std::uint16_t data)
+	void set_data_bus(std::uint_fast16_t data)
 	{
 		if(byte_op)
 		{
@@ -380,9 +379,9 @@ private:
 		bus.data(data);
 	}
 
-	std::uint8_t gen_func_codes() const
+	std::uint_fast8_t gen_func_codes() const
 	{
-		std::uint8_t func_codes = 0;
+		std::uint_fast8_t func_codes = 0;
 		if(space == addr_space::DATA)
 			func_codes |= 1;
 		if(space == addr_space::PROGRAM)
@@ -408,6 +407,7 @@ private:
 		bus.clear(bus::FC0);
 		bus.clear(bus::FC1);
 		bus.clear(bus::FC2);
+		bus.clear(bus::BERR);
 	}
 
 	// exceptions
@@ -430,13 +430,13 @@ private:
 	bool should_rise_bus_error() const
 	{
 		const std::uint32_t max_address = 0xFFFFFF;
-		std::uint8_t size = byte_op ? 1 : 2;
+		auto size = byte_op ? 1 : 2;
 		return (address & max_address) + size > max_address;
 	}
 
 	void rise_bus_error()
 	{
-		std::uint8_t func_codes = gen_func_codes();
+		auto func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
 		exman.rise_bus_error( { address, func_codes, read_operation, false } );
 		reset();
@@ -460,7 +460,7 @@ private:
 
 	void rise_address_error()
 	{
-		std::uint8_t func_codes = gen_func_codes();
+		auto func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
 		bool in = space == addr_space::PROGRAM; // just to satisfy external tests
 		exman.rise_address_error( { address, func_codes, read_operation, in } );
@@ -475,12 +475,12 @@ private:
 
 	std::uint32_t address;
 	addr_space space;
-	std::uint16_t data_to_write;
+	std::uint_fast16_t data_to_write;
 	on_complete on_complete_cb = nullptr;
 	on_modify modify_cb = nullptr;
 
 	bool byte_op = false;
-	std::uint16_t _letched_data;
+	std::uint_fast16_t _letched_data;
 
 	bus_cycle_state state = bus_cycle_state::IDLE;
 };

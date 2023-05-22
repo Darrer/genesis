@@ -104,11 +104,11 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 void bus_scheduler::latch_data(size_type size)
 {
 	if(size == size_type::BYTE)
-		data = busm.letched_byte();
+		data = busm.latched_byte();
 	else if(size == size_type::WORD)
-		data = busm.letched_word();
+		data = busm.latched_word();
 	else
-		data = (data << 16) | busm.letched_word();
+		data = (data << 16) | busm.latched_word();
 }
 
 void bus_scheduler::on_read_finished()
