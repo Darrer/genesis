@@ -6,7 +6,8 @@
 namespace genesis::test
 {
 
-const auto clock_rate = 16.67 /* MHz */ * 1'000'000;
+// const auto clock_rate = 16.67 /* MHz */ * 1'000'000;
+const auto clock_rate = 7.670454 /* MHz */ * 1'000'000;
 const auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
 
 class test_cpu : public genesis::m68k::cpu

@@ -81,7 +81,7 @@ public:
 	void prefetch_one();
 	void prefetch_two();
 
-	void wait(std::uint16_t cycles);
+	void wait(std::uint_fast8_t cycles);
 
 	template<class Callable>
 	void call(Callable cb)
@@ -90,8 +90,8 @@ public:
 		call_impl(cb);
 	}
 
-	void inc_addr_reg(std::uint8_t reg, size_type size);
-	void dec_addr_reg(std::uint8_t reg, size_type size);
+	void inc_addr_reg(std::uint_fast8_t reg, size_type size);
+	void dec_addr_reg(std::uint_fast8_t reg, size_type size);
 
 	void push(std::uint32_t data, size_type size, order order = order::msw_first);
 
@@ -135,7 +135,7 @@ public:
 
 	struct wait_operation
 	{
-		std::uint16_t cycles;
+		std::uint_fast8_t cycles;
 	};
 
 	using callback = std::function<void()>;
@@ -146,7 +146,7 @@ public:
 
 	struct register_operation
 	{
-		std::uint8_t reg;
+		std::uint_fast8_t reg;
 		size_type size;
 	};
 
@@ -154,7 +154,7 @@ public:
 	{
 		std::uint32_t data;
 		size_type size;
-		std::int8_t offset = 0;
+		std::int_fast8_t offset = 0;
 	};
 
 	struct operation
@@ -176,7 +176,7 @@ private:
 
 	bool current_op_is_over() const;
 	void start_operation(operation&);
-	void run_imm_operations();
+	void run_cycless_operations();
 
 	// TODO: add bus_read / bus_write operations to hide all busm calls
 
@@ -189,7 +189,7 @@ private:
 	std::queue<operation> queue;
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;
-	std::uint16_t curr_wait_cycles = 0;
+	std::uint_fast8_t curr_wait_cycles = 0;
 };
 
 

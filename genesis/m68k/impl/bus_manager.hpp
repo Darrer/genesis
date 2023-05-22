@@ -139,6 +139,7 @@ public:
 			throw std::invalid_argument("modify");
 
 		this->address = address;
+		this->address_even = (address & 1) == 0;
 		this->space = space;
 		state = RMW_READ0;
 		byte_op = true;
@@ -269,7 +270,7 @@ private:
 			return;
 
 		case RMW_MODIFY1:
-			data_to_write = modify_cb(std::uint8_t(_letched_data));
+			data_to_write = modify_cb(std::uint_fast8_t(_letched_data));
 			return;
 
 		/* bus write cycle */
@@ -292,7 +293,7 @@ private:
 
 			// emulate write
 			if(byte_op)
-				mem.write<std::uint8_t>(bus.address(), std::uint8_t(data_to_write));
+				mem.write<std::uint8_t>(bus.address(), data_to_write);
 			else
 				mem.write<std::uint16_t>(bus.address(), data_to_write);
 
@@ -314,6 +315,7 @@ private:
 	void init_new_cycle(std::uint32_t addr, addr_space sp, bus_cycle_state first_state, const Callable& cb)
 	{
 		address = addr;
+		address_even = (address & 1) == 0;
 		space = sp;
 		state = first_state;
 		on_complete_cb = cb;
@@ -349,7 +351,7 @@ private:
 	{
 		if(byte_op)
 		{
-			auto ds = (address & 1) == 0 ? bus::UDS : bus::LDS;
+			auto ds = address_even ? bus::UDS : bus::LDS;
 			bus.set(ds);
 		}
 		else
@@ -363,8 +365,7 @@ private:
 	{
 		if(byte_op)
 		{
-			bool uds = (address & 1) == 0;
-			if(uds)
+			if(address_even) // uds
 			{
 				data = data << 8;
 				data = data | (bus.data() & 0xFF);
@@ -436,9 +437,8 @@ private:
 
 	void rise_bus_error()
 	{
-		auto func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
-		exman.rise_bus_error( { address, func_codes, read_operation, false } );
+		exman.rise_bus_error( { address, gen_func_codes(), read_operation, false } );
 		reset();
 	}
 
@@ -455,15 +455,14 @@ private:
 
 	bool should_rise_address_error() const
 	{
-		return !byte_op && (address & 1) == 1;
+		return !byte_op && !address_even;
 	}
 
 	void rise_address_error()
 	{
-		auto func_codes = gen_func_codes();
 		bool read_operation = state == bus_cycle_state::READ0;
 		bool in = space == addr_space::PROGRAM; // just to satisfy external tests
-		exman.rise_address_error( { address, func_codes, read_operation, in } );
+		exman.rise_address_error( { address, gen_func_codes(), read_operation, in } );
 		reset();
 	}
 
@@ -474,6 +473,7 @@ private:
 	exception_manager& exman;
 
 	std::uint32_t address;
+	bool address_even;
 	addr_space space;
 	std::uint_fast16_t data_to_write;
 	on_complete on_complete_cb = nullptr;

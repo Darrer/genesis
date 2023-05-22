@@ -187,6 +187,11 @@ std::string transitions_to_str(const std::vector<bus_transition>& transitions)
 
 struct run_result
 {
+	run_result()
+	{
+		transitions.reserve(100);
+	}
+
 	std::uint32_t cycles = 0;
 	std::vector<bus_transition> transitions;
 };
@@ -341,7 +346,7 @@ void accept_reset(test::test_cpu& cpu)
 {
 	auto& exman = cpu.exception_manager();
 	if(exman.is_raised(m68k::exception_type::reset))
-		exman.accept_reset();
+		exman.accept(m68k::exception_type::reset);
 }
 
 bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::string_view test_name)

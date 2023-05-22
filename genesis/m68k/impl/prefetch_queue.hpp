@@ -21,7 +21,6 @@ private:
 
 public:
 	using on_complete = std::function<void()>;
-	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
 
 private:
 	// all callbacks are restricted in size to the size of the pointer
@@ -85,7 +84,7 @@ public:
 private:
 	void on_read_finished()
 	{
-		std::uint16_t reg = busm.letched_word();
+		auto reg = busm.latched_word();
 
 		switch (state)
 		{

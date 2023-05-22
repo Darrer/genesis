@@ -9,7 +9,7 @@
 namespace genesis::m68k
 {
 
-/* m68k stores data in big endian, however, cpu_registers class stores data in little endian */
+/* m68k stores data in big endian, however, cpu_registers class stores data in system endian */
 
 union data_register {
 	std::uint8_t B;
@@ -44,6 +44,8 @@ struct status_register
 	std::uint8_t TR : 1;
 };
 
+static_assert(sizeof(data_register) == 4);
+static_assert(sizeof(address_register) == 4);
 static_assert(sizeof(status_register) == 2);
 
 
@@ -60,7 +62,7 @@ public:
 		IRC = IR = IRD = SIRD = 0x0;
 	}
 
-	data_register& D(std::uint8_t reg)
+	data_register& D(std::uint_fast8_t reg)
 	{
 		switch (reg)
 		{
@@ -76,7 +78,7 @@ public:
 		}
 	}
 
-	address_register& A(std::uint8_t reg)
+	address_register& A(std::uint_fast8_t reg)
 	{
 		switch (reg)
 		{
@@ -97,14 +99,14 @@ public:
 		return flags.S ? SSP : USP;
 	}
 
-	void inc_addr(std::uint8_t reg, size_type size)
+	void inc_addr(std::uint_fast8_t reg, size_type size)
 	{
 		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW += size_in_bytes(size);
 	}
 
-	void dec_addr(std::uint8_t reg, size_type size)
+	void dec_addr(std::uint_fast8_t reg, size_type size)
 	{
 		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
@@ -116,8 +118,8 @@ public:
 	address_register USP;
 	address_register SSP;
 
-	std::uint32_t PC;
-	std::uint32_t SPC; // contains initial PC value of instruction being executed
+	std::uint_fast32_t PC;
+	std::uint_fast32_t SPC; // contains initial PC value of instruction being executed
 
 	union {
 		std::uint16_t SR;
@@ -125,10 +127,10 @@ public:
 	};
 
 	/* Prefetch queue registers */
-	std::uint16_t IRC;
-	std::uint16_t IR;
-	std::uint16_t IRD;
-	std::uint16_t SIRD; // contains opcode of instruction being executed
+	std::uint_fast16_t IRC;
+	std::uint_fast16_t IR;
+	std::uint_fast16_t IRD;
+	std::uint_fast16_t SIRD; // contains opcode of instruction being executed
 };
 
 } // namespace genesis::m68k
