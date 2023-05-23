@@ -3,7 +3,4 @@ roms/
 .vscode/
 .todo*
 *.exe
-
-# tmp
-*.json
-*.gz
+*.vs/

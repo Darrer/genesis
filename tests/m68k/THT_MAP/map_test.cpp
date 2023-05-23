@@ -2,14 +2,16 @@
 
 #include "m68k/impl/opcode_decoder.h"
 #include "map_loader.h"
+#include "../../helper.hpp"
 
 using namespace genesis::m68k;
 
-
+// The opcode list is taken from
+// https://github.com/TomHarte/ProcessorTests
 TEST(M68K, THT_MAP)
 {
-	std::string map_path = R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\68000.official.json)";
-	auto opcodes = load_map(map_path);
+	auto map_path = get_exec_path() / "m68k" / "68000.official.json";
+	auto opcodes = load_map(map_path.string());
 
 	ASSERT_EQ(opcodes.size(), 0x10000);
 

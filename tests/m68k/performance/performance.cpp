@@ -155,22 +155,18 @@ TEST(M68K_PERFORMANCE, NOP)
 	regs.IR = regs.IRC = regs.IRD = nop_opcode;
 
 	unsigned long long cycles_left = num_cycles;
-	auto start = std::chrono::high_resolution_clock::now();
 
-	while (cycles_left-- != 0)
-		cpu.cycle();
+	auto ns_per_cycle = measure_in_ns([&]()
+	{
+		while (cycles_left-- != 0)
+			cpu.cycle();
+	});
 
-	auto stop = std::chrono::high_resolution_clock::now();
+	// divide by 2 to have some cpu capacity
+	const auto test_threshold_ns = genesis::test::cycle_time_threshold_ns / 2;
 
-	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-	auto ns_per_cycle = dur.count() / num_cycles;
-
-	// inst unit, busm and scheduler takes about 40ns per cycle
-
-	// It takes 60-65 ns
-	std::cout << "NS per cycle for NOP: " << ns_per_cycle << ", PC: " << cpu.registers().PC
-		<< ", threshold: " << genesis::test::cycle_time_threshold_ns << std::endl;
+	std::cout << "NS per cycle for NOP: " << ns_per_cycle << ", threshold: " << test_threshold_ns << std::endl;
 
 	ASSERT_TRUE(cpu.is_idle());
-	ASSERT_LT(ns_per_cycle, genesis::test::cycle_time_threshold_ns);
+	ASSERT_LT(ns_per_cycle, test_threshold_ns);
 }

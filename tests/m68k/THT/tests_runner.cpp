@@ -6,6 +6,7 @@
 
 #include "tests_loader.h"
 #include "../test_cpu.hpp"
+#include "../../helper.hpp"
 
 
 using namespace genesis;
@@ -392,19 +393,21 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 
-		const auto clock_rate = 16.67 /* MHz */ * 1'000'000;
-		auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
+		auto cycle_time_threshold_ns = genesis::test::cycle_time_threshold_ns;
 
 		// as we're measuring not only cycles, but also tests-related code
 		// increase threshold value to account for that
-		cycle_time_threshold_ns *= 4; // arbitrary chosen
+		cycle_time_threshold_ns *= 2; // arbitrary chosen
 
 		const auto ns_per_cycle = dur.count() / total_cycles;
 
-		// ASSERT_LT(ns_per_cycle, cycle_time_threshold_ns);
+		// EXPECT_LT(ns_per_cycle, cycle_time_threshold_ns);
 
 		// std::cout << "total cycles: " << total_cycles << ", took " << dur.count() << " ns " << std::endl;
 		std::cout << "NS per cycle: " << ns_per_cycle << ", threshold:" << cycle_time_threshold_ns << std::endl;
+
+		// if(ns_per_cycle >= cycle_time_threshold_ns)
+			// return false;
 	}
 
 	EXPECT_EQ(tests.size(), num_succeded + skipped);
@@ -457,26 +460,13 @@ std::vector<std::string> collect_all_files(std::string dir_path, std::string ext
 	return res;
 }
 
-// Tom Harte's Tests
+// All tests are taken from
+// https://github.com/TomHarte/ProcessorTests
 TEST(M68K, THT)
 {
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\implemented)", "json");
-	std::sort(all_tests.begin(), all_tests.end());
+	auto tests_path = get_exec_path() / "m68k" / "v1";
+	auto all_tests = collect_all_files(tests_path.string(), "json");
 
-	for(auto& test : all_tests)
-	{
-		bool succeeded = load_and_run(test);
-		ASSERT_TRUE(succeeded);
-	}
-}
-
-// TODO: overload new operator here, make sure it won't be called during executing cpu.cycle()
-// as this will be a huge performance hit
-
-// keep it here for debug
-TEST(M68K, TMP)
-{
-	auto all_tests = collect_all_files(R"(C:\Users\darre\Desktop\repo\genesis\tests\m68k\exercisers\TAS)", "json");
 	std::sort(all_tests.begin(), all_tests.end());
 
 	for(auto& test : all_tests)

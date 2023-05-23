@@ -72,4 +72,11 @@ file(COPY z80/exercisers/z80full.tap DESTINATION z80)
 file(COPY z80/exercisers/z80doc.tap DESTINATION z80)
 
 # copy m68k test files
-file(COPY m68k/OPCLOGR3/OPCLOGR3.BIN DESTINATION M68K)
+file(COPY m68k/exercisers/OPCLOGR3.BIN DESTINATION m68k)
+file(COPY m68k/exercisers/THT/68000.official.json DESTINATION m68k)
+
+file(GLOB THT_TESTS m68k/exercisers/THT/*.zip)
+foreach(tst ${THT_TESTS})
+	message(STATUS "extracting ${tst}")
+	file(ARCHIVE_EXTRACT INPUT ${tst} DESTINATION m68k/v1)	
+endforeach()
