@@ -31,8 +31,8 @@ void prepare_cpu(test::test_cpu& cpu, std::uint32_t PC, std::uint16_t IRD, std::
 
 	auto& mem = cpu.memory();
 
-	mem.write(regs.PC, regs.IRD);
-	mem.write(regs.PC + 2, regs.IRC);
+	mem.write<std::uint16_t>(regs.PC, regs.IRD);
+	mem.write<std::uint16_t>(regs.PC + 2, regs.IRC);
 }
 
 const std::uint32_t expected_fetch_cycles = 4;
