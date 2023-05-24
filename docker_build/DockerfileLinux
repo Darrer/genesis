@@ -6,5 +6,9 @@ RUN apt install -y build-essential git cmake
 WORKDIR /genesis
 COPY . .
 
+RUN git checkout master --force
 RUN mkdir build
-RUN cd build && cmake -G "Unix Makefiles" .. && make
+
+WORKDIR /genesis/build
+RUN cmake -G "Unix Makefiles" ..
+RUN make
