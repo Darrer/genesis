@@ -690,37 +690,20 @@ public:
 		std::uint32_t src_val = value(src, size_type::BYTE);
 		std::uint32_t dest_val = value(dest, size_type::BYTE);
 
-		std::uint32_t res = src_val + dest_val + sr.X;
-		std::uint8_t msb_flag = msb(res, size_type::BYTE);
-		sr.C = cpu_flags::carry<std::uint8_t>(src_val, dest_val, sr.X);
+		// Algorithm taken from https://gendev.spritesmind.net/forum/viewtopic.php?f=2&t=1964
+		std::uint8_t ss = add(src_val, dest_val, sr.X, size_type::BYTE);
+		std::uint8_t bc = ((src_val & dest_val) | (~ss & src_val) | (~ss & dest_val)) & 0x88;
+		std::uint8_t dc = (((ss + 0x66) ^ ss) & 0x110) >> 1;
+		std::uint8_t corf = (bc | dc) - ((bc | dc) >> 2);
+		std::uint8_t res = ss + corf;
 
-		bool half_carry = check_half_carry(std::uint8_t(src_val), std::uint8_t(dest_val), sr.X) == 1;
-
-		std::uint8_t low = res & 0b1111;
-		std::uint8_t high = (res >> 4) & 0b1111;
-
-		std::uint8_t corr = 0;
-		if(low > 9 || half_carry)
-			corr += 6;
-
-		if(high > 9 || sr.C == 1 || (high >= 9 && low > 9))
-		{
-			corr += 0x60;
-			sr.X = sr.C = 1;
-		}
-		else
-		{
-			sr.X = sr.C = 0;
-		}
-
-		res += corr;
-		res = value(res, size_type::BYTE);
+		sr.X = sr.C = (bc | (ss & ~res)) >> 7;
 
 		if(res != 0)
 			sr.Z = 0;
 
 		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
-		sr.V = msb_flag == 0 && msb(res, size_type::BYTE) == 1; // Undocumented behavior
+		sr.V = msb(ss, size_type::BYTE) == 0 && msb(res, size_type::BYTE) == 1; // Undocumented behavior
 
 		return res;
 	}

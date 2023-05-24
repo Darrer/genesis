@@ -2,6 +2,7 @@
 #define __M68K_TEST_CPU_HPP__
 
 #include "m68k/cpu.h"
+#include <fstream>
 
 namespace genesis::test
 {
@@ -37,6 +38,24 @@ public:
 		} while (!is_idle());
 
 		return cycles;
+	}
+
+	void load_bin(std::string bin_path)
+	{
+		std::ifstream fs(bin_path, std::ios_base::binary);
+		if (!fs.is_open())
+			throw std::runtime_error("test_cpu::load_bin error: failed to open file '" + bin_path + "'");
+
+		std::uint32_t offset = 0x0;
+		while (fs)
+		{
+			char c;
+			if (fs.get(c))
+			{
+				mem->write(offset, c);
+				++offset;
+			}
+		}
 	}
 };
 

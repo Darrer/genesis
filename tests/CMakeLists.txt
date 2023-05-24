@@ -55,6 +55,7 @@ PRIVATE
 	m68k/THT_MAP/map_test.cpp
 
 	m68k/performance/performance.cpp
+	m68k/MCL/runner.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
@@ -73,6 +74,7 @@ file(COPY z80/exercisers/z80doc.tap DESTINATION z80)
 
 # copy m68k test files
 file(COPY m68k/exercisers/OPCLOGR3.BIN DESTINATION m68k)
+file(COPY m68k/exercisers/MCL/MC68000_test_all_opcodes.bin DESTINATION m68k)
 file(COPY m68k/exercisers/THT/68000.official.json DESTINATION m68k)
 
 file(GLOB THT_TESTS m68k/exercisers/THT/*.zip)

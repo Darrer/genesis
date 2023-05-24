@@ -1,24 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <iostream>
-#include <chrono>
 
 #include "../test_cpu.hpp"
+#include "../../helper.hpp"
 
 using namespace genesis::m68k;
-
-template<class Callable>
-long long measure_in_ns(const Callable& fn)
-{
-	auto start = std::chrono::high_resolution_clock::now();
-
-	fn();
-
-	auto stop = std::chrono::high_resolution_clock::now();
-
-	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-	return dur.count();
-}
 
 TEST(M68K_PERFORMANCE, TMP)
 {
