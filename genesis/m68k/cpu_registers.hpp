@@ -118,8 +118,8 @@ public:
 	address_register USP;
 	address_register SSP;
 
-	std::uint_fast32_t PC;
-	std::uint_fast32_t SPC; // contains initial PC value of instruction being executed
+	std::uint32_t PC;
+	std::uint32_t SPC; // contains initial PC value of instruction being executed
 
 	union {
 		std::uint16_t SR;
