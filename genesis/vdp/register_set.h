@@ -8,6 +8,21 @@
 namespace genesis::vdp
 {
 
+enum class plane_dimension
+{
+	c32,
+	c64,
+	c128,
+	invalid,
+};
+
+enum class dma_mode
+{
+	mem_to_vram, // M68K memory -> VRAM
+	vram_fill,
+	vram_copy,
+};
+
 class register_set
 {
 public:
@@ -15,6 +30,7 @@ public:
 	{
 		for(std::uint8_t i = 0; i <= 23; ++i)
 			set_register(i, 0);
+		sr_raw = 0;
 	}
 
 	void set_register(std::uint8_t reg, std::uint8_t value)
@@ -78,6 +94,132 @@ public:
 		default: throw internal_error();
 		}
 	}
+
+	/* Helper methods */
+
+	// TODO: move helper methods to different class?
+	// vdp_settings?
+
+	std::uint32_t plane_a_address() const
+	{
+		std::uint32_t addr = R2.PA5_3;
+		addr = addr << 13;
+		// TODO: use PA6?
+		return addr;
+	}
+
+	std::uint32_t plane_b_address() const
+	{
+		std::uint32_t addr = R4.PB2_0;
+		addr = addr << 13;
+		// TODO: use PB3?
+		return addr;
+	}
+
+	std::uint32_t window_address() const
+	{
+		std::uint32_t addr = R3.W5_1;
+		if(is_h40())
+			addr = addr & ~1;
+		addr = addr << 11;
+		// TODO: use WA6?
+		return addr;
+	}
+
+	std::uint32_t sprite_address() const
+	{
+		std::uint32_t addr = R5.ST6_0;
+		if(is_h40())
+			addr = addr & ~1;
+		addr = addr << 9;
+		// TODO: use ST7?
+		return addr;
+	}
+
+	std::uint32_t horizontal_scroll_address() const
+	{
+		std::uint32_t addr = R13.HS5_0;
+		addr = addr << 10;
+		// TODO: use HS6
+		return addr;
+	}
+
+	// Height for planes A & B
+	plane_dimension plane_height() const
+	{
+		switch (R16.H)
+		{
+		case 0b00:
+			return plane_dimension::c32;
+		case 0b01:
+			return plane_dimension::c64;
+		case 0b11:
+			return plane_dimension::c128;
+		default:
+			return plane_dimension::invalid;
+		}
+	}
+
+	// Width for planes A & B
+	plane_dimension plane_width() const
+	{
+		switch (R16.W)
+		{
+		case 0b00:
+			return plane_dimension::c32;
+		case 0b01:
+			return plane_dimension::c64;
+		case 0b11:
+			return plane_dimension::c128;
+		default:
+			return plane_dimension::invalid;
+		}
+	}
+
+	std::uint16_t dma_length() const
+	{
+		std::uint16_t length = std::uint16_t(R20.H) << 8;
+		length += R19.L;
+		return length;
+	}
+
+	std::uint32_t dma_source() const
+	{
+		std::uint32_t source = std::uint32_t(R23.H) << 16;
+		source |= std::uint32_t(R22.M) << 8;
+		source |= R21.L;
+
+		if(dma_mode() == dma_mode::mem_to_vram)
+		{
+			// T0 acts as H6
+			source |= std::uint32_t(R23.T0) << 22;
+		}
+
+		return source;
+	}
+
+	dma_mode dma_mode() const
+	{
+		if(R23.T1 == 0)
+			return dma_mode::mem_to_vram;
+
+		if(R23.T0 == 0)
+			return dma_mode::vram_fill;
+
+		return dma_mode::vram_copy;
+	}
+
+	bool is_h40() const // 320pixel
+	{
+		return R12.RS0 == 1;
+	}
+
+	bool is_h32() const // 256pixel
+	{
+		return R12.RS0 == 0;
+	}
+
+	/* Registers */
 
 	R0 R0;
 	R1 R1;
