@@ -179,20 +179,20 @@ public:
 	std::uint16_t dma_length() const
 	{
 		std::uint16_t length = std::uint16_t(R20.H) << 8;
-		length += R19.L;
+		length |= R19.L;
 		return length;
 	}
 
 	std::uint32_t dma_source() const
 	{
-		std::uint32_t source = std::uint32_t(R23.H) << 16;
-		source |= std::uint32_t(R22.M) << 8;
-		source |= R21.L;
+		std::uint32_t source = std::uint32_t(R23.H) << 17;
+		source |= std::uint32_t(R22.M) << 9;
+		source |= std::uint32_t(R21.L) << 1;
 
 		if(dma_mode() == dma_mode::mem_to_vram)
 		{
 			// T0 acts as H6
-			source |= std::uint32_t(R23.T0) << 22;
+			source |= std::uint32_t(R23.T0) << 23;
 		}
 
 		return source;
