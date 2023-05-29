@@ -3,6 +3,7 @@
 
 #include "register_set.h"
 #include "settings.h"
+#include "ports.h"
 
 
 namespace genesis::vdp
@@ -11,14 +12,16 @@ namespace genesis::vdp
 class vdp
 {
 public:
-	vdp() : sett(regs) { }
+	vdp() : sett(regs), ports(regs) { }
 
 	register_set& registers() { return regs; }
-	settings& settings() { return sett; }
+	// settings& setings() { return sett; }
+	ports& io_ports() { return ports; }
 
 private:
 	register_set regs;
 	settings sett;
+	ports ports;
 };
 
 }

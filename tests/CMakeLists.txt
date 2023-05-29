@@ -56,6 +56,8 @@ PRIVATE
 
 	m68k/performance/performance.cpp
 	m68k/MCL/runner.cpp
+
+	vdp/ports.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
