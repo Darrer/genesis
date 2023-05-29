@@ -37,6 +37,12 @@ PRIVATE
 	m68k/cpu_registers.hpp
 	m68k/cpu.h
 	m68k/cpu.cpp
+
+	vdp/vdp.h
+	vdp/vdp.cpp
+	vdp/registers.h
+	vdp/register_set.h
+	vdp/settings.h
 )
 
 # executable based on core lib

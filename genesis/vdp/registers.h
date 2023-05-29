@@ -234,9 +234,6 @@ static_assert(sizeof(R22) == 1);
 static_assert(sizeof(R23) == 1);
 static_assert(sizeof(status_register) == 2);
 
-
-// NOTE: use std::uint32_t for address type, as it might be 128kb (not always 64kb)
-
 }
 
 #endif // __VDP_REGISTERS_H__
