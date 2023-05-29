@@ -13,6 +13,9 @@ class vdp
 public:
 	vdp() : sett(regs) { }
 
+	register_set& registers() { return regs; }
+	settings& settings() { return sett; }
+
 private:
 	register_set regs;
 	settings sett;

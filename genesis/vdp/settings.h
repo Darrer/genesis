@@ -41,6 +41,18 @@ enum class horizontal_scrolling
 	invalid,
 };
 
+enum class draw_horizontal_direction
+{
+	left,
+	right,
+};
+
+enum class draw_vertical_direction
+{
+	up,
+	down,
+};
+
 enum class interlace_mode
 {
 	disabled,
@@ -67,7 +79,7 @@ class settings
 public:
 	settings(register_set& regs) : regs(regs) { }
 
-	/* VRAM Tables Addresses */
+	/* Tables Addresses */
 
 	std::uint32_t plane_a_address() const
 	{
@@ -113,6 +125,8 @@ public:
 		return addr;
 	}
 
+	/* Plane dimenstion */
+
 	// Height for planes A & B
 	plane_dimension plane_height() const
 	{
@@ -143,6 +157,32 @@ public:
 		default:
 			return plane_dimension::invalid;
 		}
+	}
+
+	/* Window Plane Position & Direction */
+
+	std::uint8_t window_horizontal_pos_in_cells() const
+	{
+		return regs.R17.HP;
+	}
+
+	draw_horizontal_direction window_horizontal_draw_direction() const
+	{
+		if(regs.R17.R == 1)
+			return draw_horizontal_direction::right;
+		return draw_horizontal_direction::left;
+	}
+
+	std::uint8_t window_vertical_pos_in_cells() const
+	{
+		return regs.R18.VP;
+	}
+
+	draw_vertical_direction window_vertical_draw_direction() const
+	{
+		if(regs.R18.D == 1)
+			return draw_vertical_direction::down;
+		return draw_vertical_direction::up;
 	}
 
 	/* DMA */
@@ -272,6 +312,16 @@ public:
 	bool in_128kb_vram_mode() const
 	{
 		return regs.R1.VR == 1;
+	}
+
+	std::uint8_t horizontal_interrupt_counter() const
+	{
+		return regs.R10.H;
+	}
+
+	std::uint8_t auto_increment_value() const
+	{
+		return regs.R15.INC;
 	}
 
 private:
