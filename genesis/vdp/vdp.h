@@ -12,15 +12,15 @@ namespace genesis::vdp
 class vdp
 {
 public:
-	vdp() : sett(regs), ports(regs) { }
+	vdp() : _sett(regs), ports(regs) { }
 
 	register_set& registers() { return regs; }
-	// settings& setings() { return sett; }
+	settings& sett() { return _sett; }
 	ports& io_ports() { return ports; }
 
 private:
 	register_set regs;
-	settings sett;
+	settings _sett;
 	ports ports;
 };
 

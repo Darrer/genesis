@@ -13,16 +13,16 @@ struct R0
 	std::uint8_t DE : 1;
 	std::uint8_t M3 : 1;
 	std::uint8_t M4 : 1;
-	std::uint8_t _u : 1;
+	std::uint8_t : 1;
 	std::uint8_t IE1 : 1;
 	std::uint8_t L : 1;
-	std::uint8_t _u2 : 2;
+	std::uint8_t : 2;
 };
 
 // Mode Register 2
 struct R1
 {
-	std::uint8_t _u : 2;
+	std::uint8_t : 2;
 	std::uint8_t M5 : 1;
 	std::uint8_t M2 : 1;
 	std::uint8_t M1 : 1;
@@ -34,19 +34,19 @@ struct R1
 // Plane A Name Table Location
 struct R2
 {
-	std::uint8_t _u : 3;
+	std::uint8_t : 3;
 	std::uint8_t PA5_3 : 3;
 	std::uint8_t PA6 : 1;
-	std::uint8_t _u2 : 1;
+	std::uint8_t : 1;
 };
 
 // Window Name Table Location
 struct R3
 {
-	std::uint8_t _u : 1;
+	std::uint8_t : 1;
 	std::uint8_t W5_1 : 5;
 	std::uint8_t W6 : 1;
-	std::uint8_t _u2 : 1;
+	std::uint8_t : 1;
 };
 
 // Plane B Name Table Location
@@ -54,7 +54,7 @@ struct R4
 {
 	std::uint8_t PB2_0 : 3;
 	std::uint8_t PB3 : 1;
-	std::uint8_t _u : 4;
+	std::uint8_t : 4;
 };
 
 // Sprite Table Location
@@ -66,9 +66,9 @@ struct R5
 
 struct R6
 {
-	std::uint8_t _u : 5;
+	std::uint8_t : 5;
 	std::uint8_t SP5 : 1;
-	std::uint8_t _u2 : 2;
+	std::uint8_t : 2;
 };
 
 // Background Colour	
@@ -76,7 +76,7 @@ struct R7
 {
 	std::uint8_t COL : 4;
 	std::uint8_t PAL : 2;
-	std::uint8_t _u : 2;
+	std::uint8_t : 2;
 };
 
 struct R8
@@ -98,7 +98,7 @@ struct R11
 	std::uint8_t HS : 2;
 	std::uint8_t VS : 1;
 	std::uint8_t IE2 : 1;
-	std::uint8_t _u : 4;
+	std::uint8_t : 4;
 };
 
 // Mode Register 4
@@ -118,15 +118,15 @@ struct R13
 {
 	std::uint8_t HS5_0 : 6;
 	std::uint8_t HS6 : 1;
-	std::uint8_t _u : 1;
+	std::uint8_t : 1;
 };
 
 struct R14
 {
 	std::uint8_t PA0 : 1;
-	std::uint8_t _u : 3;
+	std::uint8_t : 3;
 	std::uint8_t PB4 : 1;
-	std::uint8_t _u2 : 3;
+	std::uint8_t : 3;
 };
 
 // Auto-Increment Value
@@ -139,16 +139,16 @@ struct R15
 struct R16
 {
 	std::uint8_t W : 2;
-	std::uint8_t _u : 2;
+	std::uint8_t : 2;
 	std::uint8_t H : 2;
-	std::uint8_t _u2 : 2;
+	std::uint8_t : 2;
 };
 
 // Window Plane Horizontal Position
 struct R17
 {
 	std::uint8_t HP : 5;
-	std::uint8_t _u : 2;
+	std::uint8_t : 2;
 	std::uint8_t R : 1;
 };
 
@@ -156,7 +156,7 @@ struct R17
 struct R18
 {
 	std::uint8_t VP : 5;
-	std::uint8_t _u : 2;
+	std::uint8_t : 2;
 	std::uint8_t D : 1;
 };
 
@@ -204,7 +204,26 @@ struct status_register
 	std::uint8_t VI : 1;
 	std::uint8_t F : 1;
 	std::uint8_t E : 1;
-	std::uint8_t _u : 6;
+	std::uint8_t : 6;
+};
+
+// Hide registers used by control port
+struct CP1
+{
+	std::uint8_t A7_0;
+	std::uint8_t A13_8 : 6;
+	std::uint8_t CD0 : 1;
+	std::uint8_t CD1 : 1;
+};
+
+struct CP2
+{
+	std::uint8_t A15_14 : 2;
+	std::uint8_t : 2;
+	std::uint8_t CD3_2 : 2;
+	std::uint8_t CD4 : 1;
+	std::uint8_t CD5 : 1;
+	std::uint8_t : 8;
 };
 
 
@@ -233,6 +252,8 @@ static_assert(sizeof(R21) == 1);
 static_assert(sizeof(R22) == 1);
 static_assert(sizeof(R23) == 1);
 static_assert(sizeof(status_register) == 2);
+static_assert(sizeof(CP1) == 2);
+static_assert(sizeof(CP2) == 2);
 
 }
 
