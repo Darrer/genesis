@@ -43,6 +43,9 @@ PRIVATE
 	vdp/registers.h
 	vdp/register_set.h
 	vdp/settings.h
+	vdp/ports.h
+	vdp/ports.cpp
+	vdp/memory.h
 )
 
 # executable based on core lib

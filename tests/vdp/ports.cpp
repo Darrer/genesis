@@ -4,6 +4,20 @@
 
 using namespace genesis;
 
+std::uint32_t wait_ports(test::vdp& vdp)
+{
+	std::uint32_t cycles = 0;
+
+	auto& ports = vdp.io_ports();
+	while (!ports.is_idle())
+	{
+		ports.cycle();
+		++cycles;
+	}
+
+	return cycles;
+}
+
 std::uint16_t format_write_register(std::uint8_t reg, std::uint8_t data)
 {
 	std::uint16_t res = std::uint16_t(0b100) << 13;
@@ -146,4 +160,25 @@ TEST(VDP, CONTROL_PORT_WRITE_PENDING)
 	ASSERT_EQ(0, regs.get_register(0));
 
 	// TEST 2: TODO: reading/writing to data port must clear the pending flag
+}
+
+
+TEST(VDP_PORTS, INIT_READ_CONTROL)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& regs = vdp.registers();
+
+	ports.init_read_control();
+	wait_ports(vdp);
+
+	ASSERT_TRUE(ports.is_idle());
+	ASSERT_EQ(regs.sr_raw, ports.read_result());
+
+	// changing SR should be immediately reflected
+	regs.sr_raw = 0x1234;
+	ASSERT_EQ(regs.sr_raw, ports.read_result());
+
+	regs.sr_raw = 0x4321;
+	ASSERT_EQ(regs.sr_raw, ports.read_result());
 }
