@@ -12,6 +12,21 @@
 namespace genesis::vdp
 {
 
+
+struct control_write_request
+{
+/* 	enum class target
+	{
+		register,
+		address,
+		address_second
+	}; */
+
+	std::uint16_t data;
+	bool first_word;
+};
+
+
 class ports
 {
 private:
@@ -29,6 +44,8 @@ private:
 public:
 	ports(register_set& regs) : regs(regs) { }
 
+	bool is_idle() const;
+
 	void init_read_control();
 	void init_write_control(std::uint8_t);
 	void init_write_control(std::uint16_t);
@@ -39,53 +56,16 @@ public:
 
 	std::uint16_t read_result();
 
-	bool is_idle() const;
+	// interface for vdp
+	std::optional<control_write_request>& pending_control_write_requet() { return _control_write_request; }
 	void cycle();
-
 	void reset();
-
 
 
 	std::uint16_t read_control()
 	{
 		control_pending = false;
 		return regs.sr_raw;
-	}
-
-	void write_control(std::uint8_t data)
-	{
-		std::uint16_t ex_data = std::uint16_t(data) << 8;
-		ex_data |= data;
-		write_control(ex_data);
-	}
-
-	void write_control(std::uint16_t data)
-	{
-		if(control_pending == false && (data >> 14) == 0b10)
-		{
-			// write data to register
-			std::uint8_t reg_data = data & 0xFF;
-			std::uint8_t reg_num = (data >> 8) & 0b11111;
-			if(reg_num <= 23)
-			{
-				regs.set_register(reg_num, reg_data);
-			}
-		}
-		else
-		{
-			if(!control_pending)
-			{
-				// first half
-				control_pending = true;
-				regs.CP1_raw = data;
-			}
-			else
-			{
-				// second half
-				control_pending = false;
-				regs.CP2_raw = data;
-			}
-		}
 	}
 
 private:
@@ -101,6 +81,8 @@ private:
 
 	// true if we're waiting for the 2nd control word
 	bool control_pending = false;
+
+	std::optional<control_write_request> _control_write_request;
 };
 
 }

@@ -74,12 +74,40 @@ void ports::cycle()
 	case request::read_control:
 		req = request::none;
 		reading_control_port = true;
+		control_pending = false;
 		break;
 
 	case request::write_control:
-		// TODO: write data to FIFO if has slots,
-		// wait otherwise
-		throw not_implemented();
+		if(_control_write_request.has_value())
+		{
+			// wait till vdp picks up the request
+			break;
+		}
+
+		if(control_pending == false && (data_to_write >> 14) == 0b10)
+		{
+			// write data to register
+			_control_write_request = { data_to_write, true };
+		}
+		else
+		{
+			if(!control_pending)
+			{
+				// first half
+				control_pending = true;
+				_control_write_request = { data_to_write, true };
+			}
+			else
+			{
+				// second half
+				control_pending = false;
+				_control_write_request = { data_to_write, false };
+			}
+		}
+
+		// we're done
+		req = request::none;
+
 		break;
 
 	case request::read_data:

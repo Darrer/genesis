@@ -29,6 +29,9 @@ public:
 	vsram_t vsram() { return _vsram; }
 
 private:
+	void handle_ports_requests();
+
+private:
 	register_set regs;
 	settings _sett;
 	ports ports;
