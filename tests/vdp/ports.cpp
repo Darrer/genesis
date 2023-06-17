@@ -105,12 +105,12 @@ TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 		// write 1st part
 		ports.init_write_control(addr1);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.CP1_raw, addr1);
+		ASSERT_EQ(regs.address.raw_a1(), addr1);
 
 		// write 2nd part
 		ports.init_write_control(addr2);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.CP2_raw, addr2);
+		ASSERT_EQ(regs.address.raw_a2(), addr2);
 	}
 }
 
@@ -154,11 +154,11 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_ADDRESS)
 
 		ports.init_write_control(std::uint8_t(data));
 		wait_ports(vdp);
-		ASSERT_EQ(expected_data, regs.CP1_raw);
+		ASSERT_EQ(expected_data, regs.address.raw_a1());
 
 		ports.init_write_control(std::uint8_t(data));
 		wait_ports(vdp);
-		ASSERT_EQ(expected_data, regs.CP2_raw);
+		ASSERT_EQ(expected_data, regs.address.raw_a2());
 	}
 }
 
@@ -203,4 +203,18 @@ TEST(VDP_PORTS, CONTROL_PENDING_FLAG)
 	}
 
 	// TEST 3/4: TODO: reading/writing to data port must clear the pending flag
+}
+
+TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+
+	ASSERT_THROW(ports.read_result(), std::runtime_error);
+
+	ports.init_write_control(std::uint16_t(0));
+	ASSERT_THROW(ports.read_result(), std::runtime_error);
+
+	wait_ports(vdp);
+	ASSERT_THROW(ports.read_result(), std::runtime_error);
 }

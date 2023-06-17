@@ -73,19 +73,6 @@ enum class display_mode
 	mode5 // Mega Drive 
 };
 
-enum class vmem_type
-{
-	vram,
-	cram,
-	vsram,
-	invalid,
-};
-
-enum class control_type
-{
-	read,
-	write,
-};
 
 class settings
 {
@@ -336,52 +323,6 @@ public:
 	{
 		return regs.R15.INC;
 	}
-
-	/* Control Port */
-
-	std::uint32_t control_address() const
-	{
-		std::uint32_t addr = regs.CP1.A7_0;
-		addr |= std::uint32_t(regs.CP1.A13_8) << 8;
-		addr |= std::uint32_t(regs.CP2.A15_14) << 14;
-		return addr;
-	}
-
-	vmem_type control_mem_type() const
-	{
-		std::uint8_t cd = regs.CP1.CD1;
-		cd |= regs.CP2.CD3_2 << 1;
-		switch (cd)
-		{
-		case 0b000:
-			return vmem_type::vram;
-
-		case 0b001:
-		case 0b100:
-			return vmem_type::cram;
-
-		case 0b010:
-			return vmem_type::vsram;
-
-		default:
-			return vmem_type::invalid;
-		}
-	}
-
-	control_type control_type() const
-	{
-		if(regs.CP1.CD0 == 1)
-			return control_type::write;
-		return control_type::read;
-	}
-
-	bool control_through_dma() const
-	{
-		return regs.CP2.CD5 == 1;
-	}
-
-	// TOOD: regs.CP2.CD4 unimplemented
-
 
 private:
 	register_set& regs;

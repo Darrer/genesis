@@ -2,6 +2,7 @@
 #define __VDP_REGISTERS_H__
 
 #include <cstdint>
+#include <optional>
 
 
 namespace genesis::vdp
@@ -207,26 +208,6 @@ struct status_register
 	std::uint8_t : 6;
 };
 
-// Hide registers used by control port
-struct CP1
-{
-	std::uint8_t A7_0;
-	std::uint8_t A13_8 : 6;
-	std::uint8_t CD0 : 1;
-	std::uint8_t CD1 : 1;
-};
-
-struct CP2
-{
-	std::uint8_t A15_14 : 2;
-	std::uint8_t : 2;
-	std::uint8_t CD3_2 : 2;
-	std::uint8_t CD4 : 1;
-	std::uint8_t CD5 : 1;
-	std::uint8_t : 8;
-};
-
-
 static_assert(sizeof(R0) == 1);
 static_assert(sizeof(R1) == 1);
 static_assert(sizeof(R2) == 1);
@@ -252,8 +233,6 @@ static_assert(sizeof(R21) == 1);
 static_assert(sizeof(R22) == 1);
 static_assert(sizeof(R23) == 1);
 static_assert(sizeof(status_register) == 2);
-static_assert(sizeof(CP1) == 2);
-static_assert(sizeof(CP2) == 2);
 
 }
 
