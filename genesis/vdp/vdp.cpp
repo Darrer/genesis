@@ -36,9 +36,9 @@ void vdp::handle_ports_requests()
 		else
 		{
 			if(first_word)
-				regs.address.set_a1(data);
+				regs.control.set_c1(data);
 			else
-				regs.address.set_a2(data);
+				regs.control.set_c2(data);
 		}
 
 		write_req.reset();

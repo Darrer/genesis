@@ -2,7 +2,7 @@
 #define __VDP_REGISTER_SET_H__
 
 #include "registers.h"
-#include "address_register.h"
+#include "control_register.h"
 #include "exception.hpp"
 
 
@@ -114,7 +114,7 @@ public:
 		std::uint16_t sr_raw;
 	};
 
-	address_register address;
+	control_register control;
 };
 
 }

@@ -105,12 +105,12 @@ TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 		// write 1st part
 		ports.init_write_control(addr1);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.address.raw_a1(), addr1);
+		ASSERT_EQ(regs.control.raw_c1(), addr1);
 
 		// write 2nd part
 		ports.init_write_control(addr2);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.address.raw_a2(), addr2);
+		ASSERT_EQ(regs.control.raw_c2(), addr2);
 	}
 }
 
@@ -154,11 +154,11 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_ADDRESS)
 
 		ports.init_write_control(std::uint8_t(data));
 		wait_ports(vdp);
-		ASSERT_EQ(expected_data, regs.address.raw_a1());
+		ASSERT_EQ(expected_data, regs.control.raw_c1());
 
 		ports.init_write_control(std::uint8_t(data));
 		wait_ports(vdp);
-		ASSERT_EQ(expected_data, regs.address.raw_a2());
+		ASSERT_EQ(expected_data, regs.control.raw_c2());
 	}
 }
 
