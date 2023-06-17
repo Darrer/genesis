@@ -140,7 +140,26 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_REGISTERS)
 
 TEST(VDP_PORTS, BYTE_WRITE_CONTROL_ADDRESS)
 {
-	// TODO:
+	test::vdp vdp;
+
+	auto& ports = vdp.io_ports();
+	auto& regs = vdp.registers();
+
+	for(int data = 0; data <= 255; ++data)
+	{
+		if((data >> 6) == 0b10)
+			continue;
+
+		const std::uint16_t expected_data = std::uint16_t(data << 8) | data;
+
+		ports.init_write_control(std::uint8_t(data));
+		wait_ports(vdp);
+		ASSERT_EQ(expected_data, regs.CP1_raw);
+
+		ports.init_write_control(std::uint8_t(data));
+		wait_ports(vdp);
+		ASSERT_EQ(expected_data, regs.CP2_raw);
+	}
 }
 
 TEST(VDP_PORTS, CONTROL_PENDING_FLAG)
