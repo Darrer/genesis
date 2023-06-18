@@ -118,6 +118,9 @@ void ports::cycle()
 			// remove the complete flag so vdp can pre-cache next read
 			regs.control.work_completed(false);
 
+			// reading from data port must clear the pending flag
+			control_pending = false;
+
 			req = request::none;
 		}
 

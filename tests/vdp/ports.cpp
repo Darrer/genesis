@@ -53,6 +53,24 @@ std::uint16_t format_address_2(std::uint16_t addr)
 	return res;
 }
 
+vdp::control_register setup_control_read(std::uint16_t addr, vdp::vmem_type mem_type = vdp::vmem_type::vram)
+{
+	vdp::control_register control;
+	control.address(addr);
+	control.vmem_type(mem_type);
+	control.control_type(vdp::control_type::read);
+	control.dma_enabled(false);
+	control.work_completed(false);
+
+	return control;
+}
+
+void setup_control_register(test::vdp& vdp, std::uint16_t addr, vdp::vmem_type mem_type = vdp::vmem_type::vram)
+{
+	auto& regs = vdp.registers();
+	regs.control = setup_control_read(addr, mem_type);
+}
+
 TEST(VDP_PORTS, INIT_READ_CONTROL)
 {
 	test::vdp vdp;
@@ -208,7 +226,25 @@ TEST(VDP_PORTS, CONTROL_PENDING_FLAG)
 		ASSERT_EQ(new_reg_data, regs.get_register(reg_num));
 	}
 
-	// TEST 3/4: TODO: reading/writing to data port must clear the pending flag
+	// TEST 3: reading from data port must clear the pending flag
+	{
+		set_register(vdp, reg_num, reg_data);
+
+		// setup control register so we can read it letter
+		setup_control_register(vdp, 0xDEAD);
+
+		ports.init_write_control(format_address_1(0xDEAD)); // flag must be set
+		wait_ports(vdp);
+
+		ports.init_read_data(); // must clear the flag
+		wait_ports(vdp);
+
+		set_register(vdp, reg_num, new_reg_data);
+
+		ASSERT_EQ(new_reg_data, regs.get_register(reg_num));
+	}
+
+	// TEST 4: TODO: writing to data port must clear the pending flag
 }
 
 TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
@@ -224,8 +260,6 @@ TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
 	wait_ports(vdp);
 	ASSERT_THROW(ports.read_result(), std::runtime_error);
 }
-
-
 
 TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 {
