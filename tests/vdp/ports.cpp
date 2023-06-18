@@ -8,12 +8,16 @@ using namespace genesis;
 std::uint32_t wait_ports(test::vdp& vdp)
 {
 	std::uint32_t cycles = 0;
+	const std::uint32_t wait_limit = 100'000;
 
 	auto& ports = vdp.io_ports();
 	while (!ports.is_idle())
 	{
 		vdp.cycle();
 		++cycles;
+
+		if(cycles >= wait_limit)
+			throw std::runtime_error("wait_ports: it takes too long");
 	}
 
 	return cycles;
@@ -105,12 +109,12 @@ TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 		// write 1st part
 		ports.init_write_control(addr1);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.control.raw_c1(), addr1);
+		ASSERT_EQ(addr1, regs.control.raw_c1());
 
 		// write 2nd part
 		ports.init_write_control(addr2);
 		wait_ports(vdp);
-		ASSERT_EQ(regs.control.raw_c2(), addr2);
+		ASSERT_EQ(addr2, regs.control.raw_c2());
 	}
 }
 
@@ -217,4 +221,45 @@ TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
 
 	wait_ports(vdp);
 	ASSERT_THROW(ports.read_result(), std::runtime_error);
+}
+
+
+
+TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.vram();
+
+	vdp::control_register control;
+	control.vmem_type(vdp::vmem_type::vram);
+	control.control_type(vdp::control_type::read);
+	control.dma_enabled(false);
+	control.work_completed(false);
+
+	std::uint8_t data_to_write = 0xAA;
+	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
+	{
+		// prepare mem
+		mem.write<std::uint8_t>(addr, data_to_write);
+		mem.write<std::uint8_t>(addr + 1, data_to_write);
+
+		control.address(addr);
+
+		// setup control register
+		ports.init_write_control(control.raw_c1());
+		wait_ports(vdp);
+
+		ports.init_write_control(control.raw_c2());
+		wait_ports(vdp);
+
+		// setup read
+		ports.init_read_data();
+		wait_ports(vdp);
+
+		const std::uint16_t expected_data = (data_to_write << 8) | data_to_write;
+		ASSERT_EQ(expected_data, ports.read_result());
+
+		++data_to_write;
+	}
 }

@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "exception.hpp"
+
 
 namespace genesis::vdp
 {
@@ -59,6 +61,17 @@ public:
 		return addr;
 	}
 
+	void address(std::uint16_t value)
+	{
+		c1.A7_0 = std::uint8_t(value);
+		value = value >> 8;
+
+		c1.A13_8 = value & 0b111111;
+		value = value >> 6;
+
+		c2.A15_14 = value & 0b11;
+	}
+
 	vmem_type vmem_type() const
 	{
 		std::uint8_t cd = c1.CD1;
@@ -80,6 +93,40 @@ public:
 		}
 	}
 
+	void vmem_type(vdp::vmem_type _type)
+	{
+		switch (_type)
+		{
+		case vmem_type::vram:
+			c1.CD1 = 0;
+			c2.CD3_2 = 0;
+			break;
+
+		case vmem_type::cram:
+		{
+			if(control_type() == control_type::read)
+			{
+				c1.CD1 = 0;
+				c2.CD3_2 = 0b10;
+			}
+			else
+			{
+				c1.CD1 = 1;
+				c2.CD3_2 = 0;
+			}
+
+			break;
+		}
+
+		case vmem_type::vsram:
+			c1.CD1 = 0;
+			c2.CD3_2 = 0b01;
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
 	control_type control_type() const
 	{
 		if(c1.CD0 == 1)
@@ -87,12 +134,35 @@ public:
 		return control_type::read;
 	}
 
+	void control_type(vdp::control_type _type)
+	{
+		c1.CD0 = _type == control_type::write ? 1 : 0;
+
+		// recalculate vmem type as it can be based on control type
+		auto mem_type = vmem_type();
+		if(mem_type == vmem_type::cram)
+			vmem_type(mem_type);
+	}
+
 	bool dma_enabled() const
 	{
 		return c2.CD5 == 1;
 	}
 
-	// TOOD: regs.CP2.CD4 unimplemented
+	void dma_enabled(bool state)
+	{
+		c2.CD5 = state ? 1 : 0;
+	}
+
+	bool work_completed() const
+	{
+		return c2.CD4 == 1;
+	}
+
+	void work_completed(bool state)
+	{
+		c2.CD4 = state ? 1 : 0;
+	}
 
 private:
 	union

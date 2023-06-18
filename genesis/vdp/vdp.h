@@ -31,6 +31,8 @@ public:
 private:
 	void handle_ports_requests();
 
+	bool pre_cache_read_is_required() const;
+
 private:
 	register_set regs;
 	settings _sett;

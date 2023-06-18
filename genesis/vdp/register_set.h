@@ -3,6 +3,7 @@
 
 #include "registers.h"
 #include "control_register.h"
+#include "read_buffer.h"
 #include "exception.hpp"
 
 
@@ -115,6 +116,7 @@ public:
 	};
 
 	control_register control;
+	read_buffer read_cache;
 };
 
 }

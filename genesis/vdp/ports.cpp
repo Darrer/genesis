@@ -111,8 +111,16 @@ void ports::cycle()
 		break;
 
 	case request::read_data:
-		// TODO: somehow notify vdp that's read operation is pending
-		throw not_implemented();
+		if(regs.control.work_completed())
+		{
+			read_data = regs.read_cache.data();
+
+			// remove the complete flag so vdp can pre-cache next read
+			regs.control.work_completed(false);
+
+			req = request::none;
+		}
+
 		break;
 
 	case request::write_data:
