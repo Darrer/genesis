@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "vdp/impl/color.h"
+
 #include "test_vdp.h"
 
 using namespace genesis;
@@ -261,5 +263,60 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 		ASSERT_EQ(expected_data, ports.read_result());
 
 		++data_to_write;
+	}
+}
+
+TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.cram();
+
+	vdp::control_register control;
+	control.vmem_type(vdp::vmem_type::cram);
+	control.control_type(vdp::control_type::read);
+	control.dma_enabled(false);
+	control.work_completed(false);
+
+	for(int red = 0; red <= 7; ++red)
+	{
+		for(int green = 0; green <= 7; ++green)
+		{
+			for(int blue = 0; blue <= 7; ++blue)
+			{
+				vdp::color color;
+				color.red = red;
+				color.green = green;
+				color.blue = blue;
+
+				std::uint16_t expected_color = 0;
+				expected_color |= red << 1;
+				expected_color |= green << 5;
+				expected_color |= blue << 9;
+
+				ASSERT_EQ(expected_color, color.value());
+
+				for(int addr = 0; addr <= 63; ++addr)
+				{
+					// prepare mem
+					mem.at(addr) = color.value();
+					control.address(addr);
+
+					// setup control register
+					ports.init_write_control(control.raw_c1());
+					wait_ports(vdp);
+
+					ports.init_write_control(control.raw_c2());
+					wait_ports(vdp);
+
+					// setup read
+					ports.init_read_data();
+					wait_ports(vdp);
+
+					const std::uint16_t expected_data = color.value();
+					ASSERT_EQ(expected_data, ports.read_result());
+				}
+			}
+		}
 	}
 }
