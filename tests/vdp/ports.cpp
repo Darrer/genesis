@@ -330,10 +330,10 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 
 				ASSERT_EQ(expected_color, color.value());
 
-				for(int addr = 0; addr <= 63; ++addr)
+				for(int addr = 0; addr <= 127; ++addr)
 				{
 					// prepare mem
-					mem.at(addr) = color.value();
+					mem.write(addr & ~1, color.value());
 					control.address(addr);
 
 					// setup control register
@@ -351,6 +351,43 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 					ASSERT_EQ(expected_data, ports.read_result());
 				}
 			}
+		}
+	}
+}
+
+TEST(VDP_PORTS, DATA_PORT_WRITE_VSRAM)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.vsram();
+
+	vdp::control_register control;
+	control.vmem_type(vdp::vmem_type::vsram);
+	control.control_type(vdp::control_type::read);
+	control.dma_enabled(false);
+	control.work_completed(false);
+
+	for(int data = 0; data <= 1024; ++data)
+	{
+		for(int addr = 0; addr <= 79; ++addr)
+		{
+			// prepare mem
+			mem.write(addr, data);
+
+			control.address(addr);
+
+			// setup control register
+			ports.init_write_control(control.raw_c1());
+			wait_ports(vdp);
+
+			ports.init_write_control(control.raw_c2());
+			wait_ports(vdp);
+
+			// setup read
+			ports.init_read_data();
+			wait_ports(vdp);
+
+			ASSERT_EQ(data, ports.read_result());
 		}
 	}
 }

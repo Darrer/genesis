@@ -9,11 +9,59 @@ namespace genesis::vdp
 
 using vram_t = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
 
-// 64 16-bit words
-using cram_t = std::array<std::uint16_t, 64>;
+class cram_t
+{
+public:
+	std::uint16_t read(std::uint16_t addr)
+	{
+		return mem.read<std::uint16_t>(format_addr(addr));
+	}
 
-// 40 16-bit words
-using vsram_t = std::array<std::uint16_t, 40>;
+	void write(std::uint16_t addr, std::uint16_t data)
+	{
+		mem.write(format_addr(addr), data);
+	}
+
+private:
+	static std::uint16_t format_addr(std::uint16_t addr)
+	{
+		return addr & 0b0000000001111110;
+	}
+
+private:
+	// TODO: do not speicfy endianess
+	genesis::memory<std::uint16_t, 128, std::endian::little> mem;
+};
+
+
+class vsram_t
+{
+public:
+	std::uint16_t read(std::uint16_t addr)
+	{
+		// TODO: what addr >= 80 but <= 128?
+		return mem.read<std::uint16_t>(format_addr(addr));
+	}
+
+	void write(std::uint16_t addr, std::uint16_t data)
+	{
+		addr = format_addr(addr);
+		if(addr >= 80)
+			return;
+
+		mem.write(addr, data);
+	}
+
+private:
+	static std::uint16_t format_addr(std::uint16_t addr)
+	{
+		return addr & 0b0000000001111110;
+	}
+
+private:
+	// TODO: do not speicfy endianess
+	genesis::memory<std::uint16_t, 80, std::endian::little> mem;
+};
 
 };
 

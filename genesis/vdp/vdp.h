@@ -26,7 +26,7 @@ public:
 
 	vram_t& vram() { return *_vram; }
 	cram_t& cram() { return _cram; }
-	vsram_t vsram() { return _vsram; }
+	vsram_t& vsram() { return _vsram; }
 
 private:
 	void handle_ports_requests();

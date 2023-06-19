@@ -18,13 +18,20 @@ struct color
 
 	void value(std::uint16_t _value)
 	{
-		_value = _value & 0b0111011101110000;
-		*reinterpret_cast<std::uint16_t*>(this) = _value;
+		// format:
+		// ----bbb-ggg-rrr-
+		red = (_value >> 1) & 0b111;
+		green = (_value >> 5) & 0b111;
+		blue = (_value >> 9) & 0b111;
 	}
 
 	std::uint16_t value()
 	{
-		return *reinterpret_cast<std::uint16_t*>(this);
+		std::uint16_t val = 0;
+		val |= red << 1;
+		val |= green << 5;
+		val |= blue << 9;
+		return val;
 	}
 
 	std::uint8_t : 1;

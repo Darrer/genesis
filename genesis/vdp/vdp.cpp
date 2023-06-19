@@ -74,7 +74,7 @@ void vdp::handle_ports_requests()
 		case vmem_type::cram:
 		{
 			// TODO: we read like 9 bits only, the other 7 bits should be got from FIFO (or smth???)
-			std::uint16_t data = _cram.at(address);
+			std::uint16_t data = _cram.read(address);
 
 			regs.read_cache.set(data);
 			regs.control.work_completed(true);
@@ -84,7 +84,7 @@ void vdp::handle_ports_requests()
 
 		case vmem_type::vsram:
 		{
-			std::uint16_t data = _vsram.at(address);
+			std::uint16_t data = _vsram.read(address);
 
 			regs.read_cache.set(data);
 			regs.control.work_completed(true);
