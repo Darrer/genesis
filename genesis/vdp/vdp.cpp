@@ -46,7 +46,29 @@ void vdp::handle_ports_requests()
 		return;
 	}
 
-	// TODO: check FIFO
+	if(!regs.fifo.empty())
+	{
+		auto entry = regs.fifo.pop();
+
+		switch (entry.control.vmem_type())
+		{
+		case vmem_type::vram:
+			_vram->write(entry.control.address(), entry.data);
+			break;
+
+		case vmem_type::cram:
+			_cram.write(entry.control.address(), entry.data);
+			break;
+
+		case vmem_type::vsram:
+			_vsram.write(entry.control.address(), entry.data);
+			break;
+		
+		default: throw internal_error();
+		}
+
+		return;
+	}
 
 	// check read pre-cache operation is required
 	if(pre_cache_read_is_required())
@@ -94,6 +116,8 @@ void vdp::handle_ports_requests()
 
 		default: throw internal_error();
 		}
+
+		return;
 	}
 }
 

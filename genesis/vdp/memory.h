@@ -39,7 +39,7 @@ class vsram_t
 public:
 	std::uint16_t read(std::uint16_t addr)
 	{
-		// TODO: what addr >= 80 but <= 128?
+		// TODO: what if addr >= 80 but <= 128?
 		return mem.read<std::uint16_t>(format_addr(addr));
 	}
 

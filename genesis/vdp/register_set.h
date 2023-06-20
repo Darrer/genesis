@@ -4,6 +4,7 @@
 #include "registers.h"
 #include "control_register.h"
 #include "read_buffer.h"
+#include "impl/fifio.h"
 #include "exception.hpp"
 
 
@@ -117,6 +118,7 @@ public:
 
 	control_register control;
 	read_buffer read_cache;
+	fifo fifo;
 };
 
 }

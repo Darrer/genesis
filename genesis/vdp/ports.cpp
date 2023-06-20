@@ -127,9 +127,20 @@ void ports::cycle()
 		break;
 
 	case request::write_data:
-		// TODO: write data to FIFO if has slots,
-		// wait otherwise
-		throw not_implemented();
+		// note: write directly to queue
+		if(regs.fifo.full())
+		{
+			// wait till fifo get a free slot
+			break;
+		}
+		
+		regs.fifo.push(data_to_write, regs.control);
+
+		// writing to data port must clear the pending flag
+		control_pending = false;
+
+		req = request::none;
+
 		break;
 
 	default: throw internal_error();
