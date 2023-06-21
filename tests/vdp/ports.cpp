@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
+#include <iostream>
 
 #include "vdp/impl/color.h"
 
 #include "test_vdp.h"
+#include "../helpers/random.h"
 
+using namespace genesis::vdp;
 using namespace genesis;
 
 
@@ -53,19 +56,30 @@ std::uint16_t format_address_2(std::uint16_t addr)
 	return res;
 }
 
-vdp::control_register setup_control_read(std::uint16_t addr, vdp::vmem_type mem_type = vdp::vmem_type::vram)
+control_register setup_control(std::uint16_t addr, vmem_type mem_type, control_type ctype)
 {
-	vdp::control_register control;
+	control_register control;
 	control.address(addr);
 	control.vmem_type(mem_type);
-	control.control_type(vdp::control_type::read);
+	control.control_type(ctype);
+	control.dma_enabled(false);
+	control.work_completed(false);
+	return control;
+}
+
+control_register setup_control_read(std::uint16_t addr, vmem_type mem_type = vmem_type::vram)
+{
+	control_register control;
+	control.address(addr);
+	control.vmem_type(mem_type);
+	control.control_type(control_type::read);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
 	return control;
 }
 
-void setup_control_register(test::vdp& vdp, std::uint16_t addr, vdp::vmem_type mem_type = vdp::vmem_type::vram)
+void setup_control_register(test::vdp& vdp, std::uint16_t addr, vmem_type mem_type = vmem_type::vram)
 {
 	auto& regs = vdp.registers();
 	regs.control = setup_control_read(addr, mem_type);
@@ -244,7 +258,22 @@ TEST(VDP_PORTS, CONTROL_PENDING_FLAG)
 		ASSERT_EQ(new_reg_data, regs.get_register(reg_num));
 	}
 
-	// TEST 4: TODO: writing to data port must clear the pending flag
+	// TEST 4: writing to data port must clear the pending flag
+	{
+		set_register(vdp, reg_num, reg_data);
+
+		// setup control register so we can write to it letter
+		regs.control = setup_control(0, vmem_type::vram, control_type::write);
+
+		ports.init_write_control(format_address_1(0xDEAD)); // flag must be set
+		wait_ports(vdp);
+
+		ports.init_write_data(std::uint16_t(0)); // must clear the flag
+		wait_ports(vdp);
+
+		set_register(vdp, reg_num, new_reg_data);
+		ASSERT_EQ(new_reg_data, regs.get_register(reg_num));
+	}
 }
 
 TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
@@ -267,9 +296,9 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM)
 	auto& ports = vdp.io_ports();
 	auto& mem = vdp.vram();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::vram);
-	control.control_type(vdp::control_type::read);
+	control_register control;
+	control.vmem_type(vmem_type::vram);
+	control.control_type(control_type::read);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -306,9 +335,9 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 	auto& ports = vdp.io_ports();
 	auto& mem = vdp.cram();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::cram);
-	control.control_type(vdp::control_type::read);
+	control_register control;
+	control.vmem_type(vmem_type::cram);
+	control.control_type(control_type::read);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -318,7 +347,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 		{
 			for(int blue = 0; blue <= 7; ++blue)
 			{
-				vdp::color color;
+				color color;
 				color.red = red;
 				color.green = green;
 				color.blue = blue;
@@ -363,9 +392,9 @@ TEST(VDP_PORTS, DATA_PORT_READ_VSRAM)
 	auto& ports = vdp.io_ports();
 	auto& mem = vdp.vsram();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::vsram);
-	control.control_type(vdp::control_type::read);
+	control_register control;
+	control.vmem_type(vmem_type::vsram);
+	control.control_type(control_type::read);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -402,9 +431,9 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 	auto& mem = vdp.vram();
 	auto& regs = vdp.registers();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::vram);
-	control.control_type(vdp::control_type::write);
+	control_register control;
+	control.vmem_type(vmem_type::vram);
+	control.control_type(control_type::write);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -424,7 +453,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 		ports.init_write_data(data_to_write);
 		wait_ports(vdp);
 
-		// TODO: we also have to wait till VDP writes data
+		vdp.wait_fifo();
 
 		ASSERT_EQ(data_to_write, mem.read<std::uint16_t>(addr));
 	}
@@ -437,9 +466,9 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 	auto& mem = vdp.cram();
 	auto& regs = vdp.registers();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::cram);
-	control.control_type(vdp::control_type::write);
+	control_register control;
+	control.vmem_type(vmem_type::cram);
+	control.control_type(control_type::write);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -458,7 +487,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 		ports.init_write_data(data_to_write);
 		wait_ports(vdp);
 
-		// TODO: we also have to wait till VDP writes data
+		vdp.wait_fifo();
 
 		ASSERT_EQ(data_to_write, mem.read(addr));
 	}
@@ -471,9 +500,9 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VSRAM)
 	auto& mem = vdp.vsram();
 	auto& regs = vdp.registers();
 
-	vdp::control_register control;
-	control.vmem_type(vdp::vmem_type::vsram);
-	control.control_type(vdp::control_type::write);
+	control_register control;
+	control.vmem_type(vmem_type::vsram);
+	control.control_type(control_type::write);
 	control.dma_enabled(false);
 	control.work_completed(false);
 
@@ -492,8 +521,47 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VSRAM)
 		ports.init_write_data(data_to_write);
 		wait_ports(vdp);
 
-		// TODO: we also have to wait till VDP writes data
+		vdp.wait_fifo();
 
 		ASSERT_EQ(data_to_write, mem.read(addr));
+	}
+}
+
+TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.cram();
+	auto& regs = vdp.registers();
+
+	control_register write_ctrl = setup_control(0, vmem_type::cram, control_type::write);
+	control_register read_ctrl = setup_control(0, vmem_type::cram, control_type::read);
+
+	color color;
+	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
+	{
+		const int effective_addr = addr & 0b0000000001111110;
+		std::uint16_t data = test::random::next<std::uint16_t>();
+		color.value(data);
+
+		// setup write
+		write_ctrl.address(addr);
+		regs.control = write_ctrl;
+
+		ports.init_write_data(data);
+		vdp.wait_io_ports();
+
+		// we can be sure only for some bits
+		ASSERT_TRUE((mem.read(effective_addr) & color.value()) == color.value());
+
+		// setup read
+		read_ctrl.address(addr);
+		regs.control = read_ctrl;
+
+		ports.init_read_data();
+		vdp.wait_io_ports();
+
+		// we can be sure only for some bits
+		ASSERT_TRUE((ports.read_result() & color.value()) == color.value());
 	}
 }
