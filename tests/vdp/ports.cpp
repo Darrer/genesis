@@ -276,7 +276,7 @@ TEST(VDP_PORTS, CONTROL_PENDING_FLAG)
 	}
 }
 
-TEST(VDP_PORTS, READ_RESULT_WITH_NO_RESULT)
+TEST(VDP_PORTS, READ_RESULT_BAD_ACCESS)
 {
 	test::vdp vdp;
 	auto& ports = vdp.io_ports();
@@ -563,5 +563,58 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 
 		// we can be sure only for some bits
 		ASSERT_TRUE((ports.read_result() & color.value()) == color.value());
+	}
+}
+
+TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.vsram();
+	auto& regs = vdp.registers();
+
+	control_register write_ctrl = setup_control(0, vmem_type::vsram, control_type::write);
+	control_register read_ctrl = setup_control(0, vmem_type::vsram, control_type::read);
+
+	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
+	{
+		const int effective_addr = addr & 0b0000000001111110;
+		const std::uint16_t data = test::random::next<std::uint16_t>();
+		const std::uint16_t expected_data = data & 0b0000001111111111;
+
+		// setup write
+		write_ctrl.address(addr);
+		regs.control = write_ctrl;
+
+		ports.init_write_data(data);
+		vdp.wait_io_ports();
+
+
+		if(effective_addr < 80)
+		{
+			// we can be sure only for some bits
+			ASSERT_TRUE((mem.read(effective_addr) & expected_data) == expected_data);
+		}
+		else
+		{
+			// TODO: write should be ignored
+		}
+
+		// setup read
+		read_ctrl.address(addr);
+		regs.control = read_ctrl;
+
+		ports.init_read_data();
+		vdp.wait_io_ports();
+
+		if(effective_addr < 80)
+		{
+			// we can be sure only for some bits
+			ASSERT_TRUE((ports.read_result() & expected_data) == expected_data);
+		}
+		else
+		{
+			// TODO: so far it's not clear how handle addresses >=80
+		}
 	}
 }

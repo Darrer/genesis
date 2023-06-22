@@ -18,7 +18,7 @@ public:
 	{
 		init();
 
-		// TODO: works only for unsigned numbers
+		// TODO: works only with unsigned numbers
 		return std::rand() % std::numeric_limits<T>::max();
 	}
 

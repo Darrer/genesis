@@ -39,7 +39,16 @@ class vsram_t
 public:
 	std::uint16_t read(std::uint16_t addr)
 	{
-		// TODO: what if addr >= 80 but <= 128?
+		addr = format_addr(addr);
+
+		if(addr >= 80)
+		{
+			// TODO: in such case we have to return current VSRAM latched value
+			// and this logic should be handled by VDP core, but for simplicity
+			// return dummy value now
+			return 0;
+		}
+
 		return mem.read<std::uint16_t>(format_addr(addr));
 	}
 
