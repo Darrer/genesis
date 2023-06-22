@@ -53,7 +53,7 @@ public:
 	void set_c1(std::uint16_t val) { c1_value = val; }
 	void set_c2(std::uint16_t val) { c2_value = val; }
 
-	std::uint32_t address() const
+	std::uint16_t address() const
 	{
 		std::uint32_t addr = c1.A7_0;
 		addr |= std::uint32_t(c1.A13_8) << 8;

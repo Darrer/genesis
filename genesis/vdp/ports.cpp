@@ -115,6 +115,9 @@ void ports::cycle()
 		{
 			read_data = regs.read_cache.data();
 
+			// read is over, inc address
+			regs.control.address(regs.control.address() + regs.R15.INC);
+
 			// remove the complete flag so vdp can pre-cache next read
 			regs.control.work_completed(false);
 
@@ -135,6 +138,9 @@ void ports::cycle()
 		}
 		
 		regs.fifo.push(data_to_write, regs.control);
+
+		// write is over, inc address
+		regs.control.address(regs.control.address() + regs.R15.INC);
 
 		// writing to data port must clear the pending flag
 		control_pending = false;

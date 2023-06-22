@@ -53,7 +53,17 @@ void vdp::handle_ports_requests()
 		switch (entry.control.vmem_type())
 		{
 		case vmem_type::vram:
+		{
+			if(entry.control.address() % 2 == 1)
+			{
+				// writing to odd addresses swaps bytes
+				endian::swap(entry.data);
+
+				// writing cannot cross a word boundary
+				entry.control.address( entry.control.address() & ~1 );
+			}
 			_vram->write(entry.control.address(), entry.data);
+		}
 			break;
 
 		case vmem_type::cram:
@@ -76,7 +86,7 @@ void vdp::handle_ports_requests()
 		// TODO: primitive implementation
 		// TODO: advance address after read operation
 
-		std::uint32_t address = regs.control.address();
+		std::uint32_t address = regs.control.address() & ~1; // ignore 0bit
 
 		switch (regs.control.vmem_type())
 		{

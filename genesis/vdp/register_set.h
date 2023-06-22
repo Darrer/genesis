@@ -28,6 +28,7 @@ public:
 
 	std::uint8_t& get_register(std::uint8_t reg)
 	{
+		// TODO: check if it's UB to use reinterpret_cast here
 		switch (reg)
 		{
 		case 0:

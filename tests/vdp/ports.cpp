@@ -294,38 +294,28 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM)
 {
 	test::vdp vdp;
 	auto& ports = vdp.io_ports();
+	auto& regs = vdp.registers();
 	auto& mem = vdp.vram();
 
-	control_register control;
-	control.vmem_type(vmem_type::vram);
-	control.control_type(control_type::read);
-	control.dma_enabled(false);
-	control.work_completed(false);
+	control_register control = setup_control(0, vmem_type::vram, control_type::read);
 
-	std::uint8_t data_to_write = 0xAA;
 	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
 	{
-		// prepare mem
-		mem.write<std::uint8_t>(addr, data_to_write);
-		mem.write<std::uint8_t>(addr + 1, data_to_write);
+		std::uint16_t expected_data = test::random::next<std::uint16_t>();
+		int effective_address = addr & ~1;
 
-		control.address(addr);
+		// prepare mem
+		mem.write(effective_address, expected_data);
 
 		// setup control register
-		ports.init_write_control(control.raw_c1());
-		wait_ports(vdp);
-
-		ports.init_write_control(control.raw_c2());
-		wait_ports(vdp);
+		control.address(addr);
+		regs.control = control;
 
 		// setup read
 		ports.init_read_data();
 		wait_ports(vdp);
 
-		const std::uint16_t expected_data = (data_to_write << 8) | data_to_write;
-		ASSERT_EQ(expected_data, ports.read_result());
-
-		++data_to_write;
+		ASSERT_EQ(expected_data, ports.read_result()) << " at address" << addr;
 	}
 }
 
@@ -431,18 +421,19 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 	auto& mem = vdp.vram();
 	auto& regs = vdp.registers();
 
-	control_register control;
-	control.vmem_type(vmem_type::vram);
-	control.control_type(control_type::write);
-	control.dma_enabled(false);
-	control.work_completed(false);
+	control_register control = setup_control(0, vmem_type::vram, control_type::write);
 
-	std::uint16_t data_to_write = 0xBEEF;
 	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
 	{
+		int effective_address = addr & ~1;
+		std::uint16_t data_to_write = test::random::next<std::uint16_t>();
+		std::uint16_t expected_data = data_to_write;
+		if(addr % 2 == 1)
+			endian::swap(expected_data);
+
 		// prepare mem
-		mem.write<std::uint8_t>(addr, 0);
-		mem.write<std::uint8_t>(addr + 1, 0);
+		mem.write<std::uint8_t>(effective_address, 0);
+		mem.write<std::uint8_t>(effective_address + 1, 0);
 
 		control.address(addr);
 
@@ -455,7 +446,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 
 		vdp.wait_fifo();
 
-		ASSERT_EQ(data_to_write, mem.read<std::uint16_t>(addr));
+		ASSERT_EQ(expected_data, mem.read<std::uint16_t>(effective_address));
 	}
 }
 
@@ -618,3 +609,34 @@ TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
 		}
 	}
 }
+
+/* TEST(VDP_PORT, DATA_PORT_WRITE_VRAM_ODD_ADDRESS)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& mem = vdp.vram();
+	auto& regs = vdp.registers();
+
+	control_register control = setup_control(0, vmem_type::vram, control_type::write);
+
+	std::uint16_t data_to_write = 0xBEEF;
+	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
+	{
+		// prepare mem
+		mem.write<std::uint8_t>(addr, 0);
+		mem.write<std::uint8_t>(addr + 1, 0);
+
+		control.address(addr);
+
+		// setup control register
+		regs.control = control;
+
+		// setup write
+		ports.init_write_data(data_to_write);
+		wait_ports(vdp);
+
+		vdp.wait_fifo();
+
+		ASSERT_EQ(data_to_write, mem.read<std::uint16_t>(addr));
+	}
+} */
