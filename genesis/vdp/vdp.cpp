@@ -1,5 +1,7 @@
 #include "vdp.h"
 
+#include <iostream>
+
 namespace genesis::vdp
 {
 
@@ -134,7 +136,11 @@ void vdp::handle_ports_requests()
 
 bool vdp::pre_cache_read_is_required() const
 {
-	// TODO: check FIFO is empty!
+	if(!regs.fifo.empty())
+	{
+		// FIFO has priority over read pre-cache
+		return false;
+	}
 
 	if(regs.control.dma_enabled())
 	{
@@ -144,7 +150,7 @@ bool vdp::pre_cache_read_is_required() const
 
 	if(regs.control.work_completed())
 	{
-		// wait till old data is read
+		// wait till pre-read data is grabbed
 		return false;
 	}
 
@@ -155,7 +161,7 @@ bool vdp::pre_cache_read_is_required() const
 
 	if(regs.control.vmem_type() == vmem_type::invalid)
 	{
-		// TODO: is it possible
+		// TODO: is it possible?
 		return false;
 	}
 

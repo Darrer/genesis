@@ -315,7 +315,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM)
 		ports.init_read_data();
 		wait_ports(vdp);
 
-		ASSERT_EQ(expected_data, ports.read_result()) << " at address" << addr;
+		ASSERT_EQ(expected_data, ports.read_result());
 	}
 }
 
@@ -610,33 +610,83 @@ TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
 	}
 }
 
-/* TEST(VDP_PORT, DATA_PORT_WRITE_VRAM_ODD_ADDRESS)
+TEST(VDP_PORTS, DATA_PORT_READ_VRAM_AUTO_INC)
 {
 	test::vdp vdp;
 	auto& ports = vdp.io_ports();
-	auto& mem = vdp.vram();
 	auto& regs = vdp.registers();
+	auto& mem = vdp.vram();
+
+	// prepare mem
+	for(int addr = 0; addr < mem.max_capacity; ++addr)
+		mem.write(addr, test::random::next<std::uint8_t>());
+
+	control_register control = setup_control(0, vmem_type::vram, control_type::read);
+
+	std::initializer_list<std::uint8_t> auto_inc_values = {1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>() };
+
+	for(auto auto_inc : auto_inc_values)
+	{
+		regs.R15.INC = auto_inc;
+
+		control.address(0);
+		regs.control = control;
+
+		std::uint16_t expected_address = 0;
+
+		const int num_tests = 10;
+		for(auto i = 0; i < num_tests; ++i)
+		{
+			int effective_address = expected_address & ~1;
+			std::uint16_t expected_data = mem.read<std::uint16_t>(effective_address);
+
+			// setup read
+			ports.init_read_data();
+			vdp.wait_io_ports();
+
+			ASSERT_EQ(expected_data, ports.read_result());
+
+			expected_address += auto_inc;
+		}
+	}
+}
+
+TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM_AUTO_INC)
+{
+	test::vdp vdp;
+	auto& ports = vdp.io_ports();
+	auto& regs = vdp.registers();
+	auto& mem = vdp.vram();
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::write);
 
-	std::uint16_t data_to_write = 0xBEEF;
-	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
+	std::initializer_list<std::uint8_t> auto_inc_values = {1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>() };
+
+	for(auto auto_inc : auto_inc_values)
 	{
-		// prepare mem
-		mem.write<std::uint8_t>(addr, 0);
-		mem.write<std::uint8_t>(addr + 1, 0);
+		regs.R15.INC = auto_inc;
 
-		control.address(addr);
-
-		// setup control register
+		std::uint16_t expected_address = 0;
+		control.address(expected_address);
 		regs.control = control;
 
-		// setup write
-		ports.init_write_data(data_to_write);
-		wait_ports(vdp);
+		const int num_tests = 10;
+		for(auto i = 0; i < num_tests; ++i)
+		{
+			int effective_address = expected_address & ~1;
+			std::uint16_t data = test::random::next<std::uint16_t>();
 
-		vdp.wait_fifo();
+			// setup write
+			ports.init_write_data(data);
+			vdp.wait_write();
 
-		ASSERT_EQ(data_to_write, mem.read<std::uint16_t>(addr));
+			std::uint16_t expected_data = data;
+			if(expected_address % 2 == 1)
+				endian::swap(expected_data);
+
+			ASSERT_EQ(expected_data, mem.read<std::uint16_t>(effective_address));
+
+			expected_address += auto_inc;
+		}
 	}
-} */
+}
