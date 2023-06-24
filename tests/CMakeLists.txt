@@ -25,6 +25,8 @@ FetchContent_MakeAvailable(googletest json)
 add_executable(${GENESIS_TESTS})
 target_sources(${GENESIS_TESTS}
 PRIVATE
+	helpers/random.cpp
+
 	endian.cpp
 	rom.cpp
 	memory.cpp
@@ -58,6 +60,7 @@ PRIVATE
 	m68k/MCL/runner.cpp
 
 	vdp/ports.cpp
+	vdp/dma.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

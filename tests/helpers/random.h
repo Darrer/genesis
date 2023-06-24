@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <limits>
 #include <cstdlib>
+#include <vector>
+#include <ctime>
 
 
 namespace genesis::test
@@ -22,6 +24,15 @@ public:
 		return std::rand() % std::numeric_limits<T>::max();
 	}
 
+	template<class T>
+	static std::vector<T> next_few(unsigned count)
+	{
+		std::vector<T> res;
+		for(unsigned i = 0; i < count; ++i)
+			res.push_back(next<T>());
+		res;
+	}
+
 private:
 	static void init()
 	{
@@ -32,8 +43,6 @@ private:
 		}
 	}
 };
-
-bool random::inited = false;
 
 };
 

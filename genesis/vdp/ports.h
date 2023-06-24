@@ -47,11 +47,11 @@ public:
 	bool is_idle() const;
 
 	void init_read_control();
-	void init_write_control(std::uint8_t);
+	void init_write_control(std::uint8_t); // TODO: remove
 	void init_write_control(std::uint16_t);
 
 	void init_read_data();
-	void init_write_data(std::uint8_t);
+	void init_write_data(std::uint8_t); // TODO: remove
 	void init_write_data(std::uint16_t);
 
 	std::uint16_t read_result();

@@ -38,9 +38,22 @@ void vdp::handle_ports_requests()
 		else
 		{
 			if(first_word)
+			{
 				regs.control.set_c1(data);
+			}
 			else
+			{
+				bool dma_start_flag = regs.control.dma_start();
+
 				regs.control.set_c2(data);
+
+				if(_sett.dma_enabled() == false)
+				{
+					// writing to control port cannot change CD5 bit if DMA is disabled
+					// so restore old value
+					regs.control.dma_start(dma_start_flag);
+				}
+			}
 		}
 
 		write_req.reset();
@@ -142,7 +155,7 @@ bool vdp::pre_cache_read_is_required() const
 		return false;
 	}
 
-	if(regs.control.dma_enabled())
+	if(regs.control.dma_start()) // TODO: fixme
 	{
 		// current operation should be handled by DMA
 		return false;

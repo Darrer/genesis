@@ -10,7 +10,7 @@ using namespace genesis::vdp;
 using namespace genesis;
 
 
-std::uint32_t wait_ports(test::vdp& vdp)
+std::uint32_t wait_ports(test::vdp& vdp, std::string desc = "")
 {
 	std::uint32_t cycles = 0;
 	const std::uint32_t wait_limit = 100'000;
@@ -22,7 +22,7 @@ std::uint32_t wait_ports(test::vdp& vdp)
 		++cycles;
 
 		if(cycles >= wait_limit)
-			throw std::runtime_error("wait_ports: it takes too long");
+			throw std::runtime_error(std::string("wait_ports: it takes too long") + " " + desc);
 	}
 
 	return cycles;
@@ -62,7 +62,7 @@ control_register setup_control(std::uint16_t addr, vmem_type mem_type, control_t
 	control.address(addr);
 	control.vmem_type(mem_type);
 	control.control_type(ctype);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 	return control;
 }
@@ -73,7 +73,7 @@ control_register setup_control_read(std::uint16_t addr, vmem_type mem_type = vme
 	control.address(addr);
 	control.vmem_type(mem_type);
 	control.control_type(control_type::read);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 
 	return control;
@@ -124,6 +124,8 @@ TEST(VDP_PORTS, WRITE_CONTROL_REGISTERS)
 	}
 }
 
+const std::uint16_t cd5_clear_mask = 0b1111111101111111;
+
 TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 {
 	test::vdp vdp;
@@ -138,16 +140,18 @@ TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 	for(int data = 0; data <= 0xFFFF; ++data)
 	{
 		std::uint16_t addr1 = format_address_1(data);
-		std::uint16_t addr2 = format_address_2(data);
+		std::uint16_t addr2 = format_address_2(data) & cd5_clear_mask;
+
+		ASSERT_EQ(0, regs.R1.M1);
 
 		// write 1st part
 		ports.init_write_control(addr1);
-		wait_ports(vdp);
+		vdp.wait_io_ports();
 		ASSERT_EQ(addr1, regs.control.raw_c1());
 
 		// write 2nd part
 		ports.init_write_control(addr2);
-		wait_ports(vdp);
+		vdp.wait_io_ports();
 		ASSERT_EQ(addr2, regs.control.raw_c2());
 	}
 }
@@ -191,12 +195,12 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_ADDRESS)
 		const std::uint16_t expected_data = std::uint16_t(data << 8) | data;
 
 		ports.init_write_control(std::uint8_t(data));
-		wait_ports(vdp);
+		vdp.wait_io_ports();
 		ASSERT_EQ(expected_data, regs.control.raw_c1());
 
 		ports.init_write_control(std::uint8_t(data));
-		wait_ports(vdp);
-		ASSERT_EQ(expected_data, regs.control.raw_c2());
+		vdp.wait_io_ports();
+		ASSERT_EQ(expected_data & cd5_clear_mask, regs.control.raw_c2());
 	}
 }
 
@@ -328,7 +332,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 	control_register control;
 	control.vmem_type(vmem_type::cram);
 	control.control_type(control_type::read);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 
 	for(int red = 0; red <= 7; ++red)
@@ -360,14 +364,16 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 
 					// setup control register
 					ports.init_write_control(control.raw_c1());
-					wait_ports(vdp);
+					wait_ports(vdp, "w1");
 
 					ports.init_write_control(control.raw_c2());
-					wait_ports(vdp);
+					wait_ports(vdp, "w2");
 
 					// setup read
+					// ASSERT_EQ(false, vdp.registers().control.dma_start());
+					ASSERT_EQ(0, vdp.registers().R1.M1);
 					ports.init_read_data();
-					wait_ports(vdp);
+					wait_ports(vdp, "r1");
 
 					ASSERT_EQ(expected_data, ports.read_result());
 				}
@@ -385,7 +391,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_VSRAM)
 	control_register control;
 	control.vmem_type(vmem_type::vsram);
 	control.control_type(control_type::read);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 
 	for(int data = 0; data <= 1024; ++data)
@@ -460,7 +466,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 	control_register control;
 	control.vmem_type(vmem_type::cram);
 	control.control_type(control_type::write);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 
 	std::uint16_t data_to_write = 0xBEEF;
@@ -494,7 +500,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VSRAM)
 	control_register control;
 	control.vmem_type(vmem_type::vsram);
 	control.control_type(control_type::write);
-	control.dma_enabled(false);
+	control.dma_start(false);
 	control.work_completed(false);
 
 	std::uint16_t data_to_write = 0xBEEF;
@@ -629,10 +635,9 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM_AUTO_INC)
 	{
 		regs.R15.INC = auto_inc;
 
-		control.address(0);
-		regs.control = control;
-
 		std::uint16_t expected_address = 0;
+		control.address(expected_address);
+		regs.control = control;
 
 		const int num_tests = 10;
 		for(auto i = 0; i < num_tests; ++i)

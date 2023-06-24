@@ -47,6 +47,12 @@ enum class control_type
 class control_register
 {
 public:
+	control_register()
+	{
+		set_c1(0);
+		set_c2(0);
+	}
+
 	std::uint16_t raw_c1() const { return c1_value; }
 	std::uint16_t raw_c2() const { return c2_value; }
 
@@ -144,12 +150,12 @@ public:
 			vmem_type(mem_type);
 	}
 
-	bool dma_enabled() const
+	bool dma_start() const
 	{
 		return c2.CD5 == 1;
 	}
 
-	void dma_enabled(bool state)
+	void dma_start(bool state)
 	{
 		c2.CD5 = state ? 1 : 0;
 	}
