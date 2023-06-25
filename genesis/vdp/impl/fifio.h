@@ -64,7 +64,7 @@ public:
 		push({data, control});
 	}
 
-	fifo_entry prev()
+	fifo_entry prev() const
 	{
 		int prev_entry = first_entry == 0 ? 3 : first_entry - 1;
 		return queue.at(prev_entry);

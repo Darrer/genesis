@@ -63,12 +63,7 @@ public:
 		// TODO: we're losing 1 cycle here
 		case state::finishing:
 		{
-			if(write_is_done())
-			{
-				_state = state::idle;
-				regs.control.dma_start(false);
-			}
-
+			do_finishing();
 			break;
 		}
 		
@@ -138,10 +133,19 @@ private:
 		}
 	}
 
-	std::uint8_t data_to_fill_vram()
+	std::uint8_t data_to_fill_vram() const
 	{
 		std::uint16_t data = regs.fifo.prev().data;
 		return endian::msb(data);
+	}
+
+	void do_finishing()
+	{
+		if(write_is_done())
+		{
+			_state = state::idle;
+			regs.control.dma_start(false);
+		}
 	}
 
 private:
