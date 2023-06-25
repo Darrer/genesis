@@ -75,7 +75,7 @@ private:
 	{
 		if (addr + size > capacity || addr < 0)
 			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) +
-									 ") read: " + std::to_string(size));
+									 ") size: " + std::to_string(size));
 	}
 
 private:

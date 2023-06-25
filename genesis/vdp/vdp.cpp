@@ -5,14 +5,37 @@
 namespace genesis::vdp
 {
 
-vdp::vdp() : _sett(regs), ports(regs), _vram(std::make_unique<vram_t>())
+vdp::vdp() : _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett)
 {
 }
 
 void vdp::cycle()
 {
 	ports.cycle();
+
+	if(_sett.dma_enabled())
+		dma.cycle();
+
+	// io ports have priority over DMA
 	handle_ports_requests();
+
+	if(_sett.dma_enabled())
+	{
+		auto& write_req = dma.pending_write();
+		if(write_req.has_value())
+		{
+			auto req = write_req.value();
+			switch (req.type)
+			{
+			case vmem_type::vram:
+				vram_write(req.address, std::uint8_t(req.data));
+				write_req.reset();
+				break;
+
+			default: throw not_implemented();
+			}
+		}
+	}
 }
 
 void vdp::handle_ports_requests()
@@ -77,6 +100,8 @@ void vdp::handle_ports_requests()
 				// writing cannot cross a word boundary
 				entry.control.address( entry.control.address() & ~1 );
 			}
+
+			// TODO: vram has byte-only access
 			_vram->write(entry.control.address(), entry.data);
 		}
 			break;
@@ -181,6 +206,22 @@ bool vdp::pre_cache_read_is_required() const
 	// TODO: what if vdp just started and control register is not set by ports?
 
 	return true;
+}
+
+
+void vdp::vram_write(std::uint32_t address, std::uint8_t data)
+{
+	_vram->write(address, data);
+}
+
+void vdp::cram_write(std::uint32_t address, std::uint16_t data)
+{
+	_cram.write(address, data);
+}
+
+void vdp::vsram_write(std::uint32_t address, std::uint16_t data)
+{
+	_vsram.write(address, data);
 }
 
 

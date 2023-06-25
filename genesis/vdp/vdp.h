@@ -8,6 +8,8 @@
 #include "ports.h"
 #include "memory.h"
 
+#include "impl/dma.h"
+
 
 namespace genesis::vdp
 {
@@ -33,6 +35,11 @@ private:
 
 	bool pre_cache_read_is_required() const;
 
+	// TODO: refactor this interface
+	void vram_write(std::uint32_t address, std::uint8_t data);
+	void cram_write(std::uint32_t address, std::uint16_t data);
+	void vsram_write(std::uint32_t address, std::uint16_t data);
+
 private:
 	register_set regs;
 	settings _sett;
@@ -41,6 +48,9 @@ private:
 	std::unique_ptr<vram_t> _vram;
 	cram_t _cram;
 	vsram_t _vsram;
+
+protected:
+	impl::dma dma;
 };
 
 }

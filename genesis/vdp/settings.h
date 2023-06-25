@@ -2,6 +2,7 @@
 #define __VDP_SETTINGS_H__
 
 #include "register_set.h"
+#include "endian.hpp"
 
 namespace genesis::vdp
 {
@@ -63,7 +64,7 @@ enum class interlace_mode
 enum class dma_mode
 {
 	mem_to_vram, // M68K memory -> VRAM
-	vram_fill,
+	vram_fill, // TODO: rename to fill
 	vram_copy,
 };
 
@@ -199,6 +200,12 @@ public:
 		return length;
 	}
 
+	void dma_length(std::uint16_t length)
+	{
+		regs.R20.H = endian::msb(length);
+		regs.R19.L = endian::lsb(length);
+	}
+
 	std::uint32_t dma_source() const
 	{
 		std::uint32_t source = std::uint32_t(regs.R23.H) << 17;
@@ -223,6 +230,27 @@ public:
 			return dma_mode::vram_fill;
 
 		return dma_mode::vram_copy;
+	}
+
+	void dma_mode(vdp::dma_mode mode)
+	{
+		switch (mode)
+		{
+		case dma_mode::mem_to_vram:
+			regs.R23.T1 = 0;
+			break;
+
+		case dma_mode::vram_fill:
+			regs.R23.T1 = 1;
+			regs.R23.T0 = 0;
+			break;
+
+		case dma_mode::vram_copy:
+			regs.R23.T1 = regs.R23.T0 = 1;
+			break;
+
+		default: throw internal_error();
+		}
 	}
 
 	/* Interrupts */

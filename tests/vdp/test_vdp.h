@@ -30,6 +30,12 @@ public:
 		return cycles;
 	}
 
+	std::uint32_t wait_dma()
+	{
+		// TODO: increase cycle threshold
+		return wait([this]() { return dma.is_idle(); } );
+	}
+
 private:
 	template<class Callable>
 	std::uint32_t wait(const Callable&& predicate)
@@ -41,7 +47,7 @@ private:
 			++cycles;
 
 			if(cycles == cycle_limit)
-				throw internal_error();
+				throw internal_error("wait: exceed limit");
 		}
 
 		return cycles;

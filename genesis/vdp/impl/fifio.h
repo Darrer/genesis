@@ -64,6 +64,12 @@ public:
 		push({data, control});
 	}
 
+	fifo_entry prev()
+	{
+		int prev_entry = first_entry == 0 ? 3 : first_entry - 1;
+		return queue.at(prev_entry);
+	}
+
 private:
 	int free_slot = 0;
 	int first_entry = 0;
