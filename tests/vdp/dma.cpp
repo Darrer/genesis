@@ -13,22 +13,63 @@ void zero_mem(vram_t& mem)
 		mem.write<std::uint8_t>(addr, 0);
 }
 
+void zero_mem(cram_t& mem)
+{
+	for(int addr = 0; addr <= 126; addr += 2)
+		mem.write(addr, 0);
+}
+
+void zero_mem(vsram_t& mem)
+{
+	for(int addr = 0; addr <= 78; addr += 2)
+		mem.write(addr, 0);
+}
+
+void prepare_fill_data_for_cram_vsram(test::vdp& vdp, std::uint16_t fill_data)
+{
+	auto& ports = vdp.io_ports();
+	auto& regs = vdp.registers();
+
+	control_register control;
+	control.address(0);
+	control.dma_start(false);
+	control.vmem_type(vmem_type::vram); // doesn't matter, just to not affect cram/vsram
+	control.control_type(control_type::write);
+	control.work_completed(false);
+
+	regs.control = control;
+
+	// the fill data for cram/vsram is the data written 4 writes ago
+	// so do 3 write here
+	// and the 4th write to trigger DMA should be done by external code
+	for(int i = 0; i < 3; ++i)
+	{
+		// 1st write puts the right data
+		ports.init_write_data(fill_data);
+		vdp.wait_io_ports();
+
+		// change fill data to make sure DMA will use the right entry from the queue for the fill
+		fill_data += 2;
+	}
+}
+
 std::uint32_t setup_dma(test::vdp& vdp, std::uint32_t address, std::uint16_t length,
 	dma_mode mode, vmem_type mem_type, std::uint16_t fill_data)
 {
 	auto& ports = vdp.io_ports();
 	auto& sett = vdp.sett();
+	auto& regs = vdp.registers();
 
 	sett.dma_length(length);
 	sett.dma_mode(mode);
-	vdp.registers().R1.M1 = 1; // enable DMA
+	regs.R1.M1 = 1; // enable DMA
 
 	control_register control;
 	control.address(address);
 	control.dma_start(true);
 	control.vmem_type(mem_type);
-	control.work_completed(false);
 	control.control_type(control_type::write); // TODO: does it affect DMA?
+	control.work_completed(false);
 
 	std::uint32_t cycles = 0;
 
@@ -374,5 +415,93 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
+	}
+}
+
+TEST(VDP_DMA, BASIC_FILL_CRAM)
+{
+	test::vdp vdp;
+	auto& regs = vdp.registers();
+
+	const std::uint16_t start_address = 0;
+	const std::uint16_t length = 20;
+	const std::uint16_t fill_data = 0xABCD;
+	const std::uint16_t trigger_fill_data = 0xDEAD;
+
+	auto& mem = vdp.cram();
+	zero_mem(mem);
+
+	// prepare DMA
+	regs.R15.INC = 2; // set auto inc
+	prepare_fill_data_for_cram_vsram(vdp, fill_data);
+	setup_dma(vdp, start_address, length, dma_mode::vram_fill, vmem_type::cram, trigger_fill_data);
+
+	// all setup - wait DMA now
+	vdp.wait_dma();
+
+	// assert memory
+
+	// first write should be last data port write -- trigger_fill_data
+	ASSERT_EQ(trigger_fill_data, mem.read(start_address));
+
+	// all subsequent words -- fill_data
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = start_address + 2 + (i  * 2);
+		ASSERT_EQ(fill_data, mem.read(addr));
+	}
+
+	std::uint16_t final_addr = dma_final_address(start_address, length, 2);
+	ASSERT_EQ(final_addr, regs.control.address());
+
+	// make sure DMA didn't touch memory after final address
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = final_addr + i;
+		ASSERT_EQ(0, mem.read(addr));
+	}
+}
+
+TEST(VDP_DMA, BASIC_FILL_VSRAM)
+{
+	test::vdp vdp;
+	auto& regs = vdp.registers();
+
+	const std::uint16_t start_address = 0;
+	const std::uint16_t length = 15;
+	const std::uint16_t fill_data = 0xABCD;
+	const std::uint16_t trigger_fill_data = 0xDEAD;
+
+	auto& mem = vdp.vsram();
+	zero_mem(mem);
+
+	// prepare DMA
+	regs.R15.INC = 2; // set auto inc
+	prepare_fill_data_for_cram_vsram(vdp, fill_data);
+	setup_dma(vdp, start_address, length, dma_mode::vram_fill, vmem_type::vsram, trigger_fill_data);
+
+	// all setup - wait DMA now
+	vdp.wait_dma();
+
+	// assert memory
+
+	// first write should be last data port write -- trigger_fill_data
+	ASSERT_EQ(trigger_fill_data, mem.read(start_address));
+
+	// all subsequent words -- fill_data
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = start_address + 2 + (i  * 2);
+		ASSERT_EQ(fill_data, mem.read(addr));
+	}
+
+	std::uint16_t final_addr = dma_final_address(start_address, length, 2);
+	ASSERT_EQ(final_addr, regs.control.address());
+
+	// make sure DMA didn't touch memory after final address
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = final_addr + i;
+		ASSERT_EQ(0, mem.read(addr));
 	}
 }

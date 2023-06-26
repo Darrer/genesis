@@ -111,16 +111,22 @@ private:
 			return;
 		}
 
-		// only work with vram for now
-		if(regs.control.vmem_type() != vmem_type::vram)
-			throw not_implemented();
-
-		std::uint8_t fill_data = data_to_fill_vram();
-
 		auto addr = regs.control.address();
 
-		// std::cout << "Writing to " << addr << " : " << fill_data << std::endl;
-		init_write(vmem_type::vram, addr, fill_data);
+		auto mem_type = regs.control.vmem_type();
+		if(mem_type == vmem_type::invalid)
+			throw not_implemented();
+
+		if(mem_type == vmem_type::vram)
+		{
+			std::uint8_t fill_data = data_to_fill_vram();
+			init_write(vmem_type::vram, addr, fill_data);
+		}
+		else
+		{
+			std::uint16_t fill_data = regs.fifo.next().data;
+			init_write(mem_type, addr, fill_data);
+		}
 
 		regs.control.address( regs.control.address() + sett.auto_increment_value() );
 

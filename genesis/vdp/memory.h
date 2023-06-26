@@ -30,7 +30,8 @@ private:
 
 private:
 	// TODO: do not speicfy endianess
-	genesis::memory<std::uint16_t, 128, std::endian::little> mem;
+	// 128 bytes [0 ; 127]
+	genesis::memory<std::uint16_t, 127, std::endian::little> mem;
 };
 
 
@@ -69,7 +70,8 @@ private:
 
 private:
 	// TODO: do not speicfy endianess
-	genesis::memory<std::uint16_t, 80, std::endian::little> mem;
+	// 80 bytes [0 ; 79]
+	genesis::memory<std::uint16_t, 79, std::endian::little> mem;
 };
 
 };

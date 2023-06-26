@@ -70,6 +70,11 @@ public:
 		return queue.at(prev_entry);
 	}
 
+	fifo_entry next() const
+	{
+		return queue.at(free_slot);
+	}
+
 private:
 	int free_slot = 0;
 	int first_entry = 0;

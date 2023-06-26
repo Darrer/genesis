@@ -32,7 +32,17 @@ void vdp::cycle()
 				write_req.reset();
 				break;
 
-			default: throw not_implemented();
+			case vmem_type::cram:
+				cram_write(req.address, req.data);
+				write_req.reset();
+				break;
+
+			case vmem_type::vsram:
+				vsram_write(req.address, req.data);
+				write_req.reset();
+				break;
+
+			default: throw internal_error();
 			}
 		}
 	}
