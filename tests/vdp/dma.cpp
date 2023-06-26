@@ -9,7 +9,7 @@ using namespace genesis::vdp;
 
 void zero_mem(vram_t& mem)
 {
-	for(int addr = 0; addr < mem.max_capacity; ++addr)
+	for(int addr = 0; addr <= mem.max_address; ++addr)
 		mem.write<std::uint8_t>(addr, 0);
 }
 
@@ -86,9 +86,6 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 {
 	test::vdp vdp;
 	auto& regs = vdp.registers();
-	auto& ports = vdp.io_ports();
-	auto& sett = vdp.sett();
-	auto& mem = vdp.vram();
 
 	const std::uint16_t start_address = 0;
 	const std::uint16_t length = 100;
@@ -96,6 +93,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 	const std::uint8_t fill_msb = endian::msb(fill_data);
 	const std::uint8_t fill_lsb = endian::lsb(fill_data);
 
+	auto& mem = vdp.vram();
 	zero_mem(mem);
 
 	// prepare DMA
@@ -132,15 +130,14 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 {
 	test::vdp vdp;
 	auto& regs = vdp.registers();
-	auto& ports = vdp.io_ports();
-	auto& sett = vdp.sett();
-	auto& mem = vdp.vram();
 
 	const std::uint16_t start_address = 0;
 	const std::uint16_t length = 100;
 	const std::uint16_t fill_data = 0xABCD;
 	const std::uint8_t fill_msb = endian::msb(fill_data);
+	const std::uint8_t fill_lsb = endian::lsb(fill_data);
 
+	auto& mem = vdp.vram();
 	zero_mem(mem);
 
 	// prepare DMA
@@ -152,8 +149,9 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 
 	// assert memory
 
-	// first write should be 2 byte long
-	ASSERT_EQ(fill_data, mem.read<std::uint16_t>(start_address));
+	// first write should be 2 byte long - LSB MSB
+	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
+	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address + 1));
 
 	// all subsequent written bytes - MSB
 	for(int i = 0; i < length; ++i)
@@ -178,9 +176,6 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 {
 	test::vdp vdp;
 	auto& regs = vdp.registers();
-	auto& ports = vdp.io_ports();
-	auto& sett = vdp.sett();
-	auto& mem = vdp.vram();
 
 	const std::uint16_t start_address = 1;
 	const std::uint16_t length = 100;
@@ -188,6 +183,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 	const std::uint8_t fill_msb = endian::msb(fill_data);
 	const std::uint8_t fill_lsb = endian::lsb(fill_data);
 
+	auto& mem = vdp.vram();
 	zero_mem(mem);
 
 	// prepare DMA
@@ -225,9 +221,6 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 {
 	test::vdp vdp;
 	auto& regs = vdp.registers();
-	auto& ports = vdp.io_ports();
-	auto& sett = vdp.sett();
-	auto& mem = vdp.vram();
 
 	const std::uint16_t start_address = 1;
 	const std::uint16_t length = 100;
@@ -235,6 +228,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 	const std::uint8_t fill_msb = endian::msb(fill_data);
 	const std::uint8_t fill_lsb = endian::lsb(fill_data);
 
+	auto& mem = vdp.vram();
 	zero_mem(mem);
 	
 	// prepare DMA
@@ -259,6 +253,120 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 	}
 
 	std::uint16_t final_addr = dma_final_address(start_address, length, 2);
+	ASSERT_EQ(final_addr, regs.control.address());
+
+	// make sure DMA didn't touch memory after final address
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = final_addr + i;
+		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
+	}
+}
+
+TEST(VDP_DMA, BASIC_FILL_VRAM_0_LENGTH)
+{
+	test::vdp vdp;
+	auto& regs = vdp.registers();
+
+	const std::uint16_t start_address = test::random::next<std::uint16_t>();
+	const std::uint16_t length = 0;
+	const std::uint16_t fill_data = 0xDEAD;
+	const std::uint8_t fill_msb = endian::msb(fill_data);
+
+	auto& mem = vdp.vram();
+	zero_mem(mem);
+
+	// prepare DMA
+	regs.R15.INC = 1; // set auto inc
+	setup_dma(vdp, start_address, length, dma_mode::vram_fill, vmem_type::vram, fill_data);
+
+	// all setup - wait DMA now
+	vdp.wait_dma();
+
+	// assert memory
+
+	// all written bytes should be MSB
+	for(int addr = 0; addr <= 0xFFFF; ++addr)
+		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
+
+	std::uint16_t final_addr = dma_final_address(start_address, length, 1);
+	ASSERT_EQ(final_addr, regs.control.address());
+}
+
+TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
+{
+	test::vdp vdp;
+	auto& regs = vdp.registers();
+	auto& sett = vdp.sett();
+	auto& ports = vdp.io_ports();
+
+	const std::uint16_t start_address = 0;
+	const std::uint16_t length = 100;
+	const std::uint16_t fill_data = 0xDEAD;
+	const std::uint16_t new_fill_data = 0xBEAF;
+
+	auto& mem = vdp.vram();
+	zero_mem(mem);
+
+	// prepare DMA
+	regs.R15.INC = 1; // set auto inc
+	setup_dma(vdp, start_address, length, dma_mode::vram_fill, vmem_type::vram, fill_data);
+
+	// on the half way change FILL data
+	while (true)
+	{
+		vdp.cycle();
+
+		if(sett.dma_length() <= (length / 2))
+		{
+			// wait till address becomes even
+			if(regs.control.address() % 2 == 0)
+				break;
+		}
+	}
+
+	// NOTE: assume DMA won't write anything to memory after starting writing to data port
+	std::uint16_t address_of_new_fill_data = regs.control.address();
+
+	// current address must be even, otherwise bytes are swapped during writing new_fill_data
+	ASSERT_EQ(0, regs.control.address() % 2);
+
+	ports.init_write_data(new_fill_data);
+	vdp.wait_io_ports();
+
+	// finish DMA
+	vdp.wait_dma();
+
+	// assert memory
+
+	{
+		/* assert memory with original fill data */
+
+		// first written byte should be LSB
+		ASSERT_EQ(endian::lsb(fill_data), mem.read<std::uint8_t>(start_address));
+
+		std::uint16_t fill_msb = endian::msb(fill_data);
+
+		for(int addr = start_address + 1; addr < address_of_new_fill_data; ++addr)
+			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
+
+	}
+
+	// final addr should be 1 byte futher due to extra data port write
+	std::uint16_t final_addr = dma_final_address(start_address, length, 1) + 1;
+
+	{
+		/* assert memory with new fill data */
+
+		// first written byte should be LSB
+		ASSERT_EQ(endian::lsb(new_fill_data), mem.read<std::uint8_t>(address_of_new_fill_data));
+
+		std::uint16_t fill_msb = endian::msb(new_fill_data);
+
+		for(int addr = address_of_new_fill_data + 1; addr < final_addr; ++addr)
+			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
+	}
+
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address

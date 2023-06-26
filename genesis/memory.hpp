@@ -13,12 +13,12 @@
 namespace genesis
 {
 
-template <class address_t, size_t capacity /* in bytes */, std::endian byte_order>
+template <class address_t, size_t capacity /* in bytes [0 ; capacity] */, std::endian byte_order>
 class memory
 {
 public:
 	using address = address_t;
-	static const std::size_t max_capacity = capacity;
+	static const std::size_t max_address = capacity;
 
 	memory()
 	{
@@ -73,7 +73,7 @@ public:
 private:
 	inline void check_addr(address addr, size_t size)
 	{
-		if (addr + size > capacity || addr < 0)
+		if ((addr + size - 1) > max_address || addr < 0)
 			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
 	}

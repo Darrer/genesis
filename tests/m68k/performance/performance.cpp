@@ -130,7 +130,7 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	// prepare mem
 	auto& mem = cpu.memory();
-	for(std::size_t i = 0; i < mem.max_capacity; i += 2)
+	for(std::size_t i = 0; i < mem.max_address; i += 2)
 		mem.write(i, nop_opcode);
 
 	// disable tracing

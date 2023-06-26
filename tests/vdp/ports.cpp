@@ -624,7 +624,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM_AUTO_INC)
 	auto& mem = vdp.vram();
 
 	// prepare mem
-	for(int addr = 0; addr < mem.max_capacity; ++addr)
+	for(int addr = 0; addr <= mem.max_address; ++addr)
 		mem.write(addr, test::random::next<std::uint8_t>());
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::read);
