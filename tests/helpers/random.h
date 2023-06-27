@@ -30,7 +30,7 @@ public:
 		std::vector<T> res;
 		for(unsigned i = 0; i < count; ++i)
 			res.push_back(next<T>());
-		res;
+		return res;
 	}
 
 private:

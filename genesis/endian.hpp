@@ -75,6 +75,7 @@ static std::uint8_t msb(std::uint16_t value)
 	return std::uint8_t(value >> 8);
 }
 
+
 static std::uint8_t lsb(std::uint16_t value)
 {
 	if constexpr (std::endian::native == std::endian::big)

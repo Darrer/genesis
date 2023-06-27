@@ -208,17 +208,32 @@ public:
 
 	std::uint32_t dma_source() const
 	{
-		std::uint32_t source = std::uint32_t(regs.R23.H) << 17;
-		source |= std::uint32_t(regs.R22.M) << 9;
-		source |= std::uint32_t(regs.R21.L) << 1;
+		std::uint32_t source = 0;
+		source |= std::uint32_t(regs.R21.L);
+		source |= std::uint32_t(regs.R22.M) << 8;
 
 		if(dma_mode() == dma_mode::mem_to_vram)
 		{
+			source |= std::uint32_t(regs.R23.H) << 16;
 			// T0 acts as H6
 			source |= std::uint32_t(regs.R23.T0) << 23;
 		}
 
 		return source;
+	}
+
+	void dma_source(std::uint32_t value)
+	{
+		regs.R21.L = std::uint8_t(value & 0xFF);
+		value = value >> 8;
+
+		regs.R22.M = std::uint8_t(value & 0xFF);
+		value = value >> 8;
+
+		if(dma_mode() == dma_mode::mem_to_vram)
+		{
+			throw not_implemented();
+		}
 	}
 
 	dma_mode dma_mode() const

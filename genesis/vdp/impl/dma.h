@@ -17,6 +17,11 @@ struct pending_write
 	std::uint16_t data;
 };
 
+struct pending_read
+{
+	std::uint32_t address;
+};
+
 class dma
 {
 private:
@@ -25,6 +30,7 @@ private:
 		idle,
 		fill_pending,
 		fill,
+		vram_copy,
 		finishing,
 	};
 
@@ -55,10 +61,12 @@ public:
 		}
 
 		case state::fill:
-		{
 			do_fill();
 			break;
-		}
+
+		case state::vram_copy:
+			do_vram_copy();
+			break;
 
 		// TODO: we're losing 1 cycle here
 		case state::finishing:
@@ -73,11 +81,13 @@ public:
 
 	// TODO: refactor read/write interface
 	std::optional<pending_write>& pending_write() { return write_req; }
+	std::optional<pending_read>& pending_read() { return read_req; }
+	void set_read_result(std::uint8_t data) { _read_data = data; }
 
 private:
 	void check_start()
 	{
-		if(_state != state::idle || _state == state::finishing)
+		if(_state != state::idle)
 			return;
 
 		if(regs.control.dma_start() == false)
@@ -91,6 +101,10 @@ private:
 		{
 		case dma_mode::vram_fill:
 			_state = state::fill_pending;
+			break;
+
+		case dma_mode::vram_copy:
+			_state = state::vram_copy;
 			break;
 		
 		default: throw not_implemented();
@@ -145,6 +159,46 @@ private:
 		return endian::msb(data);
 	}
 
+	void do_vram_copy()
+	{
+		// TODO: not sure we have to wait FIFO
+		if(regs.fifo.empty() == false)
+		{
+			// wait till VDP free the FIFO
+			return;
+		}
+
+		if(read_is_done() == false || write_is_done() == false)
+		{
+			// wait till prevous operation is over
+			return;
+		}
+
+		// try write first
+		if(_read_data.has_value())
+		{
+			init_write(vmem_type::vram, regs.control.address(), _read_data.value());
+			_read_data.reset();
+
+			regs.control.address( regs.control.address() + sett.auto_increment_value() );
+
+			// update dma length
+			std::uint16_t length = sett.dma_length() - 1;
+			sett.dma_length(length);
+			if(length == 0)
+			{
+				_state = state::finishing;
+			}
+
+			return;
+		}
+
+		// read next byte
+		std::uint16_t source = sett.dma_source();
+		init_read(source);
+		sett.dma_source(source + 1);
+	}
+
 	void do_finishing()
 	{
 		if(write_is_done())
@@ -152,6 +206,19 @@ private:
 			_state = state::idle;
 			regs.control.dma_start(false);
 		}
+	}
+
+	void inc_address()
+	{
+		regs.control.address( regs.control.address() + sett.auto_increment_value() );
+	}
+
+	std::uint16_t dec_length()
+	{
+		std::uint16_t length = sett.dma_length() - 1;
+		sett.dma_length(length);
+
+		return length;
 	}
 
 private:
@@ -166,12 +233,26 @@ private:
 
 	bool write_is_done() const { return write_req.has_value() == false; }
 
+	void init_read(std::uint32_t address)
+	{
+		if(read_is_done() == false)
+			throw internal_error();
+
+		read_req = { address };
+	}
+
+	bool read_is_done() const { return read_req.has_value() == false; }
+
 private:
 	vdp::register_set& regs;
 	vdp::settings& sett;
 
 	state _state = state::idle;
+
+	// TODO: refactor read/write interface
 	std::optional<struct pending_write> write_req;
+	std::optional<struct pending_read> read_req;
+	std::optional<std::uint8_t> _read_data;
 };
 
 };

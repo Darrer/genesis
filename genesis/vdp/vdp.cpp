@@ -45,6 +45,14 @@ void vdp::cycle()
 			default: throw internal_error();
 			}
 		}
+
+		auto& read_req = dma.pending_read();
+		if(read_req.has_value())
+		{
+			std::uint8_t data = _vram->read<std::uint8_t>(read_req.value().address);
+			read_req.reset();
+			dma.set_read_result(data);
+		}
 	}
 }
 
