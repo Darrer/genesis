@@ -6,6 +6,8 @@
 
 #include "vdp/control_register.h"
 
+// TODO: move fifo.h to vdp/
+
 namespace genesis::vdp
 {
 

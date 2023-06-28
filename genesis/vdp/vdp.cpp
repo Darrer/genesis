@@ -5,7 +5,7 @@
 namespace genesis::vdp
 {
 
-vdp::vdp() : _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett)
+vdp::vdp() : _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett, dma_memory)
 {
 }
 
@@ -19,41 +19,9 @@ void vdp::cycle()
 	// io ports have priority over DMA
 	handle_ports_requests();
 
-	if(_sett.dma_enabled())
-	{
-		auto& write_req = dma.pending_write();
-		if(write_req.has_value())
-		{
-			auto req = write_req.value();
-			switch (req.type)
-			{
-			case vmem_type::vram:
-				vram_write(req.address, std::uint8_t(req.data));
-				write_req.reset();
-				break;
-
-			case vmem_type::cram:
-				cram_write(req.address, req.data);
-				write_req.reset();
-				break;
-
-			case vmem_type::vsram:
-				vsram_write(req.address, req.data);
-				write_req.reset();
-				break;
-
-			default: throw internal_error();
-			}
-		}
-
-		auto& read_req = dma.pending_read();
-		if(read_req.has_value())
-		{
-			std::uint8_t data = _vram->read<std::uint8_t>(read_req.value().address);
-			read_req.reset();
-			dma.set_read_result(data);
-		}
-	}
+	// TODO: we can execute io ports and DMA requests in 1 cycle
+	handle_dma_requests();
+	
 }
 
 void vdp::handle_ports_requests()
@@ -186,6 +154,45 @@ void vdp::handle_ports_requests()
 		}
 
 		return;
+	}
+}
+
+void vdp::handle_dma_requests()
+{
+	if(!_sett.dma_enabled())
+		return;
+
+	auto& write_req = dma_memory.pending_write();
+	if(write_req.has_value())
+	{
+		auto req = write_req.value();
+		switch (req.type)
+		{
+		case vmem_type::vram:
+			vram_write(req.address, std::uint8_t(req.data));
+			write_req.reset();
+			break;
+
+		case vmem_type::cram:
+			cram_write(req.address, req.data);
+			write_req.reset();
+			break;
+
+		case vmem_type::vsram:
+			vsram_write(req.address, req.data);
+			write_req.reset();
+			break;
+
+		default: throw internal_error();
+		}
+	}
+
+	auto& read_req = dma_memory.pending_read();
+	if(read_req.has_value())
+	{
+		std::uint8_t data = _vram->read<std::uint8_t>(read_req.value().address);
+		read_req.reset();
+		dma_memory.set_read_result(data);
 	}
 }
 

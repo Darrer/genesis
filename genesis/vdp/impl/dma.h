@@ -5,22 +5,11 @@
 
 #include "vdp/register_set.h"
 #include "vdp/settings.h"
-#include <optional>
+#include "memory_access.h"
+
 
 namespace genesis::vdp::impl
 {
-
-struct pending_write
-{
-	vmem_type type;
-	std::uint32_t address;
-	std::uint16_t data;
-};
-
-struct pending_read
-{
-	std::uint32_t address;
-};
 
 class dma
 {
@@ -35,13 +24,14 @@ private:
 	};
 
 public:
-	dma(vdp::register_set& regs, vdp::settings& sett) : regs(regs), sett(sett) { }
+	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory)
+		: regs(regs), sett(sett),  memory(memory) { }
 
 	bool is_idle() const { return _state == state::idle; }
 	
 	void cycle()
 	{
-		check_start();
+		check_work();
 
 		switch (_state)
 		{
@@ -79,13 +69,8 @@ public:
 		}
 	}
 
-	// TODO: refactor read/write interface
-	std::optional<pending_write>& pending_write() { return write_req; }
-	std::optional<pending_read>& pending_read() { return read_req; }
-	void set_read_result(std::uint8_t data) { _read_data = data; }
-
 private:
-	void check_start()
+	void check_work()
 	{
 		if(_state != state::idle)
 			return;
@@ -106,8 +91,12 @@ private:
 		case dma_mode::vram_copy:
 			_state = state::vram_copy;
 			break;
+
+		case dma_mode::mem_to_vram:
+			throw not_implemented();
+			break;
 		
-		default: throw not_implemented();
+		default: throw internal_error();
 		}
 	}
 
@@ -119,7 +108,7 @@ private:
 			return;
 		}
 
-		if(write_is_done() == false)
+		if(memory.is_idle() == false)
 		{
 			// wait till prevous write operation is over
 			return;
@@ -131,26 +120,15 @@ private:
 		if(mem_type == vmem_type::invalid)
 			throw not_implemented();
 
+		std::uint16_t fill_data;
 		if(mem_type == vmem_type::vram)
-		{
-			std::uint8_t fill_data = data_to_fill_vram();
-			init_write(vmem_type::vram, addr, fill_data);
-		}
+			fill_data = data_to_fill_vram();
 		else
-		{
-			std::uint16_t fill_data = regs.fifo.next().data;
-			init_write(mem_type, addr, fill_data);
-		}
+			fill_data = regs.fifo.next().data;
 
-		regs.control.address( regs.control.address() + sett.auto_increment_value() );
+		memory.init_write(mem_type, addr, fill_data);
 
-		// update dma length
-		std::uint16_t length = sett.dma_length() - 1;
-		sett.dma_length(length);
-		if(length == 0)
-		{
-			_state = state::finishing;
-		}
+		advance();
 	}
 
 	std::uint8_t data_to_fill_vram() const
@@ -168,91 +146,64 @@ private:
 			return;
 		}
 
-		if(read_is_done() == false || write_is_done() == false)
+		if(memory.is_idle() == false)
 		{
 			// wait till prevous operation is over
 			return;
 		}
 
 		// try write first
-		if(_read_data.has_value())
+		if(reading)
 		{
-			init_write(vmem_type::vram, regs.control.address(), _read_data.value());
-			_read_data.reset();
+			reading = false; // memory is idle, we're not reading anymore, result should be available
 
-			regs.control.address( regs.control.address() + sett.auto_increment_value() );
-
-			// update dma length
-			std::uint16_t length = sett.dma_length() - 1;
-			sett.dma_length(length);
-			if(length == 0)
-			{
-				_state = state::finishing;
-			}
+			memory.init_write(vmem_type::vram, regs.control.address(), memory.latched_byte());
+			advance();
 
 			return;
 		}
 
 		// read next byte
 		std::uint16_t source = sett.dma_source();
-		init_read(source);
+
+		memory.init_read_vram(source);
+		reading = true;
+
 		sett.dma_source(source + 1);
 	}
 
 	void do_finishing()
 	{
-		if(write_is_done())
+		if(memory.is_idle())
 		{
 			_state = state::idle;
 			regs.control.dma_start(false);
 		}
 	}
 
-	void inc_address()
+	void advance()
 	{
+		// inc address
 		regs.control.address( regs.control.address() + sett.auto_increment_value() );
-	}
 
-	std::uint16_t dec_length()
-	{
+		// dec length
 		std::uint16_t length = sett.dma_length() - 1;
 		sett.dma_length(length);
 
-		return length;
+		if(length == 0)
+		{
+			// we're done, terminate dma operation
+			_state = state::finishing;
+		}
 	}
-
-private:
-	template<class T>
-	void init_write(vmem_type type, std::uint32_t address, T data)
-	{
-		if(write_is_done() == false)
-			throw internal_error();
-
-		write_req = { type, address, std::uint16_t(data) };
-	}
-
-	bool write_is_done() const { return write_req.has_value() == false; }
-
-	void init_read(std::uint32_t address)
-	{
-		if(read_is_done() == false)
-			throw internal_error();
-
-		read_req = { address };
-	}
-
-	bool read_is_done() const { return read_req.has_value() == false; }
 
 private:
 	vdp::register_set& regs;
 	vdp::settings& sett;
 
 	state _state = state::idle;
-
-	// TODO: refactor read/write interface
-	std::optional<struct pending_write> write_req;
-	std::optional<struct pending_read> read_req;
-	std::optional<std::uint8_t> _read_data;
+	memory_access& memory;
+	bool reading = false;
 };
 
 };

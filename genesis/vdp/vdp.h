@@ -32,6 +32,7 @@ public:
 
 private:
 	void handle_ports_requests();
+	void handle_dma_requests();
 
 	bool pre_cache_read_is_required() const;
 
@@ -50,6 +51,7 @@ private:
 	vsram_t _vsram;
 
 protected:
+	impl::memory_access dma_memory;
 	impl::dma dma;
 };
 
