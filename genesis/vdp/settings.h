@@ -232,7 +232,9 @@ public:
 
 		if(dma_mode() == dma_mode::mem_to_vram)
 		{
-			throw not_implemented();
+			// TODO: check this logic
+			regs.R23.H = std::uint8_t(value & 0b111111);
+			regs.R23.T0 = std::uint8_t((value >> 7) & 1);
 		}
 	}
 

@@ -5,7 +5,8 @@
 namespace genesis::vdp
 {
 
-vdp::vdp() : _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett, dma_memory)
+vdp::vdp(std::shared_ptr<genesis::m68k_bus_access> m68k_bus)
+	: _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett, dma_memory, m68k_bus)
 {
 }
 
@@ -88,6 +89,7 @@ void vdp::handle_ports_requests()
 			}
 
 			// TODO: vram has byte-only access
+			// std::cout << "Writing " << entry.data << " at " << entry.control.address() << std::endl;
 			_vram->write(entry.control.address(), entry.data);
 		}
 			break;

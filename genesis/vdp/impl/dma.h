@@ -2,10 +2,12 @@
 #define __VDP_DMA_H__
 
 #include <iostream>
+#include <memory>
 
 #include "vdp/register_set.h"
 #include "vdp/settings.h"
 #include "memory_access.h"
+#include "vdp/m68k_bus_access.h"
 
 
 namespace genesis::vdp::impl
@@ -20,12 +22,13 @@ private:
 		fill_pending,
 		fill,
 		vram_copy,
+		m68k_copy,
 		finishing,
 	};
 
 public:
-	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory)
-		: regs(regs), sett(sett),  memory(memory) { }
+	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory, std::shared_ptr<genesis::m68k_bus_access> m68k_bus)
+		: regs(regs), sett(sett),  memory(memory), m68k_bus(m68k_bus) { }
 
 	bool is_idle() const { return _state == state::idle; }
 	
@@ -58,6 +61,10 @@ public:
 			do_vram_copy();
 			break;
 
+		case state::m68k_copy:
+			do_m68k_copy();
+			break;
+
 		// TODO: we're losing 1 cycle here
 		case state::finishing:
 		{
@@ -81,6 +88,8 @@ private:
 			return;
 		}
 
+		// TODO: reset DMA unit to make sure the previous operation won't affect the new one
+
 		// start dma
 		switch (sett.dma_mode())
 		{
@@ -93,11 +102,13 @@ private:
 			break;
 
 		case dma_mode::mem_to_vram:
-			throw not_implemented();
+			_state = state::m68k_copy;
 			break;
 		
 		default: throw internal_error();
 		}
+
+		// TODO: set DMA busy flag in status register
 	}
 
 	void do_fill()
@@ -140,6 +151,7 @@ private:
 	void do_vram_copy()
 	{
 		// TODO: not sure we have to wait FIFO
+		// TODO: VDP should stop processing requests from CPU during DMA VRAM copy
 		if(regs.fifo.empty() == false)
 		{
 			// wait till VDP free the FIFO
@@ -172,25 +184,84 @@ private:
 		sett.dma_source(source + 1);
 	}
 
+	void do_m68k_copy()
+	{
+		if(regs.fifo.full())
+		{
+			// wait till we get at least 1 slot
+			return;
+		}
+
+		if(m68k_bus->is_idle() == false)
+		{
+			// wait till current operation is over
+			return;
+		}
+
+		if(access_requested == false)
+		{
+			m68k_bus->request_bus();
+			access_requested = true;
+			return;
+		}
+
+		if(reading)
+		{
+			reading = false;
+
+			std::uint16_t data = m68k_bus->latched_word();
+			// std::cout << "Read data: " << data << std::endl;
+			regs.fifo.push(data, regs.control);
+			inc_control_address();
+
+			if(sett.dma_length() == 0)
+			{
+				// we're done, terminate dma operation
+				m68k_bus->release_bus();
+
+				_state = state::finishing;
+				return;
+			}
+		}
+
+		std::uint32_t src_address = sett.dma_source();
+		m68k_bus->init_read_word(src_address);
+		reading = true;
+
+		// update source address
+		sett.dma_source(src_address + 2);
+
+		dec_length();
+	}
+
 	void do_finishing()
 	{
-		if(memory.is_idle())
+		if(memory.is_idle() && m68k_bus->is_idle())
 		{
 			_state = state::idle;
 			regs.control.dma_start(false);
+			regs.R1.M1 = 0;
+			// TODO: clear DMA busy flag in status register
 		}
+	}
+
+	void inc_control_address()
+	{
+		regs.control.address( regs.control.address() + sett.auto_increment_value() );
+	}
+
+	void dec_length()
+	{
+		sett.dma_length(sett.dma_length() - 1);
 	}
 
 	void advance()
 	{
-		// inc address
-		regs.control.address( regs.control.address() + sett.auto_increment_value() );
+		inc_control_address();
 
-		// dec length
-		std::uint16_t length = sett.dma_length() - 1;
-		sett.dma_length(length);
+		dec_length();
 
-		if(length == 0)
+		if(sett.dma_length() == 0)
 		{
 			// we're done, terminate dma operation
 			_state = state::finishing;
@@ -198,12 +269,16 @@ private:
 	}
 
 private:
+	state _state = state::idle;
+
 	vdp::register_set& regs;
 	vdp::settings& sett;
 
-	state _state = state::idle;
 	memory_access& memory;
 	bool reading = false;
+
+	std::shared_ptr<genesis::m68k_bus_access> m68k_bus;
+	bool access_requested = false;
 };
 
 };

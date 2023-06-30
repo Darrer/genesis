@@ -7,6 +7,7 @@
 #include "settings.h"
 #include "ports.h"
 #include "memory.h"
+#include "m68k_bus_access.h"
 
 #include "impl/dma.h"
 
@@ -17,7 +18,7 @@ namespace genesis::vdp
 class vdp
 {
 public:
-	vdp();
+	vdp(std::shared_ptr<genesis::m68k_bus_access> m68k_bus);
 
 	// TODO: it should have multiple cycle methods with different clock rate
 	void cycle();

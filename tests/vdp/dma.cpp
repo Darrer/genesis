@@ -25,6 +25,12 @@ void zero_mem(vsram_t& mem)
 		mem.write(addr, 0);
 }
 
+void zero_mem(test::mock_m68k_bus_access::m68k_memory_t& mem)
+{
+	for(int addr = 0; addr <= mem.max_address; ++addr)
+		mem.write<std::uint8_t>(addr, 0);
+}
+
 void prepare_fill_data_for_cram_vsram(test::vdp& vdp, std::uint16_t fill_data)
 {
 	auto& ports = vdp.io_ports();
@@ -552,13 +558,15 @@ std::uint32_t dma_final_copy_address(std::uint32_t start_address, std::uint16_t 
 TEST(VDP_DMA, BASIC_VRAM_COPY)
 {
 	test::vdp vdp;
+	auto& regs = vdp.registers();
 
-	const std::uint16_t source_address = 100;
-	const std::uint16_t dest_address = 200;
+	const std::uint16_t source_address = 1024;
+	const std::uint16_t dest_address = 2048;
 	const std::uint16_t length = 50;
 	const auto data = test::random::next_few<std::uint8_t>(length);
 
-	vdp.registers().R15.INC = 1;
+	regs.R15.INC = 1;
+	regs.R23.H = 0b111111; // must be ignored
 
 	// prepare mem
 	auto& mem = vdp.vram();
@@ -601,4 +609,102 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
 	}
+
+	// DMA must be disalbed after operation
+	ASSERT_EQ(0, regs.R1.M1);
+}
+
+
+std::uint32_t setup_dma_m68k(test::vdp& vdp, std::uint32_t src_addr, std::uint16_t dst_addr,
+	std::uint16_t length, vmem_type mem_type)
+{
+	auto& ports = vdp.io_ports();
+	auto& sett = vdp.sett();
+	auto& regs = vdp.registers();
+
+	sett.dma_length(length);
+	sett.dma_mode(dma_mode::mem_to_vram);
+	regs.R1.M1 = 1; // enable DMA
+
+	regs.R21.L = src_addr & 0xFF;
+	regs.R22.M = (src_addr >> 8) & 0xFF;
+	regs.R23.H = (src_addr >> 16) & 0b111111;
+
+	control_register control;
+	control.address(dst_addr);
+	control.dma_start(true);
+	control.vmem_type(mem_type);
+	control.control_type(control_type::write); // TODO: ???
+	control.work_completed(true); // TODO: ???
+
+	std::uint32_t cycles = 0;
+
+	// write control
+	ports.init_write_control(control.raw_c1());
+	cycles += vdp.wait_io_ports();
+
+	ports.init_write_control(control.raw_c2());
+	cycles += vdp.wait_io_ports();
+
+	cycles += vdp.wait_dma_start();
+
+	return cycles;
+}
+
+
+TEST(VDP_DMA, BASIC_M68K_COPY)
+{
+	test::vdp vdp;
+	auto& regs = vdp.registers();
+
+	const std::uint32_t source_address = 1024;
+	const std::uint16_t dest_address = 2048;
+	const std::uint16_t length = 100;
+	const auto data = test::random::next_few<std::uint16_t>(length);
+
+	regs.R15.INC = 2;
+	regs.R23.H = 0b111111; // must be ignored
+
+	// prepare mem
+	auto& mem = vdp.vram();
+	zero_mem(mem);
+
+	auto& m68k_mem = vdp.m68k_bus_access().memory();
+	zero_mem(m68k_mem);
+
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint32_t addr = source_address + (i * 2);
+		m68k_mem.write<std::uint16_t>(addr, data.at(i));
+	}
+
+	// setup dma
+	setup_dma_m68k(vdp, source_address, dest_address, length, vmem_type::vram);
+	vdp.wait_dma();
+	vdp.wait_fifo();
+
+	// assert
+	for(int i = 0; i < length; ++i)
+	{
+		const auto expected_data = data.at(i);
+
+		std::uint32_t addr = dest_address + (i * 2);
+		ASSERT_EQ(expected_data, mem.read<std::uint16_t>(addr)) << "address: " << addr;
+	}
+
+	std::uint16_t final_addr = dma_final_copy_address(dest_address, length, 2);
+	ASSERT_EQ(final_addr, vdp.registers().control.address());
+
+	// make sure DMA didn't touch memory after final address
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint16_t addr = final_addr + i;
+		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
+	}
+
+	// DMA must be disalbed after operation
+	ASSERT_EQ(0, regs.R1.M1);
+
+	// bus must be released after DMA
+	ASSERT_EQ(false, vdp.m68k_bus_access().bus_acquired());
 }
