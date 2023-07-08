@@ -90,6 +90,8 @@ std::uint32_t setup_dma_fill(test::vdp& vdp, std::uint32_t address, std::uint16_
 	ports.init_write_data(fill_data);
 	cycles += vdp.wait_io_ports();
 
+	cycles += vdp.wait_dma_start();
+
 	return cycles;
 }
 
@@ -543,13 +545,12 @@ std::uint32_t setup_dma_vram_copy(test::vdp& vdp, std::uint16_t src_addr, std::u
 	ports.init_write_control(control.raw_c2());
 	cycles += vdp.wait_io_ports();
 
-	// TODO: we have to do a few cycles to trigger DMA unit
-	vdp.cycle();
+	cycles += vdp.wait_dma_start();
 
 	return cycles + 1;
 }
 
-std::uint32_t dma_final_copy_address(std::uint32_t start_address, std::uint16_t length, std::uint8_t auto_inc)
+std::uint32_t dma_final_address(std::uint32_t start_address, std::uint16_t length, std::uint8_t auto_inc)
 {
 	return start_address + (length * auto_inc);
 }
@@ -600,7 +601,9 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 		}
 	}
 
-	std::uint16_t final_addr = dma_final_copy_address(dest_address, length, 1);
+	ASSERT_EQ(dma_final_address(source_address, length, 1), vdp.sett().dma_source());
+
+	std::uint16_t final_addr = dma_final_address(dest_address, length, 1);
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
 	// make sure DMA didn't touch memory after final address
@@ -663,7 +666,6 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	const auto data = test::random::next_few<std::uint16_t>(length);
 
 	regs.R15.INC = 2;
-	regs.R23.H = 0b111111; // must be ignored
 
 	// prepare mem
 	auto& mem = vdp.vram();
@@ -692,7 +694,9 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 		ASSERT_EQ(expected_data, mem.read<std::uint16_t>(addr)) << "address: " << addr;
 	}
 
-	std::uint16_t final_addr = dma_final_copy_address(dest_address, length, 2);
+	ASSERT_EQ(dma_final_address(source_address, length, 2), vdp.sett().dma_source());
+
+	std::uint16_t final_addr = dma_final_address(dest_address, length, 2);
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
 	// make sure DMA didn't touch memory after final address
@@ -707,4 +711,6 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 
 	// bus must be released after DMA
 	ASSERT_EQ(false, vdp.m68k_bus_access().bus_acquired());
+
+	ASSERT_EQ(0, vdp.sett().dma_length());
 }

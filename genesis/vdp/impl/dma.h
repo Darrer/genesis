@@ -210,14 +210,15 @@ private:
 			reading = false;
 
 			std::uint16_t data = m68k_bus->latched_word();
-			// std::cout << "Read data: " << data << std::endl;
 			regs.fifo.push(data, regs.control);
 			inc_control_address();
 
+			// TODO: abort DMA if transfer is to CRAM/VSRAM and address exceeds max possible address
 			if(sett.dma_length() == 0)
 			{
 				// we're done, terminate dma operation
 				m68k_bus->release_bus();
+				access_requested = false;
 
 				_state = state::finishing;
 				return;

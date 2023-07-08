@@ -15,6 +15,10 @@ PRIVATE
 	endian.hpp
 	memory.hpp
 
+	memory/addressable.h
+	memory/memory_builder.h
+	memory/memory_builder.cpp
+
 	z80/cpu_bus.hpp
 	z80/cpu_registers.hpp
 	z80/cpu.cpp
