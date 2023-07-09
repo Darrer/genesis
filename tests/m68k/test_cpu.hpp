@@ -25,7 +25,6 @@ public:
 	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big)) { }
 
 	memory::memory_unit& memory() { return *mem_unit; }
-	m68k::bus_manager& bus_manager() { return busm; }
 	m68k::bus_scheduler& bus_scheduler() { return scheduler; }
 	m68k::exception_manager& exception_manager() { return exman; }
 

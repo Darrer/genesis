@@ -70,7 +70,7 @@ public:
 	using on_modify = std::function<std::uint_fast8_t(std::uint_fast8_t)>;
 
 private:
-	// all callbacks are restricted in size to the size of the pointer
+	// all callbacks are restricted in size to the size of a pointer
 	// this is required for std::function small-size optimizations
 	// (though it's not guaranteed by standard, so we purely rely on implementation)
 	constexpr const static std::size_t max_callable_size = sizeof(void*);
@@ -79,9 +79,7 @@ public:
 	bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
 		std::shared_ptr<memory::addressable> external_memory);
 
-	void cycle(); // TODO: must be acceptable only for m68k::cpu
-
-	/* external interface to fulfill read/write reqeusts */
+	void cycle(); // TODO: must be visible only for m68k::cpu
 
 	void reset();
 	bool is_idle() const;

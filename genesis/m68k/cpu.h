@@ -3,7 +3,6 @@
 
 #include "cpu_registers.hpp"
 #include "cpu_bus.hpp"
-#include "cpu_memory.h"
 #include "bus_manager.h"
 
 #include "impl/base_unit.h"
@@ -29,6 +28,7 @@ public:
 
 	cpu_registers& registers() { return regs; }
 	cpu_bus& bus() { return _bus; }
+	bus_manager& bus_manager() { return busm; }
 
 	bool is_idle() const;
 	void cycle();
