@@ -15,6 +15,9 @@ PRIVATE
 	endian.hpp
 	memory.hpp
 
+	smd/genesis.h
+	smd/genesis.cpp
+
 	memory/addressable.h
 	memory/memory_builder.h
 	memory/memory_builder.cpp

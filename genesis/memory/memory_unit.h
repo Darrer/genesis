@@ -15,7 +15,7 @@ namespace genesis::memory
 
 /* Generic memory unit used to represent ROM and M68K/Z80 RAM */
 
-class memory_unit : public genesis::memory::addressable
+class memory_unit : public addressable
 {
 public:
 	/* in bytes [0 ; capacity] */
