@@ -2,6 +2,7 @@
 #define __M68K_TEST_CPU_HPP__
 
 #include "m68k/cpu.h"
+#include "memory/memory_unit.h"
 #include <fstream>
 
 namespace genesis::test
@@ -13,14 +14,17 @@ const auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
 
 class test_cpu : public genesis::m68k::cpu
 {
-public:
-	test_cpu() : cpu(std::make_shared<m68k::memory>())
+private:
+	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit) : cpu(mem_unit), mem_unit(mem_unit)
 	{
 		if(exman.is_raised(m68k::exception_type::reset))
 			exman.accept(m68k::exception_type::reset);
 	}
 
-	m68k::memory& memory() { return *mem; }
+public:
+	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big)) { }
+
+	memory::memory_unit& memory() { return *mem_unit; }
 	m68k::bus_manager& bus_manager() { return busm; }
 	m68k::bus_scheduler& bus_scheduler() { return scheduler; }
 	m68k::exception_manager& exception_manager() { return exman; }
@@ -52,11 +56,14 @@ public:
 			char c;
 			if (fs.get(c))
 			{
-				mem->write(offset, c);
+				mem_unit->write(offset, c);
 				++offset;
 			}
 		}
 	}
+
+private:
+	std::shared_ptr<memory::memory_unit> mem_unit;
 };
 
 }

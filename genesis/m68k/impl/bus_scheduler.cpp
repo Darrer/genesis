@@ -279,9 +279,9 @@ void bus_scheduler::start_operation(operation& op)
 	{
 		write_operation write = std::get<write_operation>(op.op);
 		if(write.size == size_type::BYTE)
-			busm.init_write<std::uint8_t>(write.addr, write.data, [this]() { run_cycless_operations(); });
+			busm.init_write(write.addr, std::uint8_t(write.data), [this]() { run_cycless_operations(); });
 		else
-			busm.init_write<std::uint16_t>(write.addr, write.data, [this]() { run_cycless_operations(); });
+			busm.init_write(write.addr, std::uint16_t(write.data), [this]() { run_cycless_operations(); });
 
 		break;
 	}
@@ -293,9 +293,9 @@ void bus_scheduler::start_operation(operation& op)
 		regs.dec_addr(7, push.size);
 
 		if(push.size == size_type::BYTE)
-			busm.init_write<std::uint8_t>(regs.SP().LW + push.offset, push.data, [this]() { run_cycless_operations(); });
+			busm.init_write(regs.SP().LW + push.offset, std::uint8_t(push.data), [this]() { run_cycless_operations(); });
 		else
-			busm.init_write<std::uint16_t>(regs.SP().LW + push.offset, push.data, [this]() { run_cycless_operations(); });
+			busm.init_write(regs.SP().LW + push.offset, std::uint16_t(push.data), [this]() { run_cycless_operations(); });
 
 		break;
 	}

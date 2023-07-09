@@ -7,9 +7,9 @@
 
 using namespace genesis::m68k;
 
-void setup_exception_vectors(memory& mem)
+void setup_exception_vectors(genesis::memory::memory_unit& mem)
 {
-	for(memory::address addr = 0x0; addr <= 1024; ++addr)
+	for(int addr = 0; addr <= 1024; ++addr)
 		mem.write(addr, std::uint8_t(0));
 }
 

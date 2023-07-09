@@ -4,10 +4,10 @@
 #include "cpu_registers.hpp"
 #include "cpu_bus.hpp"
 #include "cpu_memory.h"
+#include "bus_manager.h"
 
 #include "impl/base_unit.h"
 
-#include "impl/bus_manager.hpp"
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
@@ -22,7 +22,7 @@ namespace genesis::m68k
 class cpu
 {
 public:
-	cpu(std::shared_ptr<m68k::memory> memory);
+	cpu(std::shared_ptr<memory::addressable> external_memory);
 	~cpu();
 
 	void reset();
@@ -36,7 +36,7 @@ public:
 protected:
 	cpu_registers regs;
 	cpu_bus _bus;
-	std::shared_ptr<m68k::memory> mem;
+	std::shared_ptr<memory::addressable> external_memory;
 
 	m68k::exception_manager exman;
 	m68k::bus_manager busm;

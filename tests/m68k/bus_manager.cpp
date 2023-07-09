@@ -6,7 +6,7 @@
 using namespace genesis;
 
 
-void prepare_mem(m68k::memory& mem, std::uint32_t base_addr, const auto& array)
+void prepare_mem(memory::memory_unit& mem, std::uint32_t base_addr, const auto& array)
 {
 	for(auto val : array)
 	{

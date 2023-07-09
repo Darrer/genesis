@@ -10,7 +10,7 @@ using namespace genesis::test;
 using namespace genesis::m68k;
 
 
-void nop_some_tests(memory& mem)
+void nop_some_tests(genesis::memory::memory_unit& mem)
 {
 	auto nop_test = [&](std::uint32_t jump_addr)
 	{

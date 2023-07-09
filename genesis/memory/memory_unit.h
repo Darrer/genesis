@@ -33,20 +33,39 @@ public:
 
 	void init_write(std::uint32_t address, std::uint8_t data) override
 	{
-		check_addr(address, sizeof(data));
-
 		reset();
-		mem[address] = data;
+		write(address, data);
 	}
 
 	void init_write(std::uint32_t address, std::uint16_t data) override
 	{
-		check_addr(address, sizeof(data));
-
 		reset();
+		write(address, data);
+	}
 
-		// TODO: check read/write operations
+	void init_read_byte(std::uint32_t address) override
+	{
+		reset();
+		_latched_byte = read<std::uint8_t>(address);
+	}
 
+	void init_read_word(std::uint32_t address) override
+	{
+		reset();
+		_latched_word = read<std::uint16_t>(address);
+	}
+
+	std::uint8_t latched_byte() const override { return _latched_byte.value(); }
+	std::uint16_t latched_word() const override { return _latched_word.value(); }
+
+	/* direct interface */
+
+	template<class T>
+	void write(std::uint32_t address, T data)
+	{
+		check_addr(address, sizeof(T));
+
+		// convert to proper byte order
 		if (byte_order == std::endian::little)
 		{
 			endian::sys_to_little(data);
@@ -56,27 +75,16 @@ public:
 			endian::sys_to_big(data);
 		}
 
-		mem[address] = std::uint8_t(data);
-		mem[address + 1] = std::uint8_t(data >> 8);
+		for (size_t i = 0; i < sizeof(T); ++i)
+			mem[address + i] = *(reinterpret_cast<std::uint8_t*>(&data) + i);
 	}
 
-	void init_read_byte(std::uint32_t address) override
+	template<class T>
+	T read(std::uint32_t address)
 	{
-		check_addr(address, 1);
+		check_addr(address, sizeof(T));
 
-		reset();
-
-		_latched_byte = mem[address];
-	}
-
-	void init_read_word(std::uint32_t address) override
-	{
-		check_addr(address, 2);
-
-		reset();
-
-		std::uint16_t data = mem[address];
-		data |= mem[address] << 8;
+		T data = *reinterpret_cast<T*>(&mem[address]);
 
 		// convert to sys byte order
 		if (byte_order == std::endian::little)
@@ -88,11 +96,10 @@ public:
 			endian::big_to_sys(data);
 		}
 
-		_latched_word = data;
+		return data;
 	}
 
-	std::uint8_t latched_byte() const override { return _latched_byte.value(); }
-	std::uint16_t latched_word() const override { return _latched_word.value(); }
+	std::size_t max_address() const { return mem.size() - 1; }
 
 private:
 	inline void check_addr(std::uint32_t addr, size_t size)

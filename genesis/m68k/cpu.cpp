@@ -5,7 +5,8 @@
 namespace genesis::m68k
 {
 
-cpu::cpu(std::shared_ptr<m68k::memory> memory) : mem(memory), busm(_bus, regs, *mem, exman), scheduler(regs, busm)
+cpu::cpu(std::shared_ptr<memory::addressable> external_memory)
+	: external_memory(external_memory), busm(_bus, regs, exman, external_memory), scheduler(regs, busm)
 {
 	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, busm, scheduler);
 

@@ -10,6 +10,7 @@
 namespace genesis::memory
 {
 
+// extendable_memory?
 class composite_memory : public addressable
 {
 private:

@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "m68k/cpu_registers.hpp"
-#include "bus_manager.hpp"
+#include "m68k/bus_manager.h"
 #include "prefetch_queue.hpp"
 
 
