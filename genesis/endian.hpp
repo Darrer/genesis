@@ -23,15 +23,14 @@ inline void swap(T&)
 template <>
 inline void swap<std::uint32_t>(std::uint32_t& val)
 {
-	val = ((val << 8) & 0xFF00FF00) | ((val >> 8) & 0xFF00FF);
-	val = (val << 16) | (val >> 16);
+	val = std::byteswap(val);
 }
 
 
 template <>
 inline void swap<std::uint16_t>(std::uint16_t& val)
 {
-	val = (val << 8) | ((val >> 8) & 0xFF);
+	val = std::byteswap(val);
 }
 
 

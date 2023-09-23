@@ -32,6 +32,8 @@ PRIVATE
 	memory.cpp
 	helper.hpp
 
+	memory/memory_unit.cpp
+
 	z80/cpu_registers.cpp
 	z80/tap_loader.hpp
 	z80/tests_runner.cpp

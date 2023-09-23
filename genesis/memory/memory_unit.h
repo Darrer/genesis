@@ -18,11 +18,11 @@ namespace genesis::memory
 class memory_unit : public addressable
 {
 public:
-	/* in bytes [0 ; capacity] */
-	memory_unit(std::uint32_t capacity, std::endian byte_order = std::endian::native)
+	/* in bytes [0 ; highest_address] */
+	memory_unit(std::uint32_t highest_address, std::endian byte_order = std::endian::native)
 		: byte_order(byte_order)
 	{
-		mem.resize(capacity + 1);
+		mem.resize(highest_address + 1); // + 1 to account for 0 index
 	}
 
 	/* addressable interface */
@@ -104,7 +104,7 @@ public:
 private:
 	inline void check_addr(std::uint32_t addr, size_t size)
 	{
-		if ((addr + size - 1) > mem.size() || addr < 0)
+		if(addr > max_address() || (addr + size - 1) > max_address())
 			throw internal_error("memory_unit check: wrong address (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
 	}
