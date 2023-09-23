@@ -32,7 +32,9 @@ PRIVATE
 	memory.cpp
 	helper.hpp
 
+	memory/helper.h
 	memory/memory_unit.cpp
+	memory/memory_builder.cpp
 
 	z80/cpu_registers.cpp
 	z80/tap_loader.hpp

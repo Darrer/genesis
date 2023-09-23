@@ -128,11 +128,11 @@ private:
 	{
 		for(auto& dev : refs)
 		{
-			if(dev.start_address >= address && dev.end_address <= address)
+			if(dev.start_address <= address && address <= dev.end_address)
 				return dev;
 		}
 
-		throw internal_error("cannot find addressable device serving address 0x" + su::hex_str(address));
+		throw internal_error("cannot find addressable device serving address " + su::hex_str(address));
 	}
 
 	std::uint32_t convert_address(addressable_device dev, std::uint32_t address)
@@ -161,17 +161,30 @@ std::shared_ptr<addressable> memory_builder::build() const
 	return comp;
 }
 
+void memory_builder::add(addressable& memory_unit, std::uint32_t start_address)
+{
+	add(memory_unit, start_address, start_address + memory_unit.capacity() - 1);
+}
+
 void memory_builder::add(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
 {
 	check_args(memory_unit, start_address, end_address);
 
 	refs.push_back({memory_unit, start_address, end_address});
 }
-	
+
+void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address)
+{
+	if(memory_unit == nullptr)
+		throw std::invalid_argument("memory_unit cannot be null");
+
+	add(memory_unit, start_address, start_address + memory_unit->capacity() - 1);
+}
+
 void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address, std::uint32_t end_address)
 {
 	if(memory_unit == nullptr)
-		throw std::invalid_argument("memory unit cannot be nullptr");
+		throw std::invalid_argument("memory_unit cannot be null");
 
 	check_args(*memory_unit, start_address, end_address);
 
@@ -186,6 +199,20 @@ void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_ad
 	std::uint32_t capacity = end_address - start_address + 1; // +1 as address range is [start ; end]
 	if(memory_unit.capacity() < capacity)
 		throw std::invalid_argument("provided addressable device cannot address specified capacity");
+
+	check_intersect(start_address, end_address);
+}
+
+void memory_builder::check_intersect(std::uint32_t start_address, std::uint32_t end_address)
+{
+	auto is_intersect = [start_address, end_address](auto& unit)
+	{
+		return (unit.start_address <= start_address && start_address <= unit.end_address)
+			|| (unit.start_address <= end_address && end_address <= unit.end_address);
+	};
+
+	if(std::ranges::any_of(refs, is_intersect) || std::ranges::any_of(shared_ptrs, is_intersect))
+		throw std::invalid_argument("specified address range intersects with existing device");
 }
 
 }

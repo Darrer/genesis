@@ -2,6 +2,7 @@
 
 #include "memory/memory_unit.h"
 #include "../helpers/random.h"
+#include "helper.h"
 
 using namespace genesis;
 
@@ -80,59 +81,19 @@ TEST(MEMORY, MEMORY_UNIT_READ_16_BOUNDARIES)
 	ASSERT_THROW(unit.init_read_word(highest_address + 1), std::runtime_error);
 }
 
-template<class T> requires (sizeof(T) <= 2)
-void test_read_write(memory::memory_unit& unit)
-{
-	const std::uint32_t max_address = unit.max_address() - sizeof(T) + 1; // + 1 as max_address is valid address
-
-	// not the optimal way to store written data, but the easiest one
-	std::map<std::uint32_t /* address */, T /* data */> written_data;
-
-	/* write random data */
-	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
-	{
-		T data = test::random::next<T>();
-		unit.init_write(addr, data);
-		written_data[addr] = data;
-	}
-
-	/* check written data */
-	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
-	{
-		T data{};
-		if constexpr (sizeof(T) == 1)
-		{
-			unit.init_read_byte(addr);
-			data = unit.latched_byte();
-		}
-		else if constexpr (sizeof(T) == 2)
-		{
-			unit.init_read_word(addr);
-			data = unit.latched_word();
-		}
-
-		T expected_data = written_data[addr];
-		ASSERT_EQ(expected_data, data);
-	}
-
-	// self-test
-	const auto expected_writes = sizeof(T) == 1 ? unit.capacity() : unit.capacity() / 2;
-	ASSERT_EQ(expected_writes, written_data.size());
-}
-
 TEST(MEMORY, MEMORY_UNIT_READ_WRITE_8)
 {
 	memory::memory_unit unit{256};
-	test_read_write<std::uint8_t>(unit);
+	test::test_read_write<std::uint8_t>(unit);
 }
 
 TEST(MEMORY, MEMORY_UNIT_READ_WRITE_16)
 {
 	memory::memory_unit unit_le{256, std::endian::little};
-	test_read_write<std::uint16_t>(unit_le);
+	test::test_read_write<std::uint16_t>(unit_le);
 
 	memory::memory_unit unit_be{256, std::endian::big};
-	test_read_write<std::uint16_t>(unit_be);
+	test::test_read_write<std::uint16_t>(unit_be);
 }
 
 TEST(MEMORY, MEMORY_UNIT_BIG_ENDIAN)

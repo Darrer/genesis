@@ -15,7 +15,7 @@ void nop_some_tests(genesis::memory::memory_unit& mem)
 	auto nop_test = [&](std::uint32_t jump_addr)
 	{
 		const std::uint16_t nop_opcode = 0b0100111001110001;
-		// jump occypy 6 bytes - 2 for opcode, 4 for ptr
+		// jump takes 6 bytes - 2 for opcode, 4 for ptr
 		mem.write(jump_addr, nop_opcode);
 		mem.write(jump_addr + 2, nop_opcode);
 		mem.write(jump_addr + 4, nop_opcode);
