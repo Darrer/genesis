@@ -30,7 +30,7 @@ private:
 public:
 	memory_builder() = default;
 
-	std::shared_ptr<addressable> build() const;
+	std::shared_ptr<addressable> build();
 
 	void add(addressable& memory_unit, std::uint32_t start_address);
 	void add(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address);

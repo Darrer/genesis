@@ -40,8 +40,8 @@ TEST(MEMORY, MEMORY_UNIT_WRITE_8_BOUNDARIES)
 	const std::uint32_t highest_address = 256;
 	memory::memory_unit unit{highest_address};
 
-	unit.write<std::uint8_t>(0, 0); // expect no throw
-	unit.write<std::uint8_t>(highest_address, 0); // expect no throw
+	ASSERT_NO_THROW(unit.write<std::uint8_t>(0, 0));
+	ASSERT_NO_THROW(unit.write<std::uint8_t>(highest_address, 0));
 
 	ASSERT_THROW(unit.write<std::uint8_t>(highest_address + 1, 0), std::runtime_error);
 }
@@ -51,8 +51,8 @@ TEST(MEMORY, MEMORY_UNIT_WRITE_16_BOUNDARIES)
 	const std::uint32_t highest_address = 256;
 	memory::memory_unit unit{highest_address};
 
-	unit.write<std::uint16_t>(0, 0); // expect no throw
-	unit.write<std::uint16_t>(highest_address - 1, 0); // expect no throw
+	ASSERT_NO_THROW(unit.write<std::uint16_t>(0, 0));
+	ASSERT_NO_THROW(unit.write<std::uint16_t>(highest_address - 1, 0));
 
 	ASSERT_THROW(unit.write<std::uint16_t>(highest_address, 0), std::runtime_error);
 	ASSERT_THROW(unit.write<std::uint16_t>(highest_address + 1, 0), std::runtime_error);
@@ -63,8 +63,8 @@ TEST(MEMORY, MEMORY_UNIT_READ_8_BOUNDARIES)
 	const std::uint32_t highest_address = 256;
 	memory::memory_unit unit{highest_address};
 
-	unit.init_read_byte(0); // expect no throw
-	unit.init_read_byte(highest_address); // expect no throw
+	ASSERT_NO_THROW(unit.init_read_byte(0));
+	ASSERT_NO_THROW(unit.init_read_byte(highest_address));
 
 	ASSERT_THROW(unit.init_read_byte(highest_address + 1), std::runtime_error);
 }
@@ -74,8 +74,8 @@ TEST(MEMORY, MEMORY_UNIT_READ_16_BOUNDARIES)
 	const std::uint32_t highest_address = 256;
 	memory::memory_unit unit{highest_address};
 
-	unit.init_read_word(0); // expect no throw
-	unit.init_read_word(highest_address - 1); // expect no throw
+	ASSERT_NO_THROW(unit.init_read_word(0));
+	ASSERT_NO_THROW(unit.init_read_word(highest_address - 1));
 
 	ASSERT_THROW(unit.init_read_word(highest_address), std::runtime_error);
 	ASSERT_THROW(unit.init_read_word(highest_address + 1), std::runtime_error);

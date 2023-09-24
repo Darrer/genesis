@@ -93,3 +93,21 @@ TEST(MEMORY, MEMORY_BUILDER_UNITS_BORDER)
 	ASSERT_NO_THROW(mem->init_read_byte(border_address));
 	ASSERT_NO_THROW(mem->init_write(border_address, std::uint8_t(0)));
 }
+
+TEST(MEMORY, MEMORY_BUILDER_EMPTY_BUILD)
+{
+	memory::memory_builder builder;
+
+	ASSERT_THROW(builder.build(), std::runtime_error);
+}
+
+TEST(MEMORY, MEMORY_BUILDER_CLEAR_AFTER_BUILD)
+{
+	memory::memory_builder builder;
+
+	builder.add(device(32), 0);
+	builder.add(device(32), 1024);
+
+	ASSERT_NO_THROW(builder.build());
+	ASSERT_THROW(builder.build(), std::runtime_error); // second build call must throw
+}

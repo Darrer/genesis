@@ -27,7 +27,7 @@ public:
 
 	std::uint32_t capacity() const override
 	{
-		if(refs.size() == 0)
+		if(refs.empty())
 			return 0;
 
 		std::uint32_t max_address = 0;
@@ -148,8 +148,11 @@ private:
 };
 
 
-std::shared_ptr<addressable> memory_builder::build() const
+std::shared_ptr<addressable> memory_builder::build()
 {
+	if(refs.empty() && shared_ptrs.empty())
+		throw internal_error("tried to build without devices");
+
 	std::shared_ptr<composite_memory> comp = std::make_shared<composite_memory>();
 
 	for(auto& dev : refs)
@@ -157,6 +160,9 @@ std::shared_ptr<addressable> memory_builder::build() const
 
 	for(auto& dev : shared_ptrs)
 		comp->add(dev.memory_unit, dev.start_address, dev.end_address);
+
+	refs.clear();
+	shared_ptrs.clear();
 
 	return comp;
 }
