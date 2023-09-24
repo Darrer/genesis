@@ -86,30 +86,30 @@ public:
 
 	/* Registers */
 
-	R0 R0;
-	R1 R1;
-	R2 R2;
-	R3 R3;
-	R4 R4;
-	R5 R5;
-	R6 R6;
-	R7 R7;
-	R8 R8;
-	R9 R9;
-	R10 R10;
-	R11 R11;
-	R12 R12;
-	R13 R13;
-	R14 R14;
-	R15 R15;
-	R16 R16;
-	R17 R17;
-	R18 R18;
-	R19 R19;
-	R20 R20;
-	R21 R21;
-	R22 R22;
-	R23 R23;
+	vdp::R0 R0;
+	vdp::R1 R1;
+	vdp::R2 R2;
+	vdp::R3 R3;
+	vdp::R4 R4;
+	vdp::R5 R5;
+	vdp::R6 R6;
+	vdp::R7 R7;
+	vdp::R8 R8;
+	vdp::R9 R9;
+	vdp::R10 R10;
+	vdp::R11 R11;
+	vdp::R12 R12;
+	vdp::R13 R13;
+	vdp::R14 R14;
+	vdp::R15 R15;
+	vdp::R16 R16;
+	vdp::R17 R17;
+	vdp::R18 R18;
+	vdp::R19 R19;
+	vdp::R20 R20;
+	vdp::R21 R21;
+	vdp::R22 R22;
+	vdp::R23 R23;
 
 	union
 	{
@@ -119,7 +119,7 @@ public:
 
 	control_register control;
 	read_buffer read_cache;
-	fifo fifo;
+	vdp::fifo fifo;
 };
 
 }

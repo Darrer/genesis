@@ -6,7 +6,7 @@
 #include <chrono>
 
 
-static std::filesystem::path get_exec_path()
+[[maybe_unused]] static std::filesystem::path get_exec_path()
 {
 	// I'm sorry for that...
 	std::filesystem::path exec_path = testing::internal::GetArgvs()[0];

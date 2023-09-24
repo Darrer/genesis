@@ -17,7 +17,7 @@ TEST(Memory, WrongAccess)
 	ASSERT_THROW(mem.read<std::byte>(test_addr), std::runtime_error);
 	ASSERT_THROW(mem.write<std::byte>(test_addr, std::byte(0x0)), std::runtime_error);
 
-	test_addr = 0xfe;
+	test_addr = 0xff;
 	ASSERT_THROW(mem.read<std::uint16_t>(test_addr), std::runtime_error);
 	ASSERT_THROW(mem.write<std::uint16_t>(test_addr, std::uint16_t(0xf)), std::runtime_error);
 }

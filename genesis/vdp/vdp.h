@@ -25,7 +25,7 @@ public:
 
 	register_set& registers() { return regs; }
 	settings& sett() { return _sett; }
-	ports& io_ports() { return ports; }
+	genesis::vdp::ports& io_ports() { return ports; }
 
 	vram_t& vram() { return *_vram; }
 	cram_t& cram() { return _cram; }
@@ -45,7 +45,7 @@ private:
 private:
 	register_set regs;
 	settings _sett;
-	ports ports;
+	genesis::vdp::ports ports;
 
 	std::unique_ptr<vram_t> _vram;
 	cram_t _cram;

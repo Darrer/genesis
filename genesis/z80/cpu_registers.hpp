@@ -35,7 +35,7 @@ private:
 		struct
 		{
 			union {
-				flags flags;
+				z80::flags flags;
 				std::int8_t f;
 			};
 			std::int8_t a;
@@ -97,7 +97,7 @@ public:
 	std::int8_t& L;
 	std::int16_t& HL;
 
-	flags& flags;
+	z80::flags& flags;
 };
 
 

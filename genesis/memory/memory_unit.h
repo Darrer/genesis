@@ -76,7 +76,12 @@ public:
 		}
 
 		for (size_t i = 0; i < sizeof(T); ++i)
-			mem[address + i] = *(reinterpret_cast<std::uint8_t*>(&data) + i);
+		{
+			// check_addr should properly handle out-of-boundary array accesses,
+			// but gcc still rises false-positive warnings
+			// so use std::array::at to calm gcc down
+			mem.at(address + i) = *(reinterpret_cast<std::uint8_t*>(&data) + i);
+		}
 	}
 
 	template<class T>

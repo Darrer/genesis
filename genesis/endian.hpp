@@ -66,7 +66,7 @@ void sys_to_little(T& val)
 }
 
 
-static std::uint8_t msb(std::uint16_t value)
+[[maybe_unused]] static std::uint8_t msb(std::uint16_t value)
 {
 	if constexpr (std::endian::native == std::endian::big)
 		return std::uint8_t(value & 0xFF);
@@ -75,7 +75,7 @@ static std::uint8_t msb(std::uint16_t value)
 }
 
 
-static std::uint8_t lsb(std::uint16_t value)
+[[maybe_unused]] static std::uint8_t lsb(std::uint16_t value)
 {
 	if constexpr (std::endian::native == std::endian::big)
 		return std::uint8_t(value >> 8);

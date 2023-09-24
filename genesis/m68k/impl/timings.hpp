@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <bit>
+#include <limits>
 #include "instruction_type.h"
 #include "ea_decoder.hpp"
 

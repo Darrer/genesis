@@ -1736,7 +1736,6 @@ private:
 		dest_reg = (opcode >> 9) & 0x7;
 
 		auto& src =  regs.A(src_reg);
-		auto& dest = regs.A(dest_reg);
 
 		scheduler.wait(2);
 		regs.dec_addr(src_reg, size_type::BYTE);

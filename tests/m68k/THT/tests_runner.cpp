@@ -17,18 +17,11 @@ using namespace genesis;
 
 static bool log_memory_allocations = false;
 
-void * operator new(size_t size)
+void* operator new(size_t size)
 {
 	if(log_memory_allocations)
 		std::cout << "Allocating " << size << " bytes" << std::endl;
 	return malloc(size);
-}
- 
-void operator delete(void * p)
-{
-	if(log_memory_allocations)
-		std::cout << "Deallocating" << std::endl;
-	free(p);
 }
 
 void* operator new[](size_t size)
@@ -38,13 +31,29 @@ void* operator new[](size_t size)
 	return malloc(size);
 }
 
-void operator delete[](void* m)
+void operator delete(void * p) noexcept
+{
+	if(log_memory_allocations)
+		std::cout << "Deallocating" << std::endl;
+	free(p);
+}
+
+void operator delete[](void* m) noexcept
 {
 	if(log_memory_allocations)
 		std::cout << "Deallocating[]" << std::endl;
 	free(m);
 }
 
+void operator delete(void* p, std::size_t /* size */) noexcept
+{
+    ::operator delete(p);
+}
+
+void operator delete[](void* p, std::size_t /* size */) noexcept
+{
+    ::operator delete[](p);
+}
 
 void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 {
@@ -264,7 +273,7 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 		++cycles_in_curr_trans;
 
 		// save data for rw transition
-		if(in_bus_cycle && cycles_in_curr_trans == 3 || cycles_in_curr_trans == 9)
+		if((in_bus_cycle && cycles_in_curr_trans == 3) || cycles_in_curr_trans == 9)
 		{
 			if(cycles_in_curr_trans == 3)
 				type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;

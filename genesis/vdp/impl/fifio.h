@@ -7,6 +7,7 @@
 #include "vdp/control_register.h"
 
 // TODO: move fifo.h to vdp/
+// TODO: fix type in filename
 
 namespace genesis::vdp
 {
@@ -80,7 +81,7 @@ public:
 private:
 	int free_slot = 0;
 	int first_entry = 0;
-	int size = 0;
+	std::size_t size = 0;
 	std::array<fifo_entry, 4> queue;
 };
 

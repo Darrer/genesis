@@ -84,7 +84,7 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 
 	auto ns_per_cycle = measure_in_ns([&]()
 	{
-		for(auto i = 0; i < num_reads; ++i)
+		for(auto i = 0ull; i < num_reads; ++i)
 		{
 			// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
 			// while (!busm.is_idle())

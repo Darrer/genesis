@@ -67,13 +67,13 @@ public:
 		}
 
 		for (size_t i = 0; i < sizeof(T); ++i)
-			mem[addr + i] = *(reinterpret_cast<std::byte*>(&data) + i);
+				mem.at(addr + i) = *(reinterpret_cast<std::byte*>(&data) + i);
 	}
 
 private:
 	inline void check_addr(address addr, size_t size)
 	{
-		if ((addr + size - 1) > max_address || addr < 0)
+		if(addr >= mem.size() || (addr + size - 1) >= mem.size())
 			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
 	}

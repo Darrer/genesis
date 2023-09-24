@@ -238,7 +238,7 @@ public:
 		}
 	}
 
-	dma_mode dma_mode() const
+	vdp::dma_mode dma_mode() const
 	{
 		if(regs.R23.T1 == 0)
 			return dma_mode::mem_to_vram;
@@ -289,21 +289,21 @@ public:
 
 	/* Display settings */
 
-	display_mode display_mode() const
+	vdp::display_mode display_mode() const
 	{
 		if(regs.R1.M5 == 1)
 			return display_mode::mode5;
 		return display_mode::mode4;
 	}
 
-	display_height display_height() const
+	vdp::display_height display_height() const
 	{
 		if(regs.R1.M2 == 1)
 			return display_height::c30;
 		return display_height::c28;
 	}
 
-	display_width display_width() const
+	vdp::display_width display_width() const
 	{
 		// TODO: take into accout RS1?
 		if(regs.R12.RS0 == 1)
@@ -311,7 +311,7 @@ public:
 		return display_width::c32;
 	}
 
-	interlace_mode interlace_mode() const
+	vdp::interlace_mode interlace_mode() const
 	{
 		switch (regs.R12.LS)
 		{
@@ -325,14 +325,14 @@ public:
 	}
 
 	/* Scrolling */
-	vertical_scrolling vertical_scrolling() const
+	vdp::vertical_scrolling vertical_scrolling() const
 	{
 		if(regs.R11.VS == 1)
 			return vertical_scrolling::two_cell;
 		return vertical_scrolling::full_screen;
 	}
 
-	horizontal_scrolling horizontal_scrolling() const
+	vdp::horizontal_scrolling horizontal_scrolling() const
 	{
 		switch (regs.R11.HS)
 		{

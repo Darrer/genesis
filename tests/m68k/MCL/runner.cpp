@@ -53,7 +53,6 @@ TEST(M68K, MCL)
 	const std::uint32_t loop_threshold = 10;
 
 	unsigned long long cycles = 0;
-	const unsigned long long log_cycle = 1'000'000;
 
 	auto& regs = cpu.registers();
 

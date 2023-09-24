@@ -162,7 +162,7 @@ public:
 		op_type type;
 		std::variant<read_operation, read_imm_operation,
 			write_operation, wait_operation, call_operation,
-			register_operation, push_operation> op;
+			register_operation, push_operation> op = {};
 	};
 
 private:

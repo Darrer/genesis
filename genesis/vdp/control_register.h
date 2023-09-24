@@ -78,7 +78,7 @@ public:
 		c2.A15_14 = value & 0b11;
 	}
 
-	vmem_type vmem_type() const
+	vdp::vmem_type vmem_type() const
 	{
 		std::uint8_t cd = c1.CD1;
 		cd |= c2.CD3_2 << 1;
@@ -133,7 +133,7 @@ public:
 		}
 	}
 
-	control_type control_type() const
+	vdp::control_type control_type() const
 	{
 		if(c1.CD0 == 1)
 			return control_type::write;

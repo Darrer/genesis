@@ -48,9 +48,10 @@ TEST(M68K, OPCODE_DECODER)
 		if(expected != actual)
 			++failed;
 
-
 		if(expected == false && actual == true)
+		{
 			ASSERT_EQ(expected, actual) << "failed to decode " << test.opcode << ", decoded to " << (int)inst;
+		}
 	}
  
 	// Tests have about 1181 opcodes which is marked as valid, but I've got no idea to which instruction I should map them

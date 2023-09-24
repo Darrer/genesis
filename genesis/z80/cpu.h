@@ -47,12 +47,12 @@ public:
 		return _bus;
 	}
 
-	memory& memory()
+	z80::memory& memory()
 	{
 		return *mem;
 	}
 
-	io_ports& io_ports()
+	z80::io_ports& io_ports()
 	{
 		return *ports;
 	}

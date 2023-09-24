@@ -28,7 +28,7 @@ public:
 
 	cpu_registers& registers() { return regs; }
 	cpu_bus& bus() { return _bus; }
-	bus_manager& bus_manager() { return busm; }
+	m68k::bus_manager& bus_manager() { return busm; }
 
 	bool is_idle() const;
 	void cycle();

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 
 #include "memory/addressable.h"
 #include "cpu_bus.hpp"
