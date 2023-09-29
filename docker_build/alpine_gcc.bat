@@ -1,0 +1,1 @@
+docker build -f DockerfileAlpineGCC -t genesis_build_alpine_gcc ..
