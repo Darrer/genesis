@@ -104,7 +104,7 @@ public:
 		return data;
 	}
 
-	std::size_t max_address() const { return mem.size() - 1; }
+	std::uint32_t max_address() const { return static_cast<std::uint32_t>(mem.size()) - 1; }
 
 private:
 	inline void check_addr(std::uint32_t addr, size_t size)

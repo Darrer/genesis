@@ -56,8 +56,8 @@ std::array<std::uint16_t, 10> gen_test_words()
 	return {0, 1, 255, 127, 126, 65535, 65534, 32768, 32767, 666};
 }
 
-template<class T>
-void test_read(T test_values)
+template<class T, std::size_t N>
+void test_read(std::array<T, N> test_values)
 {
 	test::test_cpu cpu;
 
@@ -93,8 +93,8 @@ void test_read(T test_values)
 	}
 }
 
-template<class T>
-void test_write(T values_to_write)
+template<class T, std::size_t N>
+void test_write(std::array<T, N> values_to_write)
 {
 	test::test_cpu cpu;
 

@@ -12,7 +12,7 @@ namespace genesis
 
 namespace __impl
 {
-static std::string build_msg(std::string_view error_type, std::string_view msg, const std::source_location &location)
+static std::string build_msg(std::string_view error_type, std::string_view msg, const std::source_location location)
 {
 	std::stringstream ss;
 	ss << location.function_name() << " at " << location.line();
@@ -27,7 +27,7 @@ class internal_error : public std::runtime_error
 {
 public:
 	internal_error(std::string_view msg = "",
-		const std::source_location &loc = std::source_location::current())
+		const std::source_location loc = std::source_location::current())
 		: std::runtime_error(__impl::build_msg("internal error", msg, loc))
 	{
 	}
@@ -37,7 +37,7 @@ class not_implemented : public std::runtime_error
 {
 public:
 	not_implemented(std::string_view msg = "",
-		const std::source_location &loc = std::source_location::current())
+		const std::source_location loc = std::source_location::current())
 		: std::runtime_error(__impl::build_msg("not implemented", msg, loc))
 	{
 	}
