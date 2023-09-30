@@ -204,7 +204,6 @@ private:
 	bool address_even;
 	addr_space space;
 	std::uint16_t data_to_write;
-	std::uint16_t _latched_data;
 };
 
 };

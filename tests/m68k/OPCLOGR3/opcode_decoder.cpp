@@ -35,7 +35,7 @@ TEST(M68K, OPCODE_DECODER)
 
 	patch_tests(tests);
 
-	std::uint16_t failed = 0;
+	[[maybe_unused]] std::uint16_t failed = 0;
 
 	for(auto test: tests)
 	{

@@ -23,6 +23,8 @@ public:
 	using extention_list = std::vector<std::string_view>;
 
 public:
+	virtual ~rom_parser() = default;
+
 	virtual extention_list supported_extentions() const = 0;
 
 	virtual rom::header_data parse_header(std::ifstream&) const = 0;
