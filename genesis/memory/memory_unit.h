@@ -27,7 +27,7 @@ public:
 
 	/* addressable interface */
 
-	std::uint32_t capacity() const override { return mem.size(); }
+	std::uint32_t capacity() const override { return static_cast<std::uint32_t>(mem.size()); }
 
 	bool is_idle() const override { return true; } // always idle
 
