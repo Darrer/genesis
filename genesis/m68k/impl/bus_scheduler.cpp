@@ -254,7 +254,7 @@ void bus_scheduler::start_operation(operation& op)
 
 		if(read.flags == read_imm_flags::do_prefetch)
 		{
-			current_op = { op_type::PREFETCH_IRC };
+			current_op = { op_type::PREFETCH_IRC, {} };
 			pq.init_fetch_irc([this]() { regs.PC += 2; run_cycless_operations(); });
 		}
 		// Even if we're requested to not do a prefetch, we must read second word for a long operation
