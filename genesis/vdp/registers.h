@@ -72,7 +72,7 @@ struct R6
 	std::uint8_t : 2;
 };
 
-// Background Colour	
+// Background Colour
 struct R7
 {
 	std::uint8_t COL : 4;
@@ -234,6 +234,6 @@ static_assert(sizeof(R22) == 1);
 static_assert(sizeof(R23) == 1);
 static_assert(sizeof(status_register) == 2);
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_REGISTERS_H__

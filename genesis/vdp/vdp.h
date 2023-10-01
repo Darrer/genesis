@@ -1,15 +1,14 @@
 #ifndef __VDP_H__
 #define __VDP_H__
 
-#include <memory>
-
+#include "impl/dma.h"
+#include "m68k_bus_access.h"
+#include "memory.h"
+#include "ports.h"
 #include "register_set.h"
 #include "settings.h"
-#include "ports.h"
-#include "memory.h"
-#include "m68k_bus_access.h"
 
-#include "impl/dma.h"
+#include <memory>
 
 
 namespace genesis::vdp
@@ -23,13 +22,31 @@ public:
 	// TODO: it should have multiple cycle methods with different clock rate
 	void cycle();
 
-	register_set& registers() { return regs; }
-	settings& sett() { return _sett; }
-	genesis::vdp::ports& io_ports() { return ports; }
+	register_set& registers()
+	{
+		return regs;
+	}
+	settings& sett()
+	{
+		return _sett;
+	}
+	genesis::vdp::ports& io_ports()
+	{
+		return ports;
+	}
 
-	vram_t& vram() { return *_vram; }
-	cram_t& cram() { return _cram; }
-	vsram_t& vsram() { return _vsram; }
+	vram_t& vram()
+	{
+		return *_vram;
+	}
+	cram_t& cram()
+	{
+		return _cram;
+	}
+	vsram_t& vsram()
+	{
+		return _vsram;
+	}
 
 private:
 	void handle_ports_requests();
@@ -56,6 +73,6 @@ protected:
 	impl::dma dma;
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_H__

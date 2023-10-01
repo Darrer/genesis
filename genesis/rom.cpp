@@ -126,15 +126,11 @@ public:
 		body.shrink_to_fit();
 		return body;
 	}
-
 };
 
 
 // static rom_parser* registered_parsers = { new bin_rom_parser()};
-std::array<std::shared_ptr<rom_parser>, 1> registered_parsers = 
-{
-	std::make_shared<bin_rom_parser>()
-};
+std::array<std::shared_ptr<rom_parser>, 1> registered_parsers = {std::make_shared<bin_rom_parser>()};
 
 
 const std::shared_ptr<rom_parser> find_parser(const std::string& extention)

@@ -1,9 +1,9 @@
 #ifndef __HELPER_HPP__
 #define __HELPER_HPP__
 
+#include <chrono>
 #include <filesystem>
 #include <gtest/gtest.h>
-#include <chrono>
 
 
 [[maybe_unused]] static std::filesystem::path get_exec_path()
@@ -15,7 +15,7 @@
 	return std::filesystem::absolute(exec_path);
 }
 
-template<class Callable>
+template <class Callable>
 static long long measure_in_ns(const Callable& fn)
 {
 	auto start = std::chrono::high_resolution_clock::now();

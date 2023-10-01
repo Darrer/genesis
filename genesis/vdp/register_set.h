@@ -1,11 +1,11 @@
 #ifndef __VDP_REGISTER_SET_H__
 #define __VDP_REGISTER_SET_H__
 
-#include "registers.h"
 #include "control_register.h"
-#include "read_buffer.h"
-#include "impl/fifio.h"
 #include "exception.hpp"
+#include "impl/fifio.h"
+#include "read_buffer.h"
+#include "registers.h"
 
 
 namespace genesis::vdp
@@ -16,7 +16,7 @@ class register_set
 public:
 	register_set()
 	{
-		for(std::uint8_t i = 0; i <= 23; ++i)
+		for (std::uint8_t i = 0; i <= 23; ++i)
 			set_register(i, 0);
 		sr_raw = 0;
 	}
@@ -80,7 +80,8 @@ public:
 		case 23:
 			return *reinterpret_cast<std::uint8_t*>(&R23);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -111,8 +112,7 @@ public:
 	vdp::R22 R22;
 	vdp::R23 R23;
 
-	union
-	{
+	union {
 		status_register SR;
 		std::uint16_t sr_raw;
 	};
@@ -122,6 +122,6 @@ public:
 	vdp::fifo fifo;
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_REGISTER_SET_H__

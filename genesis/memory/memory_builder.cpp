@@ -3,8 +3,8 @@
 #include "exception.hpp"
 #include "string_utils.hpp"
 
-#include <stdexcept>
 #include <optional>
+#include <stdexcept>
 
 
 namespace genesis::memory
@@ -22,24 +22,23 @@ private:
 	};
 
 public:
-
 	/* Implement addressable interface */
 
 	std::uint32_t capacity() const override
 	{
-		if(refs.empty())
+		if (refs.empty())
 			return 0;
 
 		std::uint32_t max_address = 0;
-		for(auto& dev : refs)
+		for (auto& dev : refs)
 			max_address = std::max(max_address, dev.end_address);
 
 		return max_address + 1;
 	}
-	
+
 	bool is_idle() const override
 	{
-		if(last_device.has_value() == false)
+		if (last_device.has_value() == false)
 		{
 			// there were not requests so far
 			return true;
@@ -62,7 +61,7 @@ public:
 	void init_write(std::uint32_t address, std::uint16_t data) override
 	{
 		assert_idle();
-		
+
 		auto dev = find_device(address);
 		address = convert_address(dev, address);
 		dev.memory_unit.init_write(address, data);
@@ -118,7 +117,7 @@ public:
 private:
 	void assert_idle() const
 	{
-		if(is_idle() == false)
+		if (is_idle() == false)
 		{
 			throw internal_error();
 		}
@@ -126,9 +125,9 @@ private:
 
 	addressable_device find_device(std::uint32_t address)
 	{
-		for(auto& dev : refs)
+		for (auto& dev : refs)
 		{
-			if(dev.start_address <= address && address <= dev.end_address)
+			if (dev.start_address <= address && address <= dev.end_address)
 				return dev;
 		}
 
@@ -150,15 +149,15 @@ private:
 
 std::shared_ptr<addressable> memory_builder::build()
 {
-	if(refs.empty() && shared_ptrs.empty())
+	if (refs.empty() && shared_ptrs.empty())
 		throw internal_error("tried to build without devices");
 
 	std::shared_ptr<composite_memory> comp = std::make_shared<composite_memory>();
 
-	for(auto& dev : refs)
+	for (auto& dev : refs)
 		comp->add(dev.memory_unit, dev.start_address, dev.end_address);
 
-	for(auto& dev : shared_ptrs)
+	for (auto& dev : shared_ptrs)
 		comp->add(dev.memory_unit, dev.start_address, dev.end_address);
 
 	refs.clear();
@@ -181,15 +180,16 @@ void memory_builder::add(addressable& memory_unit, std::uint32_t start_address, 
 
 void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address)
 {
-	if(memory_unit == nullptr)
+	if (memory_unit == nullptr)
 		throw std::invalid_argument("memory_unit cannot be null");
 
 	add(memory_unit, start_address, start_address + memory_unit->capacity() - 1);
 }
 
-void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address, std::uint32_t end_address)
+void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address,
+						 std::uint32_t end_address)
 {
-	if(memory_unit == nullptr)
+	if (memory_unit == nullptr)
 		throw std::invalid_argument("memory_unit cannot be null");
 
 	check_args(*memory_unit, start_address, end_address);
@@ -199,11 +199,11 @@ void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t
 
 void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
 {
-	if(end_address < start_address)
+	if (end_address < start_address)
 		throw std::invalid_argument("end_address cannot be less than start_address");
 
 	std::uint32_t capacity = end_address - start_address + 1; // +1 as address range is [start ; end]
-	if(memory_unit.capacity() < capacity)
+	if (memory_unit.capacity() < capacity)
 		throw std::invalid_argument("provided addressable device cannot address specified capacity");
 
 	check_intersect(start_address, end_address);
@@ -211,14 +211,13 @@ void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_ad
 
 void memory_builder::check_intersect(std::uint32_t start_address, std::uint32_t end_address)
 {
-	auto is_intersect = [start_address, end_address](auto& unit)
-	{
-		return (unit.start_address <= start_address && start_address <= unit.end_address)
-			|| (unit.start_address <= end_address && end_address <= unit.end_address);
+	auto is_intersect = [start_address, end_address](auto& unit) {
+		return (unit.start_address <= start_address && start_address <= unit.end_address) ||
+			   (unit.start_address <= end_address && end_address <= unit.end_address);
 	};
 
-	if(std::ranges::any_of(refs, is_intersect) || std::ranges::any_of(shared_ptrs, is_intersect))
+	if (std::ranges::any_of(refs, is_intersect) || std::ranges::any_of(shared_ptrs, is_intersect))
 		throw std::invalid_argument("specified address range intersects with existing device");
 }
 
-}
+} // namespace genesis::memory

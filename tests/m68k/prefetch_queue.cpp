@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "test_cpu.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace genesis;
 
@@ -44,9 +44,9 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRD)
 	std::uint16_t irc = 42;
 	std::uint16_t ird = 24;
 	std::uint32_t pc = 0x100;
-	
+
 	prepare_cpu(cpu, pc, ird, irc);
-	
+
 	auto& regs = cpu.registers();
 	regs.IR = regs.IRD = 0;
 
@@ -67,9 +67,9 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_IRC)
 	std::uint16_t irc = 42;
 	std::uint16_t ird = 24;
 	std::uint32_t pc = 0x100;
-	
+
 	prepare_cpu(cpu, pc, ird, irc);
-	
+
 	auto& regs = cpu.registers();
 	regs.IRC = 0;
 
@@ -91,9 +91,9 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 	std::uint16_t old_irc = 88;
 	std::uint16_t ird = 24;
 	std::uint32_t pc = 0x100;
-	
+
 	prepare_cpu(cpu, pc, ird, irc);
-	
+
 
 	auto& regs = cpu.registers();
 	regs.IRC = old_irc;

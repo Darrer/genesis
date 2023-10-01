@@ -25,7 +25,7 @@ struct color
 		blue = (_value >> 9) & 0b111;
 	}
 
-	std::uint16_t value()
+	std::uint16_t value() const
 	{
 		std::uint16_t val = 0;
 		val |= red << 1;

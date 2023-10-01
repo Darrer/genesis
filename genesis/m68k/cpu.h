@@ -1,12 +1,10 @@
 #ifndef __M68K_CPU_H__
 #define __M68K_CPU_H__
 
-#include "cpu_registers.hpp"
-#include "cpu_bus.hpp"
 #include "bus_manager.h"
-
+#include "cpu_bus.hpp"
+#include "cpu_registers.hpp"
 #include "impl/base_unit.h"
-
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
@@ -26,9 +24,18 @@ public:
 
 	void reset();
 
-	cpu_registers& registers() { return regs; }
-	cpu_bus& bus() { return _bus; }
-	m68k::bus_manager& bus_manager() { return busm; }
+	cpu_registers& registers()
+	{
+		return regs;
+	}
+	cpu_bus& bus()
+	{
+		return _bus;
+	}
+	m68k::bus_manager& bus_manager()
+	{
+		return busm;
+	}
 
 	bool is_idle() const;
 	void cycle();
@@ -48,6 +55,6 @@ protected:
 	std::unique_ptr<impl::trace_riser> tracer;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_CPU_H__

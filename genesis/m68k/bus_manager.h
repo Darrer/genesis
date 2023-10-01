@@ -1,14 +1,14 @@
 #ifndef __M68K_BUS_MANAGER_H__
 #define __M68K_BUS_MANAGER_H__
 
-#include <cstdint>
-#include <functional>
-#include <memory>
-
-#include "memory/addressable.h"
 #include "cpu_bus.hpp"
 #include "cpu_registers.hpp"
 #include "impl/exception_manager.h"
+#include "memory/addressable.h"
+
+#include <cstdint>
+#include <functional>
+#include <memory>
 
 
 namespace genesis::m68k
@@ -68,7 +68,7 @@ private:
 
 public:
 	using on_complete = std::function<void()>;
-	using on_modify = std::function<std::uint_fast8_t(std::uint_fast8_t)>;
+	using on_modify = std::function<std::uint_fast8_t(std::uint_fast8_t)>; // TODO: go back to std::uint8_t
 
 private:
 	// all callbacks are restricted in size to the size of a pointer
@@ -78,7 +78,7 @@ private:
 
 public:
 	bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
-		std::shared_ptr<memory::addressable> external_memory);
+				std::shared_ptr<memory::addressable> external_memory);
 
 	void cycle(); // TODO: must be visible only for m68k::cpu
 
@@ -87,7 +87,7 @@ public:
 
 	/* read/write interface */
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_write(std::uint32_t address, std::uint8_t data, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -98,7 +98,7 @@ public:
 		byte_operation = true;
 	}
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_write(std::uint32_t address, std::uint16_t data, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -109,14 +109,14 @@ public:
 		byte_operation = false;
 	}
 
-	template<class Callable>
+	template <class Callable>
 	void init_read_modify_write(std::uint32_t address, const Callable& modify, addr_space space = addr_space::DATA)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle("init_read_modify_write");
 
 		modify_cb = modify;
-		if(modify_cb == nullptr)
+		if (modify_cb == nullptr)
 			throw std::invalid_argument("modify");
 
 		this->address = address;
@@ -126,7 +126,7 @@ public:
 		byte_operation = true;
 	}
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_read_byte(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -136,7 +136,7 @@ public:
 		byte_operation = true;
 	}
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_read_word(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -151,12 +151,19 @@ public:
 
 	/* bus control interface */
 
+	// TODO: bus_scheduler should be extended to check whether it m68k processor has access to the bus
+	bool bus_granted() const;
+	void request_access();
+	void release_access();
+
 	/* interrupt interface */
+
+	// TODO
 
 private:
 	void assert_idle(std::string_view caller) const;
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void start_new_operation(std::uint32_t addr, addr_space sp, int first_state, const Callable& cb)
 	{
 		address = addr;
@@ -206,6 +213,6 @@ private:
 	std::uint16_t data_to_write;
 };
 
-};
+}; // namespace genesis::m68k
 
 #endif // __M68K_BUS_MANAGER_H__

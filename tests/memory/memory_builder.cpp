@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
-
 #include "memory/memory_builder.h"
-#include "memory/memory_unit.h"
+
 #include "helper.h"
+#include "memory/memory_unit.h"
+
+#include <gtest/gtest.h>
 
 using namespace genesis;
 
@@ -16,7 +17,7 @@ std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_pe
 	memory::memory_builder builder;
 
 	std::uint32_t start_address = 0;
-	for(unsigned i = 0; i < num_devices; ++i)
+	for (unsigned i = 0; i < num_devices; ++i)
 	{
 		builder.add(device(mem_per_device - 1), start_address);
 		start_address += mem_per_device;
@@ -38,9 +39,9 @@ TEST(MEMORY, MEMORY_BUILDER_INTERSECT_DEVICES)
 	ASSERT_THROW(builder.add(dev, 1536), std::exception); // check in between
 
 	/* check end address intersection */
-	ASSERT_THROW(builder.add(dev, 0), std::exception); // check low boundary
+	ASSERT_THROW(builder.add(dev, 0), std::exception);	  // check low boundary
 	ASSERT_THROW(builder.add(dev, 1023), std::exception); // check upper boundary
-	ASSERT_THROW(builder.add(dev, 512), std::exception); // check in between
+	ASSERT_THROW(builder.add(dev, 512), std::exception);  // check in between
 }
 
 TEST(MEMORY, MEMORY_BUILDER_READ_WRITE_8)
@@ -59,12 +60,12 @@ TEST(MEMORY, MEMORY_BUILDER_GAP)
 {
 	memory::memory_builder builder;
 
-	builder.add(device(32), 0); // [0 ; 32]
+	builder.add(device(32), 0);	   // [0 ; 32]
 	builder.add(device(32), 1024); // [1024 ; 1056]
 
 	auto mem = builder.build();
 
-	for(auto addr : {33, 512, 1057})
+	for (auto addr : {33, 512, 1057})
 	{
 		ASSERT_THROW(mem->init_write(addr, std::uint8_t(0)), std::runtime_error);
 		ASSERT_THROW(mem->init_write(addr, std::uint16_t(0)), std::runtime_error);
@@ -78,7 +79,7 @@ TEST(MEMORY, MEMORY_BUILDER_UNITS_BORDER)
 {
 	memory::memory_builder builder;
 
-	builder.add(device(32), 0); // [0 ; 32]
+	builder.add(device(32), 0);	 // [0 ; 32]
 	builder.add(device(32), 33); // [33 ; 65]
 
 	const std::uint32_t border_address = 32;

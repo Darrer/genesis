@@ -1,13 +1,14 @@
-#include <gtest/gtest.h>
-#include <memory>
-
 #include "m68k/impl/ea_decoder.hpp"
+
 #include "m68k/impl/size_type.h"
 #include "test_cpu.hpp"
 
+#include <gtest/gtest.h>
+#include <memory>
 
-#define setup_test() \
-	genesis::test::test_cpu cpu; \
+
+#define setup_test()                                                                                                   \
+	genesis::test::test_cpu cpu;                                                                                       \
 	m68k::ea_decoder dec(cpu.registers(), cpu.bus_scheduler())
 
 using namespace genesis::m68k;
@@ -15,9 +16,9 @@ using namespace genesis;
 
 
 void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::size_type size,
-	std::initializer_list<std::uint8_t> mem_data)
+			std::initializer_list<std::uint8_t> mem_data)
 {
-	if(mem_data.size() == 0)
+	if (mem_data.size() == 0)
 		throw std::runtime_error("decode error: mem data supposed to have at least 1 element");
 
 	auto& regs = cpu.registers();
@@ -26,7 +27,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::s
 	// setup mem
 	regs.IRC = *mem_data.begin();
 	std::uint32_t offset = 0;
-	for(auto it = std::next(mem_data.begin()); it != mem_data.end(); ++it)
+	for (auto it = std::next(mem_data.begin()); it != mem_data.end(); ++it)
 	{
 		cpu.memory().write(regs.PC + offset, *it);
 		offset += sizeof(*it);
@@ -34,7 +35,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::s
 
 	// start decoding
 	dec.schedule_decoding(ea, size);
-	while(!dec.ready())
+	while (!dec.ready())
 	{
 		cpu.bus_scheduler().cycle();
 		cpu.bus_manager().cycle();
@@ -49,10 +50,10 @@ TEST(M68K_EA_DECODER, MODE_000)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t data_mode = 0;
-	for(std::uint8_t i = 0; i < num_regs; ++i)
+	for (std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = data_mode + i;
-		decode(cpu, dec, ea, m68k::size_type::BYTE, { 0x0 });
+		decode(cpu, dec, ea, m68k::size_type::BYTE, {0x0});
 		auto op = dec.result();
 
 		ASSERT_TRUE(op.is_data_reg());
@@ -68,10 +69,10 @@ TEST(M68K_EA_DECODER, MODE_001)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t addr_mode = 1 << 3;
-	for(std::uint8_t i = 0; i < num_regs; ++i)
+	for (std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = addr_mode + i;
-		decode(cpu, dec, ea, m68k::size_type::BYTE, { 0x0 });
+		decode(cpu, dec, ea, m68k::size_type::BYTE, {0x0});
 		auto op = dec.result();
 
 		ASSERT_TRUE(op.is_addr_reg());
@@ -81,8 +82,8 @@ TEST(M68K_EA_DECODER, MODE_001)
 	}
 }
 
-void check_timings(std::uint8_t ea, m68k::size_type size,
-	std::uint8_t expected_total_cycles, std::uint8_t expected_bus_read_cycles)
+void check_timings(std::uint8_t ea, m68k::size_type size, std::uint8_t expected_total_cycles,
+				   std::uint8_t expected_bus_read_cycles)
 {
 	setup_test();
 
@@ -107,9 +108,9 @@ void check_timings(std::uint8_t ea, m68k::size_type size,
 		++cycles;
 
 		// check if in read cycle
-		if(bus.is_set(m68k::bus::AS) && bus.is_set(m68k::bus::RW))
+		if (bus.is_set(m68k::bus::AS) && bus.is_set(m68k::bus::RW))
 		{
-			if(!in_read_cycle)
+			if (!in_read_cycle)
 			{
 				in_read_cycle = true;
 				++read_cycles;
@@ -127,13 +128,13 @@ void check_timings(std::uint8_t ea, m68k::size_type size,
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_000)
 {
-	for(auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
+	for (auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
 		check_timings(0b000, sz, 0, 0);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_001)
 {
-	for(auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
+	for (auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
 		check_timings(0b001 << 3, sz, 0, 0);
 }
 

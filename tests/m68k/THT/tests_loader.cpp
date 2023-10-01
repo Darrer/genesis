@@ -8,16 +8,16 @@ using json = nlohmann::json;
 
 ram_state parse_ram_state(json& ram)
 {
-	if(!ram.is_array())
+	if (!ram.is_array())
 		throw std::runtime_error("parse_ram_state error: expected to get an array");
 
 	ram_state rt;
 
-	for(auto& item : ram)
+	for (auto& item : ram)
 	{
-		if(!item.is_array() || item.size() != 2)
+		if (!item.is_array() || item.size() != 2)
 			throw std::runtime_error("parse_ram_state error: expected to get 2 size sub array");
-		
+
 		auto addr = item.at(0).get<std::uint32_t>();
 		auto value = item.at(1).get<std::uint8_t>();
 
@@ -29,15 +29,15 @@ ram_state parse_ram_state(json& ram)
 
 std::vector<std::uint16_t> parse_prefetch(json& pref)
 {
-	if(!pref.is_array())
+	if (!pref.is_array())
 		throw std::runtime_error("parse_prefetch error: expected to get an array");
-	
-	if(pref.size() != 2)
+
+	if (pref.size() != 2)
 		throw std::runtime_error("parse_prefetch error: unexpected prefetch queue size");
 
 	std::vector<std::uint16_t> prefetch;
 
-	for(auto& val : pref)
+	for (auto& val : pref)
 		prefetch.push_back(val.get<std::uint16_t>());
 
 	return prefetch;
@@ -80,16 +80,16 @@ cpu_state parse_cpu_state(json& state)
 // transitions, so werge it to ["n", 6]
 void merge_neighboring_idle_transitions(std::vector<bus_transition>& transitions)
 {
-	for(auto it = transitions.begin(); it != transitions.end(); ++it)
+	for (auto it = transitions.begin(); it != transitions.end(); ++it)
 	{
 		auto& trans = *it;
-		if(trans.type != trans_type::IDLE)
+		if (trans.type != trans_type::IDLE)
 			continue;
 
-		for(auto next = std::next(it); next != transitions.end();)
+		for (auto next = std::next(it); next != transitions.end();)
 		{
 			auto& next_trans = *next;
-			if(next_trans.type != trans_type::IDLE)
+			if (next_trans.type != trans_type::IDLE)
 				break;
 
 			// current and next transitoins have IDLE type
@@ -105,48 +105,49 @@ void merge_neighboring_idle_transitions(std::vector<bus_transition>& transitions
 
 std::vector<bus_transition> parse_transitions(json& transitions)
 {
-	if(!transitions.is_array() || transitions.size() == 0)
+	if (!transitions.is_array() || transitions.size() == 0)
 		throw std::runtime_error("parse_transitions error: expected to get an non-empty array of transitions");
 
-	auto get_trans_type = [](std::string type)
-	{
+	auto get_trans_type = [](std::string type) {
 		switch (type.at(0))
 		{
-		case 'n': return trans_type::IDLE;
-		case 'r': return trans_type::READ;
-		case 'w': return trans_type::WRITE;
-		case 't': return trans_type::READ_MODIFY_WRITE;
+		case 'n':
+			return trans_type::IDLE;
+		case 'r':
+			return trans_type::READ;
+		case 'w':
+			return trans_type::WRITE;
+		case 't':
+			return trans_type::READ_MODIFY_WRITE;
 		default:
 			throw std::runtime_error("parse_transitions error: unknown transition type: " + type);
 		}
 	};
 
 	std::vector<bus_transition> res;
-	for(auto& tr : transitions)
+	for (auto& tr : transitions)
 	{
-		if(!tr.is_array() || tr.size() == 0)
+		if (!tr.is_array() || tr.size() == 0)
 			throw std::runtime_error("parse_transitions error: found invalid transition");
-		
+
 		auto type = get_trans_type(tr.at(0).get<std::string>());
 		std::uint16_t cycles = tr.at(1).get<std::uint16_t>();
 
 		switch (type)
 		{
-		case trans_type::IDLE:
-		{
+		case trans_type::IDLE: {
 			res.push_back({cycles});
 			break;
 		}
 
 		case trans_type::READ:
 		case trans_type::WRITE:
-		case trans_type::READ_MODIFY_WRITE:
-		{
+		case trans_type::READ_MODIFY_WRITE: {
 			std::uint8_t func_code = tr.at(2).get<std::uint8_t>();
 			std::uint32_t addr = tr.at(3).get<std::uint32_t>();
 
 			std::string access_type = tr.at(4).get<std::string>();
-			if(access_type != ".w" && access_type != ".b")
+			if (access_type != ".w" && access_type != ".b")
 				throw std::runtime_error("parse_transitions error: unknown access type: " + access_type);
 
 			bool word_access = access_type == ".w";
@@ -181,17 +182,17 @@ test_case parse_test_case(json& test)
 std::vector<test_case> load_tests(std::string path_to_json_tests)
 {
 	std::ifstream fs(path_to_json_tests);
-	if(!fs.is_open())
+	if (!fs.is_open())
 		throw std::runtime_error("load_tests error: failed to open " + path_to_json_tests);
 
 	json data = json::parse(fs);
 
-	if(!data.is_array())
+	if (!data.is_array())
 		return {};
 
 	std::vector<test_case> tests;
 
-	for(auto& test : data)
+	for (auto& test : data)
 		tests.push_back(parse_test_case(test));
 
 	return tests;

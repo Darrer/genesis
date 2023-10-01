@@ -36,7 +36,7 @@ enum class bus
 	/* Bus arbitration control */
 	BR,
 	BG,
-	BGACK,
+	// BGACK, // unsupported
 };
 
 class cpu_bus

@@ -21,6 +21,6 @@ private:
 	// std::shared_ptr<memory::addressable> z80_mem_map;
 };
 
-}
+} // namespace genesis
 
 #endif // __GENESIS_H__

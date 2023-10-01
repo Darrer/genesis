@@ -3,6 +3,7 @@
 
 #include "m68k/cpu.h"
 #include "memory/memory_unit.h"
+
 #include <fstream>
 
 namespace genesis::test
@@ -17,16 +18,27 @@ class test_cpu : public genesis::m68k::cpu
 private:
 	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit) : cpu(mem_unit), mem_unit(mem_unit)
 	{
-		if(exman.is_raised(m68k::exception_type::reset))
+		if (exman.is_raised(m68k::exception_type::reset))
 			exman.accept(m68k::exception_type::reset);
 	}
 
 public:
-	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big)) { }
+	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big))
+	{
+	}
 
-	memory::memory_unit& memory() { return *mem_unit; }
-	m68k::bus_scheduler& bus_scheduler() { return scheduler; }
-	m68k::exception_manager& exception_manager() { return exman; }
+	memory::memory_unit& memory()
+	{
+		return *mem_unit;
+	}
+	m68k::bus_scheduler& bus_scheduler()
+	{
+		return scheduler;
+	}
+	m68k::exception_manager& exception_manager()
+	{
+		return exman;
+	}
 
 	unsigned long long cycle_till_idle(unsigned long long cycles_limit = 1000)
 	{
@@ -36,7 +48,7 @@ public:
 			cycle();
 			++cycles;
 
-			if(cycles_limit != 0 && cycles > cycles_limit)
+			if (cycles_limit != 0 && cycles > cycles_limit)
 				break;
 		} while (!is_idle());
 
@@ -65,7 +77,7 @@ private:
 	std::shared_ptr<memory::memory_unit> mem_unit;
 };
 
-}
+} // namespace genesis::test
 
 
 #endif // __M68K_TEST_CPU_HPP__

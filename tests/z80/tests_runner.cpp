@@ -113,7 +113,7 @@ private:
 		if (str.find("expected") != std::string::npos)
 			++num_failed;
 
-		if(str.find("skipped") != std::string::npos)
+		if (str.find("skipped") != std::string::npos)
 			++num_skipped;
 	}
 
@@ -130,10 +130,10 @@ void report_results(unsigned long long cycles, int num_succeded, int num_failed,
 {
 	std::cout << "Z80 Test complete, succeeded: " << num_succeded << ", failed: " << num_failed;
 
-	if(num_failed == expected_failed && expected_failed != 0)
+	if (num_failed == expected_failed && expected_failed != 0)
 		std::cout << " (expected)";
 
-	if(num_skipped != 0)
+	if (num_skipped != 0)
 		std::cout << ", skipped: " << num_skipped;
 
 	std::cout << ", cycles: " << cycles << std::endl;

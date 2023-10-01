@@ -1,10 +1,10 @@
 #ifndef __M68K_BASE_UNIT_H__
 #define __M68K_BASE_UNIT_H__
 
-#include <cstdint>
-
-#include "m68k/cpu_registers.hpp"
 #include "bus_scheduler.h"
+#include "m68k/cpu_registers.hpp"
+
+#include <cstdint>
 
 
 namespace genesis::m68k
@@ -22,7 +22,9 @@ protected:
 
 public:
 	base_unit(m68k::cpu_registers& regs, m68k::bus_scheduler& scheduler);
-	virtual ~base_unit() { }
+	virtual ~base_unit()
+	{
+	}
 
 	void cycle();
 	void post_cycle();
@@ -54,6 +56,6 @@ private:
 	std::uint8_t state;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif //__M68K_BASE_UNIT_H__

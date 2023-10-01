@@ -10,21 +10,17 @@ cpu::cpu(std::shared_ptr<memory::addressable> external_memory)
 {
 	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, busm, scheduler);
 
-	auto abort_execution = [this]()
-	{
+	auto abort_execution = [this]() {
 		inst_unit->reset();
 		scheduler.reset();
 		tracer->reset();
 	};
 
-	auto instruction_unit_is_idle = [this]()
-	{
-		return inst_unit->is_idle();
-	};
+	auto instruction_unit_is_idle = [this]() { return inst_unit->is_idle(); };
 
-	excp_unit = std::make_unique<m68k::exception_unit>(regs, exman, _bus, scheduler,
-		abort_execution, instruction_unit_is_idle);
-	
+	excp_unit =
+		std::make_unique<m68k::exception_unit>(regs, exman, _bus, scheduler, abort_execution, instruction_unit_is_idle);
+
 	tracer = std::make_unique<impl::trace_riser>(regs, exman, instruction_unit_is_idle);
 
 	reset();
@@ -46,7 +42,7 @@ void cpu::cycle()
 
 	// only instruction or exception cycle
 	bool exception_cycle = !excp_unit->is_idle();
-	if(exception_cycle)
+	if (exception_cycle)
 	{
 		excp_unit->cycle();
 	}
@@ -58,7 +54,7 @@ void cpu::cycle()
 	scheduler.cycle();
 	busm.cycle();
 
-	if(exception_cycle)
+	if (exception_cycle)
 	{
 		excp_unit->post_cycle();
 	}
@@ -73,8 +69,7 @@ void cpu::cycle()
 bool cpu::is_idle() const
 {
 	// TODO: add exman?
-	return busm.is_idle() && scheduler.is_idle()
-		&& inst_unit->is_idle() && excp_unit->is_idle();
+	return busm.is_idle() && scheduler.is_idle() && inst_unit->is_idle() && excp_unit->is_idle();
 }
 
-}
+} // namespace genesis::m68k

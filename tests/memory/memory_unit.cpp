@@ -1,8 +1,9 @@
-#include <gtest/gtest.h>
-
 #include "memory/memory_unit.h"
+
 #include "../helpers/random.h"
 #include "helper.h"
+
+#include <gtest/gtest.h>
 
 using namespace genesis;
 
@@ -101,7 +102,7 @@ TEST(MEMORY, MEMORY_UNIT_BIG_ENDIAN)
 	const int num_batches = 10;
 	memory::memory_unit unit{32, std::endian::big};
 
-	for(int i = 0; i < num_batches; ++i)
+	for (int i = 0; i < num_batches; ++i)
 	{
 		std::uint16_t data = test::random::next<std::uint16_t>();
 
@@ -123,7 +124,7 @@ TEST(MEMORY, MEMORY_UNIT_LITTLE_ENDIAN)
 	const int num_batches = 10;
 	memory::memory_unit unit{32, std::endian::little};
 
-	for(int i = 0; i < num_batches; ++i)
+	for (int i = 0; i < num_batches; ++i)
 	{
 		std::uint16_t data = test::random::next<std::uint16_t>();
 

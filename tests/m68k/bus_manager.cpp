@@ -1,14 +1,14 @@
-#include <gtest/gtest.h>
-#include <array>
-
 #include "test_cpu.hpp"
+
+#include <array>
+#include <gtest/gtest.h>
 
 using namespace genesis;
 
 
 void prepare_mem(memory::memory_unit& mem, std::uint32_t base_addr, const auto& array)
 {
-	for(auto val : array)
+	for (auto val : array)
 	{
 		mem.write(base_addr, val);
 		base_addr += sizeof(val);
@@ -23,7 +23,7 @@ std::uint32_t wait_idle(m68k::bus_manager& busm)
 		busm.cycle();
 		++cycles;
 	}
-	
+
 	return cycles;
 }
 
@@ -39,7 +39,7 @@ std::uint32_t read_word(m68k::bus_manager& busm, std::uint32_t addr)
 	return wait_idle(busm);
 }
 
-template<class T>
+template <class T>
 std::uint32_t write(m68k::bus_manager& busm, std::uint32_t addr, T val)
 {
 	busm.init_write(addr, val);
@@ -56,7 +56,7 @@ std::array<std::uint16_t, 10> gen_test_words()
 	return {0, 1, 255, 127, 126, 65535, 65534, 32768, 32767, 666};
 }
 
-template<class T, std::size_t N>
+template <class T, std::size_t N>
 void test_read(std::array<T, N> test_values)
 {
 	test::test_cpu cpu;
@@ -69,7 +69,7 @@ void test_read(std::array<T, N> test_values)
 
 	const std::uint32_t cycles_per_read = 4;
 
-	for(std::size_t i = 0; i < test_values.size(); ++i)
+	for (std::size_t i = 0; i < test_values.size(); ++i)
 	{
 		auto expected = test_values[i];
 		std::uint32_t addr = base + i * sizeof(expected);
@@ -93,7 +93,7 @@ void test_read(std::array<T, N> test_values)
 	}
 }
 
-template<class T, std::size_t N>
+template <class T, std::size_t N>
 void test_write(std::array<T, N> values_to_write)
 {
 	test::test_cpu cpu;
@@ -104,7 +104,7 @@ void test_write(std::array<T, N> values_to_write)
 	const std::uint32_t cycles_per_write = 4;
 
 	std::uint32_t base = 0x100;
-	for(std::size_t i = 0; i < values_to_write.size(); ++i)
+	for (std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto val = values_to_write[i];
 		std::uint32_t addr = base + i * sizeof(val);
@@ -115,7 +115,7 @@ void test_write(std::array<T, N> values_to_write)
 	}
 
 	// check mem
-	for(std::size_t i = 0; i < values_to_write.size(); ++i)
+	for (std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto expected = values_to_write[i];
 		std::uint32_t addr = base + i * sizeof(expected);
@@ -186,7 +186,7 @@ struct bus_state
 	bool lds_is_set = false;
 };
 
-template<class T>
+template <class T>
 bus_state read_and_track(std::uint32_t addr, T val_to_write)
 {
 	test::test_cpu cpu;
@@ -210,23 +210,23 @@ bus_state read_and_track(std::uint32_t addr, T val_to_write)
 		busm.cycle();
 		++cycle;
 
-		if(cycle == 1)
+		if (cycle == 1)
 			bs.address = bus.address();
 
-		if(cycle == 2)
+		if (cycle == 2)
 		{
 			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
 			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
 		}
 
-		if(cycle == 3)
+		if (cycle == 3)
 			bs.data = bus.data();
 	}
 
 	return bs;
 }
 
-template<class T>
+template <class T>
 bus_state write_and_track(std::uint32_t addr, T val_to_write)
 {
 	test::test_cpu cpu;
@@ -244,13 +244,13 @@ bus_state write_and_track(std::uint32_t addr, T val_to_write)
 		busm.cycle();
 		++cycle;
 
-		if(cycle == 1)
+		if (cycle == 1)
 			bs.address = bus.address();
 
-		if(cycle == 2)
+		if (cycle == 2)
 			bs.data = bus.data();
 
-		if(cycle == 3)
+		if (cycle == 3)
 		{
 			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
 			bs.lds_is_set = bus.is_set(m68k::bus::LDS);

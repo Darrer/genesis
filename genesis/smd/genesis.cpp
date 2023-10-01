@@ -1,6 +1,7 @@
 #include "genesis.h"
-#include "memory/memory_unit.h"
+
 #include "memory/memory_builder.h"
+#include "memory/memory_unit.h"
 
 
 namespace genesis
@@ -20,4 +21,4 @@ void genesis::build_cpu_memory_map()
 	m68k_mem_map = m68k_builder.build();
 }
 
-}
+} // namespace genesis

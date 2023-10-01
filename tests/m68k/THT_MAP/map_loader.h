@@ -1,9 +1,9 @@
 #ifndef __M68K_MAP_LOADER_H__
 #define __M68K_MAP_LOADER_H__
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 
 struct opcode_entry

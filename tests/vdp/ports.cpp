@@ -1,10 +1,9 @@
-#include <gtest/gtest.h>
-#include <iostream>
-
+#include "../helpers/random.h"
+#include "test_vdp.h"
 #include "vdp/impl/color.h"
 
-#include "test_vdp.h"
-#include "../helpers/random.h"
+#include <gtest/gtest.h>
+#include <iostream>
 
 using namespace genesis::vdp;
 using namespace genesis;
@@ -21,7 +20,7 @@ std::uint32_t wait_ports(test::vdp& vdp, std::string desc = "")
 		vdp.cycle();
 		++cycles;
 
-		if(cycles >= wait_limit)
+		if (cycles >= wait_limit)
 			throw std::runtime_error(std::string("wait_ports: it takes too long") + " " + desc);
 	}
 
@@ -112,9 +111,9 @@ TEST(VDP_PORTS, WRITE_CONTROL_REGISTERS)
 	auto& ports = vdp.io_ports();
 	auto& regs = vdp.registers();
 
-	for(std::uint8_t reg = 0; reg <= 23; ++ reg)
+	for (std::uint8_t reg = 0; reg <= 23; ++reg)
 	{
-		for(int data = 0; data <= 255; ++data)
+		for (int data = 0; data <= 255; ++data)
 		{
 			ports.init_write_control(format_write_register(reg, data));
 			wait_ports(vdp);
@@ -133,7 +132,7 @@ TEST(VDP_PORTS, WRITE_CONTROL_ADDRESS)
 	auto& ports = vdp.io_ports();
 	auto& regs = vdp.registers();
 
-	for(int data = 0; data <= 0xFFFF; ++data)
+	for (int data = 0; data <= 0xFFFF; ++data)
 	{
 		std::uint16_t addr1 = format_address_1(data);
 		std::uint16_t addr2 = format_address_2(data) & cd5_clear_mask;
@@ -159,7 +158,7 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_REGISTERS)
 	auto& ports = vdp.io_ports();
 	auto& regs = vdp.registers();
 
-	for(std::uint8_t data = 128; data < 192; ++data)
+	for (std::uint8_t data = 128; data < 192; ++data)
 	{
 		std::uint8_t reg_data = data;
 		std::uint8_t reg_num = data & 0b11111;
@@ -168,7 +167,7 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_REGISTERS)
 		wait_ports(vdp);
 
 		// registers should not be affected
-		if(reg_num > 23)
+		if (reg_num > 23)
 			continue;
 
 		ASSERT_TRUE((data >> 6) == 0b10);
@@ -183,9 +182,9 @@ TEST(VDP_PORTS, BYTE_WRITE_CONTROL_ADDRESS)
 	auto& ports = vdp.io_ports();
 	auto& regs = vdp.registers();
 
-	for(int data = 0; data <= 255; ++data)
+	for (int data = 0; data <= 255; ++data)
 	{
-		if((data >> 6) == 0b10)
+		if ((data >> 6) == 0b10)
 			continue;
 
 		const std::uint16_t expected_data = std::uint16_t(data << 8) | data;
@@ -299,7 +298,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM)
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::read);
 
-	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
+	for (int addr = 0; addr <= 0xFFFF - 2; ++addr)
 	{
 		std::uint16_t expected_data = test::random::next<std::uint16_t>();
 		int effective_address = addr & ~1;
@@ -331,11 +330,11 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 	control.dma_start(false);
 	control.work_completed(false);
 
-	for(int red = 0; red <= 7; ++red)
+	for (int red = 0; red <= 7; ++red)
 	{
-		for(int green = 0; green <= 7; ++green)
+		for (int green = 0; green <= 7; ++green)
 		{
-			for(int blue = 0; blue <= 7; ++blue)
+			for (int blue = 0; blue <= 7; ++blue)
 			{
 				color color;
 				color.red = red;
@@ -349,7 +348,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 
 				ASSERT_EQ(expected_color, color.value());
 
-				for(int addr = 0; addr <= 127; ++addr)
+				for (int addr = 0; addr <= 127; ++addr)
 				{
 					// prepare mem
 					const std::uint16_t expected_data = color.value();
@@ -390,9 +389,9 @@ TEST(VDP_PORTS, DATA_PORT_READ_VSRAM)
 	control.dma_start(false);
 	control.work_completed(false);
 
-	for(int data = 0; data <= 1024; ++data)
+	for (int data = 0; data <= 1024; ++data)
 	{
-		for(int addr = 0; addr <= 79; ++addr)
+		for (int addr = 0; addr <= 79; ++addr)
 		{
 			// prepare mem
 			mem.write(addr, data);
@@ -425,12 +424,12 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM)
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::write);
 
-	for(int addr = 0; addr <= 0xFFFF - 2; ++addr)
+	for (int addr = 0; addr <= 0xFFFF - 2; ++addr)
 	{
 		int effective_address = addr & ~1;
 		std::uint16_t data_to_write = test::random::next<std::uint16_t>();
 		std::uint16_t expected_data = data_to_write;
-		if(addr % 2 == 1)
+		if (addr % 2 == 1)
 			endian::swap(expected_data);
 
 		// prepare mem
@@ -466,7 +465,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_CRAM)
 	control.work_completed(false);
 
 	std::uint16_t data_to_write = 0xBEEF;
-	for(int addr = 0; addr <= 127; ++addr)
+	for (int addr = 0; addr <= 127; ++addr)
 	{
 		// prepare mem
 		mem.write(addr, 0);
@@ -500,7 +499,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VSRAM)
 	control.work_completed(false);
 
 	std::uint16_t data_to_write = 0xBEEF;
-	for(int addr = 0; addr <= 79; ++addr)
+	for (int addr = 0; addr <= 79; ++addr)
 	{
 		// prepare mem
 		mem.write(addr, 0);
@@ -531,7 +530,7 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 	control_register read_ctrl = setup_control(0, vmem_type::cram, control_type::read);
 
 	color color;
-	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
+	for (int addr = 0; addr <= 0xFFFF - 1; ++addr)
 	{
 		const int effective_addr = addr & 0b0000000001111110;
 		std::uint16_t data = test::random::next<std::uint16_t>();
@@ -569,7 +568,7 @@ TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
 	control_register write_ctrl = setup_control(0, vmem_type::vsram, control_type::write);
 	control_register read_ctrl = setup_control(0, vmem_type::vsram, control_type::read);
 
-	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
+	for (int addr = 0; addr <= 0xFFFF - 1; ++addr)
 	{
 		const int effective_addr = addr & 0b0000000001111110;
 		const std::uint16_t data = test::random::next<std::uint16_t>();
@@ -583,7 +582,7 @@ TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
 		vdp.wait_io_ports();
 
 
-		if(effective_addr < 80)
+		if (effective_addr < 80)
 		{
 			// we can be sure only for some bits
 			ASSERT_TRUE((mem.read(effective_addr) & expected_data) == expected_data);
@@ -600,7 +599,7 @@ TEST(VDP_PORTS, DATA_PORT_VSRAM_ADDRESS_WRAP)
 		ports.init_read_data();
 		vdp.wait_io_ports();
 
-		if(effective_addr < 80)
+		if (effective_addr < 80)
 		{
 			// we can be sure only for some bits
 			ASSERT_TRUE((ports.read_result() & expected_data) == expected_data);
@@ -620,14 +619,15 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM_AUTO_INC)
 	auto& mem = vdp.vram();
 
 	// prepare mem
-	for(std::size_t addr = 0; addr <= mem.max_address; ++addr)
+	for (std::size_t addr = 0; addr <= mem.max_address; ++addr)
 		mem.write(static_cast<std::uint16_t>(addr), test::random::next<std::uint8_t>());
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::read);
 
-	std::initializer_list<std::uint8_t> auto_inc_values = {1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>() };
+	std::initializer_list<std::uint8_t> auto_inc_values = {
+		1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>()};
 
-	for(auto auto_inc : auto_inc_values)
+	for (auto auto_inc : auto_inc_values)
 	{
 		regs.R15.INC = auto_inc;
 
@@ -636,7 +636,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_VRAM_AUTO_INC)
 		regs.control = control;
 
 		const int num_tests = 10;
-		for(auto i = 0; i < num_tests; ++i)
+		for (auto i = 0; i < num_tests; ++i)
 		{
 			int effective_address = expected_address & ~1;
 			std::uint16_t expected_data = mem.read<std::uint16_t>(effective_address);
@@ -661,9 +661,10 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM_AUTO_INC)
 
 	control_register control = setup_control(0, vmem_type::vram, control_type::write);
 
-	std::initializer_list<std::uint8_t> auto_inc_values = {1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>() };
+	std::initializer_list<std::uint8_t> auto_inc_values = {
+		1, 2, 3, 4, test::random::next<std::uint8_t>(), test::random::next<std::uint8_t>()};
 
-	for(auto auto_inc : auto_inc_values)
+	for (auto auto_inc : auto_inc_values)
 	{
 		regs.R15.INC = auto_inc;
 
@@ -672,7 +673,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM_AUTO_INC)
 		regs.control = control;
 
 		const int num_tests = 10;
-		for(auto i = 0; i < num_tests; ++i)
+		for (auto i = 0; i < num_tests; ++i)
 		{
 			int effective_address = expected_address & ~1;
 			std::uint16_t data = test::random::next<std::uint16_t>();
@@ -682,7 +683,7 @@ TEST(VDP_PORTS, DATA_PORT_WRITE_VRAM_AUTO_INC)
 			vdp.wait_write();
 
 			std::uint16_t expected_data = data;
-			if(expected_address % 2 == 1)
+			if (expected_address % 2 == 1)
 				endian::swap(expected_data);
 
 			ASSERT_EQ(expected_data, mem.read<std::uint16_t>(effective_address));

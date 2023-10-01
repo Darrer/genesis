@@ -1,10 +1,9 @@
-#include <gtest/gtest.h>
-
-#include "string_utils.hpp"
-#include <iostream>
-
-#include "../test_cpu.hpp"
 #include "../../helper.hpp"
+#include "../test_cpu.hpp"
+#include "string_utils.hpp"
+
+#include <gtest/gtest.h>
+#include <iostream>
 
 using namespace genesis::test;
 using namespace genesis::m68k;
@@ -12,8 +11,7 @@ using namespace genesis::m68k;
 
 void nop_some_tests(genesis::memory::memory_unit& mem)
 {
-	auto nop_test = [&](std::uint32_t jump_addr)
-	{
+	auto nop_test = [&](std::uint32_t jump_addr) {
 		const std::uint16_t nop_opcode = 0b0100111001110001;
 		// jump takes 6 bytes - 2 for opcode, 4 for ptr
 		mem.write(jump_addr, nop_opcode);
@@ -59,25 +57,24 @@ TEST(M68K, MCL)
 	std::uint32_t old_pc = regs.PC;
 	std::uint32_t same_pc_counter = 0;
 
-	auto ns_per_cycle = measure_in_ns([&]()
-	{
-		while(true)
+	auto ns_per_cycle = measure_in_ns([&]() {
+		while (true)
 		{
 			cpu.cycle();
 			++cycles;
 
-			if(!cpu.is_idle())
+			if (!cpu.is_idle())
 				continue;
 
 			auto curr_pc = regs.PC;
-			if(curr_pc == old_pc)
+			if (curr_pc == old_pc)
 			{
 				++same_pc_counter;
 
 				// Check if we found a loop
-				if(same_pc_counter == loop_threshold)
+				if (same_pc_counter == loop_threshold)
 				{
-					if(curr_pc == pc_done)
+					if (curr_pc == pc_done)
 					{
 						// all tests are succeeded
 						break;
@@ -87,8 +84,8 @@ TEST(M68K, MCL)
 
 					// dump some data for debugging
 					std::uint16_t data = cpu.memory().read<std::uint16_t>(curr_pc);
-					std::cout << "Found a loop at " << su::hex_str(curr_pc)
-						<< " (" << su::hex_str(data) << ")" << std::endl;
+					std::cout << "Found a loop at " << su::hex_str(curr_pc) << " (" << su::hex_str(data) << ")"
+							  << std::endl;
 
 					GTEST_FAIL();
 				}

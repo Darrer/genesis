@@ -66,6 +66,7 @@ public:
 			break;
 		}
 
+		// TODO: test-only
 		if (idx == no_index)
 			return make_nop(op1, op2);
 

@@ -1,12 +1,11 @@
 #ifndef __VDP_PORTS_H__
 #define __VDP_PORTS_H__
 
-#include <optional>
-
-#include "settings.h"
-#include "register_set.h"
-
 #include "exception.hpp"
+#include "register_set.h"
+#include "settings.h"
+
+#include <optional>
 
 
 namespace genesis::vdp
@@ -15,12 +14,12 @@ namespace genesis::vdp
 
 struct control_write_request
 {
-/* 	enum class target
-	{
-		register,
-		address,
-		address_second
-	}; */
+	/* 	enum class target
+		{
+			register,
+			address,
+			address_second
+		}; */
 
 	std::uint16_t data;
 	bool first_word;
@@ -42,7 +41,9 @@ private:
 	};
 
 public:
-	ports(register_set& regs) : regs(regs) { }
+	ports(register_set& regs) : regs(regs)
+	{
+	}
 
 	bool is_idle() const;
 
@@ -57,7 +58,10 @@ public:
 	std::uint16_t read_result();
 
 	// interface for vdp
-	std::optional<control_write_request>& pending_control_write_requet() { return _control_write_request; }
+	std::optional<control_write_request>& pending_control_write_requet()
+	{
+		return _control_write_request;
+	}
 	void cycle();
 	void reset();
 
@@ -85,6 +89,6 @@ private:
 	std::optional<control_write_request> _control_write_request;
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_PORTS_H__

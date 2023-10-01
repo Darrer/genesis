@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
-
+#include "../../helper.hpp"
 #include "m68k/impl/opcode_decoder.h"
 #include "map_loader.h"
-#include "../../helper.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace genesis::m68k;
 
@@ -15,7 +15,7 @@ TEST(M68K, THT_MAP)
 
 	ASSERT_EQ(opcodes.size(), 0x10000);
 
-	for(auto& entry : opcodes)
+	for (auto& entry : opcodes)
 	{
 		auto inst = opcode_decoder::decode(entry.opcode);
 

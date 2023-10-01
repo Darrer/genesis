@@ -1,8 +1,8 @@
 #ifndef __OPERATIONS_HPP__
 #define __OPERATIONS_HPP__
 
-#include "string_utils.hpp"
 #include "cpu_flags.hpp"
+#include "string_utils.hpp"
 #include "z80/cpu.h"
 
 #include <bit>

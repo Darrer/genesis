@@ -2,6 +2,7 @@
 #define __VDP_MEMORY_H__
 
 #include "memory.hpp"
+
 #include <array>
 
 namespace genesis::vdp
@@ -42,7 +43,7 @@ public:
 	{
 		addr = format_addr(addr);
 
-		if(addr >= 80)
+		if (addr >= 80)
 		{
 			// TODO: in such case we have to return current VSRAM latched value
 			// and this logic should be handled by VDP core, but for simplicity
@@ -56,7 +57,7 @@ public:
 	void write(std::uint16_t addr, std::uint16_t data)
 	{
 		addr = format_addr(addr);
-		if(addr >= 80)
+		if (addr >= 80)
 			return;
 
 		mem.write(addr, data);
@@ -74,6 +75,6 @@ private:
 	genesis::memory<std::uint16_t, 79, std::endian::little> mem;
 };
 
-};
+}; // namespace genesis::vdp
 
 #endif // __VDP_MEMORY_H__

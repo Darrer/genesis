@@ -2,6 +2,7 @@
 #define __MEMORY_BUILDER_H__
 
 #include "addressable.h"
+
 #include <memory>
 #include <vector>
 
@@ -47,6 +48,6 @@ private:
 	std::vector<memory_shared_ptr> shared_ptrs;
 };
 
-};
+}; // namespace genesis::memory
 
 #endif // __MEMORY_BUILDER_H__

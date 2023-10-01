@@ -1,15 +1,15 @@
-#include <gtest/gtest.h>
-
-#include "test_cpu.hpp"
-#include "m68k/impl/exception_manager.h"
 #include "exception.hpp"
+#include "m68k/impl/exception_manager.h"
+#include "test_cpu.hpp"
+
+#include <gtest/gtest.h>
 
 
 using namespace genesis::m68k;
 
 void setup_exception_vectors(genesis::memory::memory_unit& mem)
 {
-	for(int addr = 0; addr <= 1024; ++addr)
+	for (int addr = 0; addr <= 1024; ++addr)
 		mem.write(addr, std::uint8_t(0));
 }
 
@@ -19,7 +19,7 @@ void rise_exception(exception_manager& exman, exception_type ex)
 	{
 	case exception_type::address_error:
 	case exception_type::bus_error:
-		exman.rise_address_error({ 0, 0, false, false });
+		exman.rise_address_error({0, 0, false, false});
 		break;
 
 	case exception_type::trace:

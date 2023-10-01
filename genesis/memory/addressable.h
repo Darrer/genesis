@@ -25,6 +25,6 @@ public:
 	virtual std::uint16_t latched_word() const = 0;
 };
 
-};
+}; // namespace genesis::memory
 
 #endif // __ADDRESSABLE_H__

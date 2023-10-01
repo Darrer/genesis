@@ -29,7 +29,9 @@ private:
 	constexpr const static std::size_t max_callable_size = sizeof(void*);
 
 public:
-	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs) { }
+	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs)
+	{
+	}
 
 	bool is_idle() const
 	{
@@ -44,39 +46,39 @@ public:
 
 	// IR/IRD = (regs.PC)
 	// IRC is not changed
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_fetch_ird(Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC, addr_space::PROGRAM, [this](){ on_read_finished(); });
+		busm.init_read_word(regs.PC, addr_space::PROGRAM, [this]() { on_read_finished(); });
 		state = fetch_state::FETCH_IRD;
 		on_complete_cb = cb;
 	}
 
 	// IR/IRD aren't changed
 	// IRC = (regs.PC + 2)
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_fetch_irc(Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_read_finished(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_finished(); });
 		state = fetch_state::FETCH_IRC;
 		on_complete_cb = cb;
 	}
 
 	// IR/IRD = IRC
 	// IRC = (regs.PC + 2)
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void init_fetch_one(Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this](){ on_read_finished(); });
+		busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_finished(); });
 		state = fetch_state::FETCH_ONE;
 		on_complete_cb = cb;
 	}
@@ -101,10 +103,11 @@ private:
 			regs.IRC = reg;
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 
-		if(on_complete_cb != nullptr)
+		if (on_complete_cb != nullptr)
 			on_complete_cb();
 
 		reset();
@@ -112,7 +115,7 @@ private:
 
 	void assert_idle()
 	{
-		if(!is_idle())
+		if (!is_idle())
 		{
 			throw internal_error("cannot start new prefetch while in the middle of the other");
 		}
@@ -125,6 +128,6 @@ private:
 	on_complete on_complete_cb;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_PREFETCH_QUEUE_HPP__

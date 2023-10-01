@@ -1,10 +1,10 @@
 #ifndef __M68K_CPU_REGISTERS_HPP__
 #define __M68K_CPU_REGISTERS_HPP__
 
-#include <cstdint>
-
-#include "impl/size_type.h"
 #include "exception.hpp"
+#include "impl/size_type.h"
+
+#include <cstdint>
 
 namespace genesis::m68k
 {
@@ -66,15 +66,24 @@ public:
 	{
 		switch (reg)
 		{
-		case 0: return D0;
-		case 1: return D1;
-		case 2: return D2;
-		case 3: return D3;
-		case 4: return D4;
-		case 5: return D5;
-		case 6: return D6;
-		case 7: return D7;
-		default: throw internal_error();
+		case 0:
+			return D0;
+		case 1:
+			return D1;
+		case 2:
+			return D2;
+		case 3:
+			return D3;
+		case 4:
+			return D4;
+		case 5:
+			return D5;
+		case 6:
+			return D6;
+		case 7:
+			return D7;
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -82,15 +91,24 @@ public:
 	{
 		switch (reg)
 		{
-		case 0: return A0;
-		case 1: return A1;
-		case 2: return A2;
-		case 3: return A3;
-		case 4: return A4;
-		case 5: return A5;
-		case 6: return A6;
-		case 7: return SP();
-		default: throw internal_error();
+		case 0:
+			return A0;
+		case 1:
+			return A1;
+		case 2:
+			return A2;
+		case 3:
+			return A3;
+		case 4:
+			return A4;
+		case 5:
+			return A5;
+		case 6:
+			return A6;
+		case 7:
+			return SP();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -101,14 +119,14 @@ public:
 
 	void inc_addr(std::uint_fast8_t reg, size_type size)
 	{
-		if(reg == 0b111 && size == size_type::BYTE)
+		if (reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW += size_in_bytes(size);
 	}
 
 	void dec_addr(std::uint_fast8_t reg, size_type size)
 	{
-		if(reg == 0b111 && size == size_type::BYTE)
+		if (reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW -= size_in_bytes(size);
 	}

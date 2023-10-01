@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
-
-#include <iostream>
-
-#include "../test_cpu.hpp"
 #include "../../helper.hpp"
+#include "../test_cpu.hpp"
+
+#include <gtest/gtest.h>
+#include <iostream>
 
 using namespace genesis::m68k;
 
@@ -14,14 +13,10 @@ TEST(M68K_PERFORMANCE, TMP)
 	const std::size_t num_copies = 1'000'000;
 
 	std::size_t num_calls = 0;
-	auto callback = [&num_calls]()
-	{
-		++num_calls;
-	};
+	auto callback = [&num_calls]() { ++num_calls; };
 
-	auto time = measure_in_ns([&]()
-	{
-		for(std::size_t i = 0; i < num_copies; ++i)
+	auto time = measure_in_ns([&]() {
+		for (std::size_t i = 0; i < num_copies; ++i)
 		{
 			std::function<void()> tmp = callback;
 			// tmp();
@@ -41,24 +36,24 @@ TEST(M68K_PERFORMANCE, DECODING)
 
 	int num_unknown = 0; // to prevent optimization
 
-	auto ns_per_decode = measure_in_ns([&]()
-	{
-		for(unsigned i = 0; i < num_measurements; ++i)
-		{
-			std::uint16_t opcode = 0;
-			while (true)
-			{
-				auto res = opcode_decoder::decode(opcode);
-				
-				if(opcode == 0xFFFF)
-					break;
-				++opcode;
+	auto ns_per_decode = measure_in_ns([&]() {
+							 for (unsigned i = 0; i < num_measurements; ++i)
+							 {
+								 std::uint16_t opcode = 0;
+								 while (true)
+								 {
+									 auto res = opcode_decoder::decode(opcode);
 
-				if(res == inst_type::NONE)
-					++num_unknown;
-			}
-		}
-	}) / 0x10000 / num_measurements;
+									 if (opcode == 0xFFFF)
+										 break;
+									 ++opcode;
+
+									 if (res == inst_type::NONE)
+										 ++num_unknown;
+								 }
+							 }
+						 }) /
+						 0x10000 / num_measurements;
 
 	// NOTE: ns_per_decode is 1 or 0
 	std::cout << "NS per decode: " << ns_per_decode << ", unknown: " << num_unknown << std::endl;
@@ -73,43 +68,41 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 
 	unsigned long long num_callbacks = 0;
 	// auto on_read_finish = [&num_callbacks]()
-	auto on_read_finish = [&num_callbacks](std::uint32_t, size_type)
-	{
-		++num_callbacks;
-	};
+	auto on_read_finish = [&num_callbacks](std::uint32_t, size_type) { ++num_callbacks; };
 
 	auto& busm = cpu.bus_manager();
 	auto& scheduler = cpu.bus_scheduler();
 	unsigned long long cycles = 0;
 
-	auto ns_per_cycle = measure_in_ns([&]()
-	{
-		for(auto i = 0ull; i < num_reads; ++i)
-		{
-			// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
-			// while (!busm.is_idle())
-			// {
-			// 	busm.cycle();
-			// 	++cycles;
-			// }
+	auto ns_per_cycle = measure_in_ns([&]() {
+							for (auto i = 0ull; i < num_reads; ++i)
+							{
+								// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
+								// while (!busm.is_idle())
+								// {
+								// 	busm.cycle();
+								// 	++cycles;
+								// }
 
-			// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
-			scheduler.read(0, size_type::WORD, on_read_finish);
-			while (!busm.is_idle() || !scheduler.is_idle())
-			{
-				scheduler.cycle();
-				busm.cycle();
-				++cycles;
-			}
-		}
-	}) / num_cycles;
+								// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
+								scheduler.read(0, size_type::WORD, on_read_finish);
+								while (!busm.is_idle() || !scheduler.is_idle())
+								{
+									scheduler.cycle();
+									busm.cycle();
+									++cycles;
+								}
+							}
+						}) /
+						num_cycles;
 
 	// divide by 3 to have some cpu capacity
 	const auto test_threshold_ns = genesis::test::cycle_time_threshold_ns / 3;
 
 	// Takes 10-20 ns per cycle for bus_manager read operation
 	// Takes ~37 ns per cycle for scheduler read operation
-	std::cout << "NS per cycle for read operation: " << ns_per_cycle << ", threshold: " << test_threshold_ns << std::endl;
+	std::cout << "NS per cycle for read operation: " << ns_per_cycle << ", threshold: " << test_threshold_ns
+			  << std::endl;
 
 	ASSERT_EQ(num_cycles, cycles);
 	ASSERT_EQ(num_reads, num_callbacks);
@@ -130,7 +123,7 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	// prepare mem
 	auto& mem = cpu.memory();
-	for(std::uint32_t i = 0; i < mem.max_address(); i += 2)
+	for (std::uint32_t i = 0; i < mem.max_address(); i += 2)
 		mem.write(i, nop_opcode);
 
 	// disable tracing
@@ -142,11 +135,11 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	unsigned long long cycles_left = num_cycles;
 
-	auto ns_per_cycle = measure_in_ns([&]()
-	{
-		while (cycles_left-- != 0)
-			cpu.cycle();
-	}) / num_cycles;
+	auto ns_per_cycle = measure_in_ns([&]() {
+							while (cycles_left-- != 0)
+								cpu.cycle();
+						}) /
+						num_cycles;
 
 	// divide by 2 to have some cpu capacity
 	const auto test_threshold_ns = genesis::test::cycle_time_threshold_ns / 2;
