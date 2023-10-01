@@ -6,9 +6,7 @@ RUN apk add build-base cmake git
 WORKDIR /genesis
 COPY . .
 
-RUN git checkout master --force
 RUN mkdir build
 
 WORKDIR /genesis/build
-RUN cmake -G "Unix Makefiles" ..
-RUN make
+RUN cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -G "Unix Makefiles" ..

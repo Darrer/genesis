@@ -6,9 +6,7 @@ RUN apk add cmake git make clang lld musl-dev
 WORKDIR /genesis
 COPY . .
 
-RUN git checkout master --force
 RUN mkdir build
 
 WORKDIR /genesis/build
 RUN cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -G "Unix Makefiles" ..
-RUN make

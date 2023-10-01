@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Build the Docker image
-      run: docker build . --file docker_build/DockerfileAlpineGCC --tag genesis_gcc
+      run: docker build . --file docker/DockerfileAlpineGCC --tag genesis_gcc
 
     - name: Run tests in Docker container
       run: docker run -t --rm genesis_gcc /bin/sh -c ctest
@@ -25,8 +25,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build the Docker image
-      run: docker build . --file docker_build/DockerfileAlpineClang --tag genesis_clang
+      run: docker build . --file docker/DockerfileAlpineClang --tag genesis_clang
 
     - name: Run tests in Docker container
       run: docker run -t --rm genesis_clang /bin/sh -c ctest
