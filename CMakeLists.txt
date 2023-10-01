@@ -13,6 +13,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(genesis)
+# include_directories(tests)
 
 set(GENESIS genesis)
 set(GENESIS_LIB ${GENESIS}_core)
@@ -24,9 +25,11 @@ add_subdirectory(genesis)
 
 enable_testing()
 
+# TODO: make building tests optional
 # if(BUILD_TESTING)
 	add_subdirectory(tests)
 # endif()
 
 
 add_subdirectory(extra)
+add_subdirectory(docker)

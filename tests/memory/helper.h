@@ -1,6 +1,10 @@
 #ifndef __TEST_HELPER_H__
 #define __TEST_HELPER_H__
 
+#include <gtest/gtest.h>
+#include <cstdint>
+#include <map>
+
 #include "../helpers/random.h"
 #include "memory/addressable.h"
 
@@ -8,7 +12,8 @@
 namespace genesis::test
 {
 
-template<class T> requires (sizeof(T) <= 2)
+template <class T>
+	requires(sizeof(T) <= 2)
 void test_read_write(genesis::memory::addressable& unit)
 {
 	const std::uint32_t max_address = unit.capacity() - sizeof(T);
@@ -17,7 +22,7 @@ void test_read_write(genesis::memory::addressable& unit)
 	std::map<std::uint32_t /* address */, T /* data */> written_data;
 
 	/* write random data */
-	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
+	for (std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
 	{
 		T data = test::random::next<T>();
 		unit.init_write(addr, data);
@@ -25,7 +30,7 @@ void test_read_write(genesis::memory::addressable& unit)
 	}
 
 	/* check written data */
-	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
+	for (std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
 	{
 		T data{};
 		if constexpr (sizeof(T) == 1)
@@ -48,6 +53,6 @@ void test_read_write(genesis::memory::addressable& unit)
 	ASSERT_EQ(expected_writes, written_data.size());
 }
 
-}
+} // namespace genesis::test
 
 #endif // __TEST_HELPER_H__

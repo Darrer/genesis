@@ -38,7 +38,8 @@ public:
 	{
 		if(!is_idle()) throw internal_error();
 
-		read_req = struct pending_read(address);
+		struct pending_read read {address};
+		read_req = read;
 	}
 
 	std::uint8_t latched_byte() const { return _read_data.value(); }
