@@ -11,6 +11,7 @@ class addressable
 public:
 	virtual ~addressable() = default;
 
+	// TODO: remove capacity and add max_address (capacity - 1) method
 	virtual std::uint32_t capacity() const = 0;
 
 	virtual bool is_idle() const = 0;

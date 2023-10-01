@@ -1,18 +1,28 @@
 #ifndef __VDP_MEMORY_H__
 #define __VDP_MEMORY_H__
 
-#include "memory.hpp"
-
 #include <array>
+#include "memory/memory_unit.h"
+
 
 namespace genesis::vdp
 {
 
-using vram_t = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
+class vram_t : public memory::memory_unit
+{
+public:
+	vram_t() : memory::memory_unit(0xffff, std::endian::little) // [0; 0xFFFF]
+	{
+	}
+};
 
 class cram_t
 {
 public:
+	cram_t() : mem(127) // 128 bytes [0 ; 127]
+	{
+	}
+
 	std::uint16_t read(std::uint16_t addr)
 	{
 		return mem.read<std::uint16_t>(format_addr(addr));
@@ -30,15 +40,17 @@ private:
 	}
 
 private:
-	// TODO: do not speicfy endianess
-	// 128 bytes [0 ; 127]
-	genesis::memory<std::uint16_t, 127, std::endian::little> mem;
+	memory::memory_unit mem;
 };
 
 
 class vsram_t
 {
 public:
+	vsram_t() : mem(79) // 80 bytes [0 ; 79]
+	{
+	}
+
 	std::uint16_t read(std::uint16_t addr)
 	{
 		addr = format_addr(addr);
@@ -70,9 +82,7 @@ private:
 	}
 
 private:
-	// TODO: do not speicfy endianess
-	// 80 bytes [0 ; 79]
-	genesis::memory<std::uint16_t, 79, std::endian::little> mem;
+	memory::memory_unit mem;
 };
 
 }; // namespace genesis::vdp

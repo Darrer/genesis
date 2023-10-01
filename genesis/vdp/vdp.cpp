@@ -6,7 +6,7 @@ namespace genesis::vdp
 {
 
 vdp::vdp(std::shared_ptr<genesis::m68k_bus_access> m68k_bus)
-	: _sett(regs), ports(regs), _vram(std::make_unique<vram_t>()), dma(regs, _sett, dma_memory, m68k_bus)
+	: _sett(regs), ports(regs), dma(regs, _sett, dma_memory, m68k_bus)
 {
 }
 
@@ -88,7 +88,7 @@ void vdp::handle_ports_requests()
 
 			// TODO: vram has byte-only access
 			// std::cout << "Writing " << entry.data << " at " << entry.control.address() << std::endl;
-			_vram->write(entry.control.address(), entry.data);
+			_vram.write(entry.control.address(), entry.data);
 		}
 		break;
 
@@ -118,8 +118,8 @@ void vdp::handle_ports_requests()
 		switch(regs.control.vmem_type())
 		{
 		case vmem_type::vram: {
-			std::uint8_t lsb = _vram->read<std::uint8_t>(address);
-			std::uint8_t msb = _vram->read<std::uint8_t>(address + 1);
+			std::uint8_t lsb = _vram.read<std::uint8_t>(address);
+			std::uint8_t msb = _vram.read<std::uint8_t>(address + 1);
 
 			regs.read_cache.set_lsb(lsb);
 			regs.read_cache.set_msb(msb);
@@ -190,7 +190,7 @@ void vdp::handle_dma_requests()
 	auto& read_req = dma_memory.pending_read();
 	if(read_req.has_value())
 	{
-		std::uint8_t data = _vram->read<std::uint8_t>(read_req.value().address);
+		std::uint8_t data = _vram.read<std::uint8_t>(read_req.value().address);
 		read_req.reset();
 		dma_memory.set_read_result(data);
 	}
@@ -236,7 +236,7 @@ bool vdp::pre_cache_read_is_required() const
 
 void vdp::vram_write(std::uint32_t address, std::uint8_t data)
 {
-	_vram->write(address, data);
+	_vram.write(address, data);
 }
 
 void vdp::cram_write(std::uint32_t address, std::uint16_t data)

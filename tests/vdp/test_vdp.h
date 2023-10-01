@@ -1,6 +1,7 @@
 #ifndef __TEST_VDP_H__
 #define __TEST_VDP_H__
 
+#include "memory/memory_unit.h"
 #include "vdp/vdp.h"
 #include "exception.hpp"
 #include "vdp/m68k_bus_access.h"
@@ -11,9 +12,13 @@ namespace genesis::test
 class mock_m68k_bus_access : public m68k_bus_access
 {
 public:
-	using m68k_memory_t = genesis::memory<std::uint32_t, 0xFFFF, std::endian::big>;
+	using m68k_memory_t = memory::memory_unit;
 
 public:
+	mock_m68k_bus_access() : m68k_memory(0xFFFF, std::endian::big)
+	{
+	}
+
 	void request_bus() override
 	{
 		assert_idle();
@@ -36,7 +41,7 @@ public:
 		assert_access();
 		assert_idle();
 
-		data = m68k_memory->read<std::uint16_t>(address);
+		data = m68k_memory.read<std::uint16_t>(address);
 		cycles_to_idle = 10;
 	}
 
@@ -47,7 +52,7 @@ public:
 
 	bool is_idle() const override { return cycles_to_idle == 0; }
 
-	m68k_memory_t& memory() { return *m68k_memory; }
+	m68k_memory_t& memory() { return m68k_memory; }
 	bool bus_acquired() const { return has_access; }
 
 	void cycle()
@@ -73,7 +78,7 @@ private:
 	bool has_access = false;
 	std::optional<std::uint16_t> data = 0;
 
-	std::unique_ptr<m68k_memory_t> m68k_memory = std::make_unique<m68k_memory_t>();
+	memory::memory_unit m68k_memory;
 
 	int cycles_to_idle = 0;
 };
