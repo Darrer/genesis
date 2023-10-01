@@ -7,27 +7,22 @@ on:
     branches: [ "master" ]
 
 jobs:
-
-  gcc:
+  build-and-test:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        dockerfile: [DockerfileAlpineGCC, DockerfileAlpineClang]
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Build the Docker image
-      run: docker build . --file docker/DockerfileAlpineGCC --tag genesis_gcc
+      run: docker build . --file docker/${{matrix.dockerfile}} --tag genesis
 
-    - name: Run tests in Docker container
-      run: docker run -t --rm genesis_gcc /bin/sh -c ctest
+    - name: Build the project
+      run: docker run --name genesis_container -t genesis /bin/sh -c make
+      run: docker commit genesis_container genesis
 
-  clang:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Build the Docker image
-      run: docker build . --file docker/DockerfileAlpineClang --tag genesis_clang
-
-    - name: Run tests in Docker container
-      run: docker run -t --rm genesis_clang /bin/sh -c ctest
+    - name: Run the tests
+      run: docker run -t genesis /bin/sh -c ctest
