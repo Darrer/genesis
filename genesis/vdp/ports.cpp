@@ -41,13 +41,13 @@ void ports::init_write_data(std::uint16_t data)
 
 std::uint16_t ports::read_result()
 {
-	if (reading_control_port)
+	if(reading_control_port)
 	{
 		// always return current SR value
 		return regs.sr_raw;
 	}
 
-	if (read_data.has_value())
+	if(read_data.has_value())
 	{
 		return read_data.value();
 	}
@@ -66,7 +66,7 @@ void ports::cycle()
 	// if it should take 0 - move handler to init_* method
 	// if more - add wait cycles
 
-	switch (req)
+	switch(req)
 	{
 	case request::none:
 		break;
@@ -78,20 +78,20 @@ void ports::cycle()
 		break;
 
 	case request::write_control:
-		if (_control_write_request.has_value())
+		if(_control_write_request.has_value())
 		{
 			// wait till vdp picks up the request
 			break;
 		}
 
-		if (control_pending == false && (data_to_write >> 14) == 0b10)
+		if(control_pending == false && (data_to_write >> 14) == 0b10)
 		{
 			// write data to register
 			_control_write_request = {data_to_write, true};
 		}
 		else
 		{
-			if (!control_pending)
+			if(!control_pending)
 			{
 				// first half
 				control_pending = true;
@@ -111,7 +111,7 @@ void ports::cycle()
 		break;
 
 	case request::read_data:
-		if (regs.control.work_completed())
+		if(regs.control.work_completed())
 		{
 			read_data = regs.read_cache.data();
 
@@ -131,7 +131,7 @@ void ports::cycle()
 
 	case request::write_data:
 		// note: write directly to queue
-		if (regs.fifo.full())
+		if(regs.fifo.full())
 		{
 			// wait till fifo get a free slot
 			break;

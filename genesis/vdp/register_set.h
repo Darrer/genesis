@@ -16,7 +16,7 @@ class register_set
 public:
 	register_set()
 	{
-		for (std::uint8_t i = 0; i <= 23; ++i)
+		for(std::uint8_t i = 0; i <= 23; ++i)
 			set_register(i, 0);
 		sr_raw = 0;
 	}
@@ -29,7 +29,7 @@ public:
 	std::uint8_t& get_register(std::uint8_t reg)
 	{
 		// TODO: check if it's UB to use reinterpret_cast here
-		switch (reg)
+		switch(reg)
 		{
 		case 0:
 			return *reinterpret_cast<std::uint8_t*>(&R0);

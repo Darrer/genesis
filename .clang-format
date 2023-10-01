@@ -6,6 +6,7 @@ PointerAlignment: Left
 UseTab: Always
 IndentWidth: 4
 TabWidth: 4
+SpaceBeforeParens: Never
 
 ---
 Language: Cpp

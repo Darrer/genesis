@@ -9,13 +9,13 @@ using namespace genesis::m68k;
 
 void setup_exception_vectors(genesis::memory::memory_unit& mem)
 {
-	for (int addr = 0; addr <= 1024; ++addr)
+	for(int addr = 0; addr <= 1024; ++addr)
 		mem.write(addr, std::uint8_t(0));
 }
 
 void rise_exception(exception_manager& exman, exception_type ex)
 {
-	switch (ex)
+	switch(ex)
 	{
 	case exception_type::address_error:
 	case exception_type::bus_error:

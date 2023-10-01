@@ -28,12 +28,12 @@ template <class array, class format_func>
 static void print_array(std::ostream& os, const array& arr, format_func fn, size_t elments_per_row)
 {
 	size_t printed = 0;
-	for (const auto& el : arr)
+	for(const auto& el : arr)
 	{
 		os << fn(el);
 		++printed;
 
-		if ((printed % elments_per_row == 0) || printed == arr.size())
+		if((printed % elments_per_row == 0) || printed == arr.size())
 			os << '\n';
 		else
 			os << ' ';

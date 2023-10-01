@@ -64,7 +64,7 @@ public:
 
 	data_register& D(std::uint_fast8_t reg)
 	{
-		switch (reg)
+		switch(reg)
 		{
 		case 0:
 			return D0;
@@ -89,7 +89,7 @@ public:
 
 	address_register& A(std::uint_fast8_t reg)
 	{
-		switch (reg)
+		switch(reg)
 		{
 		case 0:
 			return A0;
@@ -119,14 +119,14 @@ public:
 
 	void inc_addr(std::uint_fast8_t reg, size_type size)
 	{
-		if (reg == 0b111 && size == size_type::BYTE)
+		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW += size_in_bytes(size);
 	}
 
 	void dec_addr(std::uint_fast8_t reg, size_type size)
 	{
-		if (reg == 0b111 && size == size_type::BYTE)
+		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW -= size_in_bytes(size);
 	}

@@ -21,24 +21,24 @@ public:
 
 	void out(std::uint8_t dev, std::uint8_t /*param*/, std::uint8_t data) override
 	{
-		if (dev != 0x1)
+		if(dev != 0x1)
 			return;
 
 		data = map_char(data);
 
-		if (!need_to_print(data))
+		if(!need_to_print(data))
 			return;
 
-		if (data == 13)
+		if(data == 13)
 			data = '\n';
 
-		if (data == '\n')
+		if(data == '\n')
 			parse_line();
 
 		one_line << data;
 
 		check_terminated();
-		if (data == '\n')
+		if(data == '\n')
 		{
 			std::cout << one_line.str();
 			one_line.str(std::string());
@@ -79,7 +79,7 @@ private:
 
 	char map_char(char ch)
 	{
-		switch (ch)
+		switch(ch)
 		{
 		case '\r':
 			return '\n';
@@ -95,10 +95,10 @@ private:
 
 	void check_terminated()
 	{
-		if (one_line.str().starts_with("Tests complete"))
+		if(one_line.str().starts_with("Tests complete"))
 			_terminated = true;
 
-		if (one_line.str().starts_with("Result:"))
+		if(one_line.str().starts_with("Result:"))
 			_terminated = true;
 	}
 
@@ -107,13 +107,13 @@ private:
 		std::string str = one_line.str();
 		std::transform(str.cbegin(), str.cend(), str.begin(), [](char ch) { return tolower(ch); });
 
-		if (str.ends_with("ok"))
+		if(str.ends_with("ok"))
 			++num_succeded;
 
-		if (str.find("expected") != std::string::npos)
+		if(str.find("expected") != std::string::npos)
 			++num_failed;
 
-		if (str.find("skipped") != std::string::npos)
+		if(str.find("skipped") != std::string::npos)
 			++num_skipped;
 	}
 
@@ -130,10 +130,10 @@ void report_results(unsigned long long cycles, int num_succeded, int num_failed,
 {
 	std::cout << "Z80 Test complete, succeeded: " << num_succeded << ", failed: " << num_failed;
 
-	if (num_failed == expected_failed && expected_failed != 0)
+	if(num_failed == expected_failed && expected_failed != 0)
 		std::cout << " (expected)";
 
-	if (num_skipped != 0)
+	if(num_skipped != 0)
 		std::cout << ", skipped: " << num_skipped;
 
 	std::cout << ", cycles: " << cycles << std::endl;
@@ -144,14 +144,14 @@ void run_test(z80::cpu& cpu, const int expected_total_tests, const int expected_
 	unsigned long long cycles = 0;
 	auto& ports = static_cast<test_io_ports&>(cpu.io_ports());
 
-	while (!ports.terminated())
+	while(!ports.terminated())
 	{
 		try
 		{
 			cpu.execute_one();
 			++cycles;
 		}
-		catch (...)
+		catch(...)
 		{
 			report_results(cycles, ports.succeded(), ports.failed(), expected_fail_tests, ports.skipped());
 			throw;
@@ -175,16 +175,16 @@ void patch_mem(z80::memory& mem)
 void load_zex(z80::memory& mem, z80::memory::address base, const std::string& bin_path)
 {
 	std::ifstream fs(bin_path, std::ios_base::binary);
-	if (!fs.is_open())
+	if(!fs.is_open())
 	{
 		throw std::runtime_error("load_zex error: failed to open file '" + bin_path + "'");
 	}
 
 	z80::memory::address offset = 0x0;
-	while (fs)
+	while(fs)
 	{
 		char c;
-		if (fs.get(c))
+		if(fs.get(c))
 		{
 			mem.write(base + offset, c);
 			++offset;

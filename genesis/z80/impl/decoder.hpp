@@ -24,7 +24,7 @@ public:
 
 	std::int8_t decode_byte(addressing_mode addr_mode, instruction inst)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::register_a:
 		case addressing_mode::register_b:
@@ -60,7 +60,7 @@ public:
 
 	std::int16_t decode_2_bytes(addressing_mode addr_mode, instruction inst)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::immediate_ext:
 			return decode_immediate_ext(inst);
@@ -81,7 +81,7 @@ public:
 
 	z80::memory::address decode_address(addressing_mode addr_mode, instruction inst)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::immediate_ext:
 			return decode_immediate_ext(inst);
@@ -105,7 +105,7 @@ public:
 
 	std::int8_t& decode_reg_8(addressing_mode addr_mode)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::register_a:
 			return regs.main_set.A;
@@ -140,7 +140,7 @@ public:
 
 	std::int16_t& decode_reg_16(addressing_mode addr_mode)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::register_af:
 			return regs.main_set.AF;
@@ -170,7 +170,7 @@ public:
 		addr += inst_size(inst);
 
 		// check if addressing mode indexed combined with addressing mode immediate
-		if (is_indexed(inst.source) || is_indexed(inst.destination))
+		if(is_indexed(inst.source) || is_indexed(inst.destination))
 		{
 			// in this case after opcode we have displacement for indexed
 			// and only then immediate operand
@@ -187,7 +187,7 @@ public:
 
 	z80::memory::address decode_indirect(addressing_mode addr_mode)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::indirect_bc:
 			return regs.main_set.BC;
@@ -204,7 +204,7 @@ public:
 
 	z80::memory::address decode_indexed(addressing_mode addr_mode)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::indexed_ix:
 		case addressing_mode::indexed_iy: {
@@ -226,7 +226,7 @@ public:
 
 	std::uint8_t decode_bit(addressing_mode addr_mode, instruction inst)
 	{
-		switch (addr_mode)
+		switch(addr_mode)
 		{
 		case addressing_mode::bit:
 			return (inst.opcodes[1] & 0b00111000) >> 3;
@@ -240,7 +240,7 @@ public:
 	operation_type decode_bit_op(instruction inst)
 	{
 		auto data = decode_immediate<std::uint8_t>(inst);
-		switch (data >> 6)
+		switch(data >> 6)
 		{
 		case 0b01:
 			return operation_type::tst_bit_at;
@@ -250,7 +250,7 @@ public:
 			return operation_type::res_bit_at;
 		case 0b00: {
 			std::uint8_t op = (data & 0b00111000) >> 3;
-			switch (op)
+			switch(op)
 			{
 			case 0b000:
 				return operation_type::rlc_at;
@@ -277,7 +277,7 @@ public:
 
 	std::int8_t& decode_bit_reg(std::uint8_t bit_reg)
 	{
-		switch (bit_reg)
+		switch(bit_reg)
 		{
 		case 0b111:
 			return regs.main_set.A;
@@ -301,7 +301,7 @@ public:
 	void advance_pc(instruction inst)
 	{
 		auto addressing_mode_size = [](addressing_mode addr_mode) -> std::uint16_t {
-			switch (addr_mode)
+			switch(addr_mode)
 			{
 			case addressing_mode::immediate:
 			case addressing_mode::indexed_ix:
@@ -323,7 +323,7 @@ public:
 
 	static std::uint8_t inst_size(instruction inst)
 	{
-		switch (inst.opcodes[0])
+		switch(inst.opcodes[0])
 		{
 		case 0xDD:
 		case 0xFD:

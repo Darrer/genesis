@@ -17,7 +17,7 @@ std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_pe
 	memory::memory_builder builder;
 
 	std::uint32_t start_address = 0;
-	for (unsigned i = 0; i < num_devices; ++i)
+	for(unsigned i = 0; i < num_devices; ++i)
 	{
 		builder.add(device(mem_per_device - 1), start_address);
 		start_address += mem_per_device;
@@ -65,7 +65,7 @@ TEST(MEMORY, MEMORY_BUILDER_GAP)
 
 	auto mem = builder.build();
 
-	for (auto addr : {33, 512, 1057})
+	for(auto addr : {33, 512, 1057})
 	{
 		ASSERT_THROW(mem->init_write(addr, std::uint8_t(0)), std::runtime_error);
 		ASSERT_THROW(mem->init_write(addr, std::uint16_t(0)), std::runtime_error);

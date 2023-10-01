@@ -116,7 +116,7 @@ public:
 		assert_idle("init_read_modify_write");
 
 		modify_cb = modify;
-		if (modify_cb == nullptr)
+		if(modify_cb == nullptr)
 			throw std::invalid_argument("modify");
 
 		this->address = address;

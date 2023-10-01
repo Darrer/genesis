@@ -16,7 +16,7 @@ TEST(M68K_PERFORMANCE, TMP)
 	auto callback = [&num_calls]() { ++num_calls; };
 
 	auto time = measure_in_ns([&]() {
-		for (std::size_t i = 0; i < num_copies; ++i)
+		for(std::size_t i = 0; i < num_copies; ++i)
 		{
 			std::function<void()> tmp = callback;
 			// tmp();
@@ -37,18 +37,18 @@ TEST(M68K_PERFORMANCE, DECODING)
 	int num_unknown = 0; // to prevent optimization
 
 	auto ns_per_decode = measure_in_ns([&]() {
-							 for (unsigned i = 0; i < num_measurements; ++i)
+							 for(unsigned i = 0; i < num_measurements; ++i)
 							 {
 								 std::uint16_t opcode = 0;
-								 while (true)
+								 while(true)
 								 {
 									 auto res = opcode_decoder::decode(opcode);
 
-									 if (opcode == 0xFFFF)
+									 if(opcode == 0xFFFF)
 										 break;
 									 ++opcode;
 
-									 if (res == inst_type::NONE)
+									 if(res == inst_type::NONE)
 										 ++num_unknown;
 								 }
 							 }
@@ -75,7 +75,7 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	unsigned long long cycles = 0;
 
 	auto ns_per_cycle = measure_in_ns([&]() {
-							for (auto i = 0ull; i < num_reads; ++i)
+							for(auto i = 0ull; i < num_reads; ++i)
 							{
 								// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
 								// while (!busm.is_idle())
@@ -86,7 +86,7 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 
 								// scheduler.read(0, size_type::WORD, nullptr);//on_read_finish);
 								scheduler.read(0, size_type::WORD, on_read_finish);
-								while (!busm.is_idle() || !scheduler.is_idle())
+								while(!busm.is_idle() || !scheduler.is_idle())
 								{
 									scheduler.cycle();
 									busm.cycle();
@@ -123,7 +123,7 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	// prepare mem
 	auto& mem = cpu.memory();
-	for (std::uint32_t i = 0; i < mem.max_address(); i += 2)
+	for(std::uint32_t i = 0; i < mem.max_address(); i += 2)
 		mem.write(i, nop_opcode);
 
 	// disable tracing
@@ -136,7 +136,7 @@ TEST(M68K_PERFORMANCE, NOP)
 	unsigned long long cycles_left = num_cycles;
 
 	auto ns_per_cycle = measure_in_ns([&]() {
-							while (cycles_left-- != 0)
+							while(cycles_left-- != 0)
 								cpu.cycle();
 						}) /
 						num_cycles;

@@ -37,7 +37,7 @@ TEST(Z80RegisterSet, RegisterPairing)
 TEST(Z80CPURegisters, InitialValues)
 {
 	auto assert_all_zeros = [](const auto& arr) {
-		for (const auto& i : arr)
+		for(const auto& i : arr)
 			ASSERT_EQ(i, 0x0);
 	};
 

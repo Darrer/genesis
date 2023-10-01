@@ -63,7 +63,7 @@ protected:
 
 	static inline void check_stream(std::ifstream& f)
 	{
-		if (!f.good())
+		if(!f.good())
 			throw std::runtime_error(rom_format_err_msg);
 	}
 };
@@ -112,15 +112,15 @@ public:
 		rom::byte_array body;
 
 		f.seekg(0x200);
-		while (f)
+		while(f)
 		{
 			char c;
-			if (f.get(c))
+			if(f.get(c))
 				body.push_back(static_cast<uint8_t>(c));
 		}
 
 		// body cannot be empty
-		if (body.empty())
+		if(body.empty())
 			throw std::runtime_error(rom_format_err_msg);
 
 		body.shrink_to_fit();
@@ -142,7 +142,7 @@ const std::shared_ptr<rom_parser> find_parser(const std::string& extention)
 
 	auto it = std::find_if(registered_parsers.begin(), registered_parsers.end(), is_support_ext);
 
-	if (it == registered_parsers.end())
+	if(it == registered_parsers.end())
 		return nullptr;
 	return *it;
 }
@@ -154,13 +154,13 @@ rom::rom(const std::string_view path_to_rom)
 	auto extention = rom_path.extension().string();
 
 	auto parser = find_parser(extention);
-	if (parser == nullptr)
+	if(parser == nullptr)
 	{
 		throw std::runtime_error("faild to parse ROM: extention '" + extention + "' is not supported");
 	}
 
 	std::ifstream fs(rom_path, std::ios_base::binary);
-	if (!fs.is_open())
+	if(!fs.is_open())
 	{
 		throw std::runtime_error("failed to open ROM: file '" + rom_path.string() + "'");
 	}
@@ -175,13 +175,13 @@ uint16_t rom::checksum() const
 {
 	auto calc_chksum = [this]() {
 		size_t num_to_check = _body.size();
-		if (num_to_check > 0 && num_to_check % 2 != 0)
+		if(num_to_check > 0 && num_to_check % 2 != 0)
 			--num_to_check;
 
 		uint16_t chksum = 0;
-		for (size_t i = 0; i < num_to_check; ++i)
+		for(size_t i = 0; i < num_to_check; ++i)
 		{
-			if (i % 2 == 0)
+			if(i % 2 == 0)
 				chksum += _body[i] * (uint16_t)256;
 			else
 				chksum += _body[i];
@@ -190,7 +190,7 @@ uint16_t rom::checksum() const
 		return chksum;
 	};
 
-	if (saved_checksum == 0)
+	if(saved_checksum == 0)
 		saved_checksum = calc_chksum();
 
 	return saved_checksum;

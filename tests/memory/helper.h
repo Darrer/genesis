@@ -1,12 +1,12 @@
 #ifndef __TEST_HELPER_H__
 #define __TEST_HELPER_H__
 
-#include <gtest/gtest.h>
-#include <cstdint>
-#include <map>
-
 #include "../helpers/random.h"
 #include "memory/addressable.h"
+
+#include <cstdint>
+#include <gtest/gtest.h>
+#include <map>
 
 
 namespace genesis::test
@@ -22,7 +22,7 @@ void test_read_write(genesis::memory::addressable& unit)
 	std::map<std::uint32_t /* address */, T /* data */> written_data;
 
 	/* write random data */
-	for (std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
+	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
 	{
 		T data = test::random::next<T>();
 		unit.init_write(addr, data);
@@ -30,15 +30,15 @@ void test_read_write(genesis::memory::addressable& unit)
 	}
 
 	/* check written data */
-	for (std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
+	for(std::uint32_t addr = 0; addr <= max_address; addr += sizeof(T))
 	{
 		T data{};
-		if constexpr (sizeof(T) == 1)
+		if constexpr(sizeof(T) == 1)
 		{
 			unit.init_read_byte(addr);
 			data = unit.latched_byte();
 		}
-		else if constexpr (sizeof(T) == 2)
+		else if constexpr(sizeof(T) == 2)
 		{
 			unit.init_read_word(addr);
 			data = unit.latched_word();

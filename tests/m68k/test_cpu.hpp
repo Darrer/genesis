@@ -18,7 +18,7 @@ class test_cpu : public genesis::m68k::cpu
 private:
 	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit) : cpu(mem_unit), mem_unit(mem_unit)
 	{
-		if (exman.is_raised(m68k::exception_type::reset))
+		if(exman.is_raised(m68k::exception_type::reset))
 			exman.accept(m68k::exception_type::reset);
 	}
 
@@ -48,9 +48,9 @@ public:
 			cycle();
 			++cycles;
 
-			if (cycles_limit != 0 && cycles > cycles_limit)
+			if(cycles_limit != 0 && cycles > cycles_limit)
 				break;
-		} while (!is_idle());
+		} while(!is_idle());
 
 		return cycles;
 	}
@@ -58,14 +58,14 @@ public:
 	void load_bin(std::string bin_path)
 	{
 		std::ifstream fs(bin_path, std::ios_base::binary);
-		if (!fs.is_open())
+		if(!fs.is_open())
 			throw std::runtime_error("test_cpu::load_bin error: failed to open file '" + bin_path + "'");
 
 		std::uint32_t offset = 0x0;
-		while (fs)
+		while(fs)
 		{
 			char c;
-			if (fs.get(c))
+			if(fs.get(c))
 			{
 				mem_unit->write(offset, c);
 				++offset;

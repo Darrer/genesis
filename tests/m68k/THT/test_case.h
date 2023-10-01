@@ -57,10 +57,10 @@ public:
 public:
 	bool operator==(const bus_transition& other) const
 	{
-		if (cycles != other.cycles || type != other.type)
+		if(cycles != other.cycles || type != other.type)
 			return false;
 
-		if (type == trans_type::IDLE)
+		if(type == trans_type::IDLE)
 			return true;
 
 		return rw_data.value() == other.rw_data.value();

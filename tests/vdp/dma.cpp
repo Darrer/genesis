@@ -9,25 +9,25 @@ using namespace genesis::vdp;
 
 void zero_mem(vram_t& mem)
 {
-	for (int addr = 0; addr <= mem.max_address; ++addr)
+	for(int addr = 0; addr <= mem.max_address; ++addr)
 		mem.write<std::uint8_t>(addr, 0);
 }
 
 void zero_mem(cram_t& mem)
 {
-	for (int addr = 0; addr <= 126; addr += 2)
+	for(int addr = 0; addr <= 126; addr += 2)
 		mem.write(addr, 0);
 }
 
 void zero_mem(vsram_t& mem)
 {
-	for (int addr = 0; addr <= 78; addr += 2)
+	for(int addr = 0; addr <= 78; addr += 2)
 		mem.write(addr, 0);
 }
 
 void zero_mem(test::mock_m68k_bus_access::m68k_memory_t& mem)
 {
-	for (int addr = 0; addr <= mem.max_address; ++addr)
+	for(int addr = 0; addr <= mem.max_address; ++addr)
 		mem.write<std::uint8_t>(addr, 0);
 }
 
@@ -48,7 +48,7 @@ void prepare_fill_data_for_cram_vsram(test::vdp& vdp, std::uint16_t fill_data)
 	// the fill data for cram/vsram is the data written 4 writes ago
 	// so do 3 write here
 	// and the 4th write to trigger DMA should be done by external code
-	for (int i = 0; i < 3; ++i)
+	for(int i = 0; i < 3; ++i)
 	{
 		// 1st write puts the right data
 		ports.init_write_data(fill_data);
@@ -158,7 +158,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + 1 + i;
 		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
@@ -168,7 +168,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -203,7 +203,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address + 1));
 
 	// all subsequent written bytes - MSB
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + ((i + 1) * 2);
 		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
@@ -214,7 +214,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -249,7 +249,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + 1 + i;
 		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
@@ -259,7 +259,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -294,7 +294,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + ((i + 1) * 2);
 		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
@@ -305,7 +305,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -335,7 +335,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_0_LENGTH)
 	// assert memory
 
 	// all written bytes should be MSB
-	for (int addr = 0; addr <= 0xFFFF; ++addr)
+	for(int addr = 0; addr <= 0xFFFF; ++addr)
 		ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
 
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 1);
@@ -362,14 +362,14 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 	setup_dma_fill(vdp, start_address, length, vmem_type::vram, fill_data);
 
 	// on the half way change FILL data
-	while (true)
+	while(true)
 	{
 		vdp.cycle();
 
-		if (sett.dma_length() <= (length / 2))
+		if(sett.dma_length() <= (length / 2))
 		{
 			// wait till address becomes even
-			if (regs.control.address() % 2 == 0)
+			if(regs.control.address() % 2 == 0)
 				break;
 		}
 	}
@@ -396,7 +396,7 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 
 		std::uint16_t fill_msb = endian::msb(fill_data);
 
-		for (int addr = start_address + 1; addr < address_of_new_fill_data; ++addr)
+		for(int addr = start_address + 1; addr < address_of_new_fill_data; ++addr)
 			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
 	}
 
@@ -411,14 +411,14 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 
 		std::uint16_t fill_msb = endian::msb(new_fill_data);
 
-		for (int addr = address_of_new_fill_data + 1; addr < final_addr; ++addr)
+		for(int addr = address_of_new_fill_data + 1; addr < final_addr; ++addr)
 			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
 	}
 
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -452,7 +452,7 @@ TEST(VDP_DMA, BASIC_FILL_CRAM)
 	ASSERT_EQ(trigger_fill_data, mem.read(start_address));
 
 	// all subsequent words -- fill_data
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + 2 + (i * 2);
 		ASSERT_EQ(fill_data, mem.read(addr));
@@ -462,7 +462,7 @@ TEST(VDP_DMA, BASIC_FILL_CRAM)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read(addr));
@@ -496,7 +496,7 @@ TEST(VDP_DMA, BASIC_FILL_VSRAM)
 	ASSERT_EQ(trigger_fill_data, mem.read(start_address));
 
 	// all subsequent words -- fill_data
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = start_address + 2 + (i * 2);
 		ASSERT_EQ(fill_data, mem.read(addr));
@@ -506,7 +506,7 @@ TEST(VDP_DMA, BASIC_FILL_VSRAM)
 	ASSERT_EQ(final_addr, regs.control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read(addr));
@@ -571,7 +571,7 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 	auto& mem = vdp.vram();
 	zero_mem(mem);
 
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = source_address + i;
 		mem.write<std::uint8_t>(addr, data.at(i));
@@ -582,7 +582,7 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 	vdp.wait_dma();
 
 	// assert
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		const std::uint8_t expected_data = data.at(i);
 
@@ -605,7 +605,7 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
@@ -672,7 +672,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	auto& m68k_mem = vdp.m68k_bus_access().memory();
 	zero_mem(m68k_mem);
 
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint32_t addr = source_address + (i * 2);
 		m68k_mem.write<std::uint16_t>(addr, data.at(i));
@@ -684,7 +684,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	vdp.wait_fifo();
 
 	// assert
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		const auto expected_data = data.at(i);
 
@@ -698,7 +698,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
 	// make sure DMA didn't touch memory after final address
-	for (int i = 0; i < length; ++i)
+	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));

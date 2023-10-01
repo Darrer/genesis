@@ -25,7 +25,7 @@ TEST(Endian, uint16)
 
 TEST(Endian, ShouldNotSwap)
 {
-	if constexpr (std::endian::native == std::endian::little)
+	if constexpr(std::endian::native == std::endian::little)
 	{
 		uint32_t val = 0x12345678;
 		endian::little_to_sys(val);
@@ -35,7 +35,7 @@ TEST(Endian, ShouldNotSwap)
 		endian::sys_to_little(val);
 		ASSERT_EQ(val, 0x12345678);
 	}
-	else if constexpr (std::endian::native == std::endian::big)
+	else if constexpr(std::endian::native == std::endian::big)
 	{
 		uint32_t val = 0x12345678;
 		endian::big_to_sys(val);
@@ -50,7 +50,7 @@ TEST(Endian, ShouldNotSwap)
 
 TEST(Endian, ShouldSwap)
 {
-	if constexpr (std::endian::native == std::endian::little)
+	if constexpr(std::endian::native == std::endian::little)
 	{
 		uint32_t val = 0x12345678;
 		endian::big_to_sys(val);
@@ -60,7 +60,7 @@ TEST(Endian, ShouldSwap)
 		endian::sys_to_big(val);
 		ASSERT_EQ(val, 0x78563412);
 	}
-	else if constexpr (std::endian::native == std::endian::big)
+	else if constexpr(std::endian::native == std::endian::big)
 	{
 		uint32_t val = 0x12345678;
 		endian::little_to_sys(val);

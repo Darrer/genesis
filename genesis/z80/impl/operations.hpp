@@ -79,7 +79,7 @@ public:
 	inline bool check_cc(std::uint8_t cc)
 	{
 		auto& flags = regs.main_set.flags;
-		switch (cc)
+		switch(cc)
 		{
 		case 0b000:
 			return flags.Z == 0;
@@ -105,7 +105,7 @@ public:
 	inline void call_cc(std::uint8_t cc, z80::memory::address addr)
 	{
 		regs.PC += 3; // always assume call instruction is 3 byte long
-		if (check_cc(cc))
+		if(check_cc(cc))
 		{
 			push(regs.PC);
 			regs.PC = addr;
@@ -139,7 +139,7 @@ public:
 
 	inline void ret_cc(std::uint8_t cc)
 	{
-		if (check_cc(cc))
+		if(check_cc(cc))
 		{
 			ret();
 		}
@@ -157,7 +157,7 @@ public:
 
 	inline void jp_cc(std::uint8_t cc, z80::memory::address addr)
 	{
-		if (check_cc(cc))
+		if(check_cc(cc))
 		{
 			jp(addr);
 		}
@@ -169,7 +169,7 @@ public:
 
 	inline void jr_z(std::int8_t offset)
 	{
-		if (regs.main_set.flags.Z)
+		if(regs.main_set.flags.Z)
 		{
 			jr(offset);
 		}
@@ -181,7 +181,7 @@ public:
 
 	inline void jr_c(std::int8_t offset)
 	{
-		if (regs.main_set.flags.C)
+		if(regs.main_set.flags.C)
 		{
 			jr(offset);
 		}
@@ -193,7 +193,7 @@ public:
 
 	inline void jr_nz(std::int8_t offset)
 	{
-		if (regs.main_set.flags.Z == 0)
+		if(regs.main_set.flags.Z == 0)
 		{
 			jr(offset);
 		}
@@ -205,7 +205,7 @@ public:
 
 	inline void jr_nc(std::int8_t offset)
 	{
-		if (regs.main_set.flags.C == 0)
+		if(regs.main_set.flags.C == 0)
 		{
 			jr(offset);
 		}
@@ -223,7 +223,7 @@ public:
 	void djnz(std::int8_t offset)
 	{
 		regs.main_set.B = (std::uint8_t)regs.main_set.B - 1;
-		if (regs.main_set.B != 0)
+		if(regs.main_set.B != 0)
 		{
 			jr(offset);
 		}
@@ -305,7 +305,7 @@ public:
 	void inir()
 	{
 		ini();
-		if (regs.main_set.B == 0)
+		if(regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -331,7 +331,7 @@ public:
 	void indr()
 	{
 		ind();
-		if (regs.main_set.B == 0)
+		if(regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -367,7 +367,7 @@ public:
 	{
 		outi();
 		regs.main_set.flags.Z = 1;
-		if (regs.main_set.B == 0)
+		if(regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -393,7 +393,7 @@ public:
 	{
 		outd();
 		regs.main_set.flags.Z = 1;
-		if (regs.main_set.B == 0)
+		if(regs.main_set.B == 0)
 		{
 			// terminate instruction
 			regs.PC += 2;
@@ -706,7 +706,7 @@ public:
 	inline void ldir()
 	{
 		ldi();
-		if (regs.main_set.BC == 0)
+		if(regs.main_set.BC == 0)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -734,7 +734,7 @@ public:
 	inline void cpdr()
 	{
 		cpd();
-		if (regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -762,7 +762,7 @@ public:
 	inline void cpir()
 	{
 		cpi();
-		if (regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
+		if(regs.main_set.BC == 0 || regs.main_set.flags.Z == 1)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -792,7 +792,7 @@ public:
 	inline void lddr()
 	{
 		ldd();
-		if (regs.main_set.BC == 0)
+		if(regs.main_set.BC == 0)
 		{
 			// instruction is terminated
 			regs.PC += 2;
@@ -903,7 +903,7 @@ public:
 		rlc(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -922,7 +922,7 @@ public:
 		rl(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -941,7 +941,7 @@ public:
 		rrc(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -960,7 +960,7 @@ public:
 		rr(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -985,7 +985,7 @@ public:
 		sla(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1004,7 +1004,7 @@ public:
 		sra(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1023,7 +1023,7 @@ public:
 		srl(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1042,7 +1042,7 @@ public:
 		sll(data);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1080,7 +1080,7 @@ public:
 		data |= (1 << bit);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1095,7 +1095,7 @@ public:
 		data &= ~(1 << bit);
 		mem.write(addr, data);
 
-		if (dest)
+		if(dest)
 			dest->get() = data;
 	}
 
@@ -1107,10 +1107,10 @@ public:
 		std::uint8_t high = val >> 4;
 		std::uint8_t corr = 0x0;
 
-		if (low > 9 || regs.main_set.flags.H)
+		if(low > 9 || regs.main_set.flags.H)
 			corr = 0x06;
 
-		if (high > 9 || regs.main_set.flags.C || (high >= 9 && low > 9))
+		if(high > 9 || regs.main_set.flags.C || (high >= 9 && low > 9))
 		{
 			corr += 0x60;
 			regs.main_set.flags.C = 1;
@@ -1120,7 +1120,7 @@ public:
 			regs.main_set.flags.C = 0;
 		}
 
-		if (regs.main_set.flags.N)
+		if(regs.main_set.flags.N)
 		{
 			regs.main_set.flags.H = check_half_borrow<std::uint8_t>(regs.main_set.A, corr);
 			regs.main_set.A = val - corr;
@@ -1227,7 +1227,7 @@ private:
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
 		long sum = (long)(a & mask) + (long)(b & mask) + c;
-		if (sum > mask)
+		if(sum > mask)
 			return 1;
 
 		return 0;
@@ -1242,7 +1242,7 @@ private:
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
 		long sum = (long)(b & mask) + c;
-		if (sum > (long)(a & mask))
+		if(sum > (long)(a & mask))
 			return 1;
 
 		return 0;

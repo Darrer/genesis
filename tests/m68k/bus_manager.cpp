@@ -8,7 +8,7 @@ using namespace genesis;
 
 void prepare_mem(memory::memory_unit& mem, std::uint32_t base_addr, const auto& array)
 {
-	for (auto val : array)
+	for(auto val : array)
 	{
 		mem.write(base_addr, val);
 		base_addr += sizeof(val);
@@ -18,7 +18,7 @@ void prepare_mem(memory::memory_unit& mem, std::uint32_t base_addr, const auto& 
 std::uint32_t wait_idle(m68k::bus_manager& busm)
 {
 	std::uint32_t cycles = 0;
-	while (!busm.is_idle())
+	while(!busm.is_idle())
 	{
 		busm.cycle();
 		++cycles;
@@ -69,7 +69,7 @@ void test_read(std::array<T, N> test_values)
 
 	const std::uint32_t cycles_per_read = 4;
 
-	for (std::size_t i = 0; i < test_values.size(); ++i)
+	for(std::size_t i = 0; i < test_values.size(); ++i)
 	{
 		auto expected = test_values[i];
 		std::uint32_t addr = base + i * sizeof(expected);
@@ -77,7 +77,7 @@ void test_read(std::array<T, N> test_values)
 		std::uint32_t cycles = 0;
 		decltype(expected) actual = 0;
 
-		if constexpr (sizeof(expected) == 1)
+		if constexpr(sizeof(expected) == 1)
 		{
 			cycles = read_byte(busm, addr);
 			actual = busm.latched_byte();
@@ -104,7 +104,7 @@ void test_write(std::array<T, N> values_to_write)
 	const std::uint32_t cycles_per_write = 4;
 
 	std::uint32_t base = 0x100;
-	for (std::size_t i = 0; i < values_to_write.size(); ++i)
+	for(std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto val = values_to_write[i];
 		std::uint32_t addr = base + i * sizeof(val);
@@ -115,7 +115,7 @@ void test_write(std::array<T, N> values_to_write)
 	}
 
 	// check mem
-	for (std::size_t i = 0; i < values_to_write.size(); ++i)
+	for(std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto expected = values_to_write[i];
 		std::uint32_t addr = base + i * sizeof(expected);
@@ -197,7 +197,7 @@ bus_state read_and_track(std::uint32_t addr, T val_to_write)
 
 	mem.write(addr, val_to_write);
 
-	if constexpr (sizeof(T) == 1)
+	if constexpr(sizeof(T) == 1)
 		busm.init_read_byte(addr, m68k::addr_space::DATA);
 	else
 		busm.init_read_word(addr, m68k::addr_space::DATA);
@@ -205,21 +205,21 @@ bus_state read_and_track(std::uint32_t addr, T val_to_write)
 	std::uint32_t cycle = 0;
 	bus_state bs;
 
-	while (!busm.is_idle())
+	while(!busm.is_idle())
 	{
 		busm.cycle();
 		++cycle;
 
-		if (cycle == 1)
+		if(cycle == 1)
 			bs.address = bus.address();
 
-		if (cycle == 2)
+		if(cycle == 2)
 		{
 			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
 			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
 		}
 
-		if (cycle == 3)
+		if(cycle == 3)
 			bs.data = bus.data();
 	}
 
@@ -239,18 +239,18 @@ bus_state write_and_track(std::uint32_t addr, T val_to_write)
 	std::uint32_t cycle = 0;
 	bus_state bs;
 
-	while (!busm.is_idle())
+	while(!busm.is_idle())
 	{
 		busm.cycle();
 		++cycle;
 
-		if (cycle == 1)
+		if(cycle == 1)
 			bs.address = bus.address();
 
-		if (cycle == 2)
+		if(cycle == 2)
 			bs.data = bus.data();
 
-		if (cycle == 3)
+		if(cycle == 3)
 		{
 			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
 			bs.lds_is_set = bus.is_set(m68k::bus::LDS);

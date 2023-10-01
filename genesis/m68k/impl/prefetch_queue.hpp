@@ -88,7 +88,7 @@ private:
 	{
 		auto reg = busm.latched_word();
 
-		switch (state)
+		switch(state)
 		{
 		case fetch_state::FETCH_IRD:
 			regs.IRD = regs.IR = reg;
@@ -107,7 +107,7 @@ private:
 			throw internal_error();
 		}
 
-		if (on_complete_cb != nullptr)
+		if(on_complete_cb != nullptr)
 			on_complete_cb();
 
 		reset();
@@ -115,7 +115,7 @@ private:
 
 	void assert_idle()
 	{
-		if (!is_idle())
+		if(!is_idle())
 		{
 			throw internal_error("cannot start new prefetch while in the middle of the other");
 		}

@@ -41,12 +41,12 @@ class tap_header
 public:
 	tap_header(const tap_block& block)
 	{
-		if (block.flag != tap_flag::header)
+		if(block.flag != tap_flag::header)
 		{
 			throw std::runtime_error("tap_header error: expected header tap flag");
 		}
 
-		if (block.data.size() != 17)
+		if(block.data.size() != 17)
 		{
 			throw std::runtime_error("tap_header error: unexpected header length");
 		}
@@ -76,7 +76,7 @@ private:
 std::vector<tap_block> read_tap(std::string tap_path)
 {
 	std::ifstream fs(tap_path, std::ios_base::binary);
-	if (!fs.is_open())
+	if(!fs.is_open())
 	{
 		throw std::runtime_error("read_tap error: failed to open file '" + tap_path + "'");
 	}
@@ -85,33 +85,33 @@ std::vector<tap_block> read_tap(std::string tap_path)
 
 	// TAP files in little-endian - don't need to convert
 
-	while (fs)
+	while(fs)
 	{
 		std::uint16_t block_size = 0;
-		if (!fs.read(reinterpret_cast<char*>(&block_size), sizeof(block_size)))
+		if(!fs.read(reinterpret_cast<char*>(&block_size), sizeof(block_size)))
 		{
 			// nothing left to read
 			break;
 		}
 
-		if (block_size <= 2)
+		if(block_size <= 2)
 		{
 			throw std::runtime_error("read_tap error: block size is too small (should be at least 3 bits long)");
 		}
 
 		tap_block block;
 
-		if (!fs.read(reinterpret_cast<char*>(&block.flag), sizeof(block.flag)))
+		if(!fs.read(reinterpret_cast<char*>(&block.flag), sizeof(block.flag)))
 		{
 			throw std::runtime_error("read_tap error: corrupted file (cannot read flag)");
 		}
 
 		// 1 byte for flag; 1 byte for checksum
 		const std::uint16_t data_size = block_size - 2;
-		for (std::uint16_t i = 0; i < data_size; ++i)
+		for(std::uint16_t i = 0; i < data_size; ++i)
 		{
 			char c;
-			if (!fs.get(c))
+			if(!fs.get(c))
 			{
 				throw std::runtime_error("read_tap error: corrupted file (cannot read data " + su::hex_str(data_size) +
 										 ")");
@@ -122,7 +122,7 @@ std::vector<tap_block> read_tap(std::string tap_path)
 
 		block.data.shrink_to_fit();
 
-		if (!fs.read(reinterpret_cast<char*>(&block.checksum), sizeof(block.checksum)))
+		if(!fs.read(reinterpret_cast<char*>(&block.checksum), sizeof(block.checksum)))
 		{
 			throw std::runtime_error("read_tap error: corrupted file (cannot read checksum)");
 		}
@@ -139,24 +139,24 @@ void load_tap(std::string tap_path, genesis::z80::cpu& cpu)
 {
 	auto blocks = read_tap(tap_path);
 
-	for (std::size_t i = 0; i < blocks.size(); ++i)
+	for(std::size_t i = 0; i < blocks.size(); ++i)
 	{
 		auto& block = blocks[i];
-		if (block.flag == tap_flag::header)
+		if(block.flag == tap_flag::header)
 		{
 			tap_header header(block);
 
-			if (i + 1 < blocks.size())
+			if(i + 1 < blocks.size())
 			{
 				auto& next_block = blocks[i + 1];
-				if (next_block.flag == tap_flag::data)
+				if(next_block.flag == tap_flag::data)
 				{
 					// load only code file, 've got no idea what to do with the other types...
-					if (header.type == header_type::code_file)
+					if(header.type == header_type::code_file)
 					{
 						auto& mem = cpu.memory();
 						genesis::z80::memory::address base = header.param1;
-						for (std::uint16_t j = 0; j < next_block.data.size(); ++j)
+						for(std::uint16_t j = 0; j < next_block.data.size(); ++j)
 						{
 							mem.write(base + j, next_block.data[j]);
 						}

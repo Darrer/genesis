@@ -103,7 +103,7 @@ public:
 	std::uint32_t window_address() const
 	{
 		std::uint32_t addr = regs.R3.W5_1;
-		if (display_width() == display_width::c40)
+		if(display_width() == display_width::c40)
 			addr = addr & ~1;
 		addr = addr << 11;
 		// TODO: use WA6?
@@ -113,7 +113,7 @@ public:
 	std::uint32_t sprite_address() const
 	{
 		std::uint32_t addr = regs.R5.ST6_0;
-		if (display_width() == display_width::c40)
+		if(display_width() == display_width::c40)
 			addr = addr & ~1;
 		addr = addr << 9;
 		// TODO: use ST7?
@@ -133,7 +133,7 @@ public:
 	// Height for planes A & B
 	plane_dimension plane_height() const
 	{
-		switch (regs.R16.H)
+		switch(regs.R16.H)
 		{
 		case 0b00:
 			return plane_dimension::c32;
@@ -149,7 +149,7 @@ public:
 	// Width for planes A & B
 	plane_dimension plane_width() const
 	{
-		switch (regs.R16.W)
+		switch(regs.R16.W)
 		{
 		case 0b00:
 			return plane_dimension::c32;
@@ -171,7 +171,7 @@ public:
 
 	draw_horizontal_direction window_horizontal_draw_direction() const
 	{
-		if (regs.R17.R == 1)
+		if(regs.R17.R == 1)
 			return draw_horizontal_direction::right;
 		return draw_horizontal_direction::left;
 	}
@@ -183,7 +183,7 @@ public:
 
 	draw_vertical_direction window_vertical_draw_direction() const
 	{
-		if (regs.R18.D == 1)
+		if(regs.R18.D == 1)
 			return draw_vertical_direction::down;
 		return draw_vertical_direction::up;
 	}
@@ -214,7 +214,7 @@ public:
 		source |= std::uint32_t(regs.R21.L);
 		source |= std::uint32_t(regs.R22.M) << 8;
 
-		if (dma_mode() == dma_mode::mem_to_vram)
+		if(dma_mode() == dma_mode::mem_to_vram)
 		{
 			source |= std::uint32_t(regs.R23.H) << 16;
 			// T0 acts as H6
@@ -232,7 +232,7 @@ public:
 		regs.R22.M = std::uint8_t(value & 0xFF);
 		value = value >> 8;
 
-		if (dma_mode() == dma_mode::mem_to_vram)
+		if(dma_mode() == dma_mode::mem_to_vram)
 		{
 			// TODO: check this logic
 			regs.R23.H = std::uint8_t(value & 0b111111);
@@ -242,10 +242,10 @@ public:
 
 	vdp::dma_mode dma_mode() const
 	{
-		if (regs.R23.T1 == 0)
+		if(regs.R23.T1 == 0)
 			return dma_mode::mem_to_vram;
 
-		if (regs.R23.T0 == 0)
+		if(regs.R23.T0 == 0)
 			return dma_mode::vram_fill;
 
 		return dma_mode::vram_copy;
@@ -253,7 +253,7 @@ public:
 
 	void dma_mode(vdp::dma_mode mode)
 	{
-		switch (mode)
+		switch(mode)
 		{
 		case dma_mode::mem_to_vram:
 			regs.R23.T1 = 0;
@@ -294,14 +294,14 @@ public:
 
 	vdp::display_mode display_mode() const
 	{
-		if (regs.R1.M5 == 1)
+		if(regs.R1.M5 == 1)
 			return display_mode::mode5;
 		return display_mode::mode4;
 	}
 
 	vdp::display_height display_height() const
 	{
-		if (regs.R1.M2 == 1)
+		if(regs.R1.M2 == 1)
 			return display_height::c30;
 		return display_height::c28;
 	}
@@ -309,14 +309,14 @@ public:
 	vdp::display_width display_width() const
 	{
 		// TODO: take into accout RS1?
-		if (regs.R12.RS0 == 1)
+		if(regs.R12.RS0 == 1)
 			return display_width::c40;
 		return display_width::c32;
 	}
 
 	vdp::interlace_mode interlace_mode() const
 	{
-		switch (regs.R12.LS)
+		switch(regs.R12.LS)
 		{
 		case 0b01:
 			return interlace_mode::normal;
@@ -330,14 +330,14 @@ public:
 	/* Scrolling */
 	vdp::vertical_scrolling vertical_scrolling() const
 	{
-		if (regs.R11.VS == 1)
+		if(regs.R11.VS == 1)
 			return vertical_scrolling::two_cell;
 		return vertical_scrolling::full_screen;
 	}
 
 	vdp::horizontal_scrolling horizontal_scrolling() const
 	{
-		switch (regs.R11.HS)
+		switch(regs.R11.HS)
 		{
 		case 0b00:
 			return horizontal_scrolling::full_screen;

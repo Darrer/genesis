@@ -25,14 +25,14 @@ opcode_entry parse_opcode(std::string_view opcode, std::string_view desc)
 std::vector<opcode_entry> load_map(std::string path_to_map)
 {
 	std::ifstream fs(path_to_map);
-	if (!fs.is_open())
+	if(!fs.is_open())
 		throw std::runtime_error("load_map error: failed to open " + path_to_map);
 
 	json data = json::parse(fs);
 
 	std::vector<opcode_entry> opcodes;
 
-	for (auto& [opcode, desc] : data.items())
+	for(auto& [opcode, desc] : data.items())
 	{
 		opcodes.push_back(parse_opcode(opcode, desc.get<std::string>()));
 	}

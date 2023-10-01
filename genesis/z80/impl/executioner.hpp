@@ -21,16 +21,16 @@ public:
 
 	void execute_one()
 	{
-		if (check_interrupts())
+		if(check_interrupts())
 			return;
 
-		if (cpu.bus().is_set(bus::RESET))
+		if(cpu.bus().is_set(bus::RESET))
 		{
 			cpu.reset();
 			return;
 		}
 
-		if (cpu.bus().is_set(bus::BUSREQ))
+		if(cpu.bus().is_set(bus::BUSREQ))
 		{
 			// accept request
 			cpu.bus().set(bus::BUSACK);
@@ -43,7 +43,7 @@ public:
 			cpu.bus().clear(bus::BUSACK);
 		}
 
-		if (cpu.bus().is_set(bus::HALT))
+		if(cpu.bus().is_set(bus::HALT))
 		{
 			// nothing to do
 			return;
@@ -63,7 +63,7 @@ private:
 	void exec_and_advance(z80::instruction inst)
 	{
 		exec(inst);
-		if (need_advance_pc(inst.op_type))
+		if(need_advance_pc(inst.op_type))
 			dec.advance_pc(inst);
 	}
 
@@ -71,7 +71,7 @@ private:
 	{
 		interrupts_just_enabled = false;
 
-		switch (inst.op_type)
+		switch(inst.op_type)
 		{
 		/* 8-Bit Arithmetic Group */
 		case operation_type::add:
@@ -425,13 +425,13 @@ private:
 		std::uint8_t bin_reg = imm & 0b00000111;
 		optional_reg_ref reg = std::nullopt;
 
-		if (bin_reg != 0b110)
+		if(bin_reg != 0b110)
 		{
 			reg = dec.decode_bit_reg(bin_reg);
 		}
 
 		auto op_type = dec.decode_bit_op(inst);
-		switch (op_type)
+		switch(op_type)
 		{
 		case operation_type::tst_bit_at:
 			ops.tst_bit_at(dec.decode_address(inst.destination, inst), dec.decode_bit(inst.source, inst));
@@ -475,7 +475,7 @@ private:
 	// TODO: move to decoder?
 	bool need_advance_pc(operation_type op)
 	{
-		switch (op)
+		switch(op)
 		{
 		// these control PC itslef
 		case operation_type::call:
@@ -511,13 +511,13 @@ private:
 	{
 		auto& bus = cpu.bus();
 
-		if (bus.is_set(bus::BUSREQ))
+		if(bus.is_set(bus::BUSREQ))
 		{
 			// no interrupts if BUSREQ is set
 			return false;
 		}
 
-		if (bus.is_set(bus::NMI))
+		if(bus.is_set(bus::NMI))
 		{
 			ops.nonmaskable_interrupt();
 			// TODO: should we clear NMI? Or somehow indicate interrupt is processing
@@ -526,19 +526,19 @@ private:
 			return true;
 		}
 
-		if (interrupts_just_enabled)
+		if(interrupts_just_enabled)
 		{
 			// we have to execute 1 instruction after enabling interrupts
 			return false;
 		}
 
-		if (cpu.registers().IFF1 == 0)
+		if(cpu.registers().IFF1 == 0)
 		{
 			// maskable interrupts are disabled
 			return false;
 		}
 
-		if (bus.is_set(bus::INT))
+		if(bus.is_set(bus::INT))
 		{
 			// we had to accept interrupt first, then wait till get data,
 			// but for simplicity assume data already on the bus
@@ -551,7 +551,7 @@ private:
 
 	void exec_maskable_interrupt(std::uint8_t data)
 	{
-		switch (cpu.interrupt_mode())
+		switch(cpu.interrupt_mode())
 		{
 		case cpu_interrupt_mode::im0: {
 			ops.maskable_interrupt_m0();

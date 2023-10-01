@@ -27,7 +27,7 @@ bool bus_manager::is_idle() const
 std::uint8_t bus_manager::latched_byte() const
 {
 	assert_idle("latched_byte");
-	if (!byte_operation)
+	if(!byte_operation)
 		throw std::runtime_error("bus_manager::latched_byte error: don't have latched byte");
 
 	return external_memory->latched_byte();
@@ -36,7 +36,7 @@ std::uint8_t bus_manager::latched_byte() const
 std::uint16_t bus_manager::latched_word() const
 {
 	assert_idle("latched_word");
-	if (byte_operation)
+	if(byte_operation)
 		throw std::runtime_error("bus_manager::latched_word error: don't have latched word");
 
 	return external_memory->latched_word();
@@ -54,7 +54,7 @@ void bus_manager::request_access()
 {
 	assert_idle("request_access");
 
-	if (bus_granted() || bus.is_set(bus::BR))
+	if(bus_granted() || bus.is_set(bus::BR))
 	{
 		// alrady granted or requested, caller shouldn't request it again
 		throw internal_error();
@@ -67,7 +67,7 @@ void bus_manager::release_access()
 {
 	assert_idle("release_access");
 
-	if (!bus_granted() || !bus.is_set(bus::BR))
+	if(!bus_granted() || !bus.is_set(bus::BR))
 	{
 		// bus release is requested, but it's not granted nor requested
 		throw internal_error();
@@ -78,7 +78,7 @@ void bus_manager::release_access()
 
 void bus_manager::assert_idle(std::string_view caller) const
 {
-	if (!is_idle())
+	if(!is_idle())
 	{
 		throw std::runtime_error("bus_manager::" + std::string(caller) +
 								 " error: cannot perform an operation while busy");
@@ -88,9 +88,9 @@ void bus_manager::assert_idle(std::string_view caller) const
 void bus_manager::cycle()
 {
 	// TODO: who's gonna execute the requests?
-	if (bus_granted())
+	if(bus_granted())
 	{
-		if (bus.is_set(bus::BR))
+		if(bus.is_set(bus::BR))
 		{
 			// the bus is still owned by 3rd device
 		}
@@ -103,7 +103,7 @@ void bus_manager::cycle()
 		return;
 	}
 
-	switch (state)
+	switch(state)
 	{
 	case IDLE:
 		do_state(IDLE);
@@ -196,10 +196,10 @@ void bus_manager::cycle()
 
 void bus_manager::do_state(int state)
 {
-	switch (state)
+	switch(state)
 	{
 	case IDLE:
-		if (bus.is_set(bus::BR))
+		if(bus.is_set(bus::BR))
 		{
 			// we're idle and bus is requsted - perfect time to give it up
 			bus.set(bus::BG); // grant access just by setting BR flag
@@ -208,7 +208,7 @@ void bus_manager::do_state(int state)
 
 	/* bus ready cycle */
 	case READ0:
-		if (check_exceptions())
+		if(check_exceptions())
 			return;
 
 		bus.func_codes(gen_func_codes());
@@ -222,16 +222,16 @@ void bus_manager::do_state(int state)
 		return;
 
 	case READ2:
-		if (byte_operation)
+		if(byte_operation)
 			external_memory->init_read_byte(bus.address());
 		else
 			external_memory->init_read_word(bus.address());
 		return;
 
 	case READ_WAIT:
-		if (external_memory->is_idle())
+		if(external_memory->is_idle())
 		{
-			if (byte_operation)
+			if(byte_operation)
 				set_data_bus(external_memory->latched_byte());
 			else
 				set_data_bus(external_memory->latched_word());
@@ -260,7 +260,7 @@ void bus_manager::do_state(int state)
 
 	/* bus write cycle */
 	case WRITE0:
-		if (check_exceptions())
+		if(check_exceptions())
 			return;
 		bus.func_codes(gen_func_codes());
 		bus.set(bus::RW);
@@ -276,7 +276,7 @@ void bus_manager::do_state(int state)
 	case WRITE2:
 		set_data_strobe_bus();
 
-		if (byte_operation)
+		if(byte_operation)
 			external_memory->init_write(bus.address(), std::uint8_t(data_to_write));
 		else
 			external_memory->init_write(bus.address(), data_to_write);
@@ -284,7 +284,7 @@ void bus_manager::do_state(int state)
 		return;
 
 	case WRITE_WAIT:
-		if (external_memory->is_idle())
+		if(external_memory->is_idle())
 			bus.set(bus::DTACK);
 		return;
 
@@ -300,7 +300,7 @@ void bus_manager::do_state(int state)
 
 void bus_manager::advance_state()
 {
-	switch (state)
+	switch(state)
 	{
 	case IDLE:
 		return;
@@ -310,7 +310,7 @@ void bus_manager::advance_state()
 	case RMW_READ_WAIT:
 	case RMW_WRITE_WAIT:
 		// advance only if operation is completed (i.e. get DTACK)
-		if (external_memory->is_idle())
+		if(external_memory->is_idle())
 			state = state + 1;
 		return;
 
@@ -321,12 +321,12 @@ void bus_manager::advance_state()
 
 void bus_manager::set_idle()
 {
-	if (state == IDLE)
+	if(state == IDLE)
 		return;
 
 	state = IDLE;
 
-	if (on_complete_cb)
+	if(on_complete_cb)
 		on_complete_cb();
 	on_complete_cb = nullptr;
 
@@ -353,18 +353,18 @@ void bus_manager::clear_bus()
 std::uint8_t bus_manager::gen_func_codes() const
 {
 	std::uint8_t func_codes = 0;
-	if (space == addr_space::DATA)
+	if(space == addr_space::DATA)
 		func_codes |= 1;
-	if (space == addr_space::PROGRAM)
+	if(space == addr_space::PROGRAM)
 		func_codes |= 1 << 1;
-	if (regs.flags.S)
+	if(regs.flags.S)
 		func_codes |= 1 << 2;
 	return func_codes;
 }
 
 void bus_manager::set_data_strobe_bus()
 {
-	if (byte_operation)
+	if(byte_operation)
 	{
 		auto ds = address_even ? bus::UDS : bus::LDS;
 		bus.set(ds);
@@ -378,9 +378,9 @@ void bus_manager::set_data_strobe_bus()
 
 void bus_manager::set_data_bus(std::uint16_t data)
 {
-	if (byte_operation)
+	if(byte_operation)
 	{
-		if (address_even) // uds
+		if(address_even) // uds
 		{
 			data = data << 8;
 			data = data | (bus.data() & 0xFF);
@@ -405,7 +405,7 @@ bool bus_manager::check_exceptions()
 bool bus_manager::check_bus_error()
 {
 	// TODO: temporarily disabled
-	if (false && should_rise_bus_error())
+	if(false && should_rise_bus_error())
 	{
 		rise_bus_error();
 		return true;
@@ -431,7 +431,7 @@ void bus_manager::rise_bus_error()
 
 bool bus_manager::check_address_error()
 {
-	if (should_rise_address_error())
+	if(should_rise_address_error())
 	{
 		rise_address_error();
 		return true;

@@ -58,23 +58,23 @@ TEST(M68K, MCL)
 	std::uint32_t same_pc_counter = 0;
 
 	auto ns_per_cycle = measure_in_ns([&]() {
-		while (true)
+		while(true)
 		{
 			cpu.cycle();
 			++cycles;
 
-			if (!cpu.is_idle())
+			if(!cpu.is_idle())
 				continue;
 
 			auto curr_pc = regs.PC;
-			if (curr_pc == old_pc)
+			if(curr_pc == old_pc)
 			{
 				++same_pc_counter;
 
 				// Check if we found a loop
-				if (same_pc_counter == loop_threshold)
+				if(same_pc_counter == loop_threshold)
 				{
-					if (curr_pc == pc_done)
+					if(curr_pc == pc_done)
 					{
 						// all tests are succeeded
 						break;

@@ -29,15 +29,15 @@ public:
 
 	constexpr static token next(std::string_view inst_template, std::uint8_t& pos)
 	{
-		if (pos >= inst_template.size())
+		if(pos >= inst_template.size())
 			return token::end;
 
 		const std::pair<const char*, token> token_map[] = {
 			{"1", token::one}, {"0", token::zero}, {"_", token::any}, {"sz", token::size}, {"<-ea->", token::ea_mode}};
 
-		for (auto [str, token] : token_map)
+		for(auto [str, token] : token_map)
 		{
-			if (has_substring_at(inst_template, str, pos))
+			if(has_substring_at(inst_template, str, pos))
 			{
 				pos += (std::uint8_t)std::string_view(str).size();
 				return token;
@@ -56,34 +56,34 @@ private:
 
 constexpr bool validate_opcodes()
 {
-	for (auto it = std::begin(opcodes); it != std::end(opcodes); ++it)
+	for(auto it = std::begin(opcodes); it != std::end(opcodes); ++it)
 	{
 		auto entry = *it;
 
-		if (entry.inst_template.size() != 16)
+		if(entry.inst_template.size() != 16)
 			return false;
 
 		std::uint8_t pos = 0;
 		bool has_ea_mode = false;
-		while (true)
+		while(true)
 		{
 			auto token = tokenizer::next(entry.inst_template, pos);
-			if (token == token::unknown)
+			if(token == token::unknown)
 				return false;
-			if (token == token::end)
+			if(token == token::end)
 				break;
-			if (token == token::ea_mode)
+			if(token == token::ea_mode)
 				has_ea_mode = true;
 		}
 
-		if (has_ea_mode && entry.src_ea_mode == ea_modes::none)
+		if(has_ea_mode && entry.src_ea_mode == ea_modes::none)
 			return false;
 
 		// check for duplicates
-		for (auto next = std::next(it); next != std::end(opcodes); ++next)
+		for(auto next = std::next(it); next != std::end(opcodes); ++next)
 		{
 			auto next_entry = *next;
-			if (entry.inst_template == next_entry.inst_template)
+			if(entry.inst_template == next_entry.inst_template)
 				return false;
 		}
 	}
@@ -105,18 +105,18 @@ public:
 		opcode_map.fill(inst_type::NONE);
 
 		std::uint16_t opcode = 0;
-		while (true)
+		while(true)
 		{
-			for (auto inst : opcodes)
+			for(auto inst : opcodes)
 			{
-				if (matches(opcode, inst))
+				if(matches(opcode, inst))
 				{
 					opcode_map.at(opcode) = inst.inst;
 					break;
 				}
 			}
 
-			if (opcode == 0xFFFF)
+			if(opcode == 0xFFFF)
 				break;
 			++opcode;
 		}
@@ -130,22 +130,22 @@ private:
 		bool first_ea_mode = true;
 		std::uint8_t pos = 0;
 		std::uint8_t size = 0xFF;
-		while (true)
+		while(true)
 		{
 			auto token = tokenizer::next(inst.inst_template, pos);
-			if (token == token::end)
+			if(token == token::end)
 				return true;
 
 			std::uint8_t bit_pos = 16 - pos;
 
-			switch (token)
+			switch(token)
 			{
 			case token::one:
 			case token::zero: {
 				std::uint8_t val = (opcode >> bit_pos) & 1;
-				if (token == token::one && val != 1)
+				if(token == token::one && val != 1)
 					return false;
-				if (token == token::zero && val != 0)
+				if(token == token::zero && val != 0)
 					return false;
 				break;
 			}
@@ -154,14 +154,14 @@ private:
 				break;
 
 			case token::size:
-				if (!size_matches(opcode, bit_pos))
+				if(!size_matches(opcode, bit_pos))
 					return false;
 				size = (opcode >> bit_pos) & 0b11;
 				break;
 
 			case token::ea_mode: {
 				ea_modes modes;
-				if (first_ea_mode)
+				if(first_ea_mode)
 				{
 					first_ea_mode = false;
 					modes = inst.dst_ea_mode != ea_modes::none ? inst.dst_ea_mode : inst.src_ea_mode;
@@ -173,7 +173,7 @@ private:
 
 				std::uint8_t ea = (opcode >> bit_pos) & 0b111111;
 
-				if (bit_pos != 0 && inst.inst == inst_type::MOVE)
+				if(bit_pos != 0 && inst.inst == inst_type::MOVE)
 				{
 					// destination ea in move instruction has swapped mode/register bit fields
 					// swap it back
@@ -182,7 +182,7 @@ private:
 					ea = (mode << 3) | dest_reg;
 				}
 
-				if (!ea_mode_matches(ea, modes, size))
+				if(!ea_mode_matches(ea, modes, size))
 					return false;
 				break;
 			}
@@ -204,7 +204,7 @@ private:
 		auto ea_mode = ea_decoder::decode_mode(ea);
 
 		// general rule, address register is not supporeted with byte size
-		if (size == 0b00 && ea_mode == addressing_mode::addr_reg)
+		if(size == 0b00 && ea_mode == addressing_mode::addr_reg)
 			return false;
 
 		return mode_is_supported(modes, ea_mode);

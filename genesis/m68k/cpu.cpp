@@ -42,7 +42,7 @@ void cpu::cycle()
 
 	// only instruction or exception cycle
 	bool exception_cycle = !excp_unit->is_idle();
-	if (exception_cycle)
+	if(exception_cycle)
 	{
 		excp_unit->cycle();
 	}
@@ -54,7 +54,7 @@ void cpu::cycle()
 	scheduler.cycle();
 	busm.cycle();
 
-	if (exception_cycle)
+	if(exception_cycle)
 	{
 		excp_unit->post_cycle();
 	}

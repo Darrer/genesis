@@ -18,7 +18,7 @@ using namespace genesis;
 void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::size_type size,
 			std::initializer_list<std::uint8_t> mem_data)
 {
-	if (mem_data.size() == 0)
+	if(mem_data.size() == 0)
 		throw std::runtime_error("decode error: mem data supposed to have at least 1 element");
 
 	auto& regs = cpu.registers();
@@ -27,7 +27,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::s
 	// setup mem
 	regs.IRC = *mem_data.begin();
 	std::uint32_t offset = 0;
-	for (auto it = std::next(mem_data.begin()); it != mem_data.end(); ++it)
+	for(auto it = std::next(mem_data.begin()); it != mem_data.end(); ++it)
 	{
 		cpu.memory().write(regs.PC + offset, *it);
 		offset += sizeof(*it);
@@ -35,7 +35,7 @@ void decode(test::test_cpu& cpu, m68k::ea_decoder& dec, std::uint8_t ea, m68k::s
 
 	// start decoding
 	dec.schedule_decoding(ea, size);
-	while (!dec.ready())
+	while(!dec.ready())
 	{
 		cpu.bus_scheduler().cycle();
 		cpu.bus_manager().cycle();
@@ -50,7 +50,7 @@ TEST(M68K_EA_DECODER, MODE_000)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t data_mode = 0;
-	for (std::uint8_t i = 0; i < num_regs; ++i)
+	for(std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = data_mode + i;
 		decode(cpu, dec, ea, m68k::size_type::BYTE, {0x0});
@@ -69,7 +69,7 @@ TEST(M68K_EA_DECODER, MODE_001)
 
 	auto& regs = cpu.registers();
 	const std::uint8_t addr_mode = 1 << 3;
-	for (std::uint8_t i = 0; i < num_regs; ++i)
+	for(std::uint8_t i = 0; i < num_regs; ++i)
 	{
 		std::uint8_t ea = addr_mode + i;
 		decode(cpu, dec, ea, m68k::size_type::BYTE, {0x0});
@@ -100,7 +100,7 @@ void check_timings(std::uint8_t ea, m68k::size_type size, std::uint8_t expected_
 	std::uint32_t read_cycles = 0;
 
 	bool in_read_cycle = false;
-	while (!dec.ready() || !cpu.bus_scheduler().is_idle())
+	while(!dec.ready() || !cpu.bus_scheduler().is_idle())
 	{
 		cpu.bus_scheduler().cycle();
 		cpu.bus_manager().cycle();
@@ -108,9 +108,9 @@ void check_timings(std::uint8_t ea, m68k::size_type size, std::uint8_t expected_
 		++cycles;
 
 		// check if in read cycle
-		if (bus.is_set(m68k::bus::AS) && bus.is_set(m68k::bus::RW))
+		if(bus.is_set(m68k::bus::AS) && bus.is_set(m68k::bus::RW))
 		{
-			if (!in_read_cycle)
+			if(!in_read_cycle)
 			{
 				in_read_cycle = true;
 				++read_cycles;
@@ -128,13 +128,13 @@ void check_timings(std::uint8_t ea, m68k::size_type size, std::uint8_t expected_
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_000)
 {
-	for (auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
+	for(auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
 		check_timings(0b000, sz, 0, 0);
 }
 
 TEST(M68K_EA_DECODER_TIMINGS, MODE_001)
 {
-	for (auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
+	for(auto sz : {size_type::BYTE, size_type::WORD, size_type::LONG})
 		check_timings(0b001 << 3, sz, 0, 0);
 }
 

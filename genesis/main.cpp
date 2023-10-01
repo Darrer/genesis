@@ -13,7 +13,7 @@ void print_usage(char* prog_path)
 
 int main(int args, char* argv[])
 {
-	if (args != 2)
+	if(args != 2)
 	{
 		print_usage(argv[0]);
 		return EXIT_FAILURE;
@@ -33,7 +33,7 @@ int main(int args, char* argv[])
 		genesis::debug::print_rom_vectors(os, rom.vectors());
 		// genesis::debug::print_rom_body(os, rom.body());
 	}
-	catch (std::exception& e)
+	catch(std::exception& e)
 	{
 		std::cerr << "Error: " << e.what() << std::endl;
 		return EXIT_FAILURE;

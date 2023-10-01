@@ -27,7 +27,7 @@ public:
 
 		static_assert(byte_order == std::endian::little || byte_order == std::endian::big);
 
-		for (auto& b : mem)
+		for(auto& b : mem)
 			b = (std::byte)0xFF;
 	}
 
@@ -39,7 +39,7 @@ public:
 		T data = *reinterpret_cast<T*>(&mem[addr]);
 
 		// convert to sys byte order
-		if constexpr (byte_order == std::endian::little)
+		if constexpr(byte_order == std::endian::little)
 		{
 			endian::little_to_sys(data);
 		}
@@ -57,7 +57,7 @@ public:
 		check_addr(addr, sizeof(T));
 
 		// convert to proper byte order
-		if constexpr (byte_order == std::endian::little)
+		if constexpr(byte_order == std::endian::little)
 		{
 			endian::sys_to_little(data);
 		}
@@ -66,14 +66,14 @@ public:
 			endian::sys_to_big(data);
 		}
 
-		for (size_t i = 0; i < sizeof(T); ++i)
+		for(size_t i = 0; i < sizeof(T); ++i)
 			mem.at(addr + i) = *(reinterpret_cast<std::byte*>(&data) + i);
 	}
 
 private:
 	inline void check_addr(address addr, size_t size)
 	{
-		if (addr >= mem.size() || (addr + size - 1) >= mem.size())
+		if(addr >= mem.size() || (addr + size - 1) >= mem.size())
 			throw std::runtime_error("memory check: wrong address (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
 	}

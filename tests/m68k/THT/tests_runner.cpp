@@ -19,28 +19,28 @@ static bool log_memory_allocations = false;
 
 void* operator new(size_t size)
 {
-	if (log_memory_allocations)
+	if(log_memory_allocations)
 		std::cout << "Allocating " << size << " bytes" << std::endl;
 	return malloc(size);
 }
 
 void* operator new[](size_t size)
 {
-	if (log_memory_allocations)
+	if(log_memory_allocations)
 		std::cout << "Allocating[] " << size << " bytes" << std::endl;
 	return malloc(size);
 }
 
 void operator delete(void* p) noexcept
 {
-	if (log_memory_allocations)
+	if(log_memory_allocations)
 		std::cout << "Deallocating" << std::endl;
 	free(p);
 }
 
 void operator delete[](void* m) noexcept
 {
-	if (log_memory_allocations)
+	if(log_memory_allocations)
 		std::cout << "Deallocating[]" << std::endl;
 	free(m);
 }
@@ -84,7 +84,7 @@ void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 
 	// setup ram
 	auto& mem = cpu.memory();
-	for (auto [addr, value] : state.ram)
+	for(auto [addr, value] : state.ram)
 		mem.write(addr, value);
 
 	// setup prefetch queue
@@ -127,7 +127,7 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 
 	// check ram
 	auto& mem = cpu.memory();
-	for (auto [addr, value] : state.ram)
+	for(auto [addr, value] : state.ram)
 	{
 		auto actual = mem.read<std::uint8_t>(addr);
 		check_eq(value, actual) << "RAM assert failed at " << addr;
@@ -146,7 +146,7 @@ bool check_postconditions(test::test_cpu& cpu, const cpu_state& state)
 std::string bus_transition_to_str(const bus_transition& trans)
 {
 	auto trans_type_str = [](trans_type type) -> std::string {
-		switch (type)
+		switch(type)
 		{
 		case trans_type::IDLE:
 			return "n";
@@ -165,7 +165,7 @@ std::string bus_transition_to_str(const bus_transition& trans)
 	ss << "[" << trans_type_str(trans.type);
 	ss << ", " << (int)trans.cycles;
 
-	if (trans.type != trans_type::IDLE)
+	if(trans.type != trans_type::IDLE)
 	{
 		const rw_transition& rw = trans.rw_trans();
 		ss << ", " << (int)rw.func_code;
@@ -183,12 +183,12 @@ std::string transitions_to_str(const std::vector<bus_transition>& transitions)
 	std::stringstream ss;
 	ss << "[";
 
-	for (std::size_t i = 0; i < transitions.size(); ++i)
+	for(std::size_t i = 0; i < transitions.size(); ++i)
 	{
 		const auto& trans = transitions[i];
 		ss << bus_transition_to_str(trans);
 
-		if ((i + 1) != transitions.size())
+		if((i + 1) != transitions.size())
 		{
 			ss << ", ";
 		}
@@ -214,7 +214,7 @@ bool check_transitions(const run_result& res, const std::vector<bus_transition>&
 {
 	EXPECT_EQ(expected_cycles, res.cycles);
 
-	if (expected_trans != res.transitions)
+	if(expected_trans != res.transitions)
 	{
 		auto expected = transitions_to_str(expected_trans);
 		auto actual = transitions_to_str(res.transitions);
@@ -232,14 +232,14 @@ void execute(test::test_cpu& cpu, std::uint16_t cycles, Callable on_cycle)
 	const std::uint16_t bonus_cycles = 10;
 	bool in_bonus_cycles = false;
 
-	while (cycles > 0)
+	while(cycles > 0)
 	{
 		cpu.cycle();
 		--cycles;
 
 		on_cycle();
 
-		if (cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
+		if(cycles == 0 && !cpu.is_idle() && !in_bonus_cycles)
 		{
 			// we ate all cycles, but cpu is still doing smth
 			// so there is a defenetly issue, add a few bonus cycles
@@ -248,7 +248,7 @@ void execute(test::test_cpu& cpu, std::uint16_t cycles, Callable on_cycle)
 			in_bonus_cycles = true;
 		}
 
-		if (cpu.is_idle() /*&& in_bonus_cycles*/)
+		if(cpu.is_idle() /*&& in_bonus_cycles*/)
 		{
 			// don't eat extra bonuc cycles
 			break;
@@ -276,9 +276,9 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 		++cycles_in_curr_trans;
 
 		// save data for rw transition
-		if ((in_bus_cycle && cycles_in_curr_trans == 3) || cycles_in_curr_trans == 9)
+		if((in_bus_cycle && cycles_in_curr_trans == 3) || cycles_in_curr_trans == 9)
 		{
-			if (cycles_in_curr_trans == 3)
+			if(cycles_in_curr_trans == 3)
 				type = bus.is_set(bus::RW) ? trans_type::READ : trans_type::WRITE;
 			else
 				type = trans_type::READ_MODIFY_WRITE;
@@ -287,16 +287,16 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 			rw_trans.word_access = bus.is_set(bus::UDS) && bus.is_set(bus::LDS);
 			rw_trans.func_code = bus.func_codes();
 
-			if (rw_trans.word_access)
+			if(rw_trans.word_access)
 				rw_trans.data = bus.data();
-			else if (bus.is_set(bus::UDS))
+			else if(bus.is_set(bus::UDS))
 				rw_trans.data = bus.data() >> 8;
 			else
 				rw_trans.data = bus.data() & 0xFF;
 		}
 
 		// transition bus cycle -> idle
-		if (in_bus_cycle && busm.is_idle())
+		if(in_bus_cycle && busm.is_idle())
 		{
 			res.transitions.push_back({type, cycles_in_curr_trans, rw_trans});
 			in_bus_cycle = false;
@@ -304,13 +304,13 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 		}
 
 		// transition idle -> bus cycle
-		if (!busm.is_idle() && !in_bus_cycle)
+		if(!busm.is_idle() && !in_bus_cycle)
 		{
 			// push idle transition
-			if (cycles_in_curr_trans > 1)
+			if(cycles_in_curr_trans > 1)
 			{
 				--cycles_in_curr_trans; // current cycle was a bus cycle, so need to substruct 1 before push
-				if (cycles_in_curr_trans != 0)
+				if(cycles_in_curr_trans != 0)
 					res.transitions.push_back({cycles_in_curr_trans});
 			}
 
@@ -325,7 +325,7 @@ void execute_and_track(test::test_cpu& cpu, std::uint16_t cycles, run_result& re
 	execute(cpu, cycles, on_cycle);
 
 	// push idle cycles
-	if (busm.is_idle() && cycles_in_curr_trans > 0)
+	if(busm.is_idle() && cycles_in_curr_trans > 0)
 		res.transitions.push_back({cycles_in_curr_trans});
 }
 
@@ -346,9 +346,9 @@ bool should_skip_test(std::string_view test_name)
 {
 	// These are faulty tests
 	auto tests_to_skip = {"e502 [ASL.b Q, D2] 1583", "e502 [ASL.b Q, D2] 1761"};
-	for (auto& test : tests_to_skip)
+	for(auto& test : tests_to_skip)
 	{
-		if (test_name == test)
+		if(test_name == test)
 			return true;
 	}
 
@@ -358,7 +358,7 @@ bool should_skip_test(std::string_view test_name)
 void accept_reset(test::test_cpu& cpu)
 {
 	auto& exman = cpu.exception_manager();
-	if (exman.is_raised(m68k::exception_type::reset))
+	if(exman.is_raised(m68k::exception_type::reset))
 		exman.accept(m68k::exception_type::reset);
 }
 
@@ -378,9 +378,9 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 
 	log_memory_allocations = false;
 
-	for (const auto& test : tests)
+	for(const auto& test : tests)
 	{
-		if (should_skip_test(test.name))
+		if(should_skip_test(test.name))
 		{
 			std::cout << "Skipping " << test.name << std::endl;
 			++skipped;
@@ -391,17 +391,17 @@ bool run_tests(test::test_cpu& cpu, const std::vector<test_case>& tests, std::st
 		bool succeded = run_test(cpu, test);
 		total_cycles += test.length;
 
-		if (succeded)
+		if(succeded)
 			++num_succeded;
 
 		EXPECT_TRUE(succeded) << test_name << ": " << test.name << " - failed";
-		if (!succeded)
+		if(!succeded)
 			return false;
 	}
 
 	log_memory_allocations = false;
 
-	if (num_succeded + skipped == tests.size())
+	if(num_succeded + skipped == tests.size())
 	{
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -443,7 +443,7 @@ bool load_and_run(std::string test_path)
 
 std::vector<std::string> collect_all_files(std::string dir_path, std::string extension)
 {
-	if (!extension.starts_with("."))
+	if(!extension.starts_with("."))
 		extension = "." + extension;
 
 	std::vector<std::string> res;
@@ -452,15 +452,15 @@ std::vector<std::string> collect_all_files(std::string dir_path, std::string ext
 
 	std::function<void(std::string)> collect_all;
 	collect_all = [&](std::string path) {
-		for (auto& entry : fs::directory_iterator(path))
+		for(auto& entry : fs::directory_iterator(path))
 		{
-			if (entry.is_regular_file())
+			if(entry.is_regular_file())
 			{
 				auto file = entry.path();
-				if (file.extension() == extension)
+				if(file.extension() == extension)
 					res.push_back(file.string());
 			}
-			if (entry.is_directory())
+			if(entry.is_directory())
 			{
 				collect_all(entry.path().string());
 			}
@@ -481,7 +481,7 @@ TEST(M68K, THT)
 
 	std::sort(all_tests.begin(), all_tests.end());
 
-	for (auto& test : all_tests)
+	for(auto& test : all_tests)
 	{
 		bool succeeded = load_and_run(test);
 		ASSERT_TRUE(succeeded);

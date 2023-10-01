@@ -11,7 +11,7 @@ std::uint32_t wait_idle(test::test_cpu& cpu)
 	m68k::bus_manager& busm = cpu.bus_manager();
 
 	std::uint32_t cycles = 0;
-	while (!scheduler.is_idle() || !busm.is_idle())
+	while(!scheduler.is_idle() || !busm.is_idle())
 	{
 		scheduler.cycle();
 		busm.cycle();

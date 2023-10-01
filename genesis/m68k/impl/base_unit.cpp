@@ -33,21 +33,21 @@ bool base_unit::is_idle() const
 
 void base_unit::cycle()
 {
-	if (state == WAITING_SCHEDULER || state == WAITING_SCHEDULER_AND_IDLE)
+	if(state == WAITING_SCHEDULER || state == WAITING_SCHEDULER_AND_IDLE)
 	{
-		if (!scheduler.is_idle())
+		if(!scheduler.is_idle())
 			return;
 
 		state = state == WAITING_SCHEDULER ? EXECUTING : IDLE;
 	}
 
-	if (state == IDLE)
+	if(state == IDLE)
 	{
 		reset();
 		state = EXECUTING;
 	}
 
-	if (state == EXECUTING)
+	if(state == EXECUTING)
 	{
 		executing();
 		return;
@@ -59,13 +59,13 @@ void base_unit::cycle()
 
 void base_unit::executing()
 {
-	while (true)
+	while(true)
 	{
 		auto ex_state = on_executing();
-		switch (ex_state)
+		switch(ex_state)
 		{
 		case exec_state::wait_scheduler:
-			if (scheduler.is_idle())
+			if(scheduler.is_idle())
 			{
 				// scheduled nothing, repeat on_executing
 				continue;
@@ -75,7 +75,7 @@ void base_unit::executing()
 			return;
 
 		case exec_state::done:
-			if (scheduler.is_idle())
+			if(scheduler.is_idle())
 				state = IDLE;
 			else
 				state = WAITING_SCHEDULER_AND_IDLE;
@@ -93,7 +93,7 @@ void base_unit::executing()
 
 void base_unit::post_cycle()
 {
-	if (state == WAITING_SCHEDULER_AND_IDLE && scheduler.is_idle())
+	if(state == WAITING_SCHEDULER_AND_IDLE && scheduler.is_idle())
 		state = IDLE;
 }
 
@@ -104,7 +104,7 @@ void base_unit::read(std::uint32_t addr, size_type size)
 
 void base_unit::dec_and_read(std::uint8_t addr_reg, size_type size)
 {
-	if (size == size_type::BYTE || size == size_type::WORD)
+	if(size == size_type::BYTE || size == size_type::WORD)
 	{
 		regs.dec_addr(addr_reg, size);
 		read(regs.A(addr_reg).LW, size);

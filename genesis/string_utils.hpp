@@ -29,9 +29,9 @@ std::string bin_str(T t)
 	std::bitset<num_bits> bits(t);
 
 	std::stringstream ss;
-	for (size_t i = 1; i <= num_bits; ++i)
+	for(size_t i = 1; i <= num_bits; ++i)
 	{
-		if (bits.test(num_bits - i))
+		if(bits.test(num_bits - i))
 			ss << '1';
 		else
 			ss << '0';
@@ -55,7 +55,7 @@ inline void remove_ch(std::string& str, char ch_to_remove)
 {
 	auto pos = str.find_first_of(ch_to_remove);
 
-	while (pos != std::string::npos)
+	while(pos != std::string::npos)
 	{
 		str.erase(pos, 1);
 		pos = str.find_first_of(ch_to_remove, pos);

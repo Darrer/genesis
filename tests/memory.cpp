@@ -35,7 +35,7 @@ TEST(Memory, ReadWrite)
 
 	auto test_mem = [&test_read_write](auto mem) {
 		mem_addr addr = 0x0;
-		for (mem_addr i = 0; i < 10; ++i)
+		for(mem_addr i = 0; i < 10; ++i)
 		{
 			test_read_write(mem, addr, std::uint8_t(0xAF));
 			test_read_write(mem, addr, std::uint16_t(0xAF91));
@@ -55,7 +55,7 @@ TEST(Memory, ReadWrite)
 TEST(Memory, ByteOrder)
 {
 	auto assert_byte_sequence = [](mem_addr addr, auto& mem, std::initializer_list<std::uint8_t> bytes) {
-		for (auto b : bytes)
+		for(auto b : bytes)
 		{
 			auto mem_data = mem.template read<std::uint8_t>(addr++);
 			ASSERT_EQ(b, mem_data);

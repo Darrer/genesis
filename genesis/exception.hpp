@@ -17,7 +17,7 @@ static std::string build_msg(std::string_view error_type, std::string_view msg, 
 	std::stringstream ss;
 	ss << location.function_name() << " at " << location.line();
 	ss << ": " << error_type;
-	if (msg.size() != 0)
+	if(msg.size() != 0)
 		ss << '(' << msg << ')';
 	return ss.str();
 }

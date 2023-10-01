@@ -145,7 +145,7 @@ class TempFile
 public:
 	TempFile() : _path(gen_temp_path()), _stream(_path, std::ios::trunc | std::ios::binary | std::ios::out)
 	{
-		if (!_stream.is_open())
+		if(!_stream.is_open())
 			throw std::runtime_error("failed to open temporary ('" + _path + "') file");
 	}
 
@@ -245,7 +245,7 @@ TEST(ROM, DataParsing)
 	auto check_arrays = [](const auto& arr1, const auto& arr2) {
 		ASSERT_EQ(arr1.size(), arr2.size());
 
-		for (size_t i = 0; i < arr1.size(); ++i)
+		for(size_t i = 0; i < arr1.size(); ++i)
 			ASSERT_EQ(arr1[i], arr2[i]);
 	};
 

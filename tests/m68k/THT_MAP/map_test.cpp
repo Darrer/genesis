@@ -15,7 +15,7 @@ TEST(M68K, THT_MAP)
 
 	ASSERT_EQ(opcodes.size(), 0x10000);
 
-	for (auto& entry : opcodes)
+	for(auto& entry : opcodes)
 	{
 		auto inst = opcode_decoder::decode(entry.opcode);
 
