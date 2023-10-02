@@ -24,16 +24,12 @@ private:
 public:
 	/* Implement addressable interface */
 
-	std::uint32_t capacity() const override
+	std::uint32_t max_address() const override
 	{
-		if(refs.empty())
-			return 0;
-
 		std::uint32_t max_address = 0;
 		for(auto& dev : refs)
 			max_address = std::max(max_address, dev.end_address);
-
-		return max_address + 1;
+		return max_address;
 	}
 
 	bool is_idle() const override
@@ -168,7 +164,7 @@ std::shared_ptr<addressable> memory_builder::build()
 
 void memory_builder::add(addressable& memory_unit, std::uint32_t start_address)
 {
-	add(memory_unit, start_address, start_address + memory_unit.capacity() - 1);
+	add(memory_unit, start_address, start_address + memory_unit.max_address());
 }
 
 void memory_builder::add(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
@@ -183,7 +179,7 @@ void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t
 	if(memory_unit == nullptr)
 		throw std::invalid_argument("memory_unit cannot be null");
 
-	add(memory_unit, start_address, start_address + memory_unit->capacity() - 1);
+	add(memory_unit, start_address, start_address + memory_unit->max_address());
 }
 
 void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address,
@@ -202,9 +198,9 @@ void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_ad
 	if(end_address < start_address)
 		throw std::invalid_argument("end_address cannot be less than start_address");
 
-	std::uint32_t capacity = end_address - start_address + 1; // +1 as address range is [start ; end]
-	if(memory_unit.capacity() < capacity)
-		throw std::invalid_argument("provided addressable device cannot address specified capacity");
+	std::uint32_t max_address = end_address - start_address;
+	if(memory_unit.max_address() != max_address)
+		throw std::invalid_argument("provided addressable device has unexpected space size");
 
 	check_intersect(start_address, end_address);
 }

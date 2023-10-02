@@ -27,7 +27,7 @@ public:
 
 	/* addressable interface */
 
-	std::uint32_t capacity() const override { return static_cast<std::uint32_t>(mem.size()); }
+	std::uint32_t max_address() const override { return static_cast<std::uint32_t>(mem.size()) - 1; }
 
 	bool is_idle() const override { return true; } // always idle
 
@@ -103,8 +103,6 @@ public:
 
 		return data;
 	}
-
-	std::uint32_t max_address() const { return static_cast<std::uint32_t>(mem.size()) - 1; }
 
 private:
 	inline void check_addr(std::uint32_t addr, size_t size)

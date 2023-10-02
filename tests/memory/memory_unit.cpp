@@ -8,15 +8,6 @@
 using namespace genesis;
 
 
-TEST(MEMORY, MEMORY_UNIT_CAPACITY)
-{
-	const std::uint32_t highest_address = 1024;
-	memory::memory_unit unit{highest_address};
-
-	const std::uint32_t expected_capacity = highest_address + 1;
-	ASSERT_EQ(expected_capacity, unit.capacity());
-}
-
 TEST(MEMORY, MEMORY_UNIT_MAX_ADDRESS)
 {
 	const std::uint32_t highest_address = 1024;

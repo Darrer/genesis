@@ -16,7 +16,7 @@ template <class T>
 	requires(sizeof(T) <= 2)
 void test_read_write(genesis::memory::addressable& unit)
 {
-	const std::uint32_t max_address = unit.capacity() - sizeof(T);
+	const std::uint32_t max_address = unit.max_address() - sizeof(T) + 1;
 
 	// not the optimal way to store written data, but the easiest one
 	std::map<std::uint32_t /* address */, T /* data */> written_data;
@@ -49,7 +49,7 @@ void test_read_write(genesis::memory::addressable& unit)
 	}
 
 	// self-test
-	const auto expected_writes = sizeof(T) == 1 ? unit.capacity() : unit.capacity() / 2;
+	const auto expected_writes = (unit.max_address() + 1) / sizeof(T);
 	ASSERT_EQ(expected_writes, written_data.size());
 }
 
