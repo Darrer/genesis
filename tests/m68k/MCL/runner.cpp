@@ -36,71 +36,183 @@ void nop_some_tests(genesis::memory::memory_unit& mem)
 	nop_test(move_to_sr_jump_addr);
 }
 
-// The test program is taken from: https://github.com/MicroCoreLabs/Projects/blob/master/MCL68/MC68000_Test_Code/
-TEST(M68K, MCL)
+void load_mcl(genesis::test::test_cpu& cpu)
 {
 	const auto bin_path = get_exec_path() / "m68k" / "MC68000_test_all_opcodes.bin";
 
-	test_cpu cpu;
 	cpu.reset();
 	cpu.load_bin(bin_path.string());
+}
 
+
+template<class T>
+bool run_mcl(genesis::test::test_cpu& cpu, T&& on_cycle)
+{
 	nop_some_tests(cpu.memory());
 
 	const std::uint32_t pc_done = 0x00F000; // when PC is looped here - we're done
 	const std::uint32_t loop_threshold = 10;
-
-	unsigned long long cycles = 0;
 
 	auto& regs = cpu.registers();
 
 	std::uint32_t old_pc = regs.PC;
 	std::uint32_t same_pc_counter = 0;
 
-	auto ns_per_cycle = measure_in_ns([&]() {
-		while(true)
+	while(true)
+	{
+		cpu.cycle();
+		on_cycle();
+
+		if(testing::Test::HasFatalFailure())
+			return false;
+
+		if(!cpu.is_idle())
+			continue;
+
+		auto curr_pc = regs.PC;
+		if(curr_pc == old_pc)
 		{
-			cpu.cycle();
-			++cycles;
+			++same_pc_counter;
 
-			if(!cpu.is_idle())
-				continue;
-
-			auto curr_pc = regs.PC;
-			if(curr_pc == old_pc)
+			// Check if we found a loop
+			if(same_pc_counter == loop_threshold)
 			{
-				++same_pc_counter;
-
-				// Check if we found a loop
-				if(same_pc_counter == loop_threshold)
+				if(curr_pc == pc_done)
 				{
-					if(curr_pc == pc_done)
-					{
-						// all tests are succeeded
-						break;
-					}
-
-					// different pc means we looped to an incorrectly implemented command
-
-					// dump some data for debugging
-					std::uint16_t data = cpu.memory().read<std::uint16_t>(curr_pc);
-					std::cout << "Found a loop at " << su::hex_str(curr_pc) << " (" << su::hex_str(data) << ")"
-							  << std::endl;
-
-					GTEST_FAIL();
+					// all tests are succeeded
+					return true;
 				}
+
+				// different pc means we looped to an incorrectly implemented command
+
+				// dump some data for debugging
+				std::uint16_t data = cpu.memory().read<std::uint16_t>(curr_pc);
+				std::cout << "Found a loop at " << su::hex_str(curr_pc) << " (" << su::hex_str(data) << ")"
+							<< std::endl;
+
+				return false;
 			}
-			else
+		}
+		else
+		{
+			old_pc = curr_pc;
+			same_pc_counter = 0;
+		}
+	}
+}
+
+// The test program is taken from: https://github.com/MicroCoreLabs/Projects/blob/master/MCL68/MC68000_Test_Code/
+TEST(M68K, MCL)
+{
+	test_cpu cpu;
+	load_mcl(cpu);
+
+	unsigned long long cycles = 0;
+	bool succeed = false;
+	auto total_ns_time = measure_in_ns([&]() {
+		succeed = run_mcl(cpu, [&cycles]() { ++cycles; });
+	});
+
+	auto ns_per_cycle = total_ns_time / cycles;
+	std::cout << "NS per cycle for executing MCL test program: " << ns_per_cycle << ", total cycles: " << cycles << std::endl;
+
+	ASSERT_TRUE(succeed);
+	ASSERT_NE(0, cycles);
+	ASSERT_LT(ns_per_cycle, genesis::test::cycle_time_threshold_ns);
+}
+
+TEST(M68K, MCL_TAKE_BUS)
+{
+	/* Take control over bus multiple time during MCL program execution */
+
+	// it take at least 4 cycles to execute single bus operatoin,
+	// so make this constant not divisible by 4
+	// to request bus after the bus cycle and in the middle of bus cycle
+	const long request_bus_cycles_threshold = 1001;
+
+	const long request_bus_cycles_duration = 41;
+
+	test_cpu cpu;
+	load_mcl(cpu);
+
+	auto& busm = cpu.bus_manager();
+
+	long cycles = 0;
+	long cycles_after_bus_requested = 0;
+	long cycles_after_bus_granted = 0;
+	long cycles_after_release_requested = 0;
+
+	bool bus_requested = false;
+	bool release_requested = false;
+
+	bool succeed = run_mcl(cpu, [&]()
+	{
+		++cycles;
+
+		if((cycles % request_bus_cycles_threshold) == 0)
+		{
+			ASSERT_FALSE(busm.bus_granted());
+			ASSERT_FALSE(bus_requested);
+			ASSERT_FALSE(release_requested);
+
+			ASSERT_EQ(cycles_after_bus_requested, 0);
+			ASSERT_EQ(cycles_after_bus_granted, 0);
+			ASSERT_EQ(cycles_after_release_requested, 0);
+
+			busm.request_bus();
+			bus_requested = true;
+
+			return;
+		}
+
+		if(bus_requested)
+		{
+			++cycles_after_bus_requested;
+
+			// it may take up to 10 cycles to execute bus cycle (TAS instruction)
+			// it can take another cycle to grant access
+			// and add a few cycles just in case
+			ASSERT_LE(cycles_after_bus_requested, 15);
+
+			if(busm.bus_granted())
 			{
-				old_pc = curr_pc;
-				same_pc_counter = 0;
+				bus_requested = false;
+				cycles_after_bus_requested = 0;
 			}
+		}
+
+		if(release_requested)
+		{
+			++cycles_after_release_requested;
+
+			// we do not use bus in this test, so it should take a few cycles to release the bus
+			ASSERT_LE(cycles_after_release_requested, 4);
+
+			if(!busm.bus_granted())
+			{
+				release_requested = false;
+				cycles_after_release_requested = 0;
+			}
+		}
+
+		if(busm.bus_granted())
+		{
+			++cycles_after_bus_granted;
+
+			// we do not use bus when we acquire access, so bus manager must be always idle
+			ASSERT_TRUE(busm.is_idle());
+
+			if(cycles_after_bus_granted == request_bus_cycles_duration)
+			{
+				busm.release_bus();
+				release_requested = true;
+			}
+		}
+		else
+		{
+			cycles_after_bus_granted = 0;
 		}
 	});
 
-	ns_per_cycle = ns_per_cycle / cycles;
-	std::cout << "NS per cycle for executing MCL test program: " << ns_per_cycle << std::endl;
-
-	ASSERT_NE(0, cycles);
-	ASSERT_LT(ns_per_cycle, genesis::test::cycle_time_threshold_ns);
+	ASSERT_TRUE(succeed);
 }

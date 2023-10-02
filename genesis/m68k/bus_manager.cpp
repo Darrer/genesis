@@ -1,5 +1,7 @@
 #include "bus_manager.h"
 
+#include <source_location>
+
 
 namespace genesis::m68k
 {
@@ -26,7 +28,7 @@ bool bus_manager::is_idle() const
 
 std::uint8_t bus_manager::latched_byte() const
 {
-	assert_idle("latched_byte");
+	assert_idle();
 	if(!byte_operation)
 		throw std::runtime_error("bus_manager::latched_byte error: don't have latched byte");
 
@@ -35,7 +37,7 @@ std::uint8_t bus_manager::latched_byte() const
 
 std::uint16_t bus_manager::latched_word() const
 {
-	assert_idle("latched_word");
+	assert_idle();
 	if(byte_operation)
 		throw std::runtime_error("bus_manager::latched_word error: don't have latched word");
 
@@ -50,10 +52,8 @@ bool bus_manager::bus_granted() const
 	return bus.is_set(bus::BG);
 }
 
-void bus_manager::request_access()
+void bus_manager::request_bus()
 {
-	assert_idle("request_access");
-
 	if(bus_granted() || bus.is_set(bus::BR))
 	{
 		// alrady granted or requested, caller shouldn't request it again
@@ -63,9 +63,9 @@ void bus_manager::request_access()
 	bus.set(bus::BR);
 }
 
-void bus_manager::release_access()
+void bus_manager::release_bus()
 {
-	assert_idle("release_access");
+	assert_idle();
 
 	if(!bus_granted() || !bus.is_set(bus::BR))
 	{
@@ -76,33 +76,17 @@ void bus_manager::release_access()
 	bus.clear(bus::BR);
 }
 
-void bus_manager::assert_idle(std::string_view caller) const
+void bus_manager::assert_idle(std::source_location loc) const
 {
 	if(!is_idle())
 	{
-		throw std::runtime_error("bus_manager::" + std::string(caller) +
+		throw std::runtime_error(std::string(loc.function_name()) +
 								 " error: cannot perform an operation while busy");
 	}
 }
 
 void bus_manager::cycle()
 {
-	// TODO: who's gonna execute the requests?
-	if(bus_granted())
-	{
-		if(bus.is_set(bus::BR))
-		{
-			// the bus is still owned by 3rd device
-		}
-		else
-		{
-			// we can become the master again
-			bus.clear(bus::BG);
-		}
-
-		return;
-	}
-
 	switch(state)
 	{
 	case IDLE:
@@ -199,10 +183,15 @@ void bus_manager::do_state(int state)
 	switch(state)
 	{
 	case IDLE:
-		if(bus.is_set(bus::BR))
+		if(bus.is_set(bus::BR) && !bus_granted())
 		{
 			// we're idle and bus is requsted - perfect time to give it up
 			bus.set(bus::BG); // grant access just by setting BR flag
+		} 
+		else if(bus_granted() && !bus.is_set(bus::BR))
+		{
+			// we can become the master again
+			bus.clear(bus::BG);
 		}
 		break;
 
@@ -333,7 +322,7 @@ void bus_manager::set_idle()
 	// If callback started a new operation, throw an exception
 	// chaining leads to occupying bus for 2 (or more) bus cycles,
 	// we should not allow that
-	assert_idle("set_idle");
+	assert_idle();
 }
 
 /* bus helpers */

@@ -91,7 +91,7 @@ public:
 	void init_write(std::uint32_t address, std::uint8_t data, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		assert_idle("init_write byte");
+		assert_idle();
 
 		start_new_operation(address, addr_space::DATA, WRITE0, cb);
 		data_to_write = data;
@@ -102,7 +102,7 @@ public:
 	void init_write(std::uint32_t address, std::uint16_t data, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		assert_idle("init_write word");
+		assert_idle();
 
 		start_new_operation(address, addr_space::DATA, WRITE0, cb);
 		data_to_write = data;
@@ -113,7 +113,7 @@ public:
 	void init_read_modify_write(std::uint32_t address, const Callable& modify, addr_space space = addr_space::DATA)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		assert_idle("init_read_modify_write");
+		assert_idle();
 
 		modify_cb = modify;
 		if(modify_cb == nullptr)
@@ -130,7 +130,7 @@ public:
 	void init_read_byte(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		assert_idle("init_read_byte");
+		assert_idle();
 
 		start_new_operation(address, space, READ0, cb);
 		byte_operation = true;
@@ -140,7 +140,7 @@ public:
 	void init_read_word(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		assert_idle("init_read_word");
+		assert_idle();
 
 		start_new_operation(address, space, READ0, cb);
 		byte_operation = false;
@@ -149,19 +149,19 @@ public:
 	std::uint8_t latched_byte() const;
 	std::uint16_t latched_word() const;
 
-	/* bus control interface */
+	/* bus arbitration interface */
 
 	// TODO: bus_scheduler should be extended to check whether it m68k processor has access to the bus
 	bool bus_granted() const;
-	void request_access();
-	void release_access();
+	void request_bus();
+	void release_bus();
 
 	/* interrupt interface */
 
 	// TODO
 
 private:
-	void assert_idle(std::string_view caller) const;
+	void assert_idle(std::source_location loc = std::source_location::current()) const;
 
 	template <class Callable = std::nullptr_t>
 	void start_new_operation(std::uint32_t addr, addr_space sp, int first_state, const Callable& cb)
