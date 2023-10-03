@@ -13,7 +13,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(genesis)
-# include_directories(tests)
+include_directories(tests)
 
 set(GENESIS genesis)
 set(GENESIS_LIB ${GENESIS}_core)

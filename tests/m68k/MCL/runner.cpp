@@ -1,11 +1,10 @@
-#include "../../helper.hpp"
-#include "../test_cpu.hpp"
+#include <gtest/gtest.h>
+
 #include "string_utils.hpp"
 #include "exception.hpp"
-#include "../../helpers/random.h"
-
-#include <gtest/gtest.h>
-#include <iostream>
+#include "helper.hpp"
+#include "m68k/test_cpu.hpp"
+#include "helpers/random.h"
 
 using namespace genesis;
 using namespace genesis::test;

@@ -22,7 +22,7 @@ jobs:
 
     - name: Build the project
       run: |
-        docker run --name genesis_container -t genesis /bin/sh -c make
+        docker run --name genesis_container -t genesis /bin/sh -c make -j 2
         docker commit genesis_container genesis
 
     - name: Run the tests
