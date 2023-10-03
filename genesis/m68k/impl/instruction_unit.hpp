@@ -1815,6 +1815,11 @@ private:
 		}
 
 		case 2:
+			if(busm.bus_granted())
+			{
+				return exec_state::in_progress;
+			}
+
 			busm.init_read_modify_write(addr, [this](std::uint8_t data)
 			{
 				return operations::tas(data, regs.flags);

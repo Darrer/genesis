@@ -177,6 +177,7 @@ private:
 	void advance_state();
 
 	void set_idle();
+	void on_idle();
 
 	/* bus helpers */
 	void clear_bus();

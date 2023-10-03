@@ -183,16 +183,6 @@ void bus_manager::do_state(int state)
 	switch(state)
 	{
 	case IDLE:
-		if(bus.is_set(bus::BR) && !bus_granted())
-		{
-			// we're idle and bus is requsted - perfect time to give it up
-			bus.set(bus::BG); // grant access just by setting BR flag
-		} 
-		else if(bus_granted() && !bus.is_set(bus::BR))
-		{
-			// we can become the master again
-			bus.clear(bus::BG);
-		}
 		break;
 
 	/* bus ready cycle */
@@ -292,6 +282,7 @@ void bus_manager::advance_state()
 	switch(state)
 	{
 	case IDLE:
+		on_idle();
 		return;
 
 	case READ_WAIT:
@@ -319,10 +310,30 @@ void bus_manager::set_idle()
 		on_complete_cb();
 	on_complete_cb = nullptr;
 
+	on_idle();
+
 	// If callback started a new operation, throw an exception
 	// chaining leads to occupying bus for 2 (or more) bus cycles,
 	// we should not allow that
 	assert_idle();
+}
+
+// TODO: with the current approach sometimes it takes 1 cycle to grant bus,
+// but sometimes access is granted right after finishing current bus operation
+void bus_manager::on_idle()
+{
+	assert_idle();
+
+	if(bus.is_set(bus::BR) && !bus_granted())
+	{
+		// we're idle and bus is requsted - perfect time to give it up
+		bus.set(bus::BG); // grant access just by setting BR flag
+	} 
+	else if(bus_granted() && !bus.is_set(bus::BR))
+	{
+		// we can become master again
+		bus.clear(bus::BG);
+	}
 }
 
 /* bus helpers */

@@ -1,10 +1,13 @@
 #include "../../helper.hpp"
 #include "../test_cpu.hpp"
 #include "string_utils.hpp"
+#include "exception.hpp"
+#include "../../helpers/random.h"
 
 #include <gtest/gtest.h>
 #include <iostream>
 
+using namespace genesis;
 using namespace genesis::test;
 using namespace genesis::m68k;
 
@@ -58,6 +61,8 @@ bool run_mcl(genesis::test::test_cpu& cpu, T&& on_cycle)
 	std::uint32_t old_pc = regs.PC;
 	std::uint32_t same_pc_counter = 0;
 
+	// TODO: check for infinite loops
+
 	while(true)
 	{
 		cpu.cycle();
@@ -107,14 +112,15 @@ TEST(M68K, MCL)
 	test_cpu cpu;
 	load_mcl(cpu);
 
-	unsigned long long cycles = 0;
+	long cycles = 0;
 	bool succeed = false;
 	auto total_ns_time = measure_in_ns([&]() {
 		succeed = run_mcl(cpu, [&cycles]() { ++cycles; });
 	});
 
 	auto ns_per_cycle = total_ns_time / cycles;
-	std::cout << "NS per cycle for executing MCL test program: " << ns_per_cycle << ", total cycles: " << cycles << std::endl;
+	std::cout << "NS per cycle for executing MCL test program: " << ns_per_cycle
+		<< ", total cycles: " << cycles << std::endl;
 
 	ASSERT_TRUE(succeed);
 	ASSERT_NE(0, cycles);
@@ -123,9 +129,9 @@ TEST(M68K, MCL)
 
 TEST(M68K, MCL_TAKE_BUS)
 {
-	/* Take control over bus multiple time during MCL program execution */
+	/* Take control over the M68K bus multiple times during MCL program execution */
 
-	// it take at least 4 cycles to execute single bus operatoin,
+	// it takes at least 4 cycles to execute single bus operatoin,
 	// so make this constant not divisible by 4
 	// to request bus after the bus cycle and in the middle of bus cycle
 	const long request_bus_cycles_threshold = 1001;
@@ -211,6 +217,141 @@ TEST(M68K, MCL_TAKE_BUS)
 		else
 		{
 			cycles_after_bus_granted = 0;
+		}
+	});
+
+	ASSERT_TRUE(succeed);
+}
+
+TEST(M68K, MCL_TAKE_BUS_TO_READ_WRITE)
+{
+	/* Take control over the M68K bus and pefrom read/write bus cycles during MCL program execution */
+
+	const long request_bus_cycles_threshold = 1001;
+
+	enum class test_state { run, starting, read, reading, write, writing };
+
+	test_state state = test_state::run;
+	test_state old_state = state;
+
+	test_cpu cpu;
+	load_mcl(cpu);
+
+	auto& busm = cpu.bus_manager();
+	auto& mem = cpu.memory();
+
+	long cycles = 0;
+	long cycles_in_the_same_state = 0;
+	std::uint32_t address = 0;
+	std::uint8_t old_data = 0;
+	std::uint8_t new_data = 0;
+
+	bool succeed = run_mcl(cpu, [&]()
+	{
+		switch (state)
+		{
+		case test_state::run:
+		{
+			++cycles;
+
+			if((cycles % request_bus_cycles_threshold) == 0)
+			{
+				ASSERT_FALSE(busm.bus_granted());
+
+				busm.request_bus();
+				state = test_state::starting;
+			}
+		}
+		break;
+
+		case test_state::starting:
+		{
+			if(busm.is_idle() && busm.bus_granted())
+			{
+				state = test_state::read;
+			}
+		}
+		break;
+
+		case test_state::read:
+		{
+			ASSERT_TRUE(busm.bus_granted());
+			ASSERT_TRUE(busm.is_idle());
+
+			// start read
+			address = test::random::next<std::uint32_t>() % (mem.max_address() + 1);
+			busm.init_read_byte(address, m68k::addr_space::PROGRAM);
+			state = test_state::reading;
+		}
+		break;
+
+		case test_state::reading:
+		{
+			ASSERT_TRUE(busm.bus_granted());
+
+			if(busm.is_idle())
+			{
+				// make sure read operation still works
+				std::uint8_t read_data = busm.latched_byte();
+				std::uint8_t expected_data = mem.read<std::uint8_t>(address);
+				ASSERT_EQ(expected_data, read_data);
+
+				state = test_state::write;
+			}
+		}
+		break;
+
+		case test_state::write:
+		{
+			ASSERT_TRUE(busm.bus_granted());
+			ASSERT_TRUE(busm.is_idle());
+
+			// start write
+			address = test::random::next<std::uint32_t>() % (mem.max_address() + 1);
+			old_data = mem.read<std::uint8_t>(address);
+			new_data = test::random::next<std::uint8_t>();
+
+			busm.init_write(address, new_data);
+			state = test_state::writing;
+		}
+		break;
+
+		case test_state::writing:
+		{
+			if(busm.is_idle())
+			{
+				// make sure data has been written
+				std::uint8_t actual_data = mem.read<std::uint8_t>(address);
+				ASSERT_EQ(new_data, actual_data);
+
+				// set data back
+				mem.write(address, old_data);
+				busm.release_bus();
+
+				state = test_state::run;
+			}
+		}
+		break;
+		
+		default:
+			throw internal_error();
+		}
+
+		// make sure we don't state in the same state for too long
+		if(state != test_state::run)
+		{
+			if(state == old_state)
+			{
+				++cycles_in_the_same_state;
+			}
+			else
+			{
+				cycles_in_the_same_state = 0;
+			}
+
+			old_state = state;
+
+			ASSERT_NE(cycles_in_the_same_state, 15);
 		}
 	});
 

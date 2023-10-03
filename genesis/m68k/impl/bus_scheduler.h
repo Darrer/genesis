@@ -179,6 +179,8 @@ private:
 	void run_cycless_operations();
 
 	// TODO: add bus_read / bus_write operations to hide all busm calls
+	bool next_bus_operation() const;
+	bool can_use_bus() const;
 
 private:
 	m68k::cpu_registers& regs;

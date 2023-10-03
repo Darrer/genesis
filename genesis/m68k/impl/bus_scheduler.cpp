@@ -48,6 +48,9 @@ void bus_scheduler::cycle()
 
 	run_cycless_operations();
 
+	if(next_bus_operation() && !can_use_bus())
+		return;
+
 	start_operation(queue.front());
 	queue.pop();
 }
@@ -360,6 +363,32 @@ void bus_scheduler::run_cycless_operations()
 
 		queue.pop();
 	}
+}
+
+bool bus_scheduler::next_bus_operation() const
+{
+	op_type next = queue.front().type;
+
+	switch (next)
+	{
+	case op_type::READ:
+	case op_type::READ_IMM:
+	case op_type::WRITE:
+	case op_type::PREFETCH_IRD:
+	case op_type::PREFETCH_IRC:
+	case op_type::PREFETCH_ONE:
+	case op_type::PUSH:
+		return true;
+	}
+
+	return false;
+}
+
+bool bus_scheduler::can_use_bus() const
+{
+	// if bus_granted() return true, that means something else using it
+	// and since CPU has the lowest priority we should stop initiating bus operations
+	return busm.bus_granted() == false;
 }
 
 } // namespace genesis::m68k
