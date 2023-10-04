@@ -32,16 +32,25 @@ public:
 	{
 		return *mem_unit;
 	}
+
 	m68k::bus_scheduler& bus_scheduler()
 	{
 		return scheduler;
 	}
+
 	m68k::exception_manager& exception_manager()
 	{
 		return exman;
 	}
 
 	unsigned long long cycle_till_idle(unsigned long long cycles_limit = 1000)
+	{
+		return cycle_until([&]() { return is_idle(); }, cycles_limit);
+	}
+
+	// do cycle() untill func returns true
+	template<class Callable>
+	unsigned long long cycle_until(Callable&& func, unsigned long long cycles_limit = 1000)
 	{
 		unsigned long long cycles = 0;
 		do
@@ -51,7 +60,12 @@ public:
 
 			if(cycles_limit != 0 && cycles > cycles_limit)
 				break;
-		} while(!is_idle());
+
+			bool stop = func() == true;
+			if(stop)
+				break;
+
+		} while(true);
 
 		return cycles;
 	}

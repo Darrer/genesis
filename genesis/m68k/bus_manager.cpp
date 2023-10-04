@@ -69,7 +69,9 @@ void bus_manager::release_bus()
 
 	if(!bus_granted() || !bus.is_set(bus::BR))
 	{
-		// bus release is requested, but it's not granted nor requested
+		// In theory, it should be fine to request and release the bus even if it wasn't granted
+		// but in practice this is more likly to indicate a misuse (why requsted and not used?),
+		// so rise internal_error exception
 		throw internal_error();
 	}
 
@@ -183,6 +185,7 @@ void bus_manager::do_state(int state)
 	switch(state)
 	{
 	case IDLE:
+		on_idle();
 		break;
 
 	/* bus ready cycle */
@@ -282,7 +285,6 @@ void bus_manager::advance_state()
 	switch(state)
 	{
 	case IDLE:
-		on_idle();
 		return;
 
 	case READ_WAIT:
@@ -318,12 +320,12 @@ void bus_manager::set_idle()
 	assert_idle();
 }
 
-// TODO: with the current approach sometimes it takes 1 cycle to grant bus,
-// but sometimes access is granted right after finishing current bus operation
 void bus_manager::on_idle()
 {
-	assert_idle();
 
+	// TODO: with the current approach sometimes it takes 1 cycle to grant bus,
+	// but sometimes access is granted right after finishing current bus operation
+	// it seems we have to unify this behavior
 	if(bus.is_set(bus::BR) && !bus_granted())
 	{
 		// we're idle and bus is requsted - perfect time to give it up
@@ -424,6 +426,7 @@ bool bus_manager::should_rise_bus_error() const
 
 void bus_manager::rise_bus_error()
 {
+	// TODO: what if bus is granted to some other device?
 	bool read_operation = state == bus_cycle_state::READ0;
 	exman.rise_bus_error({address, gen_func_codes(), read_operation, false});
 	reset();
@@ -447,6 +450,7 @@ bool bus_manager::should_rise_address_error() const
 
 void bus_manager::rise_address_error()
 {
+	// TODO: what if bus is granted to some other device?
 	bool read_operation = state == bus_cycle_state::READ0;
 	bool in = space == addr_space::PROGRAM; // just to satisfy external tests
 	exman.rise_address_error({address, gen_func_codes(), read_operation, in});

@@ -319,3 +319,53 @@ TEST(M68K_BUS_MANAGER, WRITE_WORD_BUS_TRANSITIONS)
 	ASSERT_TRUE(bs.uds_is_set);
 	ASSERT_TRUE(bs.lds_is_set);
 }
+
+TEST(M68K_BUS_MANAGER, RELEASE_BUS_WITHOUT_REQUEST)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	ASSERT_THROW(busm.release_bus(), std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, RELEASE_NOT_GRANTED_BUS)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	busm.request_bus();
+
+	ASSERT_THROW(busm.release_bus(), std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, REQUEST_BUS)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	busm.request_bus();
+	auto cycles = cpu.cycle_until([&]() { return busm.bus_granted(); });
+
+	ASSERT_TRUE(busm.bus_granted());
+	ASSERT_LE(cycles, 15);
+}
+
+TEST(M68K_BUS_MANAGER, REQUEST_BUS_WHEN_ALREADY_GRANTED)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	busm.request_bus();
+	auto cycles = cpu.cycle_until([&]() { return busm.bus_granted(); });
+
+	ASSERT_THROW(busm.request_bus(), std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, REQUEST_BUS_TWICE)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	busm.request_bus();
+	ASSERT_THROW(busm.request_bus(), std::runtime_error);
+}

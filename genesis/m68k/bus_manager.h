@@ -151,7 +151,6 @@ public:
 
 	/* bus arbitration interface */
 
-	// TODO: bus_scheduler should be extended to check whether it m68k processor has access to the bus
 	bool bus_granted() const;
 	void request_bus();
 	void release_bus();
