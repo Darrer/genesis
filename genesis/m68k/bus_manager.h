@@ -24,11 +24,9 @@ enum class addr_space
 class bus_manager
 {
 private:
-	enum bus_cycle_state
+	enum class bus_cycle_state
 	{
 		IDLE,
-
-		WAIT,
 
 		/* bus ready cycle */
 		READ0,
@@ -68,7 +66,7 @@ private:
 
 public:
 	using on_complete = std::function<void()>;
-	using on_modify = std::function<std::uint_fast8_t(std::uint_fast8_t)>; // TODO: go back to std::uint8_t
+	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
 
 private:
 	// all callbacks are restricted in size to the size of a pointer
@@ -88,29 +86,29 @@ public:
 	/* read/write interface */
 
 	template <class Callable = std::nullptr_t>
-	void init_write(std::uint32_t address, std::uint8_t data, const Callable& cb = nullptr)
+	void init_write(std::uint32_t address, std::uint8_t data, Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		start_new_operation(address, addr_space::DATA, WRITE0, cb);
+		start_new_operation(address, addr_space::DATA, bus_cycle_state::WRITE0, cb);
 		data_to_write = data;
 		byte_operation = true;
 	}
 
 	template <class Callable = std::nullptr_t>
-	void init_write(std::uint32_t address, std::uint16_t data, const Callable& cb = nullptr)
+	void init_write(std::uint32_t address, std::uint16_t data, Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		start_new_operation(address, addr_space::DATA, WRITE0, cb);
+		start_new_operation(address, addr_space::DATA, bus_cycle_state::WRITE0, cb);
 		data_to_write = data;
 		byte_operation = false;
 	}
 
 	template <class Callable>
-	void init_read_modify_write(std::uint32_t address, const Callable& modify, addr_space space = addr_space::DATA)
+	void init_read_modify_write(std::uint32_t address, Callable modify, addr_space space = addr_space::DATA)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
@@ -119,30 +117,27 @@ public:
 		if(modify_cb == nullptr)
 			throw std::invalid_argument("modify");
 
-		this->address = address;
-		this->address_even = (address & 1) == 0;
-		this->space = space;
-		state = RMW_READ0;
+		start_new_operation(address, space, bus_cycle_state::RMW_READ0);
 		byte_operation = true;
 	}
 
 	template <class Callable = std::nullptr_t>
-	void init_read_byte(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
+	void init_read_byte(std::uint32_t address, addr_space space, Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		start_new_operation(address, space, READ0, cb);
+		start_new_operation(address, space, bus_cycle_state::READ0, cb);
 		byte_operation = true;
 	}
 
 	template <class Callable = std::nullptr_t>
-	void init_read_word(std::uint32_t address, addr_space space, const Callable& cb = nullptr)
+	void init_read_word(std::uint32_t address, addr_space space, Callable cb = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		start_new_operation(address, space, READ0, cb);
+		start_new_operation(address, space, bus_cycle_state::READ0, cb);
 		byte_operation = false;
 	}
 
@@ -163,7 +158,7 @@ private:
 	void assert_idle(std::source_location loc = std::source_location::current()) const;
 
 	template <class Callable = std::nullptr_t>
-	void start_new_operation(std::uint32_t addr, addr_space sp, int first_state, const Callable& cb)
+	void start_new_operation(std::uint32_t addr, addr_space sp, bus_cycle_state first_state, Callable cb = nullptr)
 	{
 		address = addr;
 		address_even = (address & 1) == 0;
@@ -172,7 +167,6 @@ private:
 		on_complete_cb = cb;
 	}
 
-	void do_state(int state);
 	void advance_state();
 
 	void set_idle();
@@ -204,7 +198,7 @@ private:
 	on_complete on_complete_cb = nullptr;
 	on_modify modify_cb = nullptr;
 
-	int state;
+	bus_cycle_state state;
 
 	bool byte_operation;
 	std::uint32_t address;
