@@ -1,7 +1,7 @@
 #ifndef __M68K_PREFETCH_QUEUE_HPP__
 #define __M68K_PREFETCH_QUEUE_HPP__
 
-#include "m68k/bus_manager.h"
+#include "bus_manager.h"
 #include "m68k/cpu_registers.hpp"
 
 

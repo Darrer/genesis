@@ -43,6 +43,11 @@ public:
 		return exman;
 	}
 
+	m68k::bus_manager& bus_manager()
+	{
+		return busm;
+	}
+
 	unsigned long long cycle_till_idle(unsigned long long cycles_limit = 1000)
 	{
 		return cycle_until([&]() { return is_idle(); }, cycles_limit);

@@ -140,7 +140,7 @@ TEST(M68K, MCL_TAKE_BUS)
 	test_cpu cpu;
 	load_mcl(cpu);
 
-	auto& busm = cpu.bus_manager();
+	auto& busm = cpu.bus_access();
 
 	long cycles = 0;
 	long cycles_after_bus_requested = 0;
@@ -236,7 +236,7 @@ TEST(M68K, MCL_TAKE_BUS_TO_READ_WRITE)
 	test_cpu cpu;
 	load_mcl(cpu);
 
-	auto& busm = cpu.bus_manager();
+	auto& busm = cpu.bus_access();
 	auto& mem = cpu.memory();
 
 	long cycles = 0;

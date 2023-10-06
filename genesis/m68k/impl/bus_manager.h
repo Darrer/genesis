@@ -1,9 +1,9 @@
 #ifndef __M68K_BUS_MANAGER_H__
 #define __M68K_BUS_MANAGER_H__
 
-#include "cpu_bus.hpp"
-#include "cpu_registers.hpp"
-#include "impl/exception_manager.h"
+#include "exception_manager.h"
+#include "m68k/cpu_bus.hpp"
+#include "m68k/cpu_registers.hpp"
 #include "memory/addressable.h"
 
 #include <cstdint>
@@ -78,7 +78,7 @@ public:
 	bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
 				std::shared_ptr<memory::addressable> external_memory);
 
-	void cycle(); // TODO: must be visible only for m68k::cpu
+	void cycle();
 
 	void reset();
 	bool is_idle() const;

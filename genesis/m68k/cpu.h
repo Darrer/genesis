@@ -1,10 +1,12 @@
 #ifndef __M68K_CPU_H__
 #define __M68K_CPU_H__
 
-#include "bus_manager.h"
 #include "cpu_bus.hpp"
 #include "cpu_registers.hpp"
+#include "bus_access.h"
+
 #include "impl/base_unit.h"
+#include "impl/bus_manager.h"
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
@@ -28,13 +30,15 @@ public:
 	{
 		return regs;
 	}
+
 	cpu_bus& bus()
 	{
 		return _bus;
 	}
-	m68k::bus_manager& bus_manager()
+
+	m68k::bus_access& bus_access()
 	{
-		return busm;
+		return bus_acs;
 	}
 
 	bool is_idle() const;
@@ -47,6 +51,7 @@ protected:
 
 	m68k::exception_manager exman;
 	m68k::bus_manager busm;
+	m68k::bus_access bus_acs;
 	m68k::bus_scheduler scheduler;
 
 	// TODO: do we really need pointers here?

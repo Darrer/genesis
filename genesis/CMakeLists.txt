@@ -36,15 +36,16 @@ PRIVATE
 
 	m68k/impl/base_unit.h
 	m68k/impl/base_unit.cpp
+	m68k/impl/bus_manager.h
+	m68k/impl/bus_manager.cpp
 	m68k/impl/prefetch_queue.hpp
 	m68k/impl/opcode_decoder.cpp
 	m68k/impl/bus_scheduler.cpp
 
 	m68k/cpu_registers.hpp
+	m68k/bus_access.h
 	m68k/cpu.h
 	m68k/cpu.cpp
-	m68k/bus_manager.h
-	m68k/bus_manager.cpp
 
 	vdp/vdp.h
 	vdp/vdp.cpp
