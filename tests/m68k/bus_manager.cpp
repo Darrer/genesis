@@ -182,8 +182,12 @@ struct bus_state
 {
 	std::uint32_t address = 0;
 	std::uint16_t data = 0;
+	bool as_is_set = false;
 	bool uds_is_set = false;
 	bool lds_is_set = false;
+	bool dtack_is_set = false;
+	bool vpa_is_set = false;
+	bool berr_is_set = false;
 };
 
 template <class T>
@@ -256,6 +260,49 @@ bus_state write_and_track(std::uint32_t addr, T val_to_write)
 			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
 		}
 	}
+
+	return bs;
+}
+
+bus_state int_ack_and_track(test::test_cpu& cpu, std::uint8_t priority = 1)
+{
+	auto& bus = cpu.bus();
+	auto& busm = cpu.bus_manager();
+	auto& mem = cpu.memory();
+
+	cpu.registers().flags.IPM = 0;
+	bus.interrupt_priority(priority);
+
+	std::uint32_t cycle = 0;
+	bus_state bs;
+
+	busm.init_interrupt_ack();
+
+	while(!busm.is_idle())
+	{
+		busm.cycle();
+		++cycle;
+
+		if(cycle == 1)
+			bs.address = bus.address();
+
+		if(cycle == 2)
+		{
+			bs.as_is_set = bus.is_set(m68k::bus::AS);
+			bs.uds_is_set = bus.is_set(m68k::bus::UDS);
+			bs.lds_is_set = bus.is_set(m68k::bus::LDS);
+		}
+
+		if(cycle == 3)
+		{
+			bs.berr_is_set = bus.is_set(m68k::bus::BERR);
+			bs.vpa_is_set = bus.is_set(m68k::bus::VPA);
+			bs.dtack_is_set = bus.is_set(m68k::bus::DTACK);
+			bs.data = bus.data();
+		}
+	}
+
+	EXPECT_EQ(4, cycle);
 
 	return bs;
 }
@@ -368,4 +415,82 @@ TEST(M68K_BUS_MANAGER, REQUEST_BUS_TWICE)
 
 	busm.request_bus();
 	ASSERT_THROW(busm.request_bus(), std::runtime_error);
+}
+
+const std::uint32_t int_ack_cycles = 4;
+
+std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1)
+{
+	cpu.bus().interrupt_priority(int_priority);
+	cpu.registers().flags.IPM = 0;
+	auto& busm = cpu.bus_manager();
+	busm.init_interrupt_ack();
+	return wait_idle(busm);
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_VECTORED)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+	auto& int_dev = cpu.interrupt_dev();
+	
+	auto vectors = { 50, 60, 100, 150 };
+
+	for(auto vec : vectors)
+	{
+		std::uint8_t expected_vector = std::uint8_t(vec);
+		int_dev.set_vectored(expected_vector);
+
+		auto cycles = interrupt_ack(cpu);
+
+		ASSERT_EQ(int_ack_cycles, cycles);
+		ASSERT_EQ(expected_vector, busm.get_vector_number());
+	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_UNINITIALIZED)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+	auto& int_dev = cpu.interrupt_dev();
+	
+	int_dev.set_uninitialized();
+
+	auto cycles = interrupt_ack(cpu);
+
+	ASSERT_EQ(int_ack_cycles, cycles);
+	ASSERT_EQ(15, busm.get_vector_number());
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_SPURIOUS)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+	auto& int_dev = cpu.interrupt_dev();
+	
+	int_dev.set_spurious();
+
+	auto cycles = interrupt_ack(cpu);
+
+	ASSERT_EQ(int_ack_cycles, cycles);
+	ASSERT_EQ(24, busm.get_vector_number());
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_AUTOVECTORED)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+	auto& int_dev = cpu.interrupt_dev();
+
+	int_dev.set_autovectored();
+
+	for(std::uint8_t priority = 1; priority <= 7; ++priority)
+	{
+		auto cycles = interrupt_ack(cpu, priority);
+
+		const std::uint8_t expected_vec = 0x18 + priority;
+
+		ASSERT_EQ(int_ack_cycles, cycles);
+		ASSERT_EQ(expected_vec, busm.get_vector_number());
+	}
 }

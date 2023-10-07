@@ -5,8 +5,8 @@
 namespace genesis::m68k
 {
 
-cpu::cpu(std::shared_ptr<memory::addressable> external_memory)
-	: external_memory(external_memory), busm(_bus, regs, exman, external_memory),
+cpu::cpu(std::shared_ptr<memory::addressable> external_memory, std::shared_ptr<interrupting_device> int_dev)
+	: external_memory(external_memory), busm(_bus, regs, exman, external_memory, int_dev),
 	bus_acs(busm), scheduler(regs, busm)
 {
 	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, busm, scheduler);
@@ -71,6 +71,19 @@ bool cpu::is_idle() const
 {
 	// TODO: add exman?
 	return busm.is_idle() && scheduler.is_idle() && inst_unit->is_idle() && excp_unit->is_idle();
+}
+
+void cpu::set_interrupt(std::uint8_t priority)
+{
+	// TODO: check if we support interrupts (int_dev is not null)
+
+	if(priority > 7)
+		throw std::invalid_argument("priority");
+	if(_bus.interrupt_priority() != 0)
+		throw not_implemented("having multiple interrupts at the same time is not supported yet");
+
+	_bus.interrupt_priority(priority);
+	exman.rise_interrupt();
 }
 
 } // namespace genesis::m68k

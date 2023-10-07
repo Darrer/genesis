@@ -96,6 +96,9 @@ private:
 		case exception_type::trace:
 			return trace();
 
+		case exception_type::interrupt:
+			return interrupt();
+
 		case exception_type::illegal_instruction:
 			return illegal_instruction();
 
@@ -147,7 +150,30 @@ private:
 		if(!instruction_unit_is_idle())
 			return false;
 
-		return exman.is_raised(exception_group::group_1);
+		auto exps = group_exceptions(exception_group::group_1);
+		for(auto ex : exps)
+		{
+			if(!exman.is_raised(ex))
+				continue;
+
+			// consider interrupt exception is rised only
+			// if we have enough priority to execute the interrupt
+			if(ex == exception_type::interrupt)
+			{
+				if(bus.interrupt_priority() == 0)
+					throw internal_error("interrupt exception is rised but there is no pending interrupt");
+
+				if(can_process_interrupt())
+					return true;
+			}
+			// don't need to check extra conditions for other exceptions
+			else
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// Checks if current executing instruction is over and any of the following exceptions are reised:
@@ -178,6 +204,18 @@ private:
 		throw internal_error(); // why we were called?
 	}
 
+	// accept 1 exception from group according to its priority
+	bool accept_group(exception_group group)
+	{
+		auto exps = group_exceptions(group);
+		for(auto ex : exps)
+		{
+			if(accept(ex))
+				return true;
+		}
+		return false;
+	}
+
 	bool accept(exception_type ex)
 	{
 		if(!exman.is_raised(ex))
@@ -206,16 +244,14 @@ private:
 		return true;
 	}
 
-	// accept 1 exception from group according to its priority
-	bool accept_group(exception_group group)
+	bool can_process_interrupt() const
 	{
-		auto exps = group_exceptions(group);
-		for(auto ex : exps)
-		{
-			if(accept(ex))
-				return true;
-		}
-		return false;
+		auto ipl = bus.interrupt_priority();
+
+		if(ipl == 0b111)
+			return true;
+		
+		return ipl > regs.flags.IPM;
 	}
 
 	/*
@@ -376,6 +412,29 @@ private:
 	{
 		scheduler.wait(3);
 		schedule_trap(regs.PC, vector_nummber(exception_type::chk_instruction));
+		return exec_state::done;
+	}
+
+	/* Sequence of actions
+	 * 1. Push SR
+	 * 2. 
+	*/
+	exec_state interrupt()
+	{
+		scheduler.wait(6);
+
+		// PUSH SR
+		scheduler.write(regs.SSP.LW - 4, regs.SR, size_type::WORD);
+
+		// update SR
+		regs.flags.S = 1;
+		regs.flags.TR = 0;
+		regs.flags.IPM = bus.interrupt_priority();
+
+		// TODO: IACK cycle
+		std::uint8_t vector = 15;
+		schedule_trap(regs.PC, vector); // TODO: don't need to push SR again
+
 		return exec_state::done;
 	}
 

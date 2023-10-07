@@ -4,6 +4,7 @@
 #include "exception_manager.h"
 #include "m68k/cpu_bus.hpp"
 #include "m68k/cpu_registers.hpp"
+#include "m68k/interrupting_device.h"
 #include "memory/addressable.h"
 
 #include <cstdint>
@@ -61,6 +62,13 @@ private:
 		RMW_WRITE2,
 		RMW_WRITE_WAIT,
 		RMW_WRITE3,
+
+		/* bus interrupt acknowledge cycle */
+		IAC0,
+		IAC1,
+		IAC2,
+		IAC_WAIT,
+		IAC3,
 	};
 
 
@@ -76,7 +84,8 @@ private:
 
 public:
 	bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
-				std::shared_ptr<memory::addressable> external_memory);
+				std::shared_ptr<memory::addressable> external_memory,
+				std::shared_ptr<interrupting_device> int_dev);
 
 	void cycle();
 
@@ -152,7 +161,8 @@ public:
 
 	/* interrupt interface */
 
-	// TODO
+	void init_interrupt_ack();
+	std::uint8_t get_vector_number() const;
 
 private:
 	void assert_idle(std::source_location loc = std::source_location::current()) const;
@@ -175,6 +185,7 @@ private:
 	/* bus helpers */
 	void clear_bus();
 	std::uint8_t gen_func_codes() const;
+	std::uint32_t gen_int_addr() const;
 	void set_data_strobe_bus();
 	void set_data_bus(std::uint16_t data);
 
@@ -194,6 +205,7 @@ private:
 	m68k::cpu_registers& regs;
 	m68k::exception_manager& exman;
 	std::shared_ptr<memory::addressable> external_memory;
+	std::shared_ptr<interrupting_device> int_dev;
 
 	on_complete on_complete_cb = nullptr;
 	on_modify modify_cb = nullptr;

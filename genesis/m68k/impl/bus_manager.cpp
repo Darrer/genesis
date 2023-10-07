@@ -7,8 +7,9 @@ namespace genesis::m68k
 {
 
 bus_manager::bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
-						 std::shared_ptr<memory::addressable> external_memory)
-	: bus(bus), regs(regs), exman(exman), external_memory(external_memory)
+						 std::shared_ptr<memory::addressable> external_memory,
+						 std::shared_ptr<interrupting_device> int_dev)
+	: bus(bus), regs(regs), exman(exman), external_memory(external_memory), int_dev(int_dev)
 {
 	state = bus_cycle_state::IDLE;
 }
@@ -76,6 +77,22 @@ void bus_manager::release_bus()
 	}
 
 	bus.clear(bus::BR);
+}
+
+void bus_manager::init_interrupt_ack()
+{
+	assert_idle();
+
+	if(bus.interrupt_priority() == 0)
+		throw internal_error("Cannot start interrupt acknowledge cycle as there is no interrupt asserted");
+
+	state = bus_cycle_state::IAC0;
+}
+
+std::uint8_t bus_manager::get_vector_number() const
+{
+	assert_idle();
+	return int_dev->vector_number();
 }
 
 void bus_manager::assert_idle(std::source_location loc) const
@@ -214,6 +231,57 @@ void bus_manager::cycle()
 		set_idle();
 		return;
 
+
+	/* bus interrupt acknowledge cycle */
+	case IAC0:
+		bus.address(gen_int_addr());
+		advance_state();
+		return;
+
+	case IAC1:
+		bus.set(bus::AS);
+		bus.set(bus::UDS);
+		bus.set(bus::LDS);
+
+		advance_state();
+		return;
+
+	case IAC2:
+		int_dev->init_interrupt_ack(bus.interrupt_priority());
+
+		advance_state();
+		[[fallthrough]];
+
+	case IAC_WAIT:
+		if(int_dev->is_idle())
+		{
+			switch (int_dev->interrupt_type())
+			{
+			case interrupt_type::vectored:
+				bus.set(bus::DTACK);
+				bus.data(int_dev->vector_number());
+				break;
+
+			case interrupt_type::autovectored:
+				bus.set(bus::VPA);
+				break;
+
+			case interrupt_type::spurious:
+				bus.set(bus::BERR);
+				break;
+
+			default: throw internal_error("unknown interrupt type");
+			}
+			
+			advance_state();
+		}
+		return;
+
+	case IAC3:
+		clear_bus();
+		set_idle();
+		return;
+
 	default:
 		throw internal_error();
 	}
@@ -274,6 +342,7 @@ void bus_manager::clear_bus()
 	bus.clear(bus::FC1);
 	bus.clear(bus::FC2);
 	bus.clear(bus::BERR);
+	bus.clear(bus::VPA);
 	// NOTE: clear_bus cannot clear BR/BG buses as it's usualy called in the end of a bus cycle
 	// therefore by clearing BR/BG we can clear current state
 }
@@ -288,6 +357,15 @@ std::uint8_t bus_manager::gen_func_codes() const
 	if(regs.flags.S)
 		func_codes |= 1 << 2;
 	return func_codes;
+}
+
+std::uint32_t bus_manager::gen_int_addr() const
+{
+	std::uint8_t priority = bus.interrupt_priority();
+	std::uint32_t addr = 0xfffffff8; // 3 low bits are 0, all other are high
+
+	addr = addr | (priority & 0b111);
+	return addr;
 }
 
 void bus_manager::set_data_strobe_bus()

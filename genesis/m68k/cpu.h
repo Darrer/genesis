@@ -4,6 +4,7 @@
 #include "cpu_bus.hpp"
 #include "cpu_registers.hpp"
 #include "bus_access.h"
+#include "interrupting_device.h"
 
 #include "impl/base_unit.h"
 #include "impl/bus_manager.h"
@@ -21,9 +22,13 @@ namespace genesis::m68k
 class cpu
 {
 public:
-	cpu(std::shared_ptr<memory::addressable> external_memory);
+	cpu(std::shared_ptr<memory::addressable> external_memory,
+		std::shared_ptr<interrupting_device> int_dev = nullptr);
 	~cpu();
 
+	bool is_idle() const;
+
+	void cycle();
 	void reset();
 
 	cpu_registers& registers()
@@ -41,8 +46,7 @@ public:
 		return bus_acs;
 	}
 
-	bool is_idle() const;
-	void cycle();
+	void set_interrupt(std::uint8_t priority);
 
 protected:
 	cpu_registers regs;

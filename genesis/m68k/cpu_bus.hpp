@@ -32,6 +32,7 @@ enum class bus
 	IPL0,
 	IPL1,
 	IPL2,
+	VPA,
 
 	/* Bus arbitration control */
 	BR,
@@ -91,6 +92,22 @@ public:
 		if(is_set(bus::FC1)) func_codes |= 0b010;
 		if(is_set(bus::FC2)) func_codes |= 0b100;
 		return func_codes;
+	}
+
+	void interrupt_priority(std::uint8_t ipl)
+	{
+		bus_state[bus_index(bus::IPL0)] = (ipl & 0b001) != 0;
+		bus_state[bus_index(bus::IPL1)] = (ipl & 0b010) != 0;
+		bus_state[bus_index(bus::IPL2)] = (ipl & 0b100) != 0;
+	}
+
+	std::uint8_t interrupt_priority() const
+	{
+		std::uint8_t ipl = 0;
+		if(is_set(bus::IPL0)) ipl |= 0b001;
+		if(is_set(bus::IPL1)) ipl |= 0b010;
+		if(is_set(bus::IPL2)) ipl |= 0b100;
+		return ipl;
 	}
 
 private:

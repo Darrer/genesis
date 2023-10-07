@@ -45,6 +45,7 @@ PRIVATE
 	m68k/ea_decoder.cpp
 	m68k/exception_unit.cpp
 	m68k/test_cpu.hpp
+	m68k/int_dev.h
 
 	# Tom Harte's Tests
 	m68k/THT/test_case.h

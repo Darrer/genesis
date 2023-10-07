@@ -4,6 +4,8 @@
 #include "m68k/cpu.h"
 #include "memory/memory_unit.h"
 
+#include "int_dev.h"
+
 #include <fstream>
 
 namespace genesis::test
@@ -17,14 +19,17 @@ const auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
 class test_cpu : public genesis::m68k::cpu
 {
 private:
-	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit) : cpu(mem_unit), mem_unit(mem_unit)
+	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit,
+		std::shared_ptr<int_dev> int_dev)
+		: cpu(mem_unit, int_dev), mem_unit(mem_unit), _int_dev(int_dev)
 	{
 		if(exman.is_raised(m68k::exception_type::reset))
 			exman.accept(m68k::exception_type::reset);
 	}
 
 public:
-	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big))
+	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big),
+		std::make_shared<int_dev>())
 	{
 	}
 
@@ -46,6 +51,11 @@ public:
 	m68k::bus_manager& bus_manager()
 	{
 		return busm;
+	}
+
+	int_dev& interrupt_dev()
+	{
+		return *_int_dev;
 	}
 
 	unsigned long long cycle_till_idle(unsigned long long cycles_limit = 1000)
@@ -95,6 +105,7 @@ public:
 
 private:
 	std::shared_ptr<memory::memory_unit> mem_unit;
+	std::shared_ptr<int_dev> _int_dev;
 };
 
 } // namespace genesis::test

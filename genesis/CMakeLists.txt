@@ -44,6 +44,7 @@ PRIVATE
 
 	m68k/cpu_registers.hpp
 	m68k/bus_access.h
+	m68k/interrupting_device.h
 	m68k/cpu.h
 	m68k/cpu.cpp
 
