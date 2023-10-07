@@ -1,4 +1,5 @@
 #include "test_cpu.hpp"
+#include "helpers/random.h"
 
 #include <array>
 #include <gtest/gtest.h>
@@ -270,7 +271,7 @@ bus_state int_ack_and_track(test::test_cpu& cpu, std::uint8_t priority = 1)
 	auto& busm = cpu.bus_manager();
 	auto& mem = cpu.memory();
 
-	cpu.registers().flags.IPM = 0;
+	cpu.registers().flags.IPM = 0; // enable all interrupts
 	bus.interrupt_priority(priority);
 
 	std::uint32_t cycle = 0;
@@ -434,11 +435,10 @@ TEST(M68K_BUS_MANAGER, INT_ACK_VECTORED)
 	auto& busm = cpu.bus_manager();
 	auto& int_dev = cpu.interrupt_dev();
 	
-	auto vectors = { 50, 60, 100, 150 };
+	auto vectors = test::random::next_few<std::uint8_t>(10);
 
-	for(auto vec : vectors)
+	for(auto expected_vector : vectors)
 	{
-		std::uint8_t expected_vector = std::uint8_t(vec);
 		int_dev.set_vectored(expected_vector);
 
 		auto cycles = interrupt_ack(cpu);
@@ -493,4 +493,177 @@ TEST(M68K_BUS_MANAGER, INT_ACK_AUTOVECTORED)
 		ASSERT_EQ(int_ack_cycles, cycles);
 		ASSERT_EQ(expected_vec, busm.get_vector_number());
 	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_MULTIPLE_BUS_CYCLES)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+	auto& int_dev = cpu.interrupt_dev();
+
+	int_dev.set_uninitialized();
+	interrupt_ack(cpu);
+	ASSERT_EQ(15, busm.get_vector_number());
+
+	int_dev.set_spurious();
+	interrupt_ack(cpu);
+	ASSERT_EQ(24, busm.get_vector_number());
+
+	int_dev.set_autovectored();
+	interrupt_ack(cpu, 1);
+	ASSERT_EQ(25, busm.get_vector_number());
+
+	int_dev.set_vectored(42);
+	interrupt_ack(cpu);
+	ASSERT_EQ(42, busm.get_vector_number());
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_VECTORED_BUS_TRANSITIONS)
+{
+	test::test_cpu cpu;
+
+	for(std::uint8_t priority = 1; priority <= 7; ++priority)
+	{
+		auto vector = test::random::next<std::uint8_t>();
+		cpu.interrupt_dev().set_vectored(vector);
+
+		auto bs = int_ack_and_track(cpu, priority);
+
+		ASSERT_TRUE(bs.as_is_set);
+		ASSERT_TRUE(bs.dtack_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+		ASSERT_TRUE(bs.uds_is_set);
+
+		ASSERT_FALSE(bs.vpa_is_set);
+		ASSERT_FALSE(bs.berr_is_set);
+
+		ASSERT_EQ(vector, bs.data);
+
+		std::uint8_t actual_priority = bs.address & 0b111;
+		ASSERT_EQ(priority, actual_priority);
+
+		// addr is 24 bits; 3 low bits must be 0
+		ASSERT_EQ(0xfffff8, bs.address & ~0b111);
+	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_UNINITIALIZED_BUS_TRANSITIONS)
+{
+	test::test_cpu cpu;
+	cpu.interrupt_dev().set_uninitialized();
+
+	for(std::uint8_t priority = 1; priority <= 7; ++priority)
+	{
+		auto bs = int_ack_and_track(cpu, priority);
+
+		ASSERT_TRUE(bs.as_is_set);
+		ASSERT_TRUE(bs.dtack_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+		ASSERT_TRUE(bs.uds_is_set);
+
+		ASSERT_FALSE(bs.vpa_is_set);
+		ASSERT_FALSE(bs.berr_is_set);
+
+		const std::uint8_t expected_vector = 15;
+		ASSERT_EQ(expected_vector, bs.data);
+
+		std::uint8_t actual_priority = bs.address & 0b111;
+		ASSERT_EQ(priority, actual_priority);
+
+		// addr is 24 bits; 3 low bits must be 0
+		ASSERT_EQ(0xfffff8, bs.address & ~0b111);
+	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_AUTOVECTORED_BUS_TRANSITIONS)
+{
+	test::test_cpu cpu;
+	cpu.interrupt_dev().set_autovectored();
+
+	for(std::uint8_t priority = 1; priority <= 7; ++priority)
+	{
+		auto bs = int_ack_and_track(cpu, priority);
+
+		ASSERT_TRUE(bs.as_is_set);
+		ASSERT_TRUE(bs.vpa_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+		ASSERT_TRUE(bs.uds_is_set);
+
+		ASSERT_FALSE(bs.dtack_is_set);
+		ASSERT_FALSE(bs.berr_is_set);
+
+		std::uint8_t actual_priority = bs.address & 0b111;
+		ASSERT_EQ(priority, actual_priority);
+
+		// addr is 24 bits; 3 low bits must be 0
+		ASSERT_EQ(0xfffff8, bs.address & ~0b111);
+	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_SPURIOS_BUS_TRANSITIONS)
+{
+	test::test_cpu cpu;
+	cpu.interrupt_dev().set_spurious();
+
+	for(std::uint8_t priority = 1; priority <= 7; ++priority)
+	{
+		auto bs = int_ack_and_track(cpu, priority);
+
+		ASSERT_TRUE(bs.as_is_set);
+		ASSERT_TRUE(bs.berr_is_set);
+		ASSERT_TRUE(bs.lds_is_set);
+		ASSERT_TRUE(bs.uds_is_set);
+
+		ASSERT_FALSE(bs.dtack_is_set);
+		ASSERT_FALSE(bs.vpa_is_set);
+
+		std::uint8_t actual_priority = bs.address & 0b111;
+		ASSERT_EQ(priority, actual_priority);
+
+		// addr is 24 bits; 3 low bits must be 0
+		ASSERT_EQ(0xfffff8, bs.address & ~0b111);
+	}
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_GET_RESULT_WHEN_IS_NOT_IDLE)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	cpu.bus().interrupt_priority(1);
+	busm.init_interrupt_ack();
+
+	ASSERT_THROW(busm.get_vector_number(), std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_START_NEW_CYCLE_WHEN_IS_NOT_IDLE)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	busm.init_read_byte(0x100, m68k::addr_space::PROGRAM);
+
+	cpu.bus().interrupt_priority(1);
+
+	ASSERT_THROW(busm.init_interrupt_ack();, std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_START_CYCLE_WITH_0_PRIORITY)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	cpu.bus().interrupt_priority(0);
+
+	ASSERT_THROW(busm.init_interrupt_ack(), std::runtime_error);
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_READ_BYTE_AND_GET_INTERRUPT_VECTOR)
+{
+	test::test_cpu cpu;
+	auto& busm = cpu.bus_manager();
+
+	read_byte(busm, 0x100);
+
+	ASSERT_THROW(busm.get_vector_number(), std::exception);
 }

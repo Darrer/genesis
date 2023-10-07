@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
 
 namespace genesis::m68k
@@ -175,6 +176,7 @@ private:
 		space = sp;
 		state = first_state;
 		on_complete_cb = cb;
+		vector_number.reset();
 	}
 
 	void advance_state();
@@ -217,6 +219,7 @@ private:
 	bool address_even;
 	addr_space space;
 	std::uint16_t data_to_write;
+	std::optional<std::uint8_t> vector_number;
 };
 
 }; // namespace genesis::m68k

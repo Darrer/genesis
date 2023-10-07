@@ -19,6 +19,7 @@ void bus_manager::reset()
 	on_complete_cb = nullptr;
 	modify_cb = nullptr;
 	state = bus_cycle_state::IDLE;
+	vector_number.reset();
 	clear_bus();
 }
 
@@ -87,12 +88,13 @@ void bus_manager::init_interrupt_ack()
 		throw internal_error("Cannot start interrupt acknowledge cycle as there is no interrupt asserted");
 
 	state = bus_cycle_state::IAC0;
+	vector_number.reset();
 }
 
 std::uint8_t bus_manager::get_vector_number() const
 {
 	assert_idle();
-	return int_dev->vector_number();
+	return vector_number.value();
 }
 
 void bus_manager::assert_idle(std::source_location loc) const
@@ -255,11 +257,12 @@ void bus_manager::cycle()
 	case IAC_WAIT:
 		if(int_dev->is_idle())
 		{
+			vector_number = int_dev->vector_number();
 			switch (int_dev->interrupt_type())
 			{
 			case interrupt_type::vectored:
 				bus.set(bus::DTACK);
-				bus.data(int_dev->vector_number());
+				bus.data(vector_number.value());
 				break;
 
 			case interrupt_type::autovectored:
