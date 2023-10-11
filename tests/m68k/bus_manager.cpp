@@ -420,12 +420,13 @@ TEST(M68K_BUS_MANAGER, REQUEST_BUS_TWICE)
 
 const std::uint32_t int_ack_cycles = 4;
 
-std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1)
+template<class Callback = std::nullptr_t>
+std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1, Callback callback = nullptr)
 {
 	cpu.bus().interrupt_priority(int_priority);
 	cpu.registers().flags.IPM = 0;
 	auto& busm = cpu.bus_manager();
-	busm.init_interrupt_ack();
+	busm.init_interrupt_ack(callback);
 	return wait_idle(busm);
 }
 
@@ -666,4 +667,27 @@ TEST(M68K_BUS_MANAGER, INT_ACK_READ_BYTE_AND_GET_INTERRUPT_VECTOR)
 	read_byte(busm, 0x100);
 
 	ASSERT_THROW(busm.get_vector_number(), std::exception);
+}
+
+TEST(M68K_BUS_MANAGER, INT_ACK_ON_COMPLETE_CALLBACK)
+{
+	test::test_cpu cpu;
+
+	const std::uint8_t expected_vec_number = 200;
+	cpu.interrupt_dev().set_vectored(expected_vec_number);
+
+	struct test_data
+	{
+		test::test_cpu& cpu;
+		std::uint8_t vector_number;
+	};
+
+	test_data data { cpu, 0 };
+
+	interrupt_ack(cpu, 1, [&data]()
+	{
+		data.vector_number = data.cpu.bus_manager().get_vector_number();
+	});
+
+	ASSERT_EQ(expected_vec_number, data.vector_number);
 }

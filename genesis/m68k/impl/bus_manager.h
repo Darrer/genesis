@@ -23,6 +23,7 @@ enum class addr_space
 	CPU,
 };
 
+// NOTE: we can optimize bus_manager by specifying single on_complete call back instance (not per operation)
 class bus_manager
 {
 private:
@@ -162,7 +163,20 @@ public:
 
 	/* interrupt interface */
 
-	void init_interrupt_ack();
+	template <class Callable = std::nullptr_t>
+	void init_interrupt_ack(Callable on_complete = nullptr)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		assert_idle();
+
+		if(bus.interrupt_priority() == 0)
+			throw internal_error("Cannot start interrupt acknowledge cycle as there is no interrupt asserted");
+
+		state = bus_cycle_state::IAC0;
+		vector_number.reset();
+		on_complete_cb = on_complete;
+	}
+
 	std::uint8_t get_vector_number() const;
 
 private:

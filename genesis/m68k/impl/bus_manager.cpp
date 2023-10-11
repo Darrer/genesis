@@ -80,17 +80,6 @@ void bus_manager::release_bus()
 	bus.clear(bus::BR);
 }
 
-void bus_manager::init_interrupt_ack()
-{
-	assert_idle();
-
-	if(bus.interrupt_priority() == 0)
-		throw internal_error("Cannot start interrupt acknowledge cycle as there is no interrupt asserted");
-
-	state = bus_cycle_state::IAC0;
-	vector_number.reset();
-}
-
 std::uint8_t bus_manager::get_vector_number() const
 {
 	assert_idle();
