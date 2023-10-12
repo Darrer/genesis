@@ -1,11 +1,9 @@
 #ifndef __TEST_RANDOM_H__
 #define __TEST_RANDOM_H__
 
-#include <cstdint>
 #include <limits>
-#include <cstdlib>
 #include <vector>
-#include <ctime>
+#include <random>
 
 
 namespace genesis::test
@@ -18,10 +16,8 @@ public:
 	template<class T>
 	static T next()
 	{
-		init();
-
 		// TODO: works only with unsigned numbers
-		return std::rand() % std::numeric_limits<T>::max();
+		return dist(gen) % std::numeric_limits<T>::max();
 	}
 
 	template<class T>
@@ -34,14 +30,8 @@ public:
 	}
 
 private:
-	static void init()
-	{
-		if(!inited)
-		{
-			std::srand((unsigned)std::time(0));
-			inited = true;
-		}
-	}
+	static std::mt19937 gen;
+	static std::uniform_int_distribution<int> dist;
 };
 
 };
