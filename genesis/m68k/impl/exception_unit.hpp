@@ -426,7 +426,7 @@ private:
 	{
 		scheduler.wait(6);
 
-		scheduler.push(regs.SR, size_type::WORD);
+		scheduler.write(regs.SSP.LW - 6, regs.SR, size_type::WORD);
 
 		// update SR
 		regs.flags.S = 1;
@@ -437,7 +437,8 @@ private:
 		{
 			scheduler.wait(4);
 
-			scheduler.push(regs.PC, size_type::LONG);
+			scheduler.write(regs.SSP.LW - 4, regs.PC, size_type::LONG, order::msw_first);
+			regs.SSP.LW -= 6;
 
 			std::uint32_t addr = vector_number * 4;
 			scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)

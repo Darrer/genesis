@@ -138,10 +138,10 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_VALIDATE_STACK)
 	const std::uint32_t expected_sp = initial_sp - 2 /* SR */ - 4 /* PC */;
 	ASSERT_EQ(expected_sp, regs.SSP.LW);
 
-	const std::uint16_t pushed_sr = mem.read<std::uint16_t>(initial_sp - 2);
+	const std::uint16_t pushed_sr = mem.read<std::uint16_t>(initial_sp - 6);
 	ASSERT_EQ(initial_sr, pushed_sr);
 
-	const std::uint32_t pushed_pc = mem.read<std::uint32_t>(initial_sp - 6);
+	const std::uint32_t pushed_pc = mem.read<std::uint32_t>(initial_sp - 4);
 	EXPECT_EQ(initial_pc, pushed_pc);
 
 	// check status flag
