@@ -417,23 +417,36 @@ private:
 
 	/* Sequence of actions
 	 * 1. Push SR
-	 * 2. 
+	 * 2. Start Interrupt Acknowledge Cycle
+	 * 3. Push PC (MSW first)
+	 * 4. Read PC
+	 * 5. Fill prefetch queue
 	*/
 	exec_state interrupt()
 	{
 		scheduler.wait(6);
 
-		// PUSH SR
-		scheduler.write(regs.SSP.LW - 4, regs.SR, size_type::WORD);
+		scheduler.push(regs.SR, size_type::WORD);
 
 		// update SR
 		regs.flags.S = 1;
 		regs.flags.TR = 0;
 		regs.flags.IPM = bus.interrupt_priority();
 
-		// TODO: IACK cycle
-		std::uint8_t vector = 15;
-		schedule_trap(regs.PC, vector); // TODO: don't need to push SR again
+		scheduler.int_ack([this](std::uint8_t vector_number)
+		{
+			scheduler.wait(4);
+
+			scheduler.push(regs.PC, size_type::LONG);
+
+			std::uint32_t addr = vector_number * 4;
+			scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
+			{
+				regs.PC = data;
+			});
+
+			schedule_prefetch_two_with_gap();
+		});
 
 		return exec_state::done;
 	}

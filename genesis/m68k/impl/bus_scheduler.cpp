@@ -2,6 +2,14 @@
 
 #include "exception.hpp"
 
+#include <iostream>
+
+// TODO: if exception is raised during processing some operation bus_scheduler won't notice it
+// as bus_manager won't call on_complete callback => current_op won't be reseted => bus_scheduler will wait
+// for operation to be completed forever.
+// Generally it's not a problem as exception unit should reset all components when it starts processing exception,
+// however, it would be nice to have a mechanism to notify bus_scheduler that operation was failed and 
+// that bus_scheduler should react appropriately (probably clear its queue).
 
 namespace genesis::m68k
 {
@@ -97,6 +105,12 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 	}
 }
 
+void bus_scheduler::int_ack_impl(int_ack_complete on_complete)
+{
+	int_ack_operation op { on_complete };
+	queue.push({op_type::INT_ACK, op});
+}
+
 void bus_scheduler::latch_data(size_type size)
 {
 	if(size == size_type::BYTE)
@@ -128,6 +142,20 @@ void bus_scheduler::on_read_imm_finished()
 
 	if(imm.on_complete != nullptr)
 		imm.on_complete(data, imm.size);
+
+	current_op.reset();
+	run_cycless_operations();
+}
+
+void bus_scheduler::on_int_ack_finished()
+{
+	int_ack_operation int_ack = std::get<int_ack_operation>(current_op.value().op);
+
+	if(int_ack.on_complete != nullptr)
+	{
+		auto vector_number = busm.get_vector_number();
+		int_ack.on_complete(vector_number);
+	}
 
 	current_op.reset();
 	run_cycless_operations();
@@ -235,6 +263,7 @@ void bus_scheduler::push(std::uint32_t data, size_type size, order order)
 
 void bus_scheduler::start_operation(operation& op)
 {
+	// std::cout << "Bus scheduler executing: " << static_cast<int>(op.type) << std::endl;
 	current_op = op;
 	switch(op.type)
 	{
@@ -288,6 +317,12 @@ void bus_scheduler::start_operation(operation& op)
 		else
 			busm.init_write(write.addr, std::uint16_t(write.data), [this]() { run_cycless_operations(); });
 
+		break;
+	}
+
+	case op_type::INT_ACK: {
+		int_ack_operation int_ack = std::get<int_ack_operation>(op.op);
+		busm.init_interrupt_ack([this]() { on_int_ack_finished(); });
 		break;
 	}
 

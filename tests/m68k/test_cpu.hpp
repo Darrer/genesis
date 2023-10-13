@@ -15,6 +15,8 @@ namespace genesis::test
 const auto clock_rate = 7.670454 /* MHz */ * 1'000'000;
 const auto cycle_time_threshold_ns = 1'000'000'000 / clock_rate;
 
+const std::uint16_t nop_opcode = 0b0100111001110001;
+
 // TODO: add m68k namespace or prefix
 class test_cpu : public genesis::m68k::cpu
 {

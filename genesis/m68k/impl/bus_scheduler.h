@@ -76,6 +76,13 @@ public:
 
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
+	template<class Callable>
+	void int_ack(Callable on_complete)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		int_ack_impl(on_complete);
+	}
+
 	void prefetch_ird();
 	void prefetch_irc();
 	void prefetch_one();
@@ -101,6 +108,7 @@ public:
 		READ,
 		READ_IMM,
 		WRITE,
+		INT_ACK,
 		PREFETCH_IRD,
 		PREFETCH_IRC,
 		PREFETCH_ONE,
@@ -133,6 +141,12 @@ public:
 		size_type size;
 	};
 
+	using int_ack_complete = std::function<void(std::uint8_t /* vector number */)>;
+	struct int_ack_operation
+	{
+		int_ack_complete on_complete;
+	};
+
 	struct wait_operation
 	{
 		std::uint_fast8_t cycles;
@@ -160,7 +174,7 @@ public:
 	struct operation
 	{
 		op_type type;
-		std::variant<read_operation, read_imm_operation,
+		std::variant<read_operation, read_imm_operation, int_ack_operation,
 			write_operation, wait_operation, call_operation,
 			register_operation, push_operation> op = {};
 	};
@@ -168,11 +182,13 @@ public:
 private:
 	void read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete);
 	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
+	void int_ack_impl(int_ack_complete);
 	void call_impl(callback);
 
 	void latch_data(size_type size);
 	void on_read_finished();
 	void on_read_imm_finished();
+	void on_int_ack_finished();
 
 	bool current_op_is_over() const;
 	void start_operation(operation&);

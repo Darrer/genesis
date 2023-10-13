@@ -137,6 +137,7 @@ void bus_manager::cycle()
 
 	case READ_WAIT:
 	case RMW_READ_WAIT:
+		// TODO: add wait cycles limit to prevent CPU freezes
 		if(external_memory->is_idle())
 		{
 			if(byte_operation)
@@ -271,6 +272,7 @@ void bus_manager::cycle()
 
 	case IAC3:
 		clear_bus();
+		bus.interrupt_priority(0);
 		set_idle();
 		return;
 
@@ -337,6 +339,8 @@ void bus_manager::clear_bus()
 	bus.clear(bus::VPA);
 	// NOTE: clear_bus cannot clear BR/BG buses as it's usualy called in the end of a bus cycle
 	// therefore by clearing BR/BG we can clear current state
+
+	// NOTE: clear_bus cannot clear IPL as it can clear pending interrupt
 }
 
 std::uint8_t bus_manager::gen_func_codes() const

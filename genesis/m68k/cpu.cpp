@@ -77,7 +77,7 @@ void cpu::set_interrupt(std::uint8_t priority)
 {
 	// TODO: check if we support interrupts (int_dev is not null)
 
-	if(priority > 7)
+	if(priority > 7 || priority == 0)
 		throw std::invalid_argument("priority");
 	if(_bus.interrupt_priority() != 0)
 		throw not_implemented("having multiple interrupts at the same time is not supported yet");
