@@ -1815,6 +1815,7 @@ private:
 		}
 
 		case 2:
+			// TODO: do not use bus_manager directly
 			if(busm.bus_granted())
 			{
 				return exec_state::in_progress;

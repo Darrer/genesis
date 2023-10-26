@@ -62,7 +62,9 @@ PRIVATE
 	m68k/THT_MAP/map_test.cpp
 
 	m68k/performance/performance.cpp
+	m68k/MCL/mcl.h
 	m68k/MCL/runner.cpp
+	m68k/test_program.h
 
 	vdp/ports.cpp
 	vdp/dma.cpp

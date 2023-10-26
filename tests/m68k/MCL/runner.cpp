@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
 
+#include "mcl.h"
 #include "string_utils.hpp"
 #include "exception.hpp"
-#include "helper.hpp"
-#include "m68k/test_cpu.hpp"
 #include "helpers/random.h"
 
 using namespace genesis;
@@ -11,105 +10,9 @@ using namespace genesis::test;
 using namespace genesis::m68k;
 
 
-void nop_some_tests(genesis::memory::memory_unit& mem)
-{
-	auto nop_test = [&](std::uint32_t jump_addr) {
-		const std::uint16_t nop_opcode = 0b0100111001110001;
-		// jump takes 6 bytes - 2 for opcode, 4 for ptr
-		mem.write(jump_addr, nop_opcode);
-		mem.write(jump_addr + 2, nop_opcode);
-		mem.write(jump_addr + 4, nop_opcode);
-	};
-
-	// TODO: ABCD/SBCD have tricky logic and now I'm to lazy to figure it out,
-	// so just skip these tests so far
-	const std::uint32_t abcd_jump_addr = 0x4A8;
-	const std::uint32_t sbcd_jump_addr = 0x4AE;
-
-	nop_test(abcd_jump_addr);
-	nop_test(sbcd_jump_addr);
-
-	// const std::uint32_t nbcd_jump_addr = 0x4B4;
-	// nop_test(nbcd_jump_addr);
-
-	// MOVE to SR is tested incorrectly, see issue:
-	// https://github.com/MicroCoreLabs/Projects/issues/6
-	const std::uint32_t move_to_sr_jump_addr = 0x466;
-	nop_test(move_to_sr_jump_addr);
-}
-
-void load_mcl(genesis::test::test_cpu& cpu)
-{
-	const auto bin_path = get_exec_path() / "m68k" / "MC68000_test_all_opcodes.bin";
-
-	cpu.reset();
-	cpu.load_bin(bin_path.string());
-}
-
-
-template<class T>
-bool run_mcl(genesis::test::test_cpu& cpu, T&& on_cycle)
-{
-	nop_some_tests(cpu.memory());
-
-	const std::uint32_t pc_done = 0x00F000; // when PC is looped here - we're done
-	const std::uint32_t loop_threshold = 10;
-
-	auto& regs = cpu.registers();
-
-	std::uint32_t old_pc = regs.PC;
-	std::uint32_t same_pc_counter = 0;
-
-	// TODO: check for infinite loops
-
-	while(true)
-	{
-		cpu.cycle();
-		on_cycle();
-
-		if(testing::Test::HasFatalFailure())
-			return false;
-
-		if(!cpu.is_idle())
-			continue;
-
-		auto curr_pc = regs.PC;
-		if(curr_pc == old_pc)
-		{
-			++same_pc_counter;
-
-			// Check if we found a loop
-			if(same_pc_counter == loop_threshold)
-			{
-				if(curr_pc == pc_done)
-				{
-					// all tests are succeeded
-					return true;
-				}
-
-				// different pc means we looped to an incorrectly implemented command
-
-				// dump some data for debugging
-				std::uint16_t data = cpu.memory().read<std::uint16_t>(curr_pc);
-				std::cout << "Found a loop at " << su::hex_str(curr_pc) << " (" << su::hex_str(data) << ")"
-							<< std::endl;
-
-				return false;
-			}
-		}
-		else
-		{
-			old_pc = curr_pc;
-			same_pc_counter = 0;
-		}
-	}
-}
-
-// The test program is taken from: https://github.com/MicroCoreLabs/Projects/blob/master/MCL68/MC68000_Test_Code/
 TEST(M68K, MCL)
 {
 	test_cpu cpu;
-	load_mcl(cpu);
 
 	long cycles = 0;
 	bool succeed = false;
@@ -138,7 +41,6 @@ TEST(M68K, MCL_TAKE_BUS)
 	const long request_bus_cycles_duration = 41;
 
 	test_cpu cpu;
-	load_mcl(cpu);
 
 	auto& busm = cpu.bus_access();
 
@@ -234,7 +136,6 @@ TEST(M68K, MCL_TAKE_BUS_TO_READ_WRITE)
 	test_state old_state = state;
 
 	test_cpu cpu;
-	load_mcl(cpu);
 
 	auto& busm = cpu.bus_access();
 	auto& mem = cpu.memory();

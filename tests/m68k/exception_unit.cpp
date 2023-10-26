@@ -2,9 +2,12 @@
 #include "m68k/impl/exception_manager.h"
 #include "test_cpu.hpp"
 #include "helpers/random.h"
+#include "test_program.h"
 
 #include <gtest/gtest.h>
+
 #include <iostream>
+#include <string_utils.hpp>
 
 // TODO: add test cases with rising exception during processing another exception
 
@@ -296,5 +299,198 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_MASKED)
 		// Assert
 		ASSERT_EQ(4, cycles); // it takes 4 cycles to execute NOP
 		ASSERT_TRUE(cpu.exception_manager().is_raised(exception_type::interrupt));
+	}
+}
+
+/* Interrupt routine:
+ * NOP
+ * NOP
+ * INC <counter_address>
+ * RTE // return from exception
+*/
+void dump_interrupt_routine(test_cpu& cpu, std::uint32_t& base_address, std::uint32_t counter_address)
+{
+	auto& mem = cpu.memory();
+
+	mem.write(base_address, nop_opcode);
+	base_address += 2;
+
+	mem.write(base_address, nop_opcode);
+	base_address += 2;
+
+	// ADDQ command
+	// data = 1
+	// size = LONG
+	// ea = abs_long
+	const std::uint16_t inc_opcode = 0b0101001010111001;
+	mem.write(base_address, inc_opcode);
+	base_address += 2;
+
+	mem.write(base_address, counter_address);
+	base_address += 4;
+
+	const std::uint16_t rte_opcode = 0b0100111001110011; // RTE - return from exception
+	mem.write(base_address, rte_opcode);
+	base_address += 2;
+}
+
+TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
+{
+	test_cpu cpu;
+	auto& mem = cpu.memory();
+	auto& regs = cpu.registers();
+
+	auto interrupt_vectors = build_interrupt_vector_addresses();
+	std::map<std::uint32_t /* vector address*/, std::uint32_t /* counter address */> counter_address;
+	std::map<std::uint32_t /* vector address */, std::uint32_t /* interrupt routine address */> routine_address;
+	std::map<std::uint32_t /* vector address */, std::uint32_t /* num interrupts */> num_interrupts;
+
+	// test program may set IPM to 7 (disable all interrupts) or may use interrupt vector entries to store some data,
+	// so we have to save & overwrite some regs/mem to effectively run this test
+	std::uint32_t old_vec_addr = 0x0;
+	std::uint8_t old_ipm = 0x0;
+
+	// test program set SSP too close to the vector table, so pusing data on the stack may overwrite interrupt vectors
+	std::uint32_t test_ssp = 0x0;
+	std::uint32_t old_ssp = 0x0;
+
+	std::uint32_t return_pc = 0x0;
+	std::uint32_t vec_addr = 0;
+
+	auto get_interrupt_frequency = []()
+	{
+		return random::in_range<std::uint32_t>(100, 500);
+	};
+
+	auto interrupt_frequency = get_interrupt_frequency();
+
+	auto cycles = 0ull;
+
+	enum class test_state { init, wait, wait_idle, start, finish };
+	test_state state = test_state::init;
+
+	bool success = run_test_program(cpu, [&]()
+	{
+		switch (state)
+		{
+		case test_state::init:
+		{
+			// allocate 4 bytes for counter variable for each interrupt handler
+			std::uint32_t counter_addr = address_after_test_programm;
+			for(auto vec : interrupt_vectors)
+			{
+				counter_address[vec] = counter_addr;
+				mem.write<std::uint32_t>(counter_addr, 0);
+				counter_addr += 4;
+			}
+
+			// setup interrupt handlers
+			std::uint32_t int_routine_addr = counter_addr;
+			for(auto vec : interrupt_vectors)
+			{
+				routine_address[vec] = int_routine_addr;
+				dump_interrupt_routine(cpu, int_routine_addr, counter_address[vec]);
+			}
+
+			test_ssp = int_routine_addr + 1024;
+			state = test_state::wait;
+			break;
+		}
+
+		case test_state::wait:
+			++cycles;
+			if((cycles % interrupt_frequency) == 0)
+			{
+				// start test
+				state = test_state::wait_idle;
+			}
+
+			break;
+
+		case test_state::wait_idle:
+			if(!cpu.is_idle() || cpu.exception_manager().is_raised_any())
+				break;
+
+			state = test_state::start;
+			[[fallthrough]];
+
+		case test_state::start:
+		{
+			ASSERT_TRUE(cpu.is_idle());
+			ASSERT_FALSE(cpu.exception_manager().is_raised_any()); // there should be no other exceptions pending
+
+			vec_addr = random::pick(interrupt_vectors);
+
+			// save old state
+			old_vec_addr = mem.read<std::uint32_t>(vec_addr);
+			old_ipm = regs.flags.IPM;
+			old_ssp = regs.SSP.LW;
+			return_pc = regs.PC;
+
+			// overwrite
+			mem.write(vec_addr, routine_address.at(vec_addr));
+			regs.SSP.LW = test_ssp;
+			regs.flags.IPM = 0;
+
+			auto priority = setup_int_device(cpu, vec_addr);
+			cpu.set_interrupt(priority);
+
+			if(!num_interrupts.contains(vec_addr))
+				num_interrupts[vec_addr] = 0;
+			++num_interrupts[vec_addr];
+
+			state = test_state::finish;
+
+			break;
+		}
+
+		case test_state::finish:
+		{
+			if(cpu.is_idle() && regs.PC == return_pc)
+			{
+				// restore state
+				mem.write(vec_addr, old_vec_addr);
+				regs.SSP.LW = old_ssp;
+				regs.flags.IPM = old_ipm;
+
+				interrupt_frequency = get_interrupt_frequency();
+				state = test_state::wait;
+			}
+
+			break;
+		}
+
+		default: throw genesis::internal_error();
+		}
+	});
+
+	// wait for last interrupt to complete (if any)
+	auto& exman = cpu.exception_manager();
+	if(exman.is_raised(exception_type::interrupt))
+	{
+		cpu.cycle_until([&exman]()
+		{
+			return exman.is_raised(exception_type::interrupt);
+		});
+	}
+
+	ASSERT_TRUE(success);
+
+	{
+		constexpr bool enable_logging = false;
+
+		for(auto vec : interrupt_vectors)
+		{
+			auto counter_value = mem.read<std::uint32_t>(counter_address[vec]);
+			auto num_calls = num_interrupts[vec];
+
+			EXPECT_EQ(num_calls, counter_value) << "failed for vector " << vec;
+
+			if(enable_logging)
+			{
+				std::cout << su::hex_str(vec) << " int counter: " << counter_value
+					<< " int called: " << num_calls << '\n';
+			}
+		}
 	}
 }
