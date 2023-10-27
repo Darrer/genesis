@@ -76,7 +76,7 @@ public:
 			++cycles;
 
 			if(cycles_limit != 0 && cycles > cycles_limit)
-				break;
+				throw std::runtime_error("cycle limit exceeded");
 
 			bool stop = func() == true;
 			if(stop)

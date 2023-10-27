@@ -4,9 +4,8 @@
 #include "base_unit.h"
 #include "exception_manager.h"
 #include "pc_corrector.hpp"
-
-
 #include "exception.hpp"
+#include "endian.hpp"
 
 
 namespace genesis::m68k
@@ -318,7 +317,7 @@ private:
 
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, regs.PC & 0xFFFF, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::lsw(regs.PC), size_type::WORD);
 
 		// PUSH SR
 		// note, for some reason we first push SR, then PC HIGH
@@ -330,7 +329,7 @@ private:
 
 		// PUSH PC HIGH
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, regs.PC >> 16, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::msw(regs.PC), size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		// PUSH IRD
@@ -339,14 +338,14 @@ private:
 
 		// PUSH address LOW
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, addr_error.address & 0xFFFF, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::lsw(addr_error.address), size_type::WORD);
 
 		// PUSH status word
 		scheduler.write(regs.SSP.LW - 4, addr_error_info(), size_type::WORD);
 
 		// PUSH address HIGH
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, addr_error.address >> 16, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::msw(addr_error.address), size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		std::uint32_t addr = vector_address(curr_ex);
@@ -481,7 +480,7 @@ private:
 	{
 		// PUSH PC LOW
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, pc & 0xFFFF, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::lsw(pc), size_type::WORD);
 
 		// PUSH SR
 		// note, for some reason we first push SR, then PC HIGH
@@ -493,7 +492,7 @@ private:
 
 		// PUSH PC HIGH
 		regs.SSP.LW -= 2;
-		scheduler.write(regs.SSP.LW, pc >> 16, size_type::WORD);
+		scheduler.write(regs.SSP.LW, endian::msw(pc), size_type::WORD);
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		std::uint32_t addr = trap_vector * 4;

@@ -83,6 +83,24 @@ void sys_to_little(T& val)
 	return std::uint8_t(value & 0xFF);
 }
 
+
+[[maybe_unused]] static std::uint16_t msw(std::uint32_t value)
+{
+	if constexpr(std::endian::native == std::endian::big)
+		return std::uint16_t(value & 0xFFFF);
+	// assume little endian
+	return std::uint16_t(value >> 16);
+}
+
+
+[[maybe_unused]] static std::uint16_t lsw(std::uint32_t value)
+{
+	if constexpr(std::endian::native == std::endian::big)
+		return std::uint16_t(value >> 16);
+	// assume little endian
+	return std::uint16_t(value & 0xFFFF);
+}
+
 } // namespace endian
 
 

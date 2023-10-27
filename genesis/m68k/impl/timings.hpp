@@ -153,7 +153,7 @@ public:
 
 	static std::uint8_t divu(std::uint32_t dividend, std::uint16_t divisor)
 	{
-		bool is_overflow = (dividend >> 16) >= divisor;
+		bool is_overflow = endian::msw(dividend) >= divisor;
 		if(is_overflow)
 			return 6;
 

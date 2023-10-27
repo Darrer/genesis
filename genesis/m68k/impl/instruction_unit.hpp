@@ -507,9 +507,9 @@ private:
 				// 1. write LSW
 				// 2. do prefetch
 				// 3. write MSW
-				scheduler.write(regs.A(dest_reg).LW + 2, res & 0xFFFF, size_type::WORD);
+				scheduler.write(regs.A(dest_reg).LW + 2, endian::lsw(res), size_type::WORD);
 				scheduler.prefetch_one();
-				scheduler.write(regs.A(dest_reg).LW, res >> 16, size_type::WORD);
+				scheduler.write(regs.A(dest_reg).LW, endian::msw(res), size_type::WORD);
 			}
 			else
 			{
@@ -714,7 +714,7 @@ private:
 
 		case 2:
 		{
-			std::uint16_t reg_mask = imm & 0xFFFF;
+			std::uint16_t reg_mask = endian::lsw(imm);
 
 			if(bit_is_set(opcode, 10))
 				movem_memory_to_register(reg_mask);
@@ -864,7 +864,7 @@ private:
 
 		case 1:
 		{
-			addr = regs.A(src_reg).LW + operations::sign_extend(imm & 0xFFFF);
+			addr = regs.A(src_reg).LW + operations::sign_extend(endian::lsw(imm));
 			bool reg_to_mem = bit_is_set(opcode, 7);
 			if(reg_to_mem)
 				movep_register_to_memory();
@@ -902,15 +902,15 @@ private:
 
 	void movep_register_to_memory()
 	{
-		std::uint32_t data = regs.D(dest_reg).LW;
-
 		if(size == size_type::WORD)
 		{
-			scheduler.write(addr, data >> 8, size_type::BYTE);
-			scheduler.write(addr + 2, data, size_type::BYTE);
+			std::uint16_t data = regs.D(dest_reg).W;
+			scheduler.write(addr, endian::msb(data), size_type::BYTE);
+			scheduler.write(addr + 2, endian::lsb(data), size_type::BYTE);
 		}
 		else
 		{
+			std::uint32_t data = regs.D(dest_reg).LW;
 			scheduler.write(addr, data >> 24, size_type::BYTE);
 			scheduler.write(addr + 2, data >> 16, size_type::BYTE);
 			scheduler.write(addr + 4, data >> 8, size_type::BYTE);

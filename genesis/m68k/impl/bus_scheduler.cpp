@@ -1,6 +1,7 @@
 #include "bus_scheduler.h"
 
 #include "exception.hpp"
+#include "endian.hpp"
 
 #include <iostream>
 
@@ -170,8 +171,8 @@ void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size
 	}
 	else
 	{
-		write_operation write_lsw{addr + 2, data & 0xFFFF, size_type::WORD};
-		write_operation write_msw{addr, data >> 16, size_type::WORD};
+		write_operation write_lsw{addr + 2, endian::lsw(data), size_type::WORD};
+		write_operation write_msw{addr, endian::msw(data), size_type::WORD};
 
 		if(order == order::lsw_first)
 		{
@@ -238,8 +239,8 @@ void bus_scheduler::push(std::uint32_t data, size_type size, order order)
 {
 	if(size == size_type::LONG)
 	{
-		push_operation push_lsw{data & 0xFFFF, size_type::WORD};
-		push_operation push_msw{data >> 16, size_type::WORD};
+		push_operation push_lsw{endian::lsw(data), size_type::WORD};
+		push_operation push_msw{endian::msw(data), size_type::WORD};
 
 		if(order == order::lsw_first)
 		{

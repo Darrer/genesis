@@ -7,6 +7,7 @@
 
 #include "cpu_flags.hpp"
 #include "exception.hpp"
+#include "endian.hpp"
 
 #include "instruction_type.h"
 #include "m68k/cpu_registers.hpp"
@@ -440,7 +441,7 @@ public:
 		std::uint16_t src_val = value(src, size_type::WORD);
 
 		sr.C = 0;
-		bool is_overflow = (dest_val >> 16) >= src_val;
+		bool is_overflow = endian::msw(dest_val) >= src_val;
 		if(is_overflow)
 		{
 			sr.V = 1;
@@ -525,8 +526,8 @@ public:
 	{
 		std::uint32_t val = value(a, size_type::LONG);
 
-		std::uint32_t lsw = val & 0xFFFF;
-		std::uint32_t msw = val >> 16;
+		std::uint32_t lsw = endian::lsw(val);
+		std::uint32_t msw = endian::msw(val);
 
 		std::uint32_t res = (lsw << 16) | msw;
 
