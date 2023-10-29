@@ -40,7 +40,7 @@ public:
 		if(state == ex_state::IDLE)
 			process_exception();
 
-		// TODO: check if another exception is rised during executing the curr exception
+		check_catastrophic_failures();
 	}
 
 	void post_cycle()
@@ -557,6 +557,26 @@ private:
 		scheduler.prefetch_ird();
 		scheduler.wait(2);
 		scheduler.prefetch_irc();
+	}
+
+	void check_catastrophic_failures() const
+	{
+		/** Catastrophic failures can occur when during processing bus/address error exception
+		  * another bus/address error exception is occured.
+		  * CPU should be halted in this case.
+		*/
+
+		if(!exman.is_raised_any())
+			return;
+
+		if(exman.is_raised(exception_type::address_error) || exman.is_raised(exception_type::bus_error))
+		{
+			if(curr_ex == exception_type::address_error || curr_ex == exception_type::bus_error)
+			{
+				// TODO: set CPU to halted state
+				throw std::runtime_error("CPU halted");
+			}
+		}
 	}
 
 private:

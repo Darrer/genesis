@@ -494,3 +494,18 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 		}
 	}
 }
+
+TEST(M68K_EXCEPTION_UNIT, MULTIPLE_ADDRESS_ERRORS)
+{
+	test_cpu cpu;
+	auto& mem = cpu.memory();
+	auto& exman = cpu.exception_manager();
+
+	rise_exception(cpu, exception_type::address_error);
+
+	// 0xC points to address error routine, setting it to odd address will lead to rising
+	// address error exception during processing address error exception
+	mem.write<std::uint32_t>(0xC, 0x1);
+
+	ASSERT_THROW(cpu.cycle_until([&]() { return cpu.is_idle(); } ), std::runtime_error);
+}
