@@ -6,7 +6,6 @@
 #include "bus_access.h"
 #include "interrupting_device.h"
 
-#include "impl/base_unit.h"
 #include "impl/bus_manager.h"
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
@@ -18,6 +17,8 @@
 
 namespace genesis::m68k
 {
+
+class instruction_unit;
 
 class cpu
 {
@@ -59,7 +60,7 @@ protected:
 	m68k::bus_scheduler scheduler;
 
 	// TODO: do we really need pointers here?
-	std::unique_ptr<m68k::base_unit> inst_unit;
+	std::unique_ptr<m68k::instruction_unit> inst_unit;
 	std::unique_ptr<m68k::exception_unit> excp_unit;
 	std::unique_ptr<impl::trace_riser> tracer;
 };

@@ -2,7 +2,6 @@
 #define __M68K_INSTRUCTION_UNIT_HPP__
 
 
-#include "base_unit.h"
 #include "m68k/cpu_registers.hpp"
 #include "bus_scheduler.h"
 #include "exception_manager.h"
@@ -23,88 +22,127 @@
 namespace genesis::m68k
 {
 
-class instruction_unit : public base_unit
+class instruction_unit
 {
 private:
-	enum inst_state
+	enum class unit_state
 	{
-		IDLE,
-		EXECUTING,
+		idle,
+		executing
+	};
+
+	enum class exec_state
+	{
+		in_progress,
+		done, // wait scheduler and idle
+		wait_scheduler,
 	};
 
 public:
 	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman,
 		cpu_bus& bus, bus_manager& busm, m68k::bus_scheduler& scheduler)
-		: base_unit(regs, scheduler), dec(regs, scheduler), exman(exman), bus(bus), busm(busm)
+		: regs(regs), dec(regs, scheduler), exman(exman), bus(bus), busm(busm), scheduler(scheduler)
 	{
 		reset();
 	}
 
-	// rename to on_idle
-	void reset() override
+	bool is_idle() const
 	{
-		state = IDLE;
+		return m_unit_state == unit_state::idle;
+	}
+
+	void reset()
+	{
+		m_unit_state = unit_state::idle;
 		exec_stage = 0;
 		res = 0;
 		dec.reset();
-
-		base_unit::reset();
 	}
 
-protected:
-	exec_state on_executing() override
+	void cycle()
 	{
-		switch (state)
+		switch (m_unit_state)
 		{
-		case IDLE:
-			opcode = regs.IRD;
-			regs.SIRD = regs.IRD;
-			regs.SPC = regs.PC;
-			curr_inst = decode_opcode(opcode);
-			// std::cout << "Executing: " << (int)curr_inst << std::endl;
-
-			if(check_illegal_instruction(curr_inst, opcode))
-				return exec_state::done;
-
-			if(check_privilege_violations(curr_inst))
-				return exec_state::done;
-
-			regs.PC += 2;
-			state = EXECUTING;
+		case unit_state::idle:
+			m_exec_state = prepare_executing();
+			if(m_exec_state == exec_state::done)
+				return;
+			m_unit_state = unit_state::executing;
 			[[fallthrough]];
 
-		case EXECUTING:
-			return execute();
+		case unit_state::executing:
+			on_executing();
+			break;
 
-		default:
-			throw internal_error();
+		default: throw internal_error();
 		}
 	}
 
-	/* exec_state on_executing() override
+	void post_cycle()
 	{
-		if(state == IDLE)
-		{
-			opcode = regs.IRD;
-			regs.SIRD = regs.IRD;
-			regs.SPC = regs.PC;
-			curr_inst = decode_opcode(opcode);
-			// std::cout << "Executing: " << (int)curr_inst << std::endl;
-
-			if(check_illegal_instruction(curr_inst, opcode))
-				return exec_state::done;
-
-			if(check_privilege_violations(curr_inst))
-				return exec_state::done;
-
-			regs.PC += 2;
-			state = EXECUTING;
-		}
-
-		return execute();
-	} */
+		if(m_exec_state == exec_state::done && scheduler.is_idle())
+			m_unit_state = unit_state::idle;
+	}
 
 private:
+	exec_state prepare_executing()
+	{
+		reset();
+		opcode = regs.IRD;
+		regs.SIRD = regs.IRD;
+		regs.SPC = regs.PC;
+		curr_inst = decode_opcode(opcode);
+
+		if(check_illegal_instruction(curr_inst, opcode))
+			return exec_state::done;
+
+		if(check_privilege_violations(curr_inst))
+			return exec_state::done;
+
+		regs.PC += 2;
+
+		return exec_state::in_progress;
+	}
+
+	void on_executing()
+	{
+		while(true)
+		{
+			switch (m_exec_state)
+			{
+			case exec_state::in_progress:
+				m_exec_state = execute();
+				if(m_exec_state == exec_state::wait_scheduler && scheduler.is_idle())
+				{
+					// nothing scheduled, repeat execute
+					m_exec_state = exec_state::in_progress;
+					continue;
+				}
+				return;
+
+			case exec_state::wait_scheduler:
+				if(scheduler.is_idle())
+				{
+					// scheduler is idle, continue executing
+					m_exec_state = exec_state::in_progress;
+					continue;
+				}
+				return;
+
+			case exec_state::done:
+				if(scheduler.is_idle())
+				{
+					// transition from done to idle must occur in the post_cycle method,
+					// otherwise we incorrectly report is_idle state
+					throw internal_error();
+				}
+				return;
+
+			default: throw internal_error();
+			}
+		}
+	}
+
 	exec_state execute()
 	{
 		switch (curr_inst)
@@ -298,6 +336,9 @@ private:
 
 		case inst_type::TAS:
 			return tas_handler();
+
+		case inst_type::STOP:
+			throw not_implemented();
 
 		default: throw internal_error();
 		}
@@ -1964,17 +2005,53 @@ private:
 		return true;
 	}
 
+	void read_imm(size_type size)
+	{
+		scheduler.read_imm(size, [this](std::uint32_t data, size_type) { this->imm = data; });
+	}
+
+	void read(std::uint32_t addr, size_type size)
+	{
+		scheduler.read(addr, size, [this](std::uint32_t data, size_type) { this->data = data; });
+	}
+
+	void dec_and_read(std::uint8_t addr_reg, size_type size)
+	{
+		if(size == size_type::BYTE || size == size_type::WORD)
+		{
+			regs.dec_addr(addr_reg, size);
+			read(regs.A(addr_reg).LW, size);
+		}
+		else
+		{
+			regs.dec_addr(addr_reg, size_type::WORD);
+
+			// read LSW
+			scheduler.read(regs.A(addr_reg).LW, size_type::WORD,
+						[this](std::uint32_t data, size_type) { this->data = data; });
+
+			scheduler.dec_addr_reg(addr_reg, size_type::WORD);
+
+			// read MSW
+			scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD,
+						[this](std::uint32_t data, size_type) { this->data |= data << 16; });
+		}
+	}
+
 private:
+	m68k::cpu_registers& regs;
 	m68k::ea_decoder dec;
 	exception_manager& exman;
 	cpu_bus& bus;
 	bus_manager& busm;
+	m68k::bus_scheduler& scheduler;
 
 	std::uint16_t opcode = 0;
 	inst_type curr_inst;
 	std::uint8_t exec_stage;
 
-	std::uint8_t state;
+	unit_state m_unit_state;
+	exec_state m_exec_state;
 
 	// some helper variables
 	std::uint32_t res = 0;
@@ -1983,6 +2060,8 @@ private:
 	std::uint8_t src_reg = 0;
 	std::uint8_t dest_reg = 0;
 	std::uint16_t move_reg_mask;
+	std::uint32_t imm;
+	std::uint32_t data;
 };
 
 }
