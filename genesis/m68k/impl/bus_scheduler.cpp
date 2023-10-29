@@ -57,7 +57,7 @@ void bus_scheduler::cycle()
 
 	run_cycless_operations();
 
-	if(next_bus_operation() && !can_use_bus())
+	if(!can_use_bus() && next_bus_operation())
 		return;
 
 	start_operation(queue.front());
@@ -150,7 +150,7 @@ void bus_scheduler::on_read_imm_finished()
 
 void bus_scheduler::on_int_ack_finished()
 {
-	int_ack_operation int_ack = std::get<int_ack_operation>(current_op.value().op);
+	int_ack_operation& int_ack = std::get<int_ack_operation>(current_op.value().op);
 
 	if(int_ack.on_complete != nullptr)
 	{
@@ -269,7 +269,7 @@ void bus_scheduler::start_operation(operation& op)
 	switch(op.type)
 	{
 	case op_type::READ: {
-		read_operation read = std::get<read_operation>(op.op);
+		read_operation& read = std::get<read_operation>(op.op);
 		if(read.size == size_type::BYTE)
 			busm.init_read_byte(read.addr, read.space, [this]() { on_read_finished(); });
 		else
@@ -279,15 +279,14 @@ void bus_scheduler::start_operation(operation& op)
 	}
 
 	case op_type::READ_IMM: {
-		read_imm_operation read = std::get<read_imm_operation>(op.op);
+		read_imm_operation& read = std::get<read_imm_operation>(op.op);
 		if(read.size == size_type::LONG)
 			data = (data << 16) | regs.IRC;
 		else
-			data = read.size == size_type::BYTE ? regs.IRC & 0xFF : regs.IRC;
+			data = read.size == size_type::BYTE ? endian::lsb(regs.IRC) : regs.IRC;
 
 		if(read.flags == read_imm_flags::do_prefetch)
 		{
-			current_op = {op_type::PREFETCH_IRC, {}};
 			pq.init_fetch_irc([this]() {
 				regs.PC += 2;
 				run_cycless_operations();
@@ -312,7 +311,7 @@ void bus_scheduler::start_operation(operation& op)
 	}
 
 	case op_type::WRITE: {
-		write_operation write = std::get<write_operation>(op.op);
+		write_operation& write = std::get<write_operation>(op.op);
 		if(write.size == size_type::BYTE)
 			busm.init_write(write.addr, std::uint8_t(write.data), [this]() { run_cycless_operations(); });
 		else
@@ -322,7 +321,7 @@ void bus_scheduler::start_operation(operation& op)
 	}
 
 	case op_type::INT_ACK: {
-		int_ack_operation int_ack = std::get<int_ack_operation>(op.op);
+		int_ack_operation& int_ack = std::get<int_ack_operation>(op.op);
 		busm.init_interrupt_ack([this]() { on_int_ack_finished(); });
 		break;
 	}
