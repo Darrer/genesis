@@ -1,7 +1,6 @@
 #ifndef __M68K_EXCEPTION_UNIT_HPP__
 #define __M68K_EXCEPTION_UNIT_HPP__
 
-#include "base_unit.h"
 #include "exception_manager.h"
 #include "pc_corrector.hpp"
 #include "exception.hpp"
@@ -11,20 +10,20 @@
 namespace genesis::m68k
 {
 
-class exception_unit : public base_unit
+class exception_unit
 {
 private:
-	enum ex_state
+	enum class ex_state
 	{
 		IDLE,
-		EXECUTING,
+		WAITING_SCHEDULER,
 	};
 
 public:
 	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, cpu_bus& bus,
 		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution,
 		std::function<bool()> __instruction_unit_is_idle)
-		: base_unit(regs, scheduler), exman(exman), bus(bus), __abort_execution(__abort_execution),
+		: regs(regs), exman(exman), bus(bus), scheduler(scheduler), __abort_execution(__abort_execution),
 		__instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__abort_execution == nullptr)
@@ -36,9 +35,23 @@ public:
 		reset();
 	}
 
-	bool is_idle() const override
+	void cycle()
 	{
-		if(!base_unit::is_idle())
+		if(state == ex_state::IDLE)
+			process_exception();
+
+		// TODO: check if another exception is rised during executing the curr exception
+	}
+
+	void post_cycle()
+	{
+		if(state == ex_state::WAITING_SCHEDULER && scheduler.is_idle())
+			reset();
+	}
+
+	bool is_idle() const
+	{
+		if(state != ex_state::IDLE)
 			return false;
 
 		if(!exman.is_raised_any())
@@ -49,34 +62,24 @@ public:
 			!exception_2_group_is_rised();
 	}
 
-	void reset() override
+	void reset()
 	{
-		state = IDLE;
+		state = ex_state::IDLE;
 		curr_ex = exception_type::none;
-		base_unit::reset();
-	}
-
-protected:
-	exec_state on_executing() override
-	{
-		switch (state)
-		{
-		case IDLE:
-			accept_exception();
-			state = EXECUTING;
-			[[fallthrough]];
-
-		case EXECUTING:
-			// TODO: check if another exception is rised during executing the curr exception
-			return exec();
-
-		default:
-			throw internal_error();
-		}
 	}
 
 private:
-	exec_state exec()
+	void process_exception()
+	{
+		if(state != ex_state::IDLE || curr_ex != exception_type::none)
+			throw internal_error();
+
+		accept_exception();
+		schedule_exception();
+		state = ex_state::WAITING_SCHEDULER;
+	}
+
+	void schedule_exception()
 	{
 		switch (curr_ex)
 		{
@@ -84,45 +87,57 @@ private:
 		/* group 0 */
 
 		case exception_type::reset:
-			return reset_handler();
+			reset_handler();
+			break;
 
 		case exception_type::address_error:
 		case exception_type::bus_error:
-			return address_error();
+			address_error();
+			break;
 
 		/* group 1 */
 
 		case exception_type::trace:
-			return trace();
+			trace();
+			break;
 
 		case exception_type::interrupt:
-			return interrupt();
+			interrupt();
+			break;
 
 		case exception_type::illegal_instruction:
-			return illegal_instruction();
+			illegal_instruction();
+			break;
 
 		case exception_type::privilege_violations:
-			return privilege_violations();
+			privilege_violations();
+			break;
 
 		case exception_type::line_1010_emulator:
-			return line_1010_emulator();
+			line_1010_emulator();
+			break;
 
 		case exception_type::line_1111_emulator:
-			return line_1111_emulator();
+			line_1111_emulator();
+			break;
 
 		/* group 2 */
 
 		case exception_type::trap:
-			return trap();
+			trap();
+			break;
 
 		case exception_type::trapv:
-			return trapv();
+			trapv();
+			break;
 
 		case exception_type::chk_instruction:
-			return chk_instruction();
+			chk_instruction();
+			break;
 
 		case exception_type::division_by_zero:
-			return division_by_zero();
+			division_by_zero();
+			break;
 
 		default: throw internal_error();
 		}
@@ -259,7 +274,7 @@ private:
 		we wait for 3 cycles to compensate for this delay.
 	*/
 
-	exec_state reset_handler()
+	void reset_handler()
 	{
 		abort_execution();
 		exman.accept_all();
@@ -297,8 +312,6 @@ private:
 		});
 
 		schedule_prefetch_two_with_gap();
-
-		return exec_state::done;
 	}
 
 	/* Sequence of actions
@@ -308,7 +321,7 @@ private:
 	 * 4. Push address
 	 * 5. Info word
 	*/
-	exec_state address_error()
+	void address_error()
 	{
 		abort_execution();
 		correct_pc();
@@ -355,8 +368,6 @@ private:
 		});
 
 		schedule_prefetch_two_with_gap();
-		
-		return exec_state::done;
 	}
 
 	std::uint16_t addr_error_info() const
@@ -373,45 +384,39 @@ private:
 		return status;
 	}
 
-	exec_state trace()
+	void trace()
 	{
 		scheduler.wait(4);
 		schedule_trap(regs.PC, vector_nummber(exception_type::trace));
-		return exec_state::done;
 	}
 
-	exec_state trap()
+	void trap()
 	{
 		scheduler.wait(3);
 		schedule_trap(regs.PC, trap_vector);
-		return exec_state::done;
 	}
 
-	exec_state trapv()
+	void trapv()
 	{
 		schedule_trap(regs.PC, vector_nummber(exception_type::trapv));
-		return exec_state::done;
 	}
 
-	exec_state division_by_zero()
+	void division_by_zero()
 	{
 		scheduler.wait(7);
 		schedule_trap(regs.SPC, vector_nummber(exception_type::division_by_zero));
-		return exec_state::done;
 	}
 
-	exec_state privilege_violations()
+	void privilege_violations()
 	{
 		scheduler.wait(3);
 		schedule_trap(regs.SPC, vector_nummber(exception_type::privilege_violations));
-		return exec_state::done;
 	}
 
-	exec_state chk_instruction()
+	void chk_instruction()
 	{
 		scheduler.wait(3);
 		schedule_trap(regs.PC, vector_nummber(exception_type::chk_instruction));
-		return exec_state::done;
 	}
 
 	/* Sequence of actions
@@ -421,7 +426,7 @@ private:
 	 * 4. Read PC
 	 * 5. Fill prefetch queue
 	*/
-	exec_state interrupt()
+	void interrupt()
 	{
 		scheduler.wait(6);
 
@@ -447,29 +452,24 @@ private:
 
 			schedule_prefetch_two_with_gap();
 		});
-
-		return exec_state::done;
 	}
 
-	exec_state illegal_instruction()
+	void illegal_instruction()
 	{
 		scheduler.wait(4);
 		schedule_trap(regs.PC, vector_nummber(exception_type::illegal_instruction));
-		return exec_state::done;
 	}
 
-	exec_state line_1010_emulator()
+	void line_1010_emulator()
 	{
 		scheduler.wait(4);
 		schedule_trap(regs.PC, vector_nummber(exception_type::line_1010_emulator));
-		return exec_state::done;
 	}
 
-	exec_state line_1111_emulator()
+	void line_1111_emulator()
 	{
 		scheduler.wait(4);
 		schedule_trap(regs.PC, vector_nummber(exception_type::line_1111_emulator));
-		return exec_state::done;
 	}
 
 	/* Sequence of actions
@@ -560,8 +560,10 @@ private:
 	}
 
 private:
+	m68k::cpu_registers& regs;
 	m68k::exception_manager& exman;
-	cpu_bus& bus;
+	m68k::cpu_bus& bus;
+	m68k::bus_scheduler& scheduler;
 	std::function<void()> __abort_execution;
 	std::function<bool()> __instruction_unit_is_idle;
 	exception_type curr_ex;
