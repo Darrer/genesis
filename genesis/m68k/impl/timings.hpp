@@ -116,6 +116,16 @@ public:
 		return mode == addressing_mode::data_reg ? 2 : 0;
 	}
 
+	static constexpr std::uint8_t move_to_sr()
+	{
+		return 4;
+	}
+
+	static constexpr std::uint8_t move_to_ccr()
+	{
+		return 4;
+	}
+
 	/* ASL/ASR/ROL/ROR/LSL/LSR */
 	static constexpr std::uint8_t reg_shift(std::uint32_t shift_count, size_type size)
 	{

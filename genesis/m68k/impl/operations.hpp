@@ -985,6 +985,20 @@ public:
 		}
 	}
 
+	static std::uint16_t ret(inst_type inst, std::uint16_t new_sr, std::uint16_t current_sr)
+	{
+		switch (inst)
+		{
+		case inst_type::RTE:
+			return operations::clear_unimplemented_flags(new_sr);
+
+		case inst_type::RTR:
+			return operations::move_to_ccr(new_sr, current_sr);
+
+		default: throw internal_error();
+		}
+	}
+
 	static std::uint32_t sign_extend(std::uint16_t val)
 	{
 		return std::int32_t(std::int16_t(val));

@@ -244,7 +244,7 @@ private:
 
 		case inst_type::MULU:
 		case inst_type::MULS:
-			return mulu_handler();
+			return mul_handler();
 
 		case inst_type::TRAP:
 			return trap_handler();
@@ -282,10 +282,8 @@ private:
 			return bit_imm_handler();
 
 		case inst_type::RTE:
-			return rte_handler();
-
 		case inst_type::RTR:
-			return rtr_handler();
+			return ret_handler();
 
 		case inst_type::RTS:
 			return rts_handler();
@@ -512,7 +510,7 @@ private:
 			dest_reg = (opcode >> 9) & 0x7;
 			size = dec_size(opcode >> 6);
 
-			if((opcode >> 3) & 1)
+			if(bit_is_set(opcode, 3))
 			{
 				// address register
 				scheduler.wait(2);
@@ -617,14 +615,19 @@ private:
 
 	exec_state decode_move_and_write(operand src_op, std::uint32_t res, size_type size)
 	{
-		std::uint8_t ea = opcode >> 6;
-		std::uint8_t mode = ea & 0x7;
-		dest_reg = (ea >> 3) & 0x7;
+		dest_reg = (opcode >> 9) & 0x7;
 
-		// TODO
-		if(mode == 0b000 || mode == 0b010 || mode == 0b101 || mode == 0b110 || (mode == 0b111 && dest_reg == 0b000))
+		// 2nd ea has swapped mode/reg fields
+		std::uint8_t ea_move = ((opcode >> 3) & 0b111000) | dest_reg;
+		auto ea_mode = ea_decoder::decode_mode(ea_move);
+
+		switch (ea_mode)
 		{
-			std::uint8_t ea_move = (mode << 3) | dest_reg;
+		case addressing_mode::data_reg:
+		case addressing_mode::indir:
+		case addressing_mode::disp_indir:
+		case addressing_mode::index_indir:
+		case addressing_mode::abs_short:
 			dec.schedule_decoding(ea_move, size, ea_decoder::flags::no_read);
 
 			scheduler.call([this]()
@@ -643,68 +646,60 @@ private:
 				scheduler.prefetch_one();
 			});
 
-			return exec_state::done;
-		}
+			break;
 
-		switch (mode)
-		{
-		case 0b011:
+		case addressing_mode::postinc:
 			scheduler.write(regs.A(dest_reg).LW, res, size, order::msw_first);
 			scheduler.prefetch_one();
 			scheduler.inc_addr_reg(dest_reg, size);
-			return exec_state::done;
+			break;
 
-		case 0b100:
+		case addressing_mode::predec:
 			scheduler.prefetch_one();
-			if(size != size_type::LONG)
-			{
-				regs.dec_addr(dest_reg, size);
-				scheduler.write(regs.A(dest_reg).LW, res, size);
-			}
-			else
+			if(size == size_type::LONG)
 			{
 				regs.dec_addr(dest_reg, size_type::WORD);
 				scheduler.write(regs.A(dest_reg).LW - 2, res, size);
 				scheduler.dec_addr_reg(dest_reg, size_type::WORD);
 			}
-
-			return exec_state::done;
-
-		case 0b111:
-		{
-			switch (dest_reg)
+			else
 			{
-			case 0b001:
-				addr = regs.IRC << 16;
-				scheduler.read_imm(size_type::WORD);
-				if(src_op.is_pointer())
-				{
-					scheduler.call([this]()
-					{
-						addr = addr | (regs.IRC & 0xFFFF);
-						scheduler.write(addr, this->res, this->size, order::msw_first);
-						scheduler.read_imm(size_type::WORD);
-						scheduler.prefetch_one();
-					});
-				}
-				else
-				{
-					scheduler.call([this]()
-					{
-						addr = addr | (regs.IRC & 0xFFFF);
-						scheduler.read_imm(size_type::WORD);
-						scheduler.write(addr, this->res, this->size, order::msw_first);
-						scheduler.prefetch_one();
-					});
-				}
-				return exec_state::done;
-
-			default: throw internal_error();
+				regs.dec_addr(dest_reg, size);
+				scheduler.write(regs.A(dest_reg).LW, res, size);
 			}
-		}
+
+			break;
+
+		case addressing_mode::abs_long:
+			addr = regs.IRC << 16;
+			scheduler.read_imm(size_type::WORD);
+			if(src_op.is_pointer())
+			{
+				scheduler.call([this]()
+				{
+					addr = addr | (regs.IRC & 0xFFFF);
+					scheduler.write(addr, this->res, this->size, order::msw_first);
+					scheduler.read_imm(size_type::WORD);
+					scheduler.prefetch_one();
+				});
+			}
+			else
+			{
+				scheduler.call([this]()
+				{
+					addr = addr | (regs.IRC & 0xFFFF);
+					scheduler.read_imm(size_type::WORD);
+					scheduler.write(addr, this->res, this->size, order::msw_first);
+					scheduler.prefetch_one();
+				});
+			}
+
+			break;
 
 		default: throw internal_error();
 		}
+
+		return exec_state::done; 
 	}
 
 	exec_state moveq_handler()
@@ -878,7 +873,7 @@ private:
 			start_addr += offset;
 		}
 
-		// some weird uncodumented read
+		// some weird undocumented read
 		scheduler.read(start_addr, size_type::WORD, nullptr);
 
 		if(postinc_mode)
@@ -926,9 +921,9 @@ private:
 		{
 			auto& reg = regs.D(dest_reg);
 			if(size == size_type::LONG)
-				reg.LW = (reg.LW << 8) | (data & 0xFF);
+				reg.LW = (reg.LW << 8) | endian::lsb(data);
 			else
-				reg.W = (reg.W << 8) | (data & 0xFF);
+				reg.W = (reg.W << 8) | endian::lsb(data);
 		};
 
 		scheduler.read(addr, size_type::BYTE, on_read);
@@ -990,7 +985,7 @@ private:
 
 		case 1:
 			regs.SR = operations::move_to_sr(dec.result());
-			scheduler.wait(4);
+			scheduler.wait(timings::move_to_sr());
 			scheduler.prefetch_two();
 			return exec_state::done;
 
@@ -1027,7 +1022,7 @@ private:
 
 		case 1:
 			regs.SR = operations::move_to_ccr(dec.result(), regs.SR);
-			scheduler.wait(4);
+			scheduler.wait(timings::move_to_ccr());
 			scheduler.prefetch_two();
 			return exec_state::done;
 
@@ -1073,11 +1068,10 @@ private:
 
 	exec_state shift_reg_handler()
 	{
-		bool ir = bit_is_set(opcode, 5);
 		std::uint8_t count_or_reg = (opcode >> 9) & 0x7;
 
 		std::uint32_t shift_count;
-		if(ir)
+		if(bit_is_set(opcode, 5))
 		{
 			shift_count = regs.D(count_or_reg).B;
 		}
@@ -1145,7 +1139,7 @@ private:
 		}
 	}
 
-	exec_state mulu_handler() // TODO: rename to mul_handler
+	exec_state mul_handler()
 	{
 		switch (exec_stage++)
 		{
@@ -1386,8 +1380,7 @@ private:
 		}
 	}
 
-	// TODO: merge rte/rtr handlers
-	exec_state rte_handler()
+	exec_state ret_handler()
 	{
 		// Read PC High
 		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
@@ -1398,7 +1391,7 @@ private:
 		// Read SR
 		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
 		{
-			res = operations::clear_unimplemented_flags(data);
+			res = operations::ret(curr_inst, data, regs.SR);
 		});
 
 		// Read PC Low
@@ -1407,35 +1400,7 @@ private:
 			regs.PC = regs.PC | data;
 
 			regs.SSP.LW += 6;
-			// save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
-			regs.SR = res;
-		});
-
-		scheduler.prefetch_two();
-		return exec_state::done;
-	}
-
-	exec_state rtr_handler()
-	{
-		// Read PC High
-		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = data << 16;
-		});
-
-		// Read CCR
-		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
-			res = operations::move_to_ccr(data, regs.SR);
-		});
-
-		// Read PC Low
-		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = regs.PC | data;
-		
-			regs.SSP.LW += 6;
-			// save it after reading PC Low to generate correct func codes during reading (as S bit affectes it)
+			// update SR after reading PC Low to generate correct func codes during reading (as S bit affectes it)
 			regs.SR = res;
 		});
 
@@ -1880,7 +1845,7 @@ private:
 		}
 	}
 
-	// Do prefetch one
+	// Do prefetch_one
 	// Write the result to register or memory
 	void schedule_prefetch_and_write(operand& op, std::uint32_t res, size_type size)
 	{
