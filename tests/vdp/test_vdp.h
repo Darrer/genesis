@@ -93,9 +93,12 @@ static const std::uint32_t cycle_limit = 100'000;
 public:
 	vdp() : vdp (std::make_shared<mock_m68k_bus_access>()) { }
 
+	vdp(std::shared_ptr<genesis::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus) { }
+
 	void cycle()
 	{
-		m68k_bus->cycle();
+		if(m68k_bus)
+			m68k_bus->cycle();
 		genesis::vdp::vdp::cycle();
 	}
 
@@ -128,7 +131,12 @@ public:
 		return wait([this]() { return !dma.is_idle(); });
 	}
 
-	mock_m68k_bus_access& m68k_bus_access() { return *m68k_bus; }
+	mock_m68k_bus_access& m68k_bus_access()
+	{
+		if(m68k_bus == nullptr)
+			throw internal_error();
+		return *m68k_bus;
+	}
 
 private:
 	template<class Callable>

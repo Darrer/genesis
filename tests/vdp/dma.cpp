@@ -1,5 +1,9 @@
 #include "../helpers/random.h"
 #include "test_vdp.h"
+#include "m68k/test_cpu.hpp"
+#include "m68k/test_program.h"
+#include "smd/impl/m68k_bus_access.h"
+#include "smd/test_smd.h"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -711,4 +715,64 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	ASSERT_EQ(false, vdp.m68k_bus_access().bus_acquired());
 
 	ASSERT_EQ(0, vdp.sett().dma_length());
+}
+
+
+TEST(VDP_DMA, BASIC_M68K_COPY_INTEGRATION_TEST)
+{
+	/* Combine m68k::cpu and vdp::vdp to test DMA m68k copy */
+
+	// Setup
+	test::test_cpu m68k_cpu;
+	auto& m68k_mem = m68k_cpu.memory();
+	auto m68k_bus_access = std::make_shared<genesis::impl::m68k_bus_access_impl>(m68k_cpu.bus_access());
+	test::vdp vdp(m68k_bus_access);
+
+	vdp.registers().R15.INC = 2;
+	
+	// Prepare source memory
+	const std::uint32_t source_address = test::address_after_test_programm;
+	const std::uint16_t dest_address = 2048;
+	const std::uint16_t length = 100;
+	const auto data = test::random::next_few<std::uint16_t>(length);
+
+	for(int i = 0; i < length; ++i)
+	{
+		std::uint32_t addr = source_address + (i * 2);
+		m68k_mem.write<std::uint16_t>(addr, data.at(i));
+	}
+
+	const auto start_dma_on_cycle = 100'000;
+	auto cycles = 0ull;
+
+	// Act
+	bool succeed = test::run_test_program(m68k_cpu, [&]()
+	{
+		vdp.cycle(); // In this test we don't really wory about execution order
+
+		++cycles;
+
+		if(cycles == start_dma_on_cycle)
+		{
+			setup_dma_m68k(vdp, source_address, dest_address, length, vmem_type::vram);
+		}
+	});
+
+	// Assert
+	ASSERT_TRUE(succeed);
+
+	// DMA must be completed by the time of finishing test program
+	ASSERT_TRUE(vdp.wait_dma() == 0);
+	ASSERT_TRUE(vdp.wait_fifo() == 0);
+
+	ASSERT_EQ(dma_final_address(source_address, length, 2), vdp.sett().dma_source());
+
+	auto& vdp_mem = vdp.vram();
+	for(int i = 0; i < length; ++i)
+	{
+		const auto expected_data = data.at(i);
+
+		std::uint32_t addr = dest_address + (i * 2);
+		ASSERT_EQ(expected_data, vdp_mem.read<std::uint16_t>(addr)) << "address: " << addr;
+	}
 }

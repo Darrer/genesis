@@ -62,12 +62,19 @@ bool run_mcl(test_cpu& cpu, Callable&& after_cycle_hook)
 	std::uint32_t old_pc = regs.PC;
 	std::uint32_t same_pc_counter = 0;
 
-	// TODO: check for infinite loops
-
 	// auto busy_cycles = 0ull;
+
+	// set cycles threshold to prevent infinitive loops
+	// it take a little bit less than 3 million cycles to execute MCL program,
+	// but set threshold to much bigger number to account for tests that take control over cpu bus
+	const auto cycles_threshld = 100'000'000;
+	auto cycles = 0ull;
 
 	while(true)
 	{
+		if(++cycles == cycles_threshld)
+			throw internal_error("run_mcl exceed cycles limit");
+
 		cpu.cycle();
 		after_cycle_hook();
 

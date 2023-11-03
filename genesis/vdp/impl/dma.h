@@ -49,6 +49,7 @@ public:
 				break;
 			}
 
+			// TODO: should we start processing operation on this cycle?
 			_state = state::fill;
 			break; 
 		}
@@ -115,7 +116,7 @@ private:
 	{
 		if(regs.fifo.empty() == false)
 		{
-			// wait till VDP free the FIFO
+			// wait till VDP frees the FIFO
 			return;
 		}
 
@@ -150,7 +151,7 @@ private:
 
 	void do_vram_copy()
 	{
-		// TODO: not sure we have to wait FIFO
+		// TODO: not sure if we have to wait FIFO
 		// TODO: VDP should stop processing requests from CPU during DMA VRAM copy
 		if(regs.fifo.empty() == false)
 		{

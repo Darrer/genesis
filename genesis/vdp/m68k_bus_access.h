@@ -1,8 +1,9 @@
-#ifndef __M68K_BUS_ACCESS_H__
-#define __M68K_BUS_ACCESS_H__
+#ifndef __VDP_M68K_BUS_ACCESS_H__
+#define __VDP_M68K_BUS_ACCESS_H__
 
 #include <cstdint>
 
+// TODO: add vdp namespace
 namespace genesis
 {
 
@@ -22,4 +23,4 @@ public:
 
 };
 
-#endif // __M68K_BUS_ACCESS_H__
+#endif // __VDP_M68K_BUS_ACCESS_H__

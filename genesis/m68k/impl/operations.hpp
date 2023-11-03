@@ -1171,9 +1171,9 @@ public:
 	static std::uint32_t value(std::uint32_t val, size_type size)
 	{
 		if(size == size_type::BYTE)
-			return val & 0xFF;
-		if (size == size_type::WORD)
-			return val & 0xFFFF;
+			return endian::lsb(val);
+		else if (size == size_type::WORD)
+			return endian::lsw(val);
 		return val;
 	}
 

@@ -15,7 +15,7 @@ bool run_test_program(test_cpu& cpu, Callable&& after_cycle_hook)
 }
 
 // it safe to use memory after this address
-const std::uint32_t address_after_test_programm = 0xF00000;
+const std::uint32_t address_after_test_programm = 0x3c0000;
 
 }
 

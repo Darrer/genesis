@@ -20,7 +20,7 @@ void vdp::cycle()
 	// io ports have priority over DMA
 	handle_ports_requests();
 
-	// TODO: we can execute io ports and DMA requests in 1 cycle
+	// TODO: can we execute io ports and DMA requests in 1 cycle?
 	handle_dma_requests();
 }
 
