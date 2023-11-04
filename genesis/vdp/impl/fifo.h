@@ -7,7 +7,6 @@
 #include "vdp/control_register.h"
 
 // TODO: move fifo.h to vdp/
-// TODO: fix type in filename
 
 namespace genesis::vdp
 {
@@ -20,7 +19,6 @@ struct fifo_entry
 
 class fifo
 {
-
 public:
 	bool full() const
 	{

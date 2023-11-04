@@ -3,7 +3,7 @@
 
 #include "control_register.h"
 #include "exception.hpp"
-#include "impl/fifio.h"
+#include "impl/fifo.h"
 #include "read_buffer.h"
 #include "registers.h"
 

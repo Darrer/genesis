@@ -46,6 +46,7 @@ PRIVATE
 	m68k/cpu.h
 	m68k/cpu.cpp
 
+	vdp/impl/fifo.h
 	vdp/vdp.h
 	vdp/vdp.cpp
 	vdp/registers.h
