@@ -17,7 +17,7 @@ namespace genesis::vdp
 class vdp
 {
 public:
-	vdp(std::shared_ptr<genesis::m68k_bus_access> m68k_bus);
+	vdp(std::shared_ptr<m68k_bus_access> m68k_bus);
 
 	// TODO: it should have multiple cycle methods with different clock rate
 	void cycle();

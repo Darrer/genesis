@@ -27,7 +27,7 @@ private:
 	};
 
 public:
-	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory, std::shared_ptr<genesis::m68k_bus_access> m68k_bus)
+	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory, std::shared_ptr<vdp::m68k_bus_access> m68k_bus)
 		: regs(regs), sett(sett),  memory(memory), m68k_bus(m68k_bus) { }
 
 	bool is_idle() const { return _state == state::idle; }
@@ -279,7 +279,7 @@ private:
 	memory_access& memory;
 	bool reading = false;
 
-	std::shared_ptr<genesis::m68k_bus_access> m68k_bus;
+	std::shared_ptr<vdp::m68k_bus_access> m68k_bus;
 	bool access_requested = false;
 };
 

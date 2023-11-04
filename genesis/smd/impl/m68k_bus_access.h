@@ -7,7 +7,7 @@
 namespace genesis::impl
 {
 
-class m68k_bus_access_impl : public genesis::m68k_bus_access
+class m68k_bus_access_impl : public vdp::m68k_bus_access
 {
 public:
 	m68k_bus_access_impl(genesis::m68k::bus_access& bus_access) : bus_access(bus_access) { }

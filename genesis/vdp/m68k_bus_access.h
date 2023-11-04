@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-// TODO: add vdp namespace
-namespace genesis
+namespace genesis::vdp
 {
 
 class m68k_bus_access

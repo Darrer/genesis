@@ -5,7 +5,7 @@
 namespace genesis::vdp
 {
 
-vdp::vdp(std::shared_ptr<genesis::m68k_bus_access> m68k_bus)
+vdp::vdp(std::shared_ptr<m68k_bus_access> m68k_bus)
 	: _sett(regs), ports(regs), dma(regs, _sett, dma_memory, m68k_bus)
 {
 }

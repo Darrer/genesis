@@ -3,7 +3,6 @@
 #include "m68k/test_cpu.hpp"
 #include "m68k/test_program.h"
 #include "smd/impl/m68k_bus_access.h"
-#include "smd/test_smd.h"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -748,7 +747,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY_INTEGRATION_TEST)
 	// Act
 	bool succeed = test::run_test_program(m68k_cpu, [&]()
 	{
-		vdp.cycle(); // In this test we don't really wory about execution order
+		vdp.cycle(); // In this test we don't really care about execution order
 
 		++cycles;
 

@@ -9,7 +9,7 @@
 namespace genesis::test
 {
 
-class mock_m68k_bus_access : public m68k_bus_access
+class mock_m68k_bus_access : public vdp::m68k_bus_access
 {
 public:
 	using m68k_memory_t = memory::memory_unit;
@@ -93,7 +93,7 @@ static const std::uint32_t cycle_limit = 100'000;
 public:
 	vdp() : vdp (std::make_shared<mock_m68k_bus_access>()) { }
 
-	vdp(std::shared_ptr<genesis::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus) { }
+	vdp(std::shared_ptr<genesis::vdp::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus) { }
 
 	void cycle()
 	{
