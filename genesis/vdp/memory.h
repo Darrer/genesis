@@ -33,6 +33,12 @@ public:
 		mem.write(format_addr(addr), data);
 	}
 
+	std::uint16_t read_color(std::uint8_t palette, std::uint8_t color_idx)
+	{
+		std::uint16_t addr = (palette * 32) + (color_idx * 2);
+		return read(addr);
+	}
+
 private:
 	static std::uint16_t format_addr(std::uint16_t addr)
 	{

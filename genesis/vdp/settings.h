@@ -162,6 +162,34 @@ public:
 		}
 	}
 
+	std::uint8_t plane_width_in_tiles() const
+	{
+		switch (plane_width())
+		{
+		case plane_dimension::c32:
+			return 32;
+		case plane_dimension::c64:
+			return 64;
+		case plane_dimension::c128:
+			return 128;
+		default: throw internal_error();
+		}
+	}
+
+	std::uint8_t plane_height_in_tiles() const
+	{
+		switch (plane_height())
+		{
+		case plane_dimension::c32:
+			return 32;
+		case plane_dimension::c64:
+			return 64;
+		case plane_dimension::c128:
+			return 128;
+		default: throw internal_error();
+		}
+	}
+
 	/* Window Plane Position & Direction */
 
 	std::uint8_t window_horizontal_pos_in_cells() const

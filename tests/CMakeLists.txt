@@ -68,6 +68,7 @@ PRIVATE
 
 	vdp/ports.cpp
 	vdp/dma.cpp
+	vdp/render.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

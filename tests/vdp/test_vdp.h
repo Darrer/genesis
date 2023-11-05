@@ -95,6 +95,11 @@ public:
 
 	vdp(std::shared_ptr<genesis::vdp::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus) { }
 
+	::genesis::vdp::impl::render& render()
+	{
+		return m_render;
+	}
+
 	void cycle()
 	{
 		if(m68k_bus)

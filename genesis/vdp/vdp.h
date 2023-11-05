@@ -2,6 +2,7 @@
 #define __VDP_H__
 
 #include "impl/dma.h"
+#include "impl/render.h"
 #include "m68k_bus_access.h"
 #include "memory.h"
 #include "ports.h"
@@ -75,6 +76,7 @@ private:
 protected:
 	impl::memory_access dma_memory;
 	impl::dma dma;
+	impl::render m_render;
 };
 
 } // namespace genesis::vdp

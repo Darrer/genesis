@@ -47,6 +47,9 @@ PRIVATE
 	m68k/cpu.cpp
 
 	vdp/impl/fifo.h
+	vdp/impl/render.h
+	vdp/impl/render.cpp
+	vdp/impl/name_table.h
 	vdp/vdp.h
 	vdp/vdp.cpp
 	vdp/registers.h

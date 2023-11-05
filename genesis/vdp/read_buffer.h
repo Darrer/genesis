@@ -46,7 +46,7 @@ public:
 	bool has_data() const { return _has_data; }
 
 	// keep the data, but remove the available flag
-	void clear_data_flag()
+	void clear_data_flag() // TODO: remove _flag part
 	{
 		_has_data = false;
 	}
