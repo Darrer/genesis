@@ -1,7 +1,5 @@
 #include "render.h"
 
-#include "name_table.h"
-
 #include <iostream>
 
 namespace genesis::vdp::impl
@@ -41,7 +39,7 @@ std::span<genesis::vdp::color> render::get_plane_b_row(std::uint8_t row_number)
 		auto entry = table.get(tile_row_number, i);
 
 		// TODO: does this code perform LE/BE convertion?
-		std::uint32_t tail = read_tail_row(entry.pattern_addr, row_in_tail);
+		std::uint32_t tail = read_tail_row(row_in_tail, entry);
 
 		// there are always 8 row pixels in tail
 		for(int i = 0; i < 8; ++i)
@@ -57,11 +55,27 @@ std::span<genesis::vdp::color> render::get_plane_b_row(std::uint8_t row_number)
 }
 
 // row_number - zero based
-std::uint32_t render::read_tail_row(std::uint32_t tail_address, std::uint8_t row_number) const
+std::uint32_t render::read_tail_row(std::uint8_t row_number, name_table_entry entry) const
 {
 	const int row_size = 4;
-	std::uint32_t address = (tail_address << 5) + (row_number * row_size);
-	return vram.read<std::uint32_t>(address);
+	std::uint32_t address = entry.effective_pattern_address() + (row_number * row_size);
+	auto row = vram.read<std::uint32_t>(address);
+
+	if(entry.horizontal_flip)
+	{
+		std::uint32_t out_row = 0;
+		for(int i = 0; i < 8; ++i)
+		{
+			std::uint8_t value = row & 0xF;
+			row = row >> 4;
+
+			out_row |= value << (28 - (i * 4));
+		}
+
+		row = out_row;
+	}
+
+	return row;
 }
 
 }

@@ -10,6 +10,8 @@
 #include "vdp/memory.h"
 #include "color.h"
 
+#include "name_table.h"
+
 namespace genesis::vdp::impl
 {
 
@@ -25,7 +27,7 @@ public:
 	std::span<genesis::vdp::color> get_plane_b_row(std::uint8_t row_number);
 
 private:
-	std::uint32_t read_tail_row(std::uint32_t tail_address, std::uint8_t row_number) const;
+	std::uint32_t read_tail_row(std::uint8_t row_number, name_table_entry entry) const;
 
 private:
 	genesis::vdp::register_set& regs;

@@ -31,6 +31,15 @@ public:
 		return res;
 	}
 
+	template<class T>
+	static std::vector<T> next_few_in_range(unsigned count, T a, T b)
+	{
+		std::vector<T> res;
+		for(unsigned i = 0; i < count; ++i)
+			res.push_back(in_range<T>(a, b));
+		return res;
+	}
+
 	// returns random value in range [a; b]
 	template<class T>
 	static T in_range(T a, T b)

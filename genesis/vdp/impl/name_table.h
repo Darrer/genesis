@@ -14,6 +14,11 @@ union name_table_entry
 	name_table_entry() : raw_value(0) { }
 	name_table_entry(std::uint16_t value) : raw_value (value) { }
 
+	std::uint32_t effective_pattern_address() const
+	{
+		return pattern_addr << 5;
+	}
+
 	struct 
 	{
 		std::uint16_t pattern_addr : 11;
