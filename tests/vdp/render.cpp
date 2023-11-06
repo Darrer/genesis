@@ -70,6 +70,11 @@ std::vector<std::uint8_t> random_tail()
 	return random::next_few_in_range<std::uint8_t>(64, 0, 0xF);
 }
 
+std::uint8_t random_palette()
+{
+	return random::in_range<std::uint8_t>(0, 3);
+}
+
 std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
 	bool horizontal_flip = false, bool vertical_flip = false)
 {
@@ -114,10 +119,14 @@ void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 }
 
 std::uint16_t get_plane_entry(std::uint32_t tail_address,
-	bool horizintal_flip = false, bool vertical_flip = false)
+	bool horizintal_flip = false, bool vertical_flip = false, std::uint8_t palette = 0)
 {
+	if(palette > 4)
+		throw genesis::internal_error();
+
 	std::uint16_t plane_entry = 0;
 	plane_entry |= tail_address >> 5;
+	plane_entry |= palette << 13;
 
 	if(horizintal_flip)
 		plane_entry |= 1 << 11;
@@ -187,7 +196,8 @@ TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
-	std::uint16_t plane_entry = get_plane_entry(tail_address);
+	const std::uint8_t palette = random_palette();
+	std::uint16_t plane_entry = get_plane_entry(tail_address, false, false, palette);
 	fill_plane(vdp, sett.plane_b_address(), plane_entry);
 	fill_cram(vdp);
 
@@ -202,7 +212,7 @@ TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
 		{
 			int tail_col = i % 8;
 			int color_idx = (tail_row_idx * 8) + tail_col;
-			auto expected_color = cram.read_color(0, tail[color_idx]);
+			auto expected_color = cram.read_color(palette, tail[color_idx]);
 
 			ASSERT_EQ(expected_color, actual_color.value())
 				<< "row: " << row_idx << ", expected color idx: " << color_idx
@@ -232,7 +242,8 @@ TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
-	auto plane_entry = get_plane_entry(tail_address, true);
+	const std::uint8_t palette = random_palette();
+	auto plane_entry = get_plane_entry(tail_address, true, false, palette);
 	fill_plane(vdp, sett.plane_b_address(), plane_entry);
 	fill_cram(vdp);
 
@@ -244,7 +255,7 @@ TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 		for(auto actual_color : row)
 		{
 			int tail_idx = get_tail_index(row_idx % 8, col % 8, true);
-			auto expected_color = cram.read_color(0, tail.at(tail_idx));
+			auto expected_color = cram.read_color(palette, tail.at(tail_idx));
 
 			ASSERT_EQ(expected_color, actual_color.value())
 				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
@@ -273,7 +284,8 @@ TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
-	auto plane_entry = get_plane_entry(tail_address, false, true);
+	const std::uint8_t palette = random_palette();
+	auto plane_entry = get_plane_entry(tail_address, false, true, palette);
 	fill_plane(vdp, sett.plane_b_address(), plane_entry);
 	fill_cram(vdp);
 
@@ -285,7 +297,7 @@ TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 		for(auto actual_color : row)
 		{
 			int tail_idx = get_tail_index(row_idx % 8, col % 8, false, true);
-			auto expected_color = cram.read_color(0, tail.at(tail_idx));
+			auto expected_color = cram.read_color(palette, tail.at(tail_idx));
 
 			ASSERT_EQ(expected_color, actual_color.value())
 				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
@@ -335,7 +347,8 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
-	auto plane_entry = get_plane_entry(tail_address, true, true);
+	const std::uint8_t palette = random_palette();
+	auto plane_entry = get_plane_entry(tail_address, true, true, palette);
 	fill_plane(vdp, sett.plane_b_address(), plane_entry);
 	fill_cram(vdp);
 
@@ -347,7 +360,7 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 		for(auto actual_color : row)
 		{
 			int tail_idx = get_tail_index(row_idx % 8, col % 8);
-			auto expected_color = cram.read_color(0, fliped_tail.at(tail_idx));
+			auto expected_color = cram.read_color(palette, fliped_tail.at(tail_idx));
 
 			ASSERT_EQ(expected_color, actual_color.value())
 				<< "row: " << row_idx << ", expected color idx: " << fliped_tail.at(tail_idx);
