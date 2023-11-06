@@ -166,15 +166,64 @@ void fill_cram(vdp& vdp)
 	}
 }
 
-TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
+template<class T>
+void setup_plane_test(vdp& vdp, bool hflip, bool vflip, 
+	std::uint8_t palette, const T& tail)
 {
-	vdp vdp;
 	auto& cram = vdp.cram();
 	auto& regs = vdp.registers();
 	auto& sett = vdp.sett();
 	auto& render = vdp.render();
 
+	// use constant address for simple test
 	const std::uint32_t tail_address = 0b1111111111100000;
+	copy_tail(vdp, tail_address, tail);
+
+	// use constant plane address for simple test
+	regs.R4.PB2_0 = 0b100;
+	auto plane_address = sett.plane_b_address(); // TODO: only plane B for now
+
+	// TODO: not sure if it's valid plane size
+	regs.R16.H = 0b01; // 64
+	regs.R16.W = 0b01; // 64
+
+	std::uint16_t plane_entry = get_plane_entry(tail_address, hflip, vflip, palette);
+	fill_plane(vdp, sett.plane_b_address(), plane_entry);
+	fill_cram(vdp);
+}
+
+template<class T, class Callable>
+void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
+	const T& tail, Callable expected_color)
+{
+	// Setup
+	const std::uint8_t palette = random_palette();
+	setup_plane_test(vdp, hflip, vflip, palette, tail);
+
+	auto& sett = vdp.sett();
+	auto& render = vdp.render();
+
+	// Run test
+	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	{
+		auto row = render.get_plane_b_row(row_idx);
+
+		int col_idx = 0;
+		for(auto actual_color : row)
+		{
+			auto color = expected_color(row_idx, col_idx++, palette);
+			
+			ASSERT_EQ(color, actual_color.value())
+				<< "row: " << row_idx << ", col: " << col_idx - 1;
+		}
+	}
+}
+
+TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
+{
+	vdp vdp;
+	auto& cram = vdp.cram();
+	
 	std::array<std::uint8_t, 64> tail = {
 		0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8,
 		0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0,
@@ -186,134 +235,45 @@ TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
 		0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1
 	};
 
-	copy_tail(vdp, tail_address, tail);
-
-
-	regs.R4.PB2_0 = 0b100;
-	auto plane_address = sett.plane_b_address();
-
-	// TODO: not sure it's valid plane size
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
-
-	const std::uint8_t palette = random_palette();
-	std::uint16_t plane_entry = get_plane_entry(tail_address, false, false, palette);
-	fill_plane(vdp, sett.plane_b_address(), plane_entry);
-	fill_cram(vdp);
-
-	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	setup_and_run_plane_test(vdp, false, false, tail, [&](int row, int col, std::uint8_t palette)
 	{
-		auto row = render.get_plane_b_row(row_idx);
-
-		int tail_row_idx = (row_idx % 8);
-
-		int i = 0;
-		for(auto actual_color : row)
-		{
-			int tail_col = i % 8;
-			int color_idx = (tail_row_idx * 8) + tail_col;
-			auto expected_color = cram.read_color(palette, tail[color_idx]);
-
-			ASSERT_EQ(expected_color, actual_color.value())
-				<< "row: " << row_idx << ", expected color idx: " << color_idx
-				<< ", expected color: " << expected_color;
-			++i;
-		}
-
-	}
+		auto tail_idx = get_tail_index(row % 8, col % 8);
+		return cram.read_color(palette, tail.at(tail_idx));
+	});
 }
 
 TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 {
 	vdp vdp;
 	auto& cram = vdp.cram();
-	auto& regs = vdp.registers();
-	auto& sett = vdp.sett();
-	auto& render = vdp.render();
-
-	const std::uint32_t tail_address = 0b1111111111100000;
+	
 	auto tail = random_tail();
-	copy_tail(vdp, tail_address, tail);
 
-	regs.R4.PB2_0 = 0b100;
-	auto plane_address = sett.plane_b_address();
-
-	// TODO: not sure it's valid plane size
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
-
-	const std::uint8_t palette = random_palette();
-	auto plane_entry = get_plane_entry(tail_address, true, false, palette);
-	fill_plane(vdp, sett.plane_b_address(), plane_entry);
-	fill_cram(vdp);
-
-	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	setup_and_run_plane_test(vdp, true, false, tail, [&](int row, int col, std::uint8_t palette)
 	{
-		auto row = render.get_plane_b_row(row_idx);
-
-		int col = 0;
-		for(auto actual_color : row)
-		{
-			int tail_idx = get_tail_index(row_idx % 8, col % 8, true);
-			auto expected_color = cram.read_color(palette, tail.at(tail_idx));
-
-			ASSERT_EQ(expected_color, actual_color.value())
-				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
-			++col;
-		}
-
-	}
+		auto tail_idx = get_tail_index(row % 8, col % 8, true);
+		return cram.read_color(palette, tail.at(tail_idx));
+	});
 }
 
 TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 {
 	vdp vdp;
 	auto& cram = vdp.cram();
-	auto& regs = vdp.registers();
-	auto& sett = vdp.sett();
-	auto& render = vdp.render();
-
-	const std::uint32_t tail_address = 0b1111111111100000;
+	
 	auto tail = random_tail();
-	copy_tail(vdp, tail_address, tail);
 
-	regs.R4.PB2_0 = 0b100;
-	auto plane_address = sett.plane_b_address();
-
-	// TODO: not sure it's valid plane size
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
-
-	const std::uint8_t palette = random_palette();
-	auto plane_entry = get_plane_entry(tail_address, false, true, palette);
-	fill_plane(vdp, sett.plane_b_address(), plane_entry);
-	fill_cram(vdp);
-
-	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	setup_and_run_plane_test(vdp, false, true, tail, [&](int row, int col, std::uint8_t palette)
 	{
-		auto row = render.get_plane_b_row(row_idx);
-
-		int col = 0;
-		for(auto actual_color : row)
-		{
-			int tail_idx = get_tail_index(row_idx % 8, col % 8, false, true);
-			auto expected_color = cram.read_color(palette, tail.at(tail_idx));
-
-			ASSERT_EQ(expected_color, actual_color.value())
-				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
-			++col;
-		}
-
-	}
+		auto tail_idx = get_tail_index(row % 8, col % 8, false, true);
+		return cram.read_color(palette, tail.at(tail_idx));
+	});
 }
 
 TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 {
 	vdp vdp;
 	auto& cram = vdp.cram();
-	auto& regs = vdp.registers();
-	auto& sett = vdp.sett();
-	auto& render = vdp.render();
 
 	const std::array<std::uint8_t, 64> tail = {
 		0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
@@ -337,34 +297,9 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 		0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0
 	};
 
-	const std::uint32_t tail_address = 0b1111111111100000;
-	copy_tail(vdp, tail_address, tail);
-
-	regs.R4.PB2_0 = 0b100;
-	auto plane_address = sett.plane_b_address();
-
-	// TODO: not sure it's valid plane size
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
-
-	const std::uint8_t palette = random_palette();
-	auto plane_entry = get_plane_entry(tail_address, true, true, palette);
-	fill_plane(vdp, sett.plane_b_address(), plane_entry);
-	fill_cram(vdp);
-
-	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	setup_and_run_plane_test(vdp, true, true, tail, [&](int row, int col, std::uint8_t palette)
 	{
-		auto row = render.get_plane_b_row(row_idx);
-
-		int col = 0;
-		for(auto actual_color : row)
-		{
-			int tail_idx = get_tail_index(row_idx % 8, col % 8);
-			auto expected_color = cram.read_color(palette, fliped_tail.at(tail_idx));
-
-			ASSERT_EQ(expected_color, actual_color.value())
-				<< "row: " << row_idx << ", expected color idx: " << fliped_tail.at(tail_idx);
-			++col;
-		}
-	}
+		auto tail_idx = get_tail_index(row % 8, col % 8);
+		return cram.read_color(palette, fliped_tail.at(tail_idx));
+	});
 }
