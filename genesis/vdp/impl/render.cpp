@@ -57,6 +57,13 @@ std::span<genesis::vdp::color> render::get_plane_b_row(std::uint8_t row_number)
 // row_number - zero based
 std::uint32_t render::read_tail_row(std::uint8_t row_number, name_table_entry entry) const
 {
+	// TODO: can it be > 8?
+	if(row_number > 8)
+		throw internal_error();
+
+	if(entry.vertical_flip)
+		row_number = 7 - row_number;
+
 	const int row_size = 4;
 	std::uint32_t address = entry.effective_pattern_address() + (row_number * row_size);
 	auto row = vram.read<std::uint32_t>(address);

@@ -70,6 +70,21 @@ std::vector<std::uint8_t> random_tail()
 	return random::next_few_in_range<std::uint8_t>(64, 0, 0xF);
 }
 
+std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
+	bool horizontal_flip = false, bool vertical_flip = false)
+{
+	if(row > 8 || col > 8)
+		throw genesis::internal_error();
+
+	if(vertical_flip)
+		row = 7 - row;
+
+	if(horizontal_flip)
+		col = 7 - col;
+
+	return (row * 8) + col;
+}
+
 template<class T>
 void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 {
@@ -98,13 +113,17 @@ void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 	}
 }
 
-std::uint16_t get_plane_entry(std::uint32_t tail_address, bool horizintal_flip = false)
+std::uint16_t get_plane_entry(std::uint32_t tail_address,
+	bool horizintal_flip = false, bool vertical_flip = false)
 {
 	std::uint16_t plane_entry = 0;
 	plane_entry |= tail_address >> 5;
 
 	if(horizintal_flip)
 		plane_entry |= 1 << 11;
+
+	if(vertical_flip)
+		plane_entry |= 1 << 12;
 
 	return plane_entry;
 }
@@ -221,18 +240,56 @@ TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 	{
 		auto row = render.get_plane_b_row(row_idx);
 
-		int tail_row_idx = (row_idx % 8);
-
-		int i = 0;
+		int col = 0;
 		for(auto actual_color : row)
 		{
-			int tail_col = 7 - (i % 8);
-			int color_idx = (tail_row_idx * 8) + tail_col;
-			auto expected_color = cram.read_color(0, tail[color_idx]);
+			int tail_idx = get_tail_index(row_idx % 8, col % 8, true);
+			auto expected_color = cram.read_color(0, tail.at(tail_idx));
 
 			ASSERT_EQ(expected_color, actual_color.value())
-				<< "row: " << row_idx << ", expected color idx: " << color_idx;
-			++i;
+				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
+			++col;
+		}
+
+	}
+}
+
+TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
+{
+	vdp vdp;
+	auto& cram = vdp.cram();
+	auto& regs = vdp.registers();
+	auto& sett = vdp.sett();
+	auto& render = vdp.render();
+
+	const std::uint32_t tail_address = 0b1111111111100000;
+	auto tail = random_tail();
+	copy_tail(vdp, tail_address, tail);
+
+	regs.R4.PB2_0 = 0b100;
+	auto plane_address = sett.plane_b_address();
+
+	// TODO: not sure it's valid plane size
+	regs.R16.H = 0b01; // 64
+	regs.R16.W = 0b01; // 64
+
+	auto plane_entry = get_plane_entry(tail_address, false, true);
+	fill_plane(vdp, sett.plane_b_address(), plane_entry);
+	fill_cram(vdp);
+
+	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	{
+		auto row = render.get_plane_b_row(row_idx);
+
+		int col = 0;
+		for(auto actual_color : row)
+		{
+			int tail_idx = get_tail_index(row_idx % 8, col % 8, false, true);
+			auto expected_color = cram.read_color(0, tail.at(tail_idx));
+
+			ASSERT_EQ(expected_color, actual_color.value())
+				<< "row: " << row_idx << ", expected color idx: " << tail.at(tail_idx);
+			++col;
 		}
 
 	}
