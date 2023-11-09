@@ -5,10 +5,6 @@
 namespace genesis::vdp::impl
 {
 
-
-
-
-
 const auto PIXELS_IN_TILE_ROW = 8;
 const auto PIXELS_IN_TILE_COL = 8;
 
@@ -26,14 +22,18 @@ std::uint16_t render::background_color() const
 	return cram.read_color(regs.R7.PAL, regs.R7.COL);
 }
 
-std::span<genesis::vdp::color> render::get_plane_b_row(std::uint8_t row_number)
+std::span<genesis::vdp::output_color> render::get_plane_b_row(std::uint8_t row_number,
+	std::span<genesis::vdp::output_color> buffer) const
 {
+	std::size_t min_buffer_size = sett.plane_width_in_tiles() * 8;
+	if(buffer.size() < min_buffer_size)
+		throw genesis::internal_error();
+
 	name_table table(plane_type::b, sett, vram);
-	auto tiles_per_row = sett.plane_width_in_tiles();
 	const int tile_row_number = row_number / PIXELS_IN_TILE_COL;
 	const int row_in_tail = row_number % PIXELS_IN_TILE_COL;
 
-	int buffer_idx = 0;
+	auto it = buffer.begin();
 	for(auto i = 0; i < table.entries_per_row(); ++i)
 	{
 		auto entry = table.get(tile_row_number, i);
@@ -47,11 +47,12 @@ std::span<genesis::vdp::color> render::get_plane_b_row(std::uint8_t row_number)
 			std::uint8_t color_idx = tail & 0b1111;
 			tail = tail >> 4;
 
-			plane_buffer.at(buffer_idx++) = cram.read_color(entry.palette, color_idx);
+			*it = read_color(entry.palette, color_idx);
+			++it;
 		}
 	}
 
-	return std::span<genesis::vdp::color>(plane_buffer.begin(), tiles_per_row * PIXELS_IN_TILE_ROW);
+	return std::span<genesis::vdp::output_color>(buffer.begin(), min_buffer_size);
 }
 
 // row_number - zero based
@@ -83,6 +84,14 @@ std::uint32_t render::read_tail_row(std::uint8_t row_number, name_table_entry en
 	}
 
 	return row;
+}
+
+// shouldn't be used for background color
+vdp::output_color render::read_color(std::uint8_t palette_idx, std::uint8_t color_idx) const
+{
+	if(color_idx == 0)
+		return vdp::TRANSPARENT_COLOR;
+	return cram.read_color(palette_idx, color_idx);
 }
 
 }

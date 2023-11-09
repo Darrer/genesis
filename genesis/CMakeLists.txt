@@ -50,6 +50,7 @@ PRIVATE
 	vdp/impl/render.h
 	vdp/impl/render.cpp
 	vdp/impl/name_table.h
+	vdp/impl/color.h
 	vdp/vdp.h
 	vdp/vdp.cpp
 	vdp/registers.h
@@ -58,6 +59,7 @@ PRIVATE
 	vdp/ports.h
 	vdp/ports.cpp
 	vdp/memory.h
+	vdp/output_color.h
 )
 
 # executable based on core lib

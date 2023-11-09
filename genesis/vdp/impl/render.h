@@ -8,6 +8,7 @@
 #include "vdp/register_set.h"
 #include "vdp/settings.h"
 #include "vdp/memory.h"
+#include "vdp/output_color.h"
 #include "color.h"
 
 #include "name_table.h"
@@ -24,10 +25,18 @@ public:
 
 	std::uint16_t background_color() const;
 
-	std::span<genesis::vdp::color> get_plane_b_row(std::uint8_t row_number);
+	std::span<genesis::vdp::output_color> get_plane_b_row(std::uint8_t row_number,
+		std::span<genesis::vdp::output_color> buffer) const;
+
+	// tmp
+	std::span<genesis::vdp::output_color> get_plane_b_row(std::uint8_t row_number) const
+	{
+		return get_plane_b_row(row_number, plane_buffer);
+	}
 
 private:
 	std::uint32_t read_tail_row(std::uint8_t row_number, name_table_entry entry) const;
+	vdp::output_color read_color(std::uint8_t palette_idx, std::uint8_t color_idx) const;
 
 private:
 	genesis::vdp::register_set& regs;
@@ -36,7 +45,7 @@ private:
 	genesis::vdp::vsram_t& vsram;
 	genesis::vdp::cram_t& cram;
 
-	std::array<genesis::vdp::color, 1024> plane_buffer;
+	mutable std::array<genesis::vdp::output_color, 1024> plane_buffer;
 };
 
 }

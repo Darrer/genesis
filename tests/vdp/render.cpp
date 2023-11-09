@@ -90,6 +90,13 @@ std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
 	return (row * 8) + col;
 }
 
+genesis::vdp::output_color read_color(vdp& vdp, std::uint8_t palette_idx, std::uint8_t col_idx)
+{
+	if(col_idx == 0)
+		return genesis::vdp::TRANSPARENT_COLOR;
+	return vdp.cram().read_color(palette_idx, col_idx);
+}
+
 template<class T>
 void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 {
@@ -160,9 +167,7 @@ void fill_cram(vdp& vdp)
 	for(int i = 0; i < 64; ++i)
 	{
 		std::uint16_t addr = i * 2;
-		std::uint16_t color = genesis::vdp::color(random::next<std::uint16_t>()).value();
-
-		cram.write(addr, color);
+		cram.write(addr, random::next<std::uint16_t>());
 	}
 }
 
@@ -183,7 +188,7 @@ void setup_plane_test(vdp& vdp, bool hflip, bool vflip,
 	regs.R4.PB2_0 = 0b100;
 	auto plane_address = sett.plane_b_address(); // TODO: only plane B for now
 
-	// TODO: not sure if it's valid plane size
+	// use constant plane size for now
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
@@ -211,9 +216,9 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 		int col_idx = 0;
 		for(auto actual_color : row)
 		{
-			auto color = expected_color(row_idx, col_idx++, palette);
-			
-			ASSERT_EQ(color, actual_color.value())
+			genesis::vdp::output_color color = expected_color(row_idx, col_idx++, palette);
+					
+			ASSERT_EQ(actual_color, color)
 				<< "row: " << row_idx << ", col: " << col_idx - 1;
 		}
 	}
@@ -238,7 +243,7 @@ TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
 	setup_and_run_plane_test(vdp, false, false, tail, [&](int row, int col, std::uint8_t palette)
 	{
 		auto tail_idx = get_tail_index(row % 8, col % 8);
-		return cram.read_color(palette, tail.at(tail_idx));
+		return read_color(vdp, palette, tail.at(tail_idx));
 	});
 }
 
@@ -252,7 +257,7 @@ TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 	setup_and_run_plane_test(vdp, true, false, tail, [&](int row, int col, std::uint8_t palette)
 	{
 		auto tail_idx = get_tail_index(row % 8, col % 8, true);
-		return cram.read_color(palette, tail.at(tail_idx));
+		return read_color(vdp, palette, tail.at(tail_idx));
 	});
 }
 
@@ -266,7 +271,7 @@ TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 	setup_and_run_plane_test(vdp, false, true, tail, [&](int row, int col, std::uint8_t palette)
 	{
 		auto tail_idx = get_tail_index(row % 8, col % 8, false, true);
-		return cram.read_color(palette, tail.at(tail_idx));
+		return read_color(vdp, palette, tail.at(tail_idx));
 	});
 }
 
@@ -300,6 +305,6 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 	setup_and_run_plane_test(vdp, true, true, tail, [&](int row, int col, std::uint8_t palette)
 	{
 		auto tail_idx = get_tail_index(row % 8, col % 8);
-		return cram.read_color(palette, fliped_tail.at(tail_idx));
+		return read_color(vdp, palette, fliped_tail.at(tail_idx));
 	});
 }

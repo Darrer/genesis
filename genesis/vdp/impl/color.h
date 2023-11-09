@@ -4,7 +4,7 @@
 #include  <cstdint>
 
 
-namespace genesis::vdp
+namespace genesis::vdp::impl
 {
 
 struct color

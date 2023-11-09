@@ -336,7 +336,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 		{
 			for(int blue = 0; blue <= 7; ++blue)
 			{
-				color color;
+				impl::color color;
 				color.red = red;
 				color.green = green;
 				color.blue = blue;
@@ -529,7 +529,7 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 	control_register write_ctrl = setup_control(0, vmem_type::cram, control_type::write);
 	control_register read_ctrl = setup_control(0, vmem_type::cram, control_type::read);
 
-	color color;
+	impl::color color;
 	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
 	{
 		const int effective_addr = addr & 0b0000000001111110;
