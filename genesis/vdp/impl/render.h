@@ -25,16 +25,16 @@ public:
 
 	std::uint16_t background_color() const;
 
+	std::span<genesis::vdp::output_color> get_plane_a_row(std::uint8_t row_number,
+		std::span<genesis::vdp::output_color> buffer) const;
+
 	std::span<genesis::vdp::output_color> get_plane_b_row(std::uint8_t row_number,
 		std::span<genesis::vdp::output_color> buffer) const;
 
-	// tmp
-	std::span<genesis::vdp::output_color> get_plane_b_row(std::uint8_t row_number) const
-	{
-		return get_plane_b_row(row_number, plane_buffer);
-	}
-
 private:
+	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,
+		std::uint8_t row_number, std::span<genesis::vdp::output_color> buffer) const;
+
 	std::uint32_t read_tail_row(std::uint8_t row_number, name_table_entry entry) const;
 	vdp::output_color read_color(std::uint8_t palette_idx, std::uint8_t color_idx) const;
 

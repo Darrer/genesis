@@ -5,7 +5,12 @@
 #include "test_vdp.h"
 #include "helpers/random.h"
 
+#include "vdp/impl/name_table.h"
+using genesis::vdp::impl::plane_type;
+
 using namespace genesis::test;
+
+static std::array<genesis::vdp::output_color, 1024> plane_buffer;
 
 void setup_background_color(vdp& vdp, std::uint8_t palette, std::uint8_t color_number)
 {
@@ -53,15 +58,15 @@ TEST(VDP_RENDER, PLANE_B_ROW_SIZE)
 	auto& sett = vdp.sett();
 
 	regs.R16.W = 0b00; // 32 tiles width
-	auto row = render.get_plane_b_row(0);
+	auto row = render.get_plane_b_row(0, plane_buffer);
 	ASSERT_EQ(32 * 8, row.size());
 
 	regs.R16.W = 0b01; // 128 tiles width
-	row = render.get_plane_b_row(0);
+	row = render.get_plane_b_row(0, plane_buffer);
 	ASSERT_EQ(64 * 8, row.size());
 
 	regs.R16.W = 0b11; // 128 tiles width
-	row = render.get_plane_b_row(0);
+	row = render.get_plane_b_row(0, plane_buffer);
 	ASSERT_EQ(128 * 8, row.size());
 }
 
@@ -172,7 +177,7 @@ void fill_cram(vdp& vdp)
 }
 
 template<class T>
-void setup_plane_test(vdp& vdp, bool hflip, bool vflip, 
+void setup_plane_test(vdp& vdp, plane_type plane_type, bool hflip, bool vflip, 
 	std::uint8_t palette, const T& tail)
 {
 	auto& cram = vdp.cram();
@@ -185,15 +190,24 @@ void setup_plane_test(vdp& vdp, bool hflip, bool vflip,
 	copy_tail(vdp, tail_address, tail);
 
 	// use constant plane address for simple test
-	regs.R4.PB2_0 = 0b100;
-	auto plane_address = sett.plane_b_address(); // TODO: only plane B for now
+	std::uint32_t plane_address;
+	if(plane_type == plane_type::a)
+	{
+		regs.R2.PA5_3 = 0b100; // plane A
+		plane_address = sett.plane_a_address();
+	}
+	else
+	{
+		regs.R4.PB2_0 = 0b100; // plane B
+		plane_address = sett.plane_b_address();
+	}
 
 	// use constant plane size for now
 	regs.R16.H = 0b01; // 64
 	regs.R16.W = 0b01; // 64
 
 	std::uint16_t plane_entry = get_plane_entry(tail_address, hflip, vflip, palette);
-	fill_plane(vdp, sett.plane_b_address(), plane_entry);
+	fill_plane(vdp, plane_address, plane_entry);
 	fill_cram(vdp);
 }
 
@@ -203,7 +217,8 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 {
 	// Setup
 	const std::uint8_t palette = random_palette();
-	setup_plane_test(vdp, hflip, vflip, palette, tail);
+	auto plane_type = random::pick({plane_type::a, plane_type::b});
+	setup_plane_test(vdp, plane_type, hflip, vflip, palette, tail);
 
 	auto& sett = vdp.sett();
 	auto& render = vdp.render();
@@ -211,7 +226,9 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 	// Run test
 	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
 	{
-		auto row = render.get_plane_b_row(row_idx);
+		auto row = plane_type == plane_type::a
+			? render.get_plane_a_row(row_idx, plane_buffer)
+		 	: render.get_plane_b_row(row_idx, plane_buffer);
 
 		int col_idx = 0;
 		for(auto actual_color : row)

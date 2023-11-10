@@ -64,6 +64,21 @@ public:
 		return array[idx];
 	}
 
+	template<class T>
+	static const T pick(std::initializer_list<T> array)
+	{
+		if(array.size() == 0)
+			throw std::invalid_argument("array should not be empty");
+
+		if(array.size() == 1)
+			return *array.begin();
+
+		auto idx = in_range<typename std::initializer_list<T>::size_type>(0, array.size() - 1);
+		auto it = array.begin();
+		std::advance(it, idx);
+		return *it;
+	}
+
 private:
 	static std::mt19937 gen;
 	static std::uniform_int_distribution<int> dist;

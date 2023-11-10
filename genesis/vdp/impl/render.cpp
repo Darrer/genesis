@@ -25,11 +25,23 @@ std::uint16_t render::background_color() const
 std::span<genesis::vdp::output_color> render::get_plane_b_row(std::uint8_t row_number,
 	std::span<genesis::vdp::output_color> buffer) const
 {
+	return get_plane_row(plane_type::b, row_number, buffer);
+}
+
+std::span<genesis::vdp::output_color> render::get_plane_a_row(std::uint8_t row_number,
+	std::span<genesis::vdp::output_color> buffer) const
+{
+	return get_plane_row(plane_type::a, row_number, buffer);
+}
+
+std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type plane_type,
+		std::uint8_t row_number, std::span<genesis::vdp::output_color> buffer) const
+{
 	std::size_t min_buffer_size = sett.plane_width_in_tiles() * 8;
 	if(buffer.size() < min_buffer_size)
 		throw genesis::internal_error();
 
-	name_table table(plane_type::b, sett, vram);
+	name_table table(plane_type, sett, vram);
 	const int tile_row_number = row_number / PIXELS_IN_TILE_COL;
 	const int row_in_tail = row_number % PIXELS_IN_TILE_COL;
 
