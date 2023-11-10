@@ -80,6 +80,11 @@ std::uint8_t random_palette()
 	return random::in_range<std::uint8_t>(0, 3);
 }
 
+plane_type random_plane()
+{
+	return random::pick({plane_type::a, plane_type::b});
+}
+
 std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
 	bool horizontal_flip = false, bool vertical_flip = false)
 {
@@ -324,4 +329,31 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 		auto tail_idx = get_tail_index(row % 8, col % 8);
 		return read_color(vdp, palette, fliped_tail.at(tail_idx));
 	});
+}
+
+TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
+{
+	vdp vdp;
+	auto tail = random_tail();
+	auto plane = random_plane();
+	setup_plane_test(vdp, plane, false, false, 0, tail);
+
+	auto& sett = vdp.sett();
+	auto& render = vdp.render();
+
+	auto get_row = [&](unsigned row)
+	{
+		return plane == plane_type::a
+			? render.get_plane_a_row(row, plane_buffer)
+			: render.get_plane_b_row(row, plane_buffer);
+	};
+
+	// Max possible resolution is 128 tails, i.e. 1024 rows
+	// as it's 0-based, 1024 is always invalid row number
+	ASSERT_THROW(get_row(1024), std::exception);
+
+	const unsigned last_valid_row = sett.plane_height_in_tiles() * 8 - 1;
+
+	ASSERT_NO_THROW(get_row(last_valid_row));
+	ASSERT_THROW(get_row(last_valid_row + 1), std::exception);
 }

@@ -22,28 +22,32 @@ std::uint16_t render::background_color() const
 	return cram.read_color(regs.R7.PAL, regs.R7.COL);
 }
 
-std::span<genesis::vdp::output_color> render::get_plane_b_row(std::uint8_t row_number,
+std::span<genesis::vdp::output_color> render::get_plane_b_row(unsigned row_number,
 	std::span<genesis::vdp::output_color> buffer) const
 {
 	return get_plane_row(plane_type::b, row_number, buffer);
 }
 
-std::span<genesis::vdp::output_color> render::get_plane_a_row(std::uint8_t row_number,
+std::span<genesis::vdp::output_color> render::get_plane_a_row(unsigned row_number,
 	std::span<genesis::vdp::output_color> buffer) const
 {
 	return get_plane_row(plane_type::a, row_number, buffer);
 }
 
 std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type plane_type,
-		std::uint8_t row_number, std::span<genesis::vdp::output_color> buffer) const
+		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const
 {
 	std::size_t min_buffer_size = sett.plane_width_in_tiles() * 8;
 	if(buffer.size() < min_buffer_size)
 		throw genesis::internal_error();
 
+	unsigned max_rows = sett.plane_height_in_tiles() * 8;
+	if(row_number >= max_rows)
+		throw genesis::internal_error();
+
 	name_table table(plane_type, sett, vram);
-	const int tile_row_number = row_number / PIXELS_IN_TILE_COL;
-	const int row_in_tail = row_number % PIXELS_IN_TILE_COL;
+	const auto tile_row_number = row_number / PIXELS_IN_TILE_COL;
+	const auto row_in_tail = row_number % PIXELS_IN_TILE_COL;
 
 	auto it = buffer.begin();
 	for(auto i = 0; i < table.entries_per_row(); ++i)
@@ -68,7 +72,7 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 }
 
 // row_number - zero based
-std::uint32_t render::read_tail_row(std::uint8_t row_number, name_table_entry entry) const
+std::uint32_t render::read_tail_row(unsigned row_number, name_table_entry entry) const
 {
 	// TODO: can it be > 8?
 	if(row_number > 8)
@@ -99,7 +103,7 @@ std::uint32_t render::read_tail_row(std::uint8_t row_number, name_table_entry en
 }
 
 // shouldn't be used for background color
-vdp::output_color render::read_color(std::uint8_t palette_idx, std::uint8_t color_idx) const
+vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) const
 {
 	if(color_idx == 0)
 		return vdp::TRANSPARENT_COLOR;
