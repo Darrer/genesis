@@ -266,6 +266,8 @@ TEST(VDP_RENDER, PLANE_AB_ROW_WIDTH)
 	auto& regs = vdp.registers();
 	auto& render = vdp.render();
 
+	regs.R16.H = 0b00;
+
 	regs.R16.W = 0b00; // 32 tiles width
 	auto row = get_plane_row(vdp, plane, 0);
 	ASSERT_EQ(32 * 8, row.size());
@@ -299,6 +301,40 @@ TEST(VDP_RENDER, PLANE_W_ROW_WIDTH)
 	row = get_plane_row(vdp, plane_type::w, 0);
 	ASSERT_EQ(32 * 8, row.size());
 	ASSERT_EQ(32 * 8, render.plane_width_in_pixels(plane_type::w));
+}
+
+TEST(VDP_RENDER, PLANE_AB_HIGHT)
+{
+	vdp vdp;
+	const auto plane = random::pick({plane_type::a, plane_type::b});
+	auto& regs = vdp.registers();
+	auto& render = vdp.render();
+
+	regs.R16.W = 0b00;
+
+	regs.R16.H = 0b00; // 32 tiles width
+	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane));
+
+	regs.R16.H = 0b01; // 128 tiles width
+	ASSERT_EQ(64 * 8, render.plane_hight_in_pixels(plane));
+
+	regs.R16.H = 0b11; // 128 tiles width
+	ASSERT_EQ(128 * 8, render.plane_hight_in_pixels(plane));
+}
+
+TEST(VDP_RENDER, PLANE_W_HIGHT)
+{
+	vdp vdp;
+	auto& regs = vdp.registers();
+	auto& render = vdp.render();
+
+	// TODO: take into accout RS1?
+	regs.R12.RS0 = 1;
+	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane_type::w));
+
+	// TODO: take into accout RS1?
+	regs.R12.RS0 = 0;
+	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane_type::w));
 }
 
 TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
