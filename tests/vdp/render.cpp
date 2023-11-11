@@ -70,6 +70,33 @@ TEST(VDP_RENDER, PLANE_B_ROW_SIZE)
 	ASSERT_EQ(128 * 8, row.size());
 }
 
+void print_tail(const std::vector<std::uint8_t>& tail)
+{
+	int i = 0;
+	for(int row = 0; row < 8; ++row)
+	{
+		for(int col = 0; col < 8; ++col)
+		{
+			std::cout << (int)tail.at(i++);
+			if(col != 7)
+				std::cout << " ";
+		}
+		std::cout << std::endl;
+	}
+}
+
+void print_tail_at(vdp& vdp, std::uint32_t address)
+{
+	auto& vram = vdp.vram();
+	for(int i = 0; i < 8; ++i)
+	{
+		std::uint32_t data = vram.read<std::uint32_t>(address);
+		std::cout << su::hex_str(data) << " ";
+		address += 4;
+	}
+	std::cout << std::endl;
+}
+
 std::vector<std::uint8_t> random_tail()
 {
 	return random::next_few_in_range<std::uint8_t>(64, 0, 0xF);
@@ -179,6 +206,14 @@ void fill_cram(vdp& vdp)
 		std::uint16_t addr = i * 2;
 		cram.write(addr, random::next<std::uint16_t>());
 	}
+}
+
+auto get_row(vdp& vdp, plane_type plane, unsigned row_number)
+{
+	auto& render = vdp.render();
+	return plane == plane_type::a
+		? render.get_plane_a_row(row_number, plane_buffer)
+		: render.get_plane_b_row(row_number, plane_buffer);
 }
 
 template<class T>
@@ -329,6 +364,88 @@ TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 		auto tail_idx = get_tail_index(row % 8, col % 8);
 		return read_color(vdp, palette, fliped_tail.at(tail_idx));
 	});
+}
+
+TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
+{
+	// Setup
+	vdp vdp;
+	auto& regs = vdp.registers();
+	auto& sett = vdp.sett();
+	auto& vram = vdp.vram();
+
+	// use constant plane size for now
+	regs.R16.H = 0b01; // 64
+	regs.R16.W = 0b01; // 64
+
+	std::vector<std::vector<std::uint8_t>> tails;
+	for(auto i = 0; i < sett.plane_height_in_tiles(); ++i)
+		tails.push_back(std::move(random_tail()));
+	ASSERT_TRUE(tails.size() > 0 && tails.size() <= 128);
+
+	const std::uint32_t tail_base_address = 0b0001000000000000;
+	auto tail_addr = tail_base_address;
+	std::vector<std::uint32_t> tail_addresses;
+	for(const auto& tail : tails)
+	{
+		copy_tail(vdp, tail_addr, tail);
+		tail_addresses.push_back(tail_addr);
+		tail_addr += 32; // each tail is 32 bytes long (8*8*4bits)
+	}
+	ASSERT_TRUE(tails.size() == tail_addresses.size());
+
+	auto plane_type = random_plane();
+	std::uint32_t plane_address;
+	if(plane_type == plane_type::a)
+	{
+		regs.R2.PA5_3 = 0b100; // plane A
+		plane_address = sett.plane_a_address();
+	}
+	else
+	{
+		regs.R4.PB2_0 = 0b100; // plane B
+		plane_address = sett.plane_b_address();
+	}
+
+	auto palette = random_palette();
+	for(auto address : tail_addresses)
+	{
+		auto plane_entry = get_plane_entry(address, false, false, palette);
+		for(auto i = 0; i < sett.plane_width_in_tiles(); ++i)
+		{
+			vram.write(plane_address, plane_entry);
+			plane_address += sizeof(plane_entry);
+		}
+	}
+
+	fill_cram(vdp);
+
+	// Assert
+	for(auto tail_row = 0; tail_row < sett.plane_height_in_tiles(); ++tail_row)
+	{
+		const auto& tail = tails.at(tail_row);
+		for(int pixel_row = 0; pixel_row < 8; ++pixel_row)
+		{
+			auto row_number = (tail_row * 8) + pixel_row;
+			auto row = get_row(vdp, plane_type, row_number);
+
+			auto first_row_el = *row.begin();
+
+			int col_idx = 0;
+			for(auto actual_color : row)
+			{
+				auto tail_idx = get_tail_index(row_number % 8, col_idx % 8);
+
+				genesis::vdp::output_color expected_color = read_color(vdp, palette, tail.at(tail_idx));
+
+				ASSERT_EQ(expected_color, actual_color)
+					<< "row: " << row_number << ", col: " << col_idx
+					<< ", color id: " << (int)tail.at(tail_idx);
+
+				++col_idx;
+			}
+		}
+	}
 }
 
 TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
