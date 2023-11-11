@@ -22,26 +22,28 @@ std::uint16_t render::background_color() const
 	return cram.read_color(regs.R7.PAL, regs.R7.COL);
 }
 
-std::span<genesis::vdp::output_color> render::get_plane_b_row(unsigned row_number,
-	std::span<genesis::vdp::output_color> buffer) const
+unsigned render::plane_width_in_pixels(plane_type plane_type) const
 {
-	return get_plane_row(plane_type::b, row_number, buffer);
+	name_table table(plane_type, sett, vram);
+	// as each entry represent 1 tail which is 8 pixeles width
+	return table.entries_per_row() * 8;
 }
 
-std::span<genesis::vdp::output_color> render::get_plane_a_row(unsigned row_number,
-	std::span<genesis::vdp::output_color> buffer) const
+unsigned render::plane_hight_in_pixels(plane_type plane_type) const
 {
-	return get_plane_row(plane_type::a, row_number, buffer);
+	name_table table(plane_type, sett, vram);
+	// as each row is 1 tail hight
+	return table.row_count() * 8;
 }
 
 std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type plane_type,
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const
 {
-	std::size_t min_buffer_size = sett.plane_width_in_tiles() * 8;
+	std::size_t min_buffer_size = plane_width_in_pixels(plane_type);
 	if(buffer.size() < min_buffer_size)
 		throw genesis::internal_error();
 
-	unsigned max_rows = sett.plane_height_in_tiles() * 8;
+	unsigned max_rows = plane_hight_in_pixels(plane_type);
 	if(row_number >= max_rows)
 		throw genesis::internal_error();
 

@@ -52,7 +52,7 @@ std::uint8_t random_palette()
 
 plane_type random_plane()
 {
-	return random::pick({plane_type::a, plane_type::b});
+	return random::pick({plane_type::a, plane_type::b, plane_type::w});
 }
 
 std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
@@ -124,16 +124,33 @@ std::uint16_t get_plane_entry(std::uint32_t tail_address,
 	return plane_entry;
 }
 
-void fill_plane_table(vdp& vdp, std::uint32_t plane_address, std::uint16_t plane_entry)
+void fill_plane_table(vdp& vdp, plane_type plane, std::uint32_t plane_address, std::uint16_t plane_entry)
 {
 	auto& sett = vdp.sett();
 	auto& vram = vdp.vram();
+	auto& render = vdp.render();
 
-	if(plane_address != sett.plane_a_address() && plane_address != sett.plane_b_address())
+	std::uint32_t expected_plane_address = 0;
+	switch (plane)
+	{
+	case plane_type::a:
+		expected_plane_address = sett.plane_a_address();
+		break;
+	case plane_type::b:
+		expected_plane_address = sett.plane_b_address();
+		break;
+	case plane_type::w:
+		expected_plane_address = sett.plane_w_address();
+		break;
+	default: throw genesis::internal_error();
+	}
+
+	if(plane_address != expected_plane_address)
 		throw genesis::internal_error();
 
-	auto plane_entries = sett.plane_height_in_tiles() * sett.plane_width_in_tiles();
-	for(int i = 0; i < plane_entries; ++i)
+	auto plane_entries = (render.plane_hight_in_pixels(plane) / 8)
+		* (render.plane_width_in_pixels(plane) / 8);
+	for(unsigned i = 0; i < plane_entries; ++i)
 	{
 		vram.write<std::uint16_t>(plane_address, plane_entry);
 		plane_address += sizeof(plane_entry);
@@ -153,10 +170,7 @@ void fill_cram(vdp& vdp)
 
 auto get_plane_row(vdp& vdp, plane_type plane, unsigned row_number)
 {
-	auto& render = vdp.render();
-	return plane == plane_type::a
-		? render.get_plane_a_row(row_number, plane_buffer)
-		: render.get_plane_b_row(row_number, plane_buffer);
+	return vdp.render().get_plane_row(plane, row_number, plane_buffer);
 }
 
 std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address)
@@ -164,15 +178,38 @@ std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address
 	auto& regs = vdp.registers();
 	auto& sett = vdp.sett();
 
-	if(plane == plane_type::a)
+	switch (plane)
 	{
+	case plane_type::a:
 		regs.R2.PA5_3 = address; // plane A
 		return sett.plane_a_address();
-	}
-	else
-	{
+	case plane_type::b:
 		regs.R4.PB2_0 = address; // plane B
 		return sett.plane_b_address();
+	case plane_type::w:
+		regs.R3.W5_1 = address;
+		return sett.plane_w_address();
+	default: throw genesis::internal_error();
+	}
+}
+
+void set_plane_dimension(vdp& vdp, plane_type plane)
+{
+	auto& regs = vdp.registers();
+
+	switch (plane)
+	{
+	case plane_type::a:
+	case plane_type::b:
+		// use constant plane size for now
+		regs.R16.H = 0b01; // 64
+		regs.R16.W = 0b01; // 64
+		break;
+	case plane_type::w:
+		regs.R12.RS0 = random::in_range<std::uint8_t>(0, 1);
+		break;
+
+	default: throw genesis::internal_error();
 	}
 }
 
@@ -187,13 +224,10 @@ void setup_plane_test(vdp& vdp, plane_type plane_type, bool hflip, bool vflip,
 	// use constant plane address for simple test
 	std::uint32_t plane_address = set_plane_address(vdp, plane_type, 0b100);
 
-	// use constant plane size for now
-	auto& regs = vdp.registers();
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
+	set_plane_dimension(vdp, plane_type);
 
 	std::uint16_t plane_entry = get_plane_entry(tail_address, hflip, vflip, palette);
-	fill_plane_table(vdp, plane_address, plane_entry);
+	fill_plane_table(vdp, plane_type, plane_address, plane_entry);
 
 	fill_cram(vdp);
 }
@@ -207,10 +241,9 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 	auto plane_type = random_plane();
 	setup_plane_test(vdp, plane_type, hflip, vflip, palette, tail);
 
-	auto& sett = vdp.sett();
-
 	// Run test
-	for(int row_idx = 0; row_idx < sett.plane_height_in_tiles() * 8; ++row_idx)
+	auto& render = vdp.render();
+	for(unsigned row_idx = 0; row_idx < render.plane_hight_in_pixels(plane_type); ++row_idx)
 	{
 		auto row = get_plane_row(vdp, plane_type, row_idx);
 
@@ -226,23 +259,46 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 }
 
 
-TEST(VDP_RENDER, PLANE_ROW_WIDTH)
+TEST(VDP_RENDER, PLANE_AB_ROW_WIDTH)
 {
 	vdp vdp;
-	const auto plane = random_plane();
+	const auto plane = random::pick({plane_type::a, plane_type::b});
 	auto& regs = vdp.registers();
+	auto& render = vdp.render();
 
 	regs.R16.W = 0b00; // 32 tiles width
 	auto row = get_plane_row(vdp, plane, 0);
 	ASSERT_EQ(32 * 8, row.size());
+	ASSERT_EQ(32 * 8, render.plane_width_in_pixels(plane));
 
 	regs.R16.W = 0b01; // 128 tiles width
 	row = get_plane_row(vdp, plane, 0);
 	ASSERT_EQ(64 * 8, row.size());
+	ASSERT_EQ(64 * 8, render.plane_width_in_pixels(plane));
 
 	regs.R16.W = 0b11; // 128 tiles width
 	row = get_plane_row(vdp, plane, 0);
 	ASSERT_EQ(128 * 8, row.size());
+	ASSERT_EQ(128 * 8, render.plane_width_in_pixels(plane));
+}
+
+TEST(VDP_RENDER, PLANE_W_ROW_WIDTH)
+{
+	vdp vdp;
+	auto& regs = vdp.registers();
+	auto& render = vdp.render();
+
+	// TODO: take into accout RS1?
+	regs.R12.RS0 = 1;
+	auto row = get_plane_row(vdp, plane_type::w, 0);
+	ASSERT_EQ(64 * 8, row.size());
+	ASSERT_EQ(64 * 8, render.plane_width_in_pixels(plane_type::w));
+
+	// TODO: take into accout RS1?
+	regs.R12.RS0 = 0;
+	row = get_plane_row(vdp, plane_type::w, 0);
+	ASSERT_EQ(32 * 8, row.size());
+	ASSERT_EQ(32 * 8, render.plane_width_in_pixels(plane_type::w));
 }
 
 TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
@@ -327,15 +383,15 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 	// Setup
 	vdp vdp;
 	auto& regs = vdp.registers();
-	auto& sett = vdp.sett();
 	auto& vram = vdp.vram();
+	auto& render = vdp.render();
 
-	// use constant plane size for now
-	regs.R16.H = 0b01; // 64
-	regs.R16.W = 0b01; // 64
+	auto plane_type = random_plane();
+
+	set_plane_dimension(vdp, plane_type);
 
 	std::vector<std::vector<std::uint8_t>> tails;
-	for(auto i = 0; i < sett.plane_height_in_tiles(); ++i)
+	for(unsigned i = 0; i < render.plane_hight_in_pixels(plane_type) / 8; ++i)
 		tails.push_back(std::move(random_tail()));
 	ASSERT_TRUE(tails.size() > 0 && tails.size() <= 128);
 
@@ -350,14 +406,13 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 	}
 	ASSERT_TRUE(tails.size() == tail_addresses.size());
 
-	auto plane_type = random_plane();
 	std::uint32_t plane_address = set_plane_address(vdp, plane_type, 0b100);
 
 	auto palette = random_palette();
 	for(auto address : tail_addresses)
 	{
 		auto plane_entry = get_plane_entry(address, false, false, palette);
-		for(auto i = 0; i < sett.plane_width_in_tiles(); ++i)
+		for(unsigned i = 0; i < render.plane_width_in_pixels(plane_type) / 8; ++i)
 		{
 			vram.write(plane_address, plane_entry);
 			plane_address += sizeof(plane_entry);
@@ -367,7 +422,7 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 	fill_cram(vdp);
 
 	// Assert
-	for(auto tail_row = 0; tail_row < sett.plane_height_in_tiles(); ++tail_row)
+	for(unsigned tail_row = 0; tail_row < render.plane_hight_in_pixels(plane_type) / 8; ++tail_row)
 	{
 		const auto& tail = tails.at(tail_row);
 		for(int pixel_row = 0; pixel_row < 8; ++pixel_row)
@@ -401,14 +456,13 @@ TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
 	auto plane = random_plane();
 	setup_plane_test(vdp, plane, false, false, 0, tail);
 
-	auto& sett = vdp.sett();
 	auto& render = vdp.render();
 
 	// Max possible resolution is 128 tails, i.e. 1024 rows
 	// as it's 0-based, 1024 is always invalid row number
 	ASSERT_THROW(get_plane_row(vdp, plane, 1024), std::exception);
 
-	const unsigned last_valid_row = sett.plane_height_in_tiles() * 8 - 1;
+	const unsigned last_valid_row = render.plane_hight_in_pixels(plane) - 1;
 
 	ASSERT_NO_THROW(get_plane_row(vdp, plane, last_valid_row));
 	ASSERT_THROW(get_plane_row(vdp, plane, last_valid_row + 1), std::exception);

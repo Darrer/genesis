@@ -100,13 +100,13 @@ public:
 		return addr;
 	}
 
-	std::uint32_t window_address() const
+	std::uint32_t plane_w_address() const
 	{
 		std::uint32_t addr = regs.R3.W5_1;
 		if(display_width() == display_width::c40)
 			addr = addr & ~1;
 		addr = addr << 11;
-		// TODO: use WA6?
+		// TODO: use W6?
 		return addr;
 	}
 

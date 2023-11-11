@@ -36,7 +36,8 @@ static_assert(sizeof(name_table_entry) == 2);
 enum class plane_type
 {
 	a,
-	b
+	b,
+	w
 };
 
 class name_table
@@ -49,17 +50,41 @@ public:
 
 	std::uint8_t entries_per_row() const
 	{
-		// single table element represent single tile
-		return sett.plane_width_in_tiles();
+		switch (plane)
+		{
+		case plane_type::a:
+		case plane_type::b:
+			// single table element represent single tile
+			return sett.plane_width_in_tiles();
+		case plane_type::w:
+			if(sett.display_width() == display_width::c40)
+				return 64;
+			return 32;
+		default: throw internal_error();
+		}
 	}
 
-	std::uint8_t rows() const
+	std::uint8_t row_count() const
 	{
-		return sett.plane_height_in_tiles();
+		switch (plane)
+		{
+		case plane_type::a:
+		case plane_type::b:
+			return sett.plane_height_in_tiles();
+		case plane_type::w:
+			return 32; // there are alwyas 32 rows for window plane
+		default: throw internal_error();
+		}
 	}
 
 	name_table_entry get(std::uint8_t row_number, std::uint8_t entry_number) const
 	{
+		if(row_number > row_count())
+			throw std::invalid_argument("row_number");
+		
+		if(entry_number > entries_per_row())
+			throw std::invalid_argument("entry_number");
+
 		const int row_size_in_bytes = entries_per_row() * sizeof(name_table_entry);
 
 		std::uint32_t address = plane_address()
@@ -78,6 +103,8 @@ private:
 			return sett.plane_a_address();
 		case plane_type::b:
 			return sett.plane_b_address();
+		case plane_type::w:
+			return sett.plane_w_address();
 		default: throw internal_error();
 		}
 	}

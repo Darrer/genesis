@@ -25,16 +25,13 @@ public:
 
 	std::uint16_t background_color() const;
 
-	std::span<genesis::vdp::output_color> get_plane_a_row(unsigned row_number,
-		std::span<genesis::vdp::output_color> buffer) const;
+	unsigned plane_width_in_pixels(plane_type) const;
+	unsigned plane_hight_in_pixels(plane_type) const;
 
-	std::span<genesis::vdp::output_color> get_plane_b_row(unsigned row_number,
-		std::span<genesis::vdp::output_color> buffer) const;
-
-private:
 	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const;
 
+private:
 	std::uint32_t read_tail_row(unsigned row_number, name_table_entry entry) const;
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
