@@ -26,6 +26,7 @@ public:
 	std::uint16_t background_color() const;
 
 	unsigned plane_width_in_pixels(plane_type) const;
+	// TODO: rename to height
 	unsigned plane_hight_in_pixels(plane_type) const;
 
 	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,

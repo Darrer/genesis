@@ -2,9 +2,11 @@
 #define __VDP_IMPL_NAME_TABLE_H__
 
 #include <cstdint>
+#include <stdexcept>
 
 #include "vdp/memory.h"
 #include "vdp/settings.h"
+#include "plane_type.h"
 
 namespace genesis::vdp::impl
 {
@@ -32,13 +34,6 @@ union name_table_entry
 };
 
 static_assert(sizeof(name_table_entry) == 2);
-
-enum class plane_type
-{
-	a,
-	b,
-	w
-};
 
 class name_table
 {
@@ -77,12 +72,13 @@ public:
 		}
 	}
 
+	// row_number & entry_number are zero-based
 	name_table_entry get(std::uint8_t row_number, std::uint8_t entry_number) const
 	{
-		if(row_number > row_count())
+		if(row_number >= row_count())
 			throw std::invalid_argument("row_number");
 		
-		if(entry_number > entries_per_row())
+		if(entry_number >= entries_per_row())
 			throw std::invalid_argument("entry_number");
 
 		const int row_size_in_bytes = entries_per_row() * sizeof(name_table_entry);

@@ -4,7 +4,7 @@
 #include "helpers/random.h"
 #include "exception.hpp"
 
-#include "vdp/impl/name_table.h"
+#include "vdp/impl/plane_type.h"
 using genesis::vdp::impl::plane_type;
 
 using namespace genesis::test;
