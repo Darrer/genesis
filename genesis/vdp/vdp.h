@@ -20,6 +20,13 @@ class vdp
 public:
 	vdp(std::shared_ptr<m68k_bus_access> m68k_bus);
 
+	vdp() : vdp(nullptr) { }
+
+	void set_m68k_bus_access(std::shared_ptr<m68k_bus_access> m68k_bus)
+	{
+		dma.set_m68k_bus_access(m68k_bus);
+	}
+
 	// TODO: it should have multiple cycle methods with different clock rate
 	void cycle();
 

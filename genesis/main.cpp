@@ -2,6 +2,8 @@
 #include "rom_debug.hpp"
 #include "string_utils.hpp"
 
+#include "smd/smd.h"
+
 #include <iostream>
 
 
@@ -37,6 +39,20 @@ int main(int args, char* argv[])
 	{
 		std::cerr << "Error: " << e.what() << std::endl;
 		return EXIT_FAILURE;
+	}
+
+	genesis::smd smd(rom_path);
+
+	try
+	{
+		while(true) // it will crash before it gets stuck
+		{
+			smd.cycle();
+		}
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
 	}
 
 	return EXIT_SUCCESS;

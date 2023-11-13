@@ -6,6 +6,7 @@
 #include "vdp/vdp.h"
 
 #include <memory>
+#include <string_view>
 
 namespace genesis
 {
@@ -14,12 +15,13 @@ namespace genesis
 class smd
 {
 public:
-	smd();
+	smd(std::string_view rom_path);
 
 	void cycle();
 
 private:
-	void build_cpu_memory_map();
+	void build_cpu_memory_map(std::shared_ptr<memory::addressable> rom);
+	std::shared_ptr<memory::addressable> load_rom(std::string_view rom_path);
 
 private:
 	std::shared_ptr<memory::addressable> m68k_mem_map;
@@ -30,6 +32,8 @@ protected:
 	std::unique_ptr<vdp::vdp> m_vdp;
 
 	// std::shared_ptr<memory::addressable> z80_mem_map;
+
+	std::uint32_t prev_pc = 0x0;
 };
 
 } // namespace genesis

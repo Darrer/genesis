@@ -31,6 +31,11 @@ public:
 		: regs(regs), sett(sett),  memory(memory), m68k_bus(m68k_bus) { }
 
 	bool is_idle() const { return _state == state::idle; }
+
+	void set_m68k_bus_access(std::shared_ptr<vdp::m68k_bus_access> m68k_bus)
+	{
+		this->m68k_bus = m68k_bus;
+	}
 	
 	void cycle()
 	{
