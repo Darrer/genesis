@@ -37,6 +37,7 @@ PRIVATE
 	memory/addressable.h
 	memory/memory_builder.h
 	memory/memory_builder.cpp
+	memory/read_only_memory_unit.h
 
 	z80/cpu_bus.hpp
 	z80/cpu_registers.hpp
