@@ -39,7 +39,7 @@ void ports::init_write_data(std::uint16_t data)
 	data_to_write = data;
 }
 
-std::uint16_t ports::read_result()
+std::uint16_t ports::read_result() const
 {
 	if(reading_control_port)
 	{

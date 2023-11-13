@@ -1,9 +1,12 @@
 #ifndef __VDP_PORTS_H__
 #define __VDP_PORTS_H__
 
-#include "exception.hpp"
+#include "memory/addressable.h"
 #include "register_set.h"
 #include "settings.h"
+
+#include "exception.hpp"
+#include "string_utils.hpp"
 
 #include <optional>
 
@@ -26,7 +29,7 @@ struct control_write_request
 };
 
 
-class ports
+class ports : public memory::addressable
 {
 private:
 	enum class request
@@ -45,7 +48,67 @@ public:
 	{
 	}
 
-	bool is_idle() const;
+	// addressable interface
+	std::uint32_t max_address() const override
+	{
+		return 0x1F;
+	}
+
+	void init_write(std::uint32_t address, std::uint8_t data) override
+	{
+		// TODO: should we support 1 byte access?
+		if(address < 4)
+			init_write_data(data);
+		else if(address < 8)
+			init_write_control(data);
+		else
+			; // throw not_implemented("Write is not supported yet: " + su::hex_str(address));
+	}
+
+	void init_read_byte(std::uint32_t address) override
+	{
+		// TODO: should we support 1 byte access?
+		if(address < 4)
+			init_read_data();
+		else if(address < 8)
+			init_read_control();
+		else
+			throw not_implemented("Read is not supported yet: " + su::hex_str(address));
+	}
+
+	std::uint8_t latched_byte() const override
+	{
+		throw internal_error();
+	}
+
+	void init_write(std::uint32_t address, std::uint16_t data) override
+	{
+		// TODO: check boundaries
+		if(address < 4)
+			init_write_data(data);
+		else if(address < 8)
+			init_write_control(data);
+		else
+			; // throw not_implemented("Write is not supported yet: " + su::hex_str(address));
+	}
+
+	void init_read_word(std::uint32_t address) override
+	{
+		if(address < 4)
+			init_read_data();
+		else if(address < 8)
+			init_read_control();
+		else
+			throw not_implemented("Read is not supported yet: " + su::hex_str(address));
+	}
+
+	std::uint16_t latched_word() const override
+	{
+		return read_result();
+	}
+
+	//
+	bool is_idle() const override;
 
 	void init_read_control();
 	void init_write_control(std::uint8_t); // TODO: remove
@@ -55,7 +118,7 @@ public:
 	void init_write_data(std::uint8_t); // TODO: remove
 	void init_write_data(std::uint16_t);
 
-	std::uint16_t read_result();
+	std::uint16_t read_result() const;
 
 	// interface for vdp
 	std::optional<control_write_request>& pending_control_write_requet()
