@@ -56,16 +56,17 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 	{
 		auto entry = table.get(tile_row_number, i);
 
-		// TODO: does this code perform LE/BE convertion?
-		std::uint32_t tail = read_tail_row(row_in_tail, entry);
-
-		// there are always 8 row pixels in tail
-		for(int i = 0; i < 8; ++i)
+		auto row = read_tail_row(row_in_tail, entry);
+		for(auto i : row)
 		{
-			std::uint8_t color_idx = tail & 0b1111;
-			tail = tail >> 4;
+			// every element contains 2 colors
+			std::uint8_t first_idx = i >> 4;
+			std::uint8_t second_idx = i & 0xF;
 
-			*it = read_color(entry.palette, color_idx);
+			*it = read_color(entry.palette, first_idx);
+			++it;
+
+			*it = read_color(entry.palette, second_idx);
 			++it;
 		}
 	}
@@ -74,7 +75,7 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 }
 
 // row_number - zero based
-std::uint32_t render::read_tail_row(unsigned row_number, name_table_entry entry) const
+std::array<std::uint8_t, 4> render::read_tail_row(unsigned row_number, name_table_entry entry) const
 {
 	// TODO: can it be > 8?
 	if(row_number > 8)
@@ -83,22 +84,22 @@ std::uint32_t render::read_tail_row(unsigned row_number, name_table_entry entry)
 	if(entry.vertical_flip)
 		row_number = 7 - row_number;
 
-	const int row_size = 4;
+	const int row_size = 0x4;
 	std::uint32_t address = entry.effective_pattern_address() + (row_number * row_size);
-	auto row = vram.read<std::uint32_t>(address);
 
+	std::array<std::uint8_t, 4> row;
 	if(entry.horizontal_flip)
 	{
-		std::uint32_t out_row = 0;
-		for(int i = 0; i < 8; ++i)
+		for(int i = 3; i >= 0; --i)
 		{
-			std::uint8_t value = row & 0xF;
-			row = row >> 4;
-
-			out_row |= value << (28 - (i * 4));
+			row[i] = vram.read<std::uint8_t>(address++);
+			endian::swap_nibbles(row[i]);
 		}
-
-		row = out_row;
+	}
+	else
+	{
+		for(int i = 0; i < 4; ++i)
+			row[i] = vram.read<std::uint8_t>(address++);
 	}
 
 	return row;

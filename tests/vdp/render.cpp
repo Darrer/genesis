@@ -93,11 +93,11 @@ void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 
 		if(i % 2 == 0)
 		{
-			value = color;
+			value = color << 4;
 		}
 		else
 		{
-			value |= color << 4;
+			value |= color;
 			vram.write<std::uint8_t>(address, value);
 			address += 1;
 		}

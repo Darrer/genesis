@@ -33,7 +33,7 @@ public:
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const;
 
 private:
-	std::uint32_t read_tail_row(unsigned row_number, name_table_entry entry) const;
+	std::array<std::uint8_t, 4> read_tail_row(unsigned row_number, name_table_entry entry) const;
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
 private:
