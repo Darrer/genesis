@@ -36,6 +36,11 @@ public:
 		cycles_to_idle = 10;
 	}
 
+	bool bus_granted() const override
+	{
+		return has_access;
+	}
+
 	void init_read_word(std::uint32_t address) override
 	{
 		assert_access();

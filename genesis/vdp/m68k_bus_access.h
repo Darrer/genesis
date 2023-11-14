@@ -13,6 +13,7 @@ public:
 
 	virtual void request_bus() = 0;
 	virtual void release_bus() = 0;
+	virtual bool bus_granted() const = 0;
 
 	virtual void init_read_word(std::uint32_t address) = 0;
 	virtual std::uint16_t latched_word() const = 0;

@@ -14,6 +14,7 @@ public:
 
 	void request_bus() override { bus_access.request_bus(); }
 	void release_bus() override { bus_access.release_bus(); }
+	bool bus_granted() const override { return bus_access.bus_granted(); }
 
 	void init_read_word(std::uint32_t address) override
 	{

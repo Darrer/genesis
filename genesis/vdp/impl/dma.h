@@ -114,7 +114,7 @@ private:
 		default: throw internal_error();
 		}
 
-		// TODO: set DMA busy flag in status register
+		regs.SR.DMA = 1; // TODO: write test
 	}
 
 	void do_fill()
@@ -211,6 +211,12 @@ private:
 			return;
 		}
 
+		if(m68k_bus->bus_granted() == false)
+		{
+			// wait till get the bus
+			return;
+		}
+
 		if(reading)
 		{
 			reading = false;
@@ -248,7 +254,7 @@ private:
 			_state = state::idle;
 			regs.control.dma_start(false);
 			regs.R1.M1 = 0;
-			// TODO: clear DMA busy flag in status register
+			regs.SR.DMA = 0; // TODO: write test
 		}
 	}
 
