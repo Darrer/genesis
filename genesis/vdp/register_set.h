@@ -18,6 +18,7 @@ public:
 	{
 		for(std::uint8_t i = 0; i <= 23; ++i)
 			set_register(i, 0);
+		h_counter = v_counter = 0;
 		sr_raw = 0;
 	}
 
@@ -116,6 +117,9 @@ public:
 		status_register SR;
 		std::uint16_t sr_raw;
 	};
+
+	std::uint8_t h_counter;
+	std::uint8_t v_counter;
 
 	control_register control;
 	read_buffer read_cache;

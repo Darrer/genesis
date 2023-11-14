@@ -33,6 +33,7 @@ PRIVATE
 
 	smd/smd.h
 	smd/smd.cpp
+	smd/impl/m68k_interrupt_access.h
 
 	memory/addressable.h
 	memory/memory_builder.h
@@ -79,6 +80,8 @@ PRIVATE
 	vdp/ports.cpp
 	vdp/memory.h
 	vdp/output_color.h
+	vdp/m68k_bus_access.h
+	vdp/m68k_interrupt_access.h
 )
 
 # executable based on core lib

@@ -13,6 +13,12 @@ vdp::vdp(std::shared_ptr<m68k_bus_access> m68k_bus)
 
 void vdp::cycle()
 {
+	if(cycles++ % 3420 == 0)
+	{
+		on_end_scanline(); // TMP
+		on_start_scanline();
+	}
+
 	ports.cycle();
 
 	if(_sett.dma_enabled())
@@ -194,6 +200,57 @@ void vdp::handle_dma_requests()
 		std::uint8_t data = _vram.read<std::uint8_t>(read_req.value().address);
 		read_req.reset();
 		dma_memory.set_read_result(data);
+	}
+}
+
+void vdp::on_start_scanline()
+{
+	if(regs.h_counter == 0)
+	{
+		// must update hint_counter on the first scanline
+		hint_counter = _sett.horizontal_interrupt_counter();
+	}
+
+	// if(regs.v_counter == 0xEA)
+	// 	regs.v_counter = 0xE5;
+	// else
+		regs.v_counter++;
+
+	hint_counter--;
+	regs.SR.VI = 0;
+}
+
+void vdp::on_end_scanline()
+{
+	check_interrupts();
+}
+
+void vdp::check_interrupts()
+{
+	if(_sett.horizontal_interrupt_enabled())
+	{
+		if(hint_counter == 0)
+		{
+			if(m68k_int == nullptr)
+				throw genesis::internal_error();
+			m68k_int->rise_horizontal_interrupt();
+			hint_counter = _sett.horizontal_interrupt_counter();
+
+			return; // can trigger only 1 interrupt at a time
+		}
+	}
+
+	if(_sett.vertical_interrupt_enabled())
+	{
+		// std::cout << "Checking interrupt: " << (int)regs.v_counter << ", VI: " << (int)regs.SR.VI << "\n";
+		if(regs.v_counter == 0xE0 && regs.SR.VI == 0)
+		{
+			if(m68k_int == nullptr)
+				throw genesis::internal_error();
+			m68k_int->rise_vertical_interrupt();
+			regs.SR.VI = 1; // TODO: clear this flag
+			// TODO: for more precision also check h_counter
+		}
 	}
 }
 

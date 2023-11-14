@@ -318,6 +318,11 @@ public:
 		return regs.R11.IE2 == 1;
 	}
 
+	std::uint8_t horizontal_interrupt_counter() const
+	{
+		return regs.R10.H;
+	}
+
 	/* Display settings */
 
 	vdp::display_mode display_mode() const
@@ -388,11 +393,6 @@ public:
 	bool in_128kb_vram_mode() const
 	{
 		return regs.R1.VR == 1;
-	}
-
-	std::uint8_t horizontal_interrupt_counter() const
-	{
-		return regs.R10.H;
 	}
 
 	std::uint8_t auto_increment_value() const
