@@ -35,6 +35,34 @@ protected:
 	}
 };
 
+// always generates autovectored interrupts
+class autovectored_interrupting_device : public interrupting_device
+{
+public:
+	bool is_idle() const override
+	{
+		return true;
+	}
+
+	void init_interrupt_ack(std::uint8_t priority) override
+	{
+		this->priority = priority;
+	}
+
+	m68k::interrupt_type interrupt_type() override
+	{
+		return m68k::interrupt_type::autovectored;
+	}
+
+	std::uint8_t vector_number() override
+	{
+		return autovectored(priority);
+	}
+
+private:
+	std::uint8_t priority;
+};
+
 }
 
 #endif // __M68K_INTERRUPTING_DEVICE_H__

@@ -24,7 +24,7 @@ class cpu
 {
 public:
 	cpu(std::shared_ptr<memory::addressable> external_memory,
-		std::shared_ptr<interrupting_device> int_dev = nullptr);
+		std::shared_ptr<interrupting_device> int_dev = std::make_shared<autovectored_interrupting_device>());
 	~cpu();
 
 	bool is_idle() const;
