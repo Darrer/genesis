@@ -11,7 +11,7 @@ namespace genesis::vdp
 class vram_t : public memory::memory_unit
 {
 public:
-	vram_t() : memory::memory_unit(0xffff, std::endian::little) // [0; 0xFFFF]
+	vram_t() : memory::memory_unit(0xffff, std::endian::big) // [0; 0xFFFF]
 	{
 	}
 };
