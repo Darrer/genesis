@@ -3,6 +3,7 @@
 
 #include "memory_unit.h"
 #include "exception.hpp"
+#include "string_utils.hpp"
 
 namespace genesis::memory
 {
@@ -14,12 +15,19 @@ public:
 
 	void init_write(std::uint32_t address, std::uint8_t data) override
 	{
-		throw internal_error();
+		rise_access_violation(address);
 	}
 
 	void init_write(std::uint32_t address, std::uint16_t data) override
 	{
-		throw internal_error();
+		rise_access_violation(address);
+	}
+
+private:
+	static void rise_access_violation(std::uint32_t address)
+	{
+		throw std::runtime_error("Access violation: Attempt to write to read-only memory at address "
+			+ su::hex_str(address));
 	}
 };
 

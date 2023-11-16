@@ -241,12 +241,16 @@ public:
 		std::uint32_t source = 0;
 		source |= std::uint32_t(regs.R21.L);
 		source |= std::uint32_t(regs.R22.M) << 8;
+		source |= std::uint32_t(regs.R23.H) << 16;
 
-		if(dma_mode() == dma_mode::mem_to_vram)
+		if(regs.R23.T1 == 0)
 		{
-			source |= std::uint32_t(regs.R23.H) << 16;
 			// T0 acts as H6
-			source |= std::uint32_t(regs.R23.T0) << 23;
+			source |= std::uint32_t(regs.R23.T0) << 22;
+			
+			// in this mode we have to devide source / 2
+			source = source >> 1;
+			// source &= ~1;
 		}
 
 		return source;
@@ -254,17 +258,24 @@ public:
 
 	void dma_source(std::uint32_t value)
 	{
+		if(regs.R23.T1 == 0)
+		{
+			// restore initial value before writing back to registers
+			// 0th bit is lost, but it does not seem important now
+			value = value << 1;
+		}
+
 		regs.R21.L = std::uint8_t(value & 0xFF);
 		value = value >> 8;
 
 		regs.R22.M = std::uint8_t(value & 0xFF);
 		value = value >> 8;
 
-		if(dma_mode() == dma_mode::mem_to_vram)
+		regs.R23.H = std::uint8_t(value & 0b111111);
+
+		if(regs.R23.T1 == 0)
 		{
-			// TODO: check this logic
-			regs.R23.H = std::uint8_t(value & 0b111111);
-			regs.R23.T0 = std::uint8_t((value >> 7) & 1);
+			regs.R23.T0 = std::uint8_t((value >> 6) & 1);
 		}
 	}
 
