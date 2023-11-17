@@ -125,11 +125,9 @@ void vdp::handle_ports_requests()
 		switch(regs.control.vmem_type())
 		{
 		case vmem_type::vram: {
-			std::uint8_t lsb = _vram.read<std::uint8_t>(address);
-			std::uint8_t msb = _vram.read<std::uint8_t>(address + 1);
-
-			regs.read_cache.set_lsb(lsb);
-			regs.read_cache.set_msb(msb);
+			std::uint16_t data = _vram.read<std::uint16_t>(address);
+			regs.read_cache.set_lsb(endian::lsb(data));
+			regs.read_cache.set_msb(endian::msb(data));
 
 			regs.control.work_completed(true);
 

@@ -157,8 +157,8 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 
 	// assert memory
 
-	// first written byte should be LSB
-	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
+	// first written byte should be MSB
+	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
 	for(int i = 0; i < length; ++i)
@@ -170,7 +170,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 1);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -201,9 +201,9 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 
 	// assert memory
 
-	// first write should be 2 byte long - LSB MSB
-	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
-	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address + 1));
+	// first write should be 2 bytes long - MSB LSB
+	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address));
+	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address + 1));
 
 	// all subsequent written bytes - MSB
 	for(int i = 0; i < length; ++i)
@@ -216,7 +216,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_2)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 2);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -247,9 +247,9 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 
 	// assert memory
 
-	// due to byte swap - we should have MSB and LSB
-	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address - 1));
-	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
+	// due to byte swap - we should have LSB and MSB
+	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address - 1));
+	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
 	for(int i = 0; i < length; ++i)
@@ -261,7 +261,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_1)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 1);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -292,9 +292,9 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 
 	// assert memory
 
-	// due to byte swap - we should have MSB and LSB
-	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address - 1));
-	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address));
+	// due to byte swap - we should have LSB and MSB
+	ASSERT_EQ(fill_lsb, mem.read<std::uint8_t>(start_address - 1));
+	ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(start_address));
 
 	// all subsequent written bytes - MSB
 	for(int i = 0; i < length; ++i)
@@ -307,7 +307,7 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_ODD_ADDR_AUTO_INC_2)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 2);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -394,12 +394,9 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 	{
 		/* assert memory with original fill data */
 
-		// first written byte should be LSB
-		ASSERT_EQ(endian::lsb(fill_data), mem.read<std::uint8_t>(start_address));
-
-		std::uint16_t fill_msb = endian::msb(fill_data);
-
-		for(int addr = start_address + 1; addr < address_of_new_fill_data; ++addr)
+		// all written bytes should be MSB
+		auto fill_msb = endian::msb(fill_data);
+		for(int addr = start_address; addr < address_of_new_fill_data; ++addr)
 			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
 	}
 
@@ -409,18 +406,15 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 	{
 		/* assert memory with new fill data */
 
-		// first written byte should be LSB
-		ASSERT_EQ(endian::lsb(new_fill_data), mem.read<std::uint8_t>(address_of_new_fill_data));
-
+		// all written bytes should be MSB
 		std::uint16_t fill_msb = endian::msb(new_fill_data);
-
-		for(int addr = address_of_new_fill_data + 1; addr < final_addr; ++addr)
+		for(int addr = address_of_new_fill_data; addr < final_addr; ++addr)
 			ASSERT_EQ(fill_msb, mem.read<std::uint8_t>(addr));
 	}
 
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -464,7 +458,7 @@ TEST(VDP_DMA, BASIC_FILL_CRAM)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 2);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -508,7 +502,7 @@ TEST(VDP_DMA, BASIC_FILL_VSRAM)
 	std::uint16_t final_addr = dma_final_fill_address(start_address, length, 2);
 	ASSERT_EQ(final_addr, regs.control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -607,7 +601,7 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 	std::uint16_t final_addr = dma_final_address(dest_address, length, 1);
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;
@@ -627,12 +621,9 @@ std::uint32_t setup_dma_m68k(test::vdp& vdp, std::uint32_t src_addr, std::uint16
 	auto& regs = vdp.registers();
 
 	sett.dma_length(length);
+	sett.dma_source(src_addr);
 	sett.dma_mode(dma_mode::mem_to_vram);
 	regs.R1.M1 = 1; // enable DMA
-
-	regs.R21.L = src_addr & 0xFF;
-	regs.R22.M = (src_addr >> 8) & 0xFF;
-	regs.R23.H = (src_addr >> 16) & 0b111111;
 
 	control_register control;
 	control.address(dst_addr);
@@ -700,7 +691,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 	std::uint16_t final_addr = dma_final_address(dest_address, length, 2);
 	ASSERT_EQ(final_addr, vdp.registers().control.address());
 
-	// make sure DMA didn't touch memory after final address
+	// make sure DMA didn't touch memory after the final address
 	for(int i = 0; i < length; ++i)
 	{
 		std::uint16_t addr = final_addr + i;

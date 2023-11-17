@@ -241,6 +241,11 @@ public:
 		std::uint32_t source = 0;
 		source |= std::uint32_t(regs.R21.L);
 		source |= std::uint32_t(regs.R22.M) << 8;
+
+		// NOTE:
+		// DMA source is not used during DMA FILL
+		// regs.R23 is not used during DMA VRAM COPY
+		// It's used only during DMA M68K -> VRAM
 		source |= std::uint32_t(regs.R23.H) << 16;
 
 		if(regs.R23.T1 == 0)
@@ -250,7 +255,6 @@ public:
 			
 			// in this mode we have to devide source / 2
 			source = source >> 1;
-			// source &= ~1;
 		}
 
 		return source;
