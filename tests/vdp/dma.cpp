@@ -132,6 +132,7 @@ TEST(VDP_DMA, START_DMA_WHEN_DMA_DISABLED)
 
 	// CD5 should not be updated
 	ASSERT_EQ(false, regs.control.dma_start());
+	ASSERT_EQ(0, regs.SR.DMA);
 }
 
 TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
@@ -364,10 +365,13 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 	regs.R15.INC = 1; // set auto inc
 	setup_dma_fill(vdp, start_address, length, vmem_type::vram, fill_data);
 
-	// on the half way change FILL data
+	ASSERT_EQ(1, regs.SR.DMA);
+
+	// on half of the way change FILL data
 	while(true)
 	{
 		vdp.cycle();
+		ASSERT_EQ(1, regs.SR.DMA);
 
 		if(sett.dma_length() <= (length / 2))
 		{
@@ -388,6 +392,8 @@ TEST(VDP_DMA, FILL_VRAM_CHANGE_FILL_DATA)
 
 	// finish DMA
 	vdp.wait_dma();
+
+	ASSERT_EQ(0, regs.SR.DMA);
 
 	// assert memory
 

@@ -133,7 +133,14 @@ public:
 	std::uint32_t wait_dma()
 	{
 		// TODO: increase cycle threshold
-		return wait([this]() { return dma.is_idle(); } );
+		return wait([this]()
+		{
+			bool dma_is_idle = dma.is_idle();
+			std::uint8_t expected_dma_state = dma_is_idle ? 0 : 1;
+			if(registers().SR.DMA != expected_dma_state)
+				throw std::runtime_error("Unexpected DMA status flag");
+			return dma_is_idle;
+		} );
 	}
 
 	std::uint32_t wait_dma_start()

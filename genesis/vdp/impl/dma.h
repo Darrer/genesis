@@ -114,7 +114,7 @@ private:
 		default: throw internal_error();
 		}
 
-		regs.SR.DMA = 1; // TODO: write test
+		regs.SR.DMA = 1;
 	}
 
 	void do_fill()
@@ -254,7 +254,7 @@ private:
 			_state = state::idle;
 			regs.control.dma_start(false);
 			regs.R1.M1 = 0;
-			regs.SR.DMA = 0; // TODO: write test
+			regs.SR.DMA = 0;
 		}
 	}
 
