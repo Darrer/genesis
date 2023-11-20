@@ -114,6 +114,8 @@ private:
 		default: throw internal_error();
 		}
 
+		m_length = sett.dma_length();
+		m_source = sett.dma_source();
 		regs.SR.DMA = 1;
 	}
 
@@ -182,12 +184,11 @@ private:
 		}
 
 		// read next byte
-		std::uint16_t source = sett.dma_source();
+		std::uint16_t source = dma_source();
+		advance_dma_source(+1);
 
 		memory.init_read_vram(source);
 		reading = true;
-
-		sett.dma_source(source + 1);
 	}
 
 	void do_m68k_copy()
@@ -226,7 +227,7 @@ private:
 			inc_control_address();
 
 			// TODO: abort DMA if transfer is to CRAM/VSRAM and address exceeds max possible address
-			if(sett.dma_length() == 0)
+			if(dma_length() == 0)
 			{
 				// we're done, terminate dma operation
 				m68k_bus->release_bus();
@@ -237,14 +238,13 @@ private:
 			}
 		}
 
-		std::uint32_t src_address = sett.dma_source();
-		m68k_bus->init_read_word(src_address);
-		reading = true;
-
-		// update source address
-		sett.dma_source(src_address + 2);
+		std::uint32_t src_address = dma_source();
+		advance_dma_source(+2);
 
 		dec_length();
+
+		m68k_bus->init_read_word(src_address);
+		reading = true;
 	}
 
 	void do_finishing()
@@ -253,7 +253,6 @@ private:
 		{
 			_state = state::idle;
 			regs.control.dma_start(false);
-			regs.R1.M1 = 0;
 			regs.SR.DMA = 0;
 		}
 	}
@@ -263,22 +262,39 @@ private:
 		regs.control.address( regs.control.address() + sett.auto_increment_value() );
 	}
 
-	void dec_length()
-	{
-		sett.dma_length(sett.dma_length() - 1);
-	}
-
 	void advance()
 	{
 		inc_control_address();
 
 		dec_length();
 
-		if(sett.dma_length() == 0)
+		if(dma_length() == 0)
 		{
 			// we're done, terminate dma operation
 			_state = state::finishing;
 		}
+	}
+
+	std::uint16_t dma_length() const
+	{
+		return m_length;
+	}
+
+	void dec_length()
+	{
+		--m_length;
+		sett.dma_length(sett.dma_length() - 1);
+	}
+
+	std::uint32_t dma_source() const
+	{
+		return m_source;
+	}
+
+	void advance_dma_source(std::uint32_t offset)
+	{
+		m_source += offset;
+		sett.dma_source(sett.dma_source() + offset);
 	}
 
 private:
@@ -292,6 +308,9 @@ private:
 
 	std::shared_ptr<vdp::m68k_bus_access> m68k_bus;
 	bool access_requested = false;
+
+	std::uint16_t m_length = 0;
+	std::uint32_t m_source = 0;
 };
 
 };

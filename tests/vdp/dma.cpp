@@ -614,8 +614,8 @@ TEST(VDP_DMA, BASIC_VRAM_COPY)
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
 	}
 
-	// DMA must be disalbed after operation
-	ASSERT_EQ(0, regs.R1.M1);
+	// DMA flag must be preserved
+	ASSERT_EQ(1, regs.R1.M1);
 }
 
 
@@ -704,8 +704,8 @@ TEST(VDP_DMA, BASIC_M68K_COPY)
 		ASSERT_EQ(0, mem.read<std::uint8_t>(addr));
 	}
 
-	// DMA must be disalbed after operation
-	ASSERT_EQ(0, regs.R1.M1);
+	// DMA flag must be preserved
+	ASSERT_EQ(1, regs.R1.M1);
 
 	// bus must be released after DMA
 	ASSERT_EQ(false, vdp.m68k_bus_access().bus_acquired());

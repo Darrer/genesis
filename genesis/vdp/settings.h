@@ -242,19 +242,19 @@ public:
 		source |= std::uint32_t(regs.R21.L);
 		source |= std::uint32_t(regs.R22.M) << 8;
 
-		// NOTE:
-		// DMA source is not used during DMA FILL
-		// regs.R23 is not used during DMA VRAM COPY
-		// It's used only during DMA M68K -> VRAM
-		source |= std::uint32_t(regs.R23.H) << 16;
-
 		if(regs.R23.T1 == 0)
 		{
+			// NOTE:
+			// - DMA source is not used during DMA FILL
+			// - regs.R23 is not used during DMA VRAM COPY (as source address is 16 bits)
+			// - So it's used only during DMA M68K -> VRAM
+			source |= std::uint32_t(regs.R23.H) << 16;
+
 			// T0 acts as H6
 			source |= std::uint32_t(regs.R23.T0) << 22;
-			
-			// in this mode we have to devide source / 2
-			source = source >> 1;
+
+			// To get M68K address we have to multiply source by 2
+			source = source << 1;
 		}
 
 		return source;
@@ -265,8 +265,9 @@ public:
 		if(regs.R23.T1 == 0)
 		{
 			// restore initial value before writing back to registers
-			// 0th bit is lost, but it does not seem important now
-			value = value << 1;
+			// 0th bit always should be 0 as M68K -> VRAM DMA always word wide,
+			// so do not lose information during the shift
+			value = value >> 1;
 		}
 
 		regs.R21.L = std::uint8_t(value & 0xFF);
@@ -275,10 +276,9 @@ public:
 		regs.R22.M = std::uint8_t(value & 0xFF);
 		value = value >> 8;
 
-		regs.R23.H = std::uint8_t(value & 0b111111);
-
 		if(regs.R23.T1 == 0)
 		{
+			regs.R23.H = std::uint8_t(value & 0b111111);
 			regs.R23.T0 = std::uint8_t((value >> 6) & 1);
 		}
 	}
