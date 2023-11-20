@@ -84,6 +84,12 @@ void vdp::handle_ports_requests()
 		switch(entry.control.vmem_type())
 		{
 		case vmem_type::vram: {
+			/* It seems that official/unofficial documentation is incorrect about write order.
+			 * The following order seems the right one:
+			 * If address is even: we first have to write MSB and then LSB.
+			 * If address is odd : we first have to write LSB and then LSB.
+			*/
+
 			if(entry.control.address() % 2 == 1)
 			{
 				// writing to odd addresses swaps bytes

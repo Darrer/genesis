@@ -13,7 +13,7 @@ struct output_color
 {
 	output_color(std::uint16_t col) : output_color(impl::color(col)) { }
 	output_color(impl::color col) : red(col.red), green(col.green), blue(col.blue), transparent(false) { }
-	output_color() : transparent(true) { }
+	output_color() : red(7), green(7), blue(7), transparent(true) { }
 
 	bool operator==(const output_color& rcolor) const = default;
 

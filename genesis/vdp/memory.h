@@ -35,9 +35,9 @@ public:
 
 	std::uint16_t read_color(unsigned palette, unsigned color_idx)
 	{
-		if(palette > 4)
+		if(palette > 3)
 			throw std::invalid_argument("palette");
-		if(color_idx > 16)
+		if(color_idx > 15)
 			throw std::invalid_argument("color_idx");
 
 		std::uint16_t addr = (palette * 32) + (color_idx * 2);

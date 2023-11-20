@@ -69,6 +69,7 @@ PRIVATE
 	vdp/impl/render.h
 	vdp/impl/render.cpp
 	vdp/impl/name_table.h
+	vdp/impl/sprite_table.h
 	vdp/impl/plane_type.h
 	vdp/impl/color.h
 	vdp/vdp.h
