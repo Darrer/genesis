@@ -1,4 +1,4 @@
-#include "../../helper.hpp"
+#include "time_utils.h"
 #include "../test_cpu.hpp"
 
 #include <gtest/gtest.h>
@@ -15,7 +15,7 @@ TEST(M68K_PERFORMANCE, TMP)
 	std::size_t num_calls = 0;
 	auto callback = [&num_calls]() { ++num_calls; };
 
-	auto time = measure_in_ns([&]() {
+	auto time = genesis::time::measure_in_ns([&]() {
 		for(std::size_t i = 0; i < num_copies; ++i)
 		{
 			std::function<void()> tmp = callback;
@@ -36,7 +36,7 @@ TEST(M68K_PERFORMANCE, DECODING)
 
 	int num_unknown = 0; // to prevent optimization
 
-	auto ns_per_decode = measure_in_ns([&]() {
+	auto ns_per_decode = genesis::time::measure_in_ns([&]() {
 							 for(unsigned i = 0; i < num_measurements; ++i)
 							 {
 								 std::uint16_t opcode = 0;
@@ -74,7 +74,7 @@ TEST(M68K_PERFORMANCE, BUS_READ)
 	auto& scheduler = cpu.bus_scheduler();
 	unsigned long long cycles = 0;
 
-	auto ns_per_cycle = measure_in_ns([&]() {
+	auto ns_per_cycle = genesis::time::measure_in_ns([&]() {
 							for(auto i = 0ull; i < num_reads; ++i)
 							{
 								// busm.init_read_word(0, genesis::m68k::addr_space::PROGRAM);
@@ -135,7 +135,7 @@ TEST(M68K_PERFORMANCE, NOP)
 
 	unsigned long long cycles_left = num_cycles;
 
-	auto ns_per_cycle = measure_in_ns([&]() {
+	auto ns_per_cycle = genesis::time::measure_in_ns([&]() {
 							while(cycles_left-- != 0)
 								cpu.cycle();
 						}) /

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "mcl.h"
+#include "time_utils.h"
 
 using namespace genesis;
 using namespace genesis::test;
@@ -13,7 +14,7 @@ TEST(M68K, MCL)
 
 	long cycles = 0;
 	bool succeed = false;
-	auto total_ns_time = measure_in_ns([&]() {
+	auto total_ns_time = time::measure_in_ns([&]() {
 		succeed = run_mcl(cpu, [&cycles]() { ++cycles; });
 	});
 
