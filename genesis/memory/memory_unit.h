@@ -1,5 +1,5 @@
-#ifndef __MEMORY_UNIT_H__
-#define __MEMORY_UNIT_H__
+#ifndef __MEMORY_MEMORY_UNIT_H__
+#define __MEMORY_MEMORY_UNIT_H__
 
 #include "memory/addressable.h"
 
@@ -128,4 +128,4 @@ private:
 
 }
 
-#endif // __MEMORY_UNIT_H__
+#endif // __MEMORY_MEMORY_UNIT_H__

@@ -1,5 +1,5 @@
-#ifndef __ADDRESSABLE_H__
-#define __ADDRESSABLE_H__
+#ifndef __MEMORY_ADDRESSABLE_H__
+#define __MEMORY_ADDRESSABLE_H__
 
 #include <cstdint>
 
@@ -27,4 +27,4 @@ public:
 
 }; // namespace genesis::memory
 
-#endif // __ADDRESSABLE_H__
+#endif // __MEMORY_ADDRESSABLE_H__

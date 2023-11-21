@@ -1,5 +1,5 @@
-#ifndef __READ_ONLY_MEMORY_UNIT_H__
-#define __READ_ONLY_MEMORY_UNIT_H__
+#ifndef __MEMORY_READ_ONLY_MEMORY_UNIT_H__
+#define __MEMORY_READ_ONLY_MEMORY_UNIT_H__
 
 #include "memory_unit.h"
 #include "exception.hpp"
@@ -33,4 +33,4 @@ private:
 
 }
 
-#endif // __READ_ONLY_MEMORY_UNIT_H__
+#endif // __MEMORY_READ_ONLY_MEMORY_UNIT_H__

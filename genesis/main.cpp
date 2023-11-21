@@ -33,34 +33,26 @@ int main(int args, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	std::string rom_path = argv[1];
-
 	try
 	{
+		std::string_view rom_path = argv[1];
+
 		std::cout << "Going to parse: " << rom_path << std::endl;
 		genesis::rom rom(rom_path);
 
 		std::ostream& os = std::cout;
 		genesis::debug::print_rom_header(os, rom.header());
-		os << "Actual checksum: " << su::hex_str(rom.checksum()) << std::endl;
+		// os << "Actual checksum: " << su::hex_str(rom.checksum()) << std::endl;
 
 		genesis::debug::print_rom_vectors(os, rom.vectors());
 		// genesis::debug::print_rom_body(os, rom.body());
-	}
-	catch(std::exception& e)
-	{
-		std::cerr << "Error: " << e.what() << std::endl;
-		return EXIT_FAILURE;
-	}
 
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
-	{
-		std::cerr << "Cannot initialize SDL: " << SDL_GetError() << std::endl;
-		return EXIT_FAILURE;
-	}
+		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		{
+			std::cerr << "Cannot initialize SDL: " << SDL_GetError() << std::endl;
+			return EXIT_FAILURE;
+		}
 
-	try
-	{
 		genesis::smd smd(rom_path);
 
 		auto& render = smd.vdp().render();

@@ -1,5 +1,5 @@
-#ifndef __MEMORY_BUILDER_H__
-#define __MEMORY_BUILDER_H__
+#ifndef __MEMORY_MEMORY_BUILDER_H__
+#define __MEMORY_MEMORY_BUILDER_H__
 
 #include "addressable.h"
 
@@ -50,4 +50,4 @@ private:
 
 }; // namespace genesis::memory
 
-#endif // __MEMORY_BUILDER_H__
+#endif // __MEMORY_MEMORY_BUILDER_H__

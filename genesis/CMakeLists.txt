@@ -36,6 +36,7 @@ PRIVATE
 	smd/impl/m68k_interrupt_access.h
 
 	memory/addressable.h
+	memory/dummy_memory.h
 	memory/memory_builder.h
 	memory/memory_builder.cpp
 	memory/dummy_memory.h
