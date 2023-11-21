@@ -19,6 +19,8 @@ public:
 
 	void cycle();
 
+	vdp::vdp& vdp() { return *m_vdp; }
+
 private:
 	void build_cpu_memory_map(std::shared_ptr<memory::addressable> rom);
 	std::shared_ptr<memory::addressable> load_rom(std::string_view rom_path);

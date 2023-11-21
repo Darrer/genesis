@@ -90,6 +90,11 @@ add_executable(${GENESIS})
 target_sources(${GENESIS}
 PRIVATE
 	main.cpp
+
+	# SDL is not part of the core
+	sdl/palette_display.h
+	sdl/plane_display.h
+	sdl/plane_display.cpp
 )
 
 # target_link_libraries(${GENESIS} PRIVATE ${GENESIS_LIB} SDL3::SDL3)
