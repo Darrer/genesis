@@ -28,6 +28,9 @@ private:
 private:
 	std::shared_ptr<memory::addressable> m68k_mem_map;
 
+	// tmp
+	std::shared_ptr<memory::memory_unit> z80_request;
+
 protected:
 	// unique_ptr for simplicity for now
 	std::unique_ptr<m68k::cpu> m_m68k_cpu;

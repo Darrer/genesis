@@ -338,7 +338,7 @@ private:
 		case inst_type::STOP:
 			throw not_implemented();
 
-		default: throw internal_error();
+		default: throw internal_error("Unknown instruction: " + std::to_string((int)curr_inst));
 		}
 	}
 
