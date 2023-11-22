@@ -11,6 +11,7 @@
 #include "settings.h"
 
 #include <memory>
+#include <functional>
 
 
 namespace genesis::vdp
@@ -67,6 +68,11 @@ public:
 	}
 
 	impl::render& render() { return m_render; }
+
+	void on_frame_end(std::function<void()> callback)
+	{
+		on_frame_end_callback = callback;
+	}
 
 private:
 	void handle_ports_requests();

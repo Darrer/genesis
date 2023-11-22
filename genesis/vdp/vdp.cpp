@@ -100,7 +100,6 @@ void vdp::handle_ports_requests()
 			}
 
 			// TODO: vram has byte-only access
-			// std::cout << "Writing " << entry.data << " at " << entry.control.address() << std::endl;
 			_vram.write(entry.control.address(), entry.data);
 		}
 		break;
@@ -112,6 +111,10 @@ void vdp::handle_ports_requests()
 		case vmem_type::vsram:
 			_vsram.write(entry.control.address(), entry.data);
 			break;
+
+		case vmem_type::invalid:
+			// TODO: what should we do?
+			throw genesis::not_implemented();
 
 		default:
 			throw internal_error();
@@ -215,17 +218,32 @@ void vdp::on_start_scanline()
 		hint_counter = _sett.horizontal_interrupt_counter();
 	}
 
-	// if(regs.v_counter == 0xEA)
-	// 	regs.v_counter = 0xE5;
-	// else
+	if(regs.v_counter == 0xEA && vcounter_flag == false)
+	{
+		regs.v_counter = 0xE5;
+		vcounter_flag = true;
+	}
+	else
 		regs.v_counter++;
 
 	hint_counter--;
-	regs.SR.VI = 0;
+
+	if(regs.v_counter == 0xFF)
+	{
+		regs.SR.VI = 0;
+		vcounter_flag = false;
+	}
 }
 
 void vdp::on_end_scanline()
 {
+	// primitive approach
+	if(regs.v_counter == 0xE0)
+	{
+		if(on_frame_end_callback != nullptr)
+			on_frame_end_callback();
+	}
+
 	check_interrupts();
 }
 
@@ -244,6 +262,7 @@ void vdp::check_interrupts()
 		}
 	}
 
+	// TODO: write tests for vertical interrupts
 	if(_sett.vertical_interrupt_enabled())
 	{
 		// std::cout << "Checking interrupt: " << (int)regs.v_counter << ", VI: " << (int)regs.SR.VI << "\n";
@@ -252,7 +271,7 @@ void vdp::check_interrupts()
 			if(m68k_int == nullptr)
 				throw genesis::internal_error();
 			m68k_int->rise_vertical_interrupt();
-			regs.SR.VI = 1; // TODO: clear this flag
+			regs.SR.VI = 1;
 			// TODO: for more precision also check h_counter
 		}
 	}
