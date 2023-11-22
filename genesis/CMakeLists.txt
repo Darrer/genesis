@@ -93,6 +93,8 @@ PRIVATE
 	main.cpp
 
 	# SDL is not part of the core
+	sdl/displayable.h
+	sdl/base_display.h
 	sdl/palette_display.h
 	sdl/plane_display.h
 	sdl/plane_display.cpp

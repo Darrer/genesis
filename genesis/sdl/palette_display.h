@@ -1,11 +1,7 @@
-#ifndef __GENESIS_SDL_PALETTE_DISPLAY_H__
-#define __GENESIS_SDL_PALETTE_DISPLAY_H__
+#ifndef __SDL_PALETTE_DISPLAY_H__
+#define __SDL_PALETTE_DISPLAY_H__
 
-#define SDL_MAIN_HANDLED
-#include <SDL2/SDL.h>
-
-#include <string>
-
+#include "base_display.h"
 #include "vdp/memory.h"
 #include "vdp/output_color.h"
 
@@ -13,26 +9,21 @@
 namespace genesis::sdl
 {
 
-class palette_display
+class palette_display : public base_display
 {
 public:
-	palette_display(vdp::cram_t& cram) : cram(cram)
+	palette_display(vdp::cram_t& cram) : base_display("palette", 600, 200), cram(cram)
 	{
-		m_window = SDL_CreateWindow(
-					"palette",
-					SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-					600, 200,
-					SDL_WINDOW_SHOWN
-					);
 	}
 
-	~palette_display()
+	void update() override
 	{
-		SDL_DestroyWindow(m_window);
-	}
+		if(m_window == nullptr)
+		{
+			// window was destroyed, nothing to do
+			return;
+		}
 
-	void redraw()
-	{
 		auto* screenSurface = SDL_GetWindowSurface(m_window);
 		SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
 
@@ -55,25 +46,8 @@ public:
 		SDL_UpdateWindowSurface(m_window);
 	}
 
-	void handle_events()
-	{
-		SDL_Event e;
-		while(SDL_PollEvent(&e) > 0)
-		{
-			switch(e.type)
-			{
-				case SDL_QUIT:
-					std::terminate();
-					break;
-			}
-
-			SDL_UpdateWindowSurface(m_window);
-		}
-	}
-
 private:
 	vdp::cram_t& cram;
-	SDL_Window* m_window;
 };
 
 }

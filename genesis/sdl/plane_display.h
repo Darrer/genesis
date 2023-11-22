@@ -1,16 +1,14 @@
 #ifndef __GENESIS_SDL_PLANE_DISPLAY_H__
 #define __GENESIS_SDL_PLANE_DISPLAY_H__
 
-#define SDL_MAIN_HANDLED
-#include <SDL2/SDL.h>
-
+#include <string_view>
 #include <functional>
 #include <stdexcept>
 #include <cstdint>
-#include <string>
 #include <array>
 #include <span>
 
+#include "base_display.h"
 #include "vdp/output_color.h"
 
 namespace genesis::sdl
@@ -21,7 +19,7 @@ namespace genesis::sdl
 // This class responsible for displaying:
 // - Plane A/B/W
 // - Sprites
-class plane_display
+class plane_display : public base_display
 {
 public:
 	using get_width_func = std::function<int()>;
@@ -31,7 +29,7 @@ public:
 	using get_row_func = std::function<row_buffer(unsigned /* row number */, row_buffer /* input buffer */)>;
 
 public:
-	plane_display(std::string title, get_width_func get_width, get_height_func get_height, get_row_func get_row)
+	plane_display(std::string_view title, get_width_func get_width, get_height_func get_height, get_row_func get_row)
 	{
 		if(get_width == nullptr)
 			throw std::invalid_argument("get_width");
@@ -47,26 +45,25 @@ public:
 		m_width = get_width();
 		m_height = get_height();
 
-		m_window = SDL_CreateWindow(
-					title.c_str(),
-					SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-					m_width, m_height,
-					SDL_WINDOW_SHOWN
-					);
-
+		create_window(title, m_width, m_height);
 		m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
 		m_texture = create_texture(m_width, m_height);
 	}
 
 	~plane_display()
 	{
-		SDL_DestroyWindow(m_window);
 		SDL_DestroyRenderer(m_renderer);
 		SDL_DestroyTexture(m_texture);
 	}
 
-	void redraw()
+	void update() override
 	{
+		if(m_window == nullptr)
+		{
+			// window was destroyed, nothing to do
+			return;
+		}
+
 		int curr_width = m_get_width();
 		int curr_height = m_get_height();
 
@@ -102,22 +99,6 @@ public:
 		SDL_RenderPresent(m_renderer);
 	}
 
-	void handle_events()
-	{
-		SDL_Event e;
-		while(SDL_PollEvent(&e) > 0)
-		{
-			switch(e.type)
-			{
-				case SDL_QUIT:
-					std::terminate();
-					break;
-			}
-
-			SDL_UpdateWindowSurface(m_window);
-		}
-	}
-
 private:
 	SDL_Texture* create_texture(int width, int height)
 	{
@@ -140,7 +121,6 @@ private:
 	get_height_func m_get_height;
 	get_row_func m_get_row;
 
-	SDL_Window* m_window;
 	SDL_Renderer* m_renderer;
 	SDL_Texture* m_texture;
 

@@ -1,29 +1,71 @@
+#include <iostream>
+#include <string_view>
+
 #include "rom.h"
+#include "smd/smd.h"
 #include "rom_debug.hpp"
 #include "string_utils.hpp"
 #include "time_utils.h"
 
-#include "smd/smd.h"
-
-#include <string_view>
-#include <iostream>
-
 #include "sdl/palette_display.h"
 #include "sdl/plane_display.h"
+
+using namespace genesis;
 
 
 template<class T>
 void measure_and_log(const T& func, std::string_view msg)
 {
-	auto ms = genesis::time::measure_in_ms(func);
+	auto ms = time::measure_in_ms(func);
 	std::cout << "Executing " << msg << " took " << ms << " ms\n";
 }
 
-void print_usage(char* prog_path)
+void print_usage(const char* prog_path)
 {
 	std::cout << "Usage ./" << prog_path << " <path to rom>" << std::endl;
 }
 
+std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
+{
+	// TODO: interface between vdp/smd is not established yet, so use vdp::render directly
+
+	std::vector<std::unique_ptr<sdl::displayable>> displays;
+
+	displays.push_back(
+		std::make_unique<sdl::palette_display>(smd.vdp().cram())
+	);
+
+	using vdp::impl::plane_type;
+
+	displays.push_back(
+		std::make_unique<sdl::plane_display>("plane a",
+			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::a); },
+			[&smd]() { return smd.vdp().render().plane_hight_in_pixels(plane_type::a); },
+			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
+				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::a, row_number, buffer); }
+		)
+	);
+
+	displays.push_back(
+		std::make_unique<sdl::plane_display>("plane b",
+			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::b); },
+			[&smd]() { return smd.vdp().render().plane_hight_in_pixels(plane_type::b); },
+			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
+				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::b, row_number, buffer); }
+		)
+	);
+
+	displays.push_back(
+		std::make_unique<sdl::plane_display>("sprites",
+			[&smd]() { return smd.vdp().render().sprite_width_in_pixels(); },
+			[&smd]() { return smd.vdp().render().sprite_height_in_pixels(); },
+			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
+				{ return smd.vdp().render().get_sprite_row(row_number, buffer); }
+		)
+	);
+
+	return displays;
+}
 
 int main(int args, char* argv[])
 {
@@ -55,51 +97,23 @@ int main(int args, char* argv[])
 
 		genesis::smd smd(rom_path);
 
-		auto& render = smd.vdp().render();
+		auto displays = create_displays(smd);
 
-		genesis::sdl::palette_display palette_display(smd.vdp().cram());
-
-		genesis::sdl::plane_display plane_a_display("plane a",
-			[&render]() { return render.plane_width_in_pixels(genesis::vdp::impl::plane_type::a); },
-			[&render]() { return render.plane_hight_in_pixels(genesis::vdp::impl::plane_type::a); },
-			[&render](unsigned row_number, genesis::sdl::plane_display::row_buffer buffer)
-				{ return render.get_plane_row(genesis::vdp::impl::plane_type::a, row_number, buffer); }
-		);
-
-		genesis::sdl::plane_display plane_b_display("plane b",
-			[&render]() { return render.plane_width_in_pixels(genesis::vdp::impl::plane_type::b); },
-			[&render]() { return render.plane_hight_in_pixels(genesis::vdp::impl::plane_type::b); },
-			[&render](unsigned row_number, genesis::sdl::plane_display::row_buffer buffer)
-				{ return render.get_plane_row(genesis::vdp::impl::plane_type::b, row_number, buffer); }
-		);
-
-		genesis::sdl::plane_display sprite_display("sprite",
-			[&render]() { return render.sprite_width_in_pixels(); },
-			[&render]() { return render.sprite_height_in_pixels(); },
-			[&render](unsigned row_number, genesis::sdl::plane_display::row_buffer buffer)
-				{ return render.get_sprite_row(row_number, buffer); }
-		);
-
-
-		auto on_frame_end = [&]()
+		smd.vdp().on_frame_end([&displays]()
 		{
 			measure_and_log([&]()
 			{
-				palette_display.redraw();
-				palette_display.handle_events();
+				for(auto& disp: displays)
+					disp->update();
 
-				plane_a_display.redraw();
-				plane_a_display.handle_events();
-
-				plane_b_display.redraw();
-				plane_b_display.handle_events();
-
-				sprite_display.redraw();
-				sprite_display.handle_events();
-			}, "redraw all displays");
-		};
-
-		smd.vdp().on_frame_end(on_frame_end);
+				SDL_Event e;
+				while(SDL_PollEvent(&e) > 0)
+				{
+					for(auto& disp: displays)
+						disp->handle_event(e);
+				}
+			}, "update displays");
+		});
 
 		while(true) // Don't really care about timings so far
 		{
