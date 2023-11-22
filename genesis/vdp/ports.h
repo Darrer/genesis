@@ -48,7 +48,7 @@ public:
 	{
 	}
 
-	// addressable interface
+	/* addressable interface */
 	std::uint32_t max_address() const override
 	{
 		return 0x1F;
@@ -62,7 +62,17 @@ public:
 		else if(address < 8)
 			init_write_control(data);
 		else
-			; // throw not_implemented("Write is not supported yet: " + su::hex_str(address));
+			throw not_implemented("Write is not supported yet: " + su::hex_str(address));
+	}
+
+	void init_write(std::uint32_t address, std::uint16_t data) override
+	{
+		if(address < 4)
+			init_write_data(data);
+		else if(address < 8)
+			init_write_control(data);
+		else
+			throw not_implemented("Write is not supported yet: " + su::hex_str(address));
 	}
 
 	void init_read_byte(std::uint32_t address) override
@@ -76,22 +86,6 @@ public:
 			throw not_implemented("Read is not supported yet: " + su::hex_str(address));
 	}
 
-	std::uint8_t latched_byte() const override
-	{
-		throw internal_error();
-	}
-
-	void init_write(std::uint32_t address, std::uint16_t data) override
-	{
-		// TODO: check boundaries
-		if(address < 4)
-			init_write_data(data);
-		else if(address < 8)
-			init_write_control(data);
-		else
-			; // throw not_implemented("Write is not supported yet: " + su::hex_str(address));
-	}
-
 	void init_read_word(std::uint32_t address) override
 	{
 		if(address < 4)
@@ -102,12 +96,19 @@ public:
 			throw not_implemented("Read is not supported yet: " + su::hex_str(address));
 	}
 
+	std::uint8_t latched_byte() const override
+	{
+		// TODO:
+		return read_result() & 0xFF;
+	}
+
 	std::uint16_t latched_word() const override
 	{
 		return read_result();
 	}
 
-	//
+	/* VDP Ports interface */
+
 	bool is_idle() const override;
 
 	void init_read_control();
@@ -125,6 +126,7 @@ public:
 	{
 		return _control_write_request;
 	}
+
 	void cycle();
 	void reset();
 
