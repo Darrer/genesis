@@ -98,6 +98,7 @@ private:
 	cram_t _cram;
 	vsram_t _vsram;
 
+	bool vcounter_flag = false;
 	std::uint8_t hint_counter = 0;
 	unsigned cycles = 0;
 
@@ -106,6 +107,9 @@ protected:
 	impl::dma dma;
 	impl::render m_render;
 	std::shared_ptr<m68k_interrupt_access> m68k_int;
+
+private:
+	std::function<void()> on_frame_end_callback;
 };
 
 } // namespace genesis::vdp

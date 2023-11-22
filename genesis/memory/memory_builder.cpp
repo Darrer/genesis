@@ -199,7 +199,8 @@ void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_ad
 		throw std::invalid_argument("end_address cannot be less than start_address");
 
 	std::uint32_t max_address = end_address - start_address;
-	if(memory_unit.max_address() != max_address)
+	// TODO: temporary disable this check
+	if(memory_unit.max_address() != max_address && false)
 		throw std::invalid_argument("provided addressable device has unexpected space size");
 
 	check_intersect(start_address, end_address);
