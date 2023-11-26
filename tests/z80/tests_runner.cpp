@@ -166,10 +166,10 @@ void run_test(z80::cpu& cpu, const int expected_total_tests, const int expected_
 
 void patch_mem(z80::memory& mem)
 {
-	mem.write(0x1601, 0xC9); // RET
+	mem.write<std::uint8_t>(0x1601, 0xC9); // RET
 
-	mem.write(0x10, 0x01D3); // OUT (1), A
-	mem.write(0x12, 0xC9);	 // RET
+	mem.write<std::uint16_t>(0x10, 0x01D3); // OUT (1), A
+	mem.write<std::uint8_t>(0x12, 0xC9);	// RET
 }
 
 void load_zex(z80::memory& mem, z80::memory::address base, const std::string& bin_path)

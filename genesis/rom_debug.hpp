@@ -16,6 +16,7 @@ namespace genesis::debug
 	os << "Copyright: '" << header.copyright << "'" << std::endl;
 	os << "Game name (domestic): '" << header.game_name_domestic << "'" << std::endl;
 	os << "Game name (overseas): '" << header.game_name_overseas << "'" << std::endl;
+	os << "Region support: '" << header.region_support << "'" << std::endl;
 
 	using namespace su;
 	os << "ROM checksum: " << hex_str(header.rom_checksum) << std::endl;

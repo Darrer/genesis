@@ -90,7 +90,10 @@ public:
 								.rom_end_addr = read_builtin_type<uint32_t>(f, 0x1A4),
 
 								.ram_start_addr = read_builtin_type<uint32_t>(f, 0x1A8),
-								.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC)};
+								.ram_end_addr = read_builtin_type<uint32_t>(f, 0x1AC),
+
+								// TODO: convert to upper case?
+								.region_support = read_string(f, 0x1F0, 3)};
 	}
 
 	rom::vector_array parse_vectors(std::ifstream& f) const override

@@ -32,6 +32,8 @@ public:
 
 		uint32_t ram_start_addr;
 		uint32_t ram_end_addr;
+
+		std::string region_support;
 	};
 
 	using vector_array = std::array<uint32_t, 64>;

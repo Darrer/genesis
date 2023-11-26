@@ -4,7 +4,7 @@
 #include "cpu_bus.hpp"
 #include "cpu_registers.hpp"
 #include "io_ports.hpp"
-#include "memory.hpp"
+#include "memory.h"
 
 #include <cstdint>
 #include <memory>
@@ -14,7 +14,6 @@
 namespace genesis::z80
 {
 
-using memory = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
 using opcode = std::uint8_t;
 
 enum class cpu_interrupt_mode

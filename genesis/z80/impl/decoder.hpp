@@ -5,6 +5,7 @@
 #include "instructions.hpp"
 #include "z80/cpu.h"
 #include "z80/cpu_registers.hpp"
+#include "string_utils.hpp"
 
 #include <cstdint>
 
