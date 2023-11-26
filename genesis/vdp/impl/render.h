@@ -26,6 +26,8 @@ public:
 
 	std::uint16_t background_color() const;
 
+	/* A/B/W Planes */
+
 	unsigned plane_width_in_pixels(plane_type) const;
 	// TODO: rename to height
 	unsigned plane_hight_in_pixels(plane_type) const;
@@ -33,7 +35,7 @@ public:
 	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const;
 
-	/* Sprite */
+	/* Sprites */
 
 	unsigned sprite_width_in_pixels() const { return 512; }
 	unsigned sprite_height_in_pixels() const { return 512; }
@@ -41,16 +43,64 @@ public:
 	std::span<genesis::vdp::output_color> get_sprite_row(unsigned row_number,
 		std::span<genesis::vdp::output_color> buffer) const;
 
+	/* Active Display */
+
+	unsigned active_display_width() const;
+	unsigned active_display_height() const;
+
+	std::span<genesis::vdp::output_color> get_active_display_row(unsigned row_number,
+		std::span<genesis::vdp::output_color> buffer) const;
+
 private:
-	std::array<std::uint8_t, 4> read_pattern_row(unsigned row_number, std::uint32_t pattern_addres, bool hflip, bool vflip) const;
+	struct pixel
+	{
+		genesis::vdp::output_color color;
+
+		// we greatly simplify algorithm by using priority flag per pixel
+		// even though plane A/B have priority flag per tail
+		bool priority_flag;
+	};
+
+	std::array<std::uint8_t, 4> read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
+		bool hflip, bool vflip) const;
+	std::array<vdp::output_color, 8> read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
+		bool hflip, bool vflip, std::uint8_t palette_id) const;
+
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
-	bool should_draw_sprite(unsigned row_number, const sprite_table_entry& entry) const;
-	void draw_sprite(unsigned row_number, const sprite_table_entry& entry,
-		std::span<genesis::vdp::output_color> buffer) const;
+	/* Sprites helpers */
+	std::span<pixel> get_active_sprites_row(unsigned row_number, std::span<pixel> buffer) const;
+	bool should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const;
+
+	// For performance reason it better to duplicate these functions
+	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<vdp::output_color> buffer) const;
+	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<pixel> dest) const;
 
 	std::uint32_t sprite_pattern_address(unsigned row_number, unsigned pattern_number,
 		const sprite_table_entry& entry) const;
+
+	/* Plane helpers */
+
+	std::span<pixel> get_active_plane_row(plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
+	std::span<pixel> get_scrolled_plane_row(impl::plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
+
+	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,
+		pixel plane_a, pixel plane_b, pixel sprite) const;
+
+	// 320 is the most wider resolution
+	mutable std::array<pixel, 320> plane_a_buffer;
+	mutable std::array<pixel, 320> plane_b_buffer;
+	mutable std::array<pixel, 320> sprite_buffer;
+	mutable std::array<pixel, 1024> pixel_buffer;
+
+private:
+	/* Helper functions */
+	template<class T>
+	static void check_buffer_size(std::span<T> buffer, std::size_t minimum_size)
+	{
+		if(buffer.size() < minimum_size)
+			throw genesis::internal_error();
+	}
 
 private:
 	genesis::vdp::register_set& regs;
@@ -58,8 +108,6 @@ private:
 	genesis::vdp::vram_t& vram;
 	genesis::vdp::vsram_t& vsram;
 	genesis::vdp::cram_t& cram;
-
-	mutable std::array<genesis::vdp::output_color, 1024> plane_buffer;
 };
 
 }

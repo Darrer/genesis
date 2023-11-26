@@ -1,15 +1,15 @@
 #include "render.h"
 
+#include "hscroll_table.h"
+#include "vscroll_table.h"
+
+#include <algorithm>
 #include <iostream>
 
 namespace genesis::vdp::impl
 {
 
-const auto PIXELS_IN_TILE_ROW = 8;
-const auto PIXELS_IN_TILE_COL = 8;
-
-// simplify for now
-const auto TILE_SIZE_IN_BYTES = 32; // 8x8 pixels * 4 bits per pixel
+const auto PIXELS_IN_TAILE_COL = 8;
 
 render::render(genesis::vdp::register_set& regs, genesis::vdp::settings& sett,
 	genesis::vdp::vram_t& vram,  genesis::vdp::vsram_t& vsram, genesis::vdp::cram_t& cram):
@@ -36,78 +36,215 @@ unsigned render::plane_hight_in_pixels(plane_type plane_type) const
 	return table.row_count() * 8;
 }
 
+unsigned render::active_display_width() const
+{
+	return sett.display_width_in_pixels();
+}
+
+unsigned render::active_display_height() const
+{
+	return sett.display_height_in_pixels();
+}
+
 std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type plane_type,
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const
 {
-	std::size_t min_buffer_size = plane_width_in_pixels(plane_type);
-	if(buffer.size() < min_buffer_size)
-		throw genesis::internal_error();
+	std::size_t buffer_size = plane_width_in_pixels(plane_type);
+	check_buffer_size(buffer, buffer_size);
 
-	unsigned max_rows = plane_hight_in_pixels(plane_type);
-	if(row_number >= max_rows)
+	if(row_number >= plane_hight_in_pixels(plane_type))
 		throw genesis::internal_error();
 
 	name_table table(plane_type, sett, vram);
-	const auto tile_row_number = row_number / PIXELS_IN_TILE_COL;
-	const auto row_in_tail = row_number % PIXELS_IN_TILE_COL;
+	const auto tail_row_number = row_number / PIXELS_IN_TAILE_COL;
+	const auto tail_row = row_number % PIXELS_IN_TAILE_COL;
 
-	auto it = buffer.begin();
+	auto buffer_it = buffer.begin();
 	for(auto i = 0; i < table.entries_per_row(); ++i)
 	{
-		auto entry = table.get(tile_row_number, i);
+		auto entry = table.get(tail_row_number, i);
 
-		auto row = read_pattern_row(row_in_tail, entry.effective_pattern_address(), entry.horizontal_flip, entry.vertical_flip);
-		for(auto i : row)
-		{
-			// every element contains 2 colors
-			std::uint8_t first_idx = i >> 4;
-			std::uint8_t second_idx = i & 0xF;
-
-			*it = read_color(entry.palette, first_idx);
-			++it;
-
-			*it = read_color(entry.palette, second_idx);
-			++it;
-		}
+		auto row = read_pattern_row(tail_row, entry.effective_pattern_address(),
+			entry.horizontal_flip, entry.vertical_flip, entry.palette);
+		buffer_it = std::copy(row.cbegin(), row.cend(), buffer_it);
 	}
 
-	return std::span<genesis::vdp::output_color>(buffer.begin(), min_buffer_size);
+	return std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
 }
 
 std::span<genesis::vdp::output_color> render::get_sprite_row(unsigned row_number,
 	std::span<genesis::vdp::output_color> buffer) const
 {
-	if(buffer.size() < sprite_width_in_pixels())
-		throw genesis::internal_error();
+	const auto buffer_size = sprite_width_in_pixels();
+	check_buffer_size(buffer, buffer_size);
 
-	std::fill_n(buffer.begin(), sprite_width_in_pixels(), TRANSPARENT_COLOR);
+	buffer = std::span<vdp::output_color>(buffer.begin(), buffer_size);
+	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_COLOR);
 
 	sprite_table stable(sett, vram);
 
 	unsigned sprite_number = 0;
-	// TODO: introduce limits per scanline
 	for(unsigned i = 0; i < stable.num_entries(); ++i)
 	{
 		auto entry = stable.get(sprite_number);
 
-		if(should_draw_sprite(row_number, entry))
+		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
 		{
-			draw_sprite(row_number, entry, buffer);
+			read_sprite(row_number, entry, buffer);
 		}
 
 		sprite_number = entry.link;
-		if(sprite_number == 0)
+		if(sprite_number == 0 || sprite_number >= stable.num_entries())
 			break;
 	}
 
-	return std::span<genesis::vdp::output_color>(buffer.begin(), sprite_width_in_pixels());
+	return buffer;
+}
+
+std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned row_number,
+	std::span<genesis::vdp::output_color> buffer) const
+{
+	const auto buffer_size = active_display_width();
+	check_buffer_size(buffer, buffer_size);
+
+	// TODO: window plane
+	auto plane_a = get_active_plane_row(plane_type::a, row_number, plane_a_buffer);
+	auto plane_b = get_active_plane_row(plane_type::b, row_number, plane_b_buffer);
+	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
+
+	if(buffer_size != plane_a.size() || buffer_size != plane_b.size() || buffer_size != sprites.size())
+		throw genesis::internal_error();
+
+	genesis::vdp::output_color bg_color = background_color();
+	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+
+	for(std::size_t i = 0; i < buffer.size(); ++i)
+	{
+		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], sprites[i]);
+	}
+
+	return buffer;
+}
+
+std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
+	std::span<render::pixel> buffer) const
+{
+	std::size_t buffer_size = active_display_width();
+	check_buffer_size(buffer, buffer_size);
+
+	if(row_number >= active_display_height())
+		throw genesis::internal_error();
+
+	auto plane = get_scrolled_plane_row(plane_type, row_number, pixel_buffer);
+
+	// TODO: what if returned plane size is less then active display row?
+	if(plane.size() < buffer_size)
+		throw genesis::not_implemented();
+
+	// Copy result to the buffer
+	std::copy(plane.cbegin(), plane.cbegin() + buffer_size, buffer.begin());
+
+	return std::span<render::pixel>(buffer.begin(), buffer_size);
+}
+
+std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_type,
+	unsigned row_number, std::span<render::pixel> buffer) const
+{
+	std::size_t buffer_size = plane_width_in_pixels(plane_type);
+	check_buffer_size(buffer, buffer_size);
+
+	buffer = std::span<pixel>(buffer.begin(), buffer_size);
+
+	unsigned max_height = plane_hight_in_pixels(plane_type);
+
+	name_table table(plane_type, sett, vram);
+
+	auto buffer_it = buffer.begin();
+	for(int tail_column_number = 0; tail_column_number < table.entries_per_row(); ++tail_column_number)
+	{
+		// apply horizontal scrolling just by changing row_number
+		int offset = vscroll_table::get_offset(plane_type, tail_column_number, sett, vsram);
+		int shifted_row_number = (row_number + offset) % max_height;
+
+		int tail_row_number = shifted_row_number / PIXELS_IN_TAILE_COL;
+		int tail_row = shifted_row_number % PIXELS_IN_TAILE_COL;
+
+		name_table_entry entry = table.get(tail_row_number, tail_column_number);
+
+		auto pattern_row = read_pattern_row(tail_row, entry.effective_pattern_address(),
+			entry.horizontal_flip, entry.vertical_flip, entry.palette);
+		
+		buffer_it = std::transform(pattern_row.cbegin(), pattern_row.cend(), buffer_it,
+			[&entry](auto color) -> pixel { return { color, entry.priority == 1 }; });
+	}
+
+	// apply horizontal scrolling
+	hscroll_table hscroll(plane_type, sett, vram);
+	int offset = hscroll.get_offset(row_number) % plane_width_in_pixels(plane_type);
+	std::rotate(buffer.rbegin(), buffer.rbegin() + offset, buffer.rend());
+
+	return buffer;
+}
+
+std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std::span<render::pixel> buffer) const
+{
+	const auto buffer_size = active_display_width();
+	check_buffer_size(buffer, buffer_size);
+
+	row_number += 128;
+
+	pixel transparent_pixel { TRANSPARENT_COLOR, false };
+	std::fill_n(pixel_buffer.begin(), pixel_buffer.size(), transparent_pixel);
+
+	sprite_table stable(sett, vram);
+
+	unsigned sprite_number = 0;
+	// TODO: add limits per scanline
+	for(unsigned i = 0; i < stable.num_entries(); ++i)
+	{
+		auto entry = stable.get(sprite_number);
+
+		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
+		{
+			read_sprite(row_number, entry, pixel_buffer);
+		}
+
+		sprite_number = entry.link;
+		if(sprite_number == 0 || sprite_number >= stable.num_entries())
+			break;
+	}
+
+	if(buffer_size + 128 > pixel_buffer.size())
+		throw genesis::internal_error();
+
+	std::copy(pixel_buffer.cbegin() + 128, pixel_buffer.cbegin() + buffer_size + 128, buffer.begin());
+	return std::span<pixel>(buffer.begin(), buffer_size);
+}
+
+genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color background_color,
+	pixel plane_a, pixel plane_b, pixel sprite) const
+{
+	if(sprite.color != TRANSPARENT_COLOR && sprite.priority_flag)
+		return sprite.color;
+	if(plane_a.color != TRANSPARENT_COLOR && plane_a.priority_flag)
+		return plane_a.color;
+	if(plane_b.color != TRANSPARENT_COLOR && plane_b.priority_flag)
+		return plane_b.color;
+
+	if(sprite.color != TRANSPARENT_COLOR)
+		return sprite.color;
+	if(plane_a.color != TRANSPARENT_COLOR)
+		return plane_a.color;
+	if(plane_b.color != TRANSPARENT_COLOR)
+		return plane_b.color;
+
+	return background_color;
 }
 
 // pattern_row_number - zero based
 std::array<std::uint8_t, 4> render::read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
 	bool hflip, bool vflip) const
 {
-	// TODO: can it be > 8?
 	if(pattern_row_number > 8)
 		throw internal_error();
 
@@ -134,6 +271,26 @@ std::array<std::uint8_t, 4> render::read_pattern_row(unsigned pattern_row_number
 	return row;
 }
 
+std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
+	bool hflip, bool vflip, std::uint8_t palette_id) const
+{
+	auto pattern_row = read_pattern_row(pattern_row_number, pattern_addres, hflip, vflip);
+
+	std::array<vdp::output_color, 8> colors;
+	int i_color = 0;
+	for(std::uint8_t row_element : pattern_row)
+	{
+		// each element contains 2 colors
+		std::uint8_t first_idx = row_element >> 4;
+		std::uint8_t second_idx = row_element & 0xF;
+
+		colors[i_color++] = read_color(palette_id, first_idx);
+		colors[i_color++] = read_color(palette_id, second_idx);
+	}
+
+	return colors;
+}
+
 // shouldn't be used for background color
 vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) const
 {
@@ -142,44 +299,57 @@ vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) c
 	return cram.read_color(palette_idx, color_idx);
 }
 
-bool render::should_draw_sprite(unsigned row_number, const sprite_table_entry& entry) const
+bool render::should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const
 {
-	// TODO: assume pattern is always 8 pixels height
-	std::uint16_t last_vert_pos = entry.vertical_position + ((entry.vertical_size + 1) * 8);
-
-	return entry.vertical_position <= row_number && row_number < last_vert_pos;
+	std::uint16_t last_vert_pos = vertical_position + ((vertical_size + 1) * 8);
+	return vertical_position <= row_number && row_number < last_vert_pos;
 }
 
-void render::draw_sprite(unsigned row_number, const sprite_table_entry& entry,
-	std::span<genesis::vdp::output_color> buffer) const
+void render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
+	std::span<genesis::vdp::output_color> dest) const
 {
-	auto it = buffer.begin();
-	std::advance(it, entry.horizontal_position);
+	check_buffer_size(dest, entry.horizontal_position);
+
+	auto dest_it = std::next(dest.begin(), entry.horizontal_position);
 
 	unsigned pattern_row_number = (row_number - entry.vertical_position) % 8;
 
 	for(int i = 0; i <= entry.horizontal_size; ++i)
 	{
 		std::uint32_t pattern_addr = sprite_pattern_address(row_number, i, entry);
-		auto row = read_pattern_row(pattern_row_number, pattern_addr, entry.horizontal_flip, entry.vertical_flip);
-
-		// dump
-		for(std::uint8_t color : row)
+		auto row = read_pattern_row(pattern_row_number, pattern_addr,
+			entry.horizontal_flip, entry.vertical_flip, entry.palette);
+		for(auto color : row)
 		{
-			// every element contains 2 colors
-			std::uint8_t first_idx = color >> 4;
-			std::uint8_t second_idx = color & 0xF;
+			if(*dest_it == TRANSPARENT_COLOR)
+				*dest_it = color;
 
-			auto first_color = read_color(entry.palette, first_idx);
-			auto second_color = read_color(entry.palette, second_idx);
+			if(++dest_it == dest.end())
+				return;
+		}
+	}
+}
 
-			if(*it == TRANSPARENT_COLOR)
-				*it = first_color;
-			it++;
+void render::read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<render::pixel> dest) const
+{
+	check_buffer_size(dest, entry.horizontal_position);
 
-			if(*it == TRANSPARENT_COLOR)
-				*it = second_color;
-			it++;
+	auto dest_it = std::next(dest.begin(), entry.horizontal_position);
+
+	unsigned pattern_row_number = (row_number - entry.vertical_position) % 8;
+
+	for(int i = 0; i <= entry.horizontal_size; ++i)
+	{
+		std::uint32_t pattern_addr = sprite_pattern_address(row_number, i, entry);
+		auto row = read_pattern_row(pattern_row_number, pattern_addr,
+			entry.horizontal_flip, entry.vertical_flip, entry.palette);
+		for(auto color : row)
+		{
+			if(dest_it->color == TRANSPARENT_COLOR)
+				*dest_it = { color, entry.priority_flag };
+
+			if(++dest_it == dest.end())
+				return;
 		}
 	}
 }

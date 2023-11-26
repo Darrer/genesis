@@ -64,6 +64,15 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
 		)
 	);
 
+	displays.push_back(
+		std::make_unique<sdl::plane_display>("active display",
+			[&smd]() { return smd.vdp().render().active_display_width(); },
+			[&smd]() { return smd.vdp().render().active_display_height(); },
+			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
+				{ return smd.vdp().render().get_active_display_row(row_number, buffer); }
+		)
+	);
+
 	return displays;
 }
 

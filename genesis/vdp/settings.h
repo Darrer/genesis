@@ -354,12 +354,40 @@ public:
 		return display_height::c28;
 	}
 
+	std::uint16_t display_height_in_pixels() const
+	{
+		if(display_height() == display_height::c30)
+			return 240;
+		return 224; // c28
+	}
+
+	std::uint8_t display_height_in_tails() const
+	{
+		if(display_height() == display_height::c30)
+			return 30;
+		return 28;
+	}
+
 	vdp::display_width display_width() const
 	{
 		// TODO: take into accout RS1?
 		if(regs.R12.RS0 == 1)
 			return display_width::c40;
 		return display_width::c32;
+	}
+
+	std::uint16_t display_width_in_pixels() const
+	{
+		if(display_width() == display_width::c40)
+			return 320;
+		return 256;
+	}
+
+	std::uint8_t display_width_in_tails() const
+	{
+		if(display_width() == display_width::c40)
+			return 40;
+		return 32;
 	}
 
 	vdp::interlace_mode interlace_mode() const
