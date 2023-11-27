@@ -33,7 +33,9 @@ PRIVATE
 
 	smd/smd.h
 	smd/smd.cpp
+	smd/impl/m68k_bus_access.h
 	smd/impl/m68k_interrupt_access.h
+	smd/impl/z80_control_registers.h
 
 	memory/addressable.h
 	memory/dummy_memory.h

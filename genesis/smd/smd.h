@@ -7,6 +7,8 @@
 #include "vdp/vdp.h"
 #include "rom.h"
 
+#include "impl/z80_control_registers.h"
+
 #include <memory>
 #include <string_view>
 
@@ -35,6 +37,7 @@ private:
 
 	// tmp
 	void z80_cycle();
+	impl::z80_control_registers m_z80_ctrl_registers;
 
 	std::shared_ptr<memory::memory_unit> z80_request;
 	std::shared_ptr<memory::memory_unit> z80_reset;

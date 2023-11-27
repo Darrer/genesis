@@ -59,47 +59,21 @@ void smd::cycle()
 
 void smd::z80_cycle()
 {
-	std::uint16_t cpu_reset = z80_reset->read<std::uint16_t>(0x0);
-	std::uint16_t bus_request = z80_request->read<std::uint16_t>(0x0);
+	m_z80_ctrl_registers.cycle();
 
-	if(bus_request == 0x100)
+	if(m_z80_ctrl_registers.z80_reset_requested())
 	{
-		// bus is just requested
-		// clear low bit to indicate the request is granted
-		z80_request->write<std::uint16_t>(0, 0x200);
-	}
-	else if(bus_request == 0x200)
-	{
-		// bus is granted, wait
-	}
-	else if(bus_request == 0x0)
-	{
-		// can do z80 cycle
-	}
-
-	// reset CPU only when the bus is requested/granted
-	if(cpu_reset == 0x0 && bus_request == 0x200)
-	{
-		// cpu must be reseted
 		m_z80_cpu->reset();
+		return;
 	}
 
-	if(bus_request == 0x0 && cpu_reset == 0x100)
+	if(m_z80_ctrl_registers.z80_bus_granted())
 	{
-		// std::cout << "z80 do execute_one\n";
-		m_z80_cpu->execute_one();
+		return;
 	}
 
-	// bool z80_reset_request = z80_reset->read<std::uint16_t>(0x0) == 0x000;
-	// bool z80_bus_request = z80_request->read<std::uint16_t>(0x0) == 0x100;
-
-	// if(z80_bus_request)
-	{
-		// we should stop Z80
-	}
-
-	// TMP: z80 assert bus is granted
-	// z80_request->write(0, std::uint16_t(0));
+	// std::cout << "Run z80\n";
+	m_z80_cpu->execute_one();
 }
 
 void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis::rom& parsed_rom)
@@ -107,11 +81,16 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	/* Build z80 memory map */
 	memory::memory_builder z80_builder;
 
-	z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x0, 0x1FFF);
+	z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
 	z80_builder.add(std::make_shared<memory::dummy_memory>(0x3, std::endian::little), 0x4000, 0x4003);
 	z80_builder.add(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), 0x6000, 0x6000);
-	z80_builder.add(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), 0x7F11, 0x7F11);
-	z80_builder.add(std::make_shared<memory::zero_memory_unit>(0x7FFF, std::endian::little), 0x8000, 0xFFFF);
+	z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFB, std::endian::little), 0x4004, 0x5FFF); // sound chip
+	z80_builder.add(std::make_shared<memory::zero_memory_unit>(0x0, std::endian::little), 0x7F11, 0x7F11); // bank switch
+	z80_builder.add(std::make_shared<memory::zero_memory_unit>(0x7FFF, std::endian::little), 0x8000, 0xFFFF); // ROM
+
+	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x2000, 0x3FFF); // reserved
+	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1F0F, std::endian::little), 0x6001, 0x7F10); // reserved
+	// z80_builder.add(std::make_shared<memory::memory_unit>(0xED, std::endian::little), 0x7F12, 0x7FFF); // reserved
 
 	z80_mem_map = z80_builder.build();
 
@@ -161,23 +140,15 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	// Controller 1/2 and Expansion port
 	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1D, std::endian::big), 0xA10002, 0xA1001F);
 
-	/* Z80 bus */
+	/* Z80 control registers */
+	m68k_builder.add(m_z80_ctrl_registers.z80_bus_request_register(), 0xA11100, 0xA11101);
+	m68k_builder.add(m_z80_ctrl_registers.z80_reset_register(), 0xA11200, 0xA11201);
 	
-	// Z80 bus request
-
-	z80_request = std::make_shared<memory::memory_unit>(0x1, std::endian::big);
-	m68k_builder.add(z80_request, 0xA11100, 0xA11101);
-	// Z80 reset
-	z80_reset = std::make_shared<memory::memory_unit>(0x1, std::endian::big);
-	m68k_builder.add(z80_reset, 0xA11200, 0xA11201);
-	// m68k_builder.add(std::make_shared<memory::dummy_memory>(0x1, std::endian::big), 0xA11200, 0xA11201);
-
 	m68k_mem_map = m68k_builder.build();
 }
 
 std::shared_ptr<memory::addressable> smd::load_rom(std::string_view rom_path)
 {
-	// should be read_only_memory_unit
 	auto rom = std::make_shared<memory::memory_unit>(0x3FFFFF, std::endian::big);
 
 	std::ifstream fs(rom_path.data(), std::ios_base::binary);
