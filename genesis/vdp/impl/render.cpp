@@ -66,7 +66,7 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 
 		auto row = read_pattern_row(tail_row, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, entry.palette);
-		buffer_it = std::copy(row.cbegin(), row.cend(), buffer_it);
+		buffer_it = std::copy(row.begin(), row.end(), buffer_it);
 	}
 
 	return std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
@@ -142,7 +142,7 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 		throw genesis::not_implemented();
 
 	// Copy result to the buffer
-	std::copy(plane.cbegin(), plane.cbegin() + buffer_size, buffer.begin());
+	std::copy(plane.begin(), plane.begin() + buffer_size, buffer.begin());
 
 	return std::span<render::pixel>(buffer.begin(), buffer_size);
 }
@@ -173,8 +173,8 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 
 		auto pattern_row = read_pattern_row(tail_row, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, entry.palette);
-		
-		buffer_it = std::transform(pattern_row.cbegin(), pattern_row.cend(), buffer_it,
+
+		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
 			[&entry](auto color) -> pixel { return { color, entry.priority == 1 }; });
 	}
 
@@ -217,7 +217,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 	if(buffer_size + 128 > pixel_buffer.size())
 		throw genesis::internal_error();
 
-	std::copy(pixel_buffer.cbegin() + 128, pixel_buffer.cbegin() + buffer_size + 128, buffer.begin());
+	std::copy(pixel_buffer.begin() + 128, pixel_buffer.begin() + buffer_size + 128, buffer.begin());
 	return std::span<pixel>(buffer.begin(), buffer_size);
 }
 
