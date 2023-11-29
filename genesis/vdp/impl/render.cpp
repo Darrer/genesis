@@ -1,5 +1,6 @@
 #include "render.h"
 
+#include "sprites_limits_tracker.h"
 #include "hscroll_table.h"
 #include "vscroll_table.h"
 
@@ -102,7 +103,7 @@ std::span<genesis::vdp::output_color> render::get_sprite_row(unsigned row_number
 }
 
 std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned row_number,
-	std::span<genesis::vdp::output_color> buffer) const
+	std::span<genesis::vdp::output_color> buffer)
 {
 	const auto buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
@@ -124,6 +125,10 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 	}
 
 	return buffer;
+}
+
+void render::reset_limits()
+{
 }
 
 std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
@@ -186,27 +191,59 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 	return buffer;
 }
 
-std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std::span<render::pixel> buffer) const
+// Rename to render_active_sprite_line
+std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std::span<render::pixel> buffer)
 {
 	const auto buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
+
+	bool prev_line_overflow = regs.SR.SO == 1;
+	regs.SR.SO = 0;
+	regs.SR.SC = 0;
 
 	row_number += 128;
 
 	pixel transparent_pixel { TRANSPARENT_COLOR, false };
 	std::fill_n(pixel_buffer.begin(), pixel_buffer.size(), transparent_pixel);
 
+	sprites_limits_tracker sprites_limits(sett);
 	sprite_table stable(sett, vram);
 
 	unsigned sprite_number = 0;
-	// TODO: add limits per scanline
+	unsigned rendered_sprites = 0;
+	bool masked = false;
 	for(unsigned i = 0; i < stable.num_entries(); ++i)
 	{
+		// check limits
+		if(sprites_limits.line_limit_exceeded())
+		{
+			regs.SR.SO = 1;
+			break;
+		}
+
 		auto entry = stable.get(sprite_number);
 
 		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
 		{
-			read_sprite(row_number, entry, pixel_buffer);
+			// Sprite masking, mode 1
+			if(entry.horizontal_position == 0 && (rendered_sprites > 0 || prev_line_overflow))
+			{
+				// All other sprites should be masked
+				masked = true;
+			}
+
+			if(entry.horizontal_position != 0)
+				++rendered_sprites;
+
+			if(masked == false)
+			{
+				bool collision = read_sprite(row_number, entry, pixel_buffer, sprites_limits.line_pixels_limit());
+				if(collision)
+					regs.SR.SC = 1;
+			}
+
+			// Keep limits tracking to correctly set sprite overflow (SO) flag
+			sprites_limits.on_sprite_draw(entry);
 		}
 
 		sprite_number = entry.link;
@@ -299,6 +336,7 @@ vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) c
 	return cram.read_color(palette_idx, color_idx);
 }
 
+// TODO: rename to should_render_sprite
 bool render::should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const
 {
 	std::uint16_t last_vert_pos = vertical_position + ((vertical_size + 1) * 8);
@@ -330,13 +368,19 @@ void render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
 	}
 }
 
-void render::read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<render::pixel> dest) const
+bool render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
+	std::span<render::pixel> dest, unsigned pixels_limit) const
 {
 	check_buffer_size(dest, entry.horizontal_position);
 
 	auto dest_it = std::next(dest.begin(), entry.horizontal_position);
 
 	unsigned pattern_row_number = (row_number - entry.vertical_position) % 8;
+
+	bool collision = false;
+
+	if(pixels_limit == 0)
+		return collision;
 
 	for(int i = 0; i <= entry.horizontal_size; ++i)
 	{
@@ -346,12 +390,21 @@ void render::read_sprite(unsigned row_number, const sprite_table_entry& entry, s
 		for(auto color : row)
 		{
 			if(dest_it->color == TRANSPARENT_COLOR)
+			{
 				*dest_it = { color, entry.priority_flag };
+			}
+			else if(color != TRANSPARENT_COLOR)
+			{
+				collision = true;
+			}
 
-			if(++dest_it == dest.end())
-				return;
+			--pixels_limit;
+			if(++dest_it == dest.end() || pixels_limit == 0)
+				return collision;
 		}
 	}
+
+	return collision;
 }
 
 // column number is from left to right in range [0; 3]

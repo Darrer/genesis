@@ -77,6 +77,7 @@ PRIVATE
 	vdp/impl/vscroll_table.h
 	vdp/impl/plane_type.h
 	vdp/impl/color.h
+	vdp/impl/sprites_limits_tracker.h
 	vdp/vdp.h
 	vdp/vdp.cpp
 	vdp/registers.h

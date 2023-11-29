@@ -49,7 +49,10 @@ public:
 	unsigned active_display_height() const;
 
 	std::span<genesis::vdp::output_color> get_active_display_row(unsigned row_number,
-		std::span<genesis::vdp::output_color> buffer) const;
+		std::span<genesis::vdp::output_color> buffer);
+
+	// should be called when VDP starts rendering new frame
+	void reset_limits();
 
 private:
 	struct pixel
@@ -69,12 +72,15 @@ private:
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
 	/* Sprites helpers */
-	std::span<pixel> get_active_sprites_row(unsigned row_number, std::span<pixel> buffer) const;
+	std::span<pixel> get_active_sprites_row(unsigned row_number, std::span<pixel> buffer);
 	bool should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const;
 
 	// For performance reason it better to duplicate these functions
 	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<vdp::output_color> buffer) const;
-	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<pixel> dest) const;
+
+	// Returns true if sprites collision occurs
+	bool read_sprite(unsigned row_number,const sprite_table_entry& entry,
+		std::span<pixel> dest, unsigned pixels_limit) const;
 
 	std::uint32_t sprite_pattern_address(unsigned row_number, unsigned pattern_number,
 		const sprite_table_entry& entry) const;
