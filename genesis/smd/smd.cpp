@@ -8,13 +8,16 @@
 #include "impl/m68k_bus_access.h"
 #include "impl/m68k_interrupt_access.h"
 
+#include "io_ports/controller.h"
+
 #include <fstream>
 
 
 namespace genesis
 {
 
-smd::smd(std::string_view rom_path)
+smd::smd(std::string_view rom_path, std::shared_ptr<io_ports::input_device> input_dev1)
+	: m_input_dev1(input_dev1)
 {
 	m_vdp = std::make_unique<vdp::vdp>();
 
@@ -94,9 +97,9 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 
 	z80_mem_map = z80_builder.build();
 
+	memory::memory_builder m68k_builder;
+
 	auto m68k_ram = std::make_shared<memory::memory_unit>(0xFFFF, std::endian::big);
-	// auto z80_ram = std::make_shared<memory::zero_memory_unit>(0xFFFF, std::endian::little);
-	auto z80_ram = z80_mem_map;
 
 	// Setup version register based on loading rom
 	auto version_register = std::make_shared<memory::read_only_memory_unit>(0x1, std::endian::big);
@@ -104,9 +107,8 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	version_register->write<std::uint16_t>(0, (ver_reg << 8) | ver_reg);
 
 
-	memory::memory_builder m68k_builder;
 	m68k_builder.add(rom, 0x0, 0x3FFFFF);
-	m68k_builder.add(z80_ram, 0xA00000, 0xA0FFFF);
+	m68k_builder.add(z80_mem_map, 0xA00000, 0xA0FFFF);
 	// m68k_builder.add(m68k_ram, 0xFF0000, 0xFFFFFF);
 	m68k_builder.add(version_register, 0xA10000, 0xA10001);
 
@@ -137,8 +139,23 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	// unemplemented VDP Ports
 	m68k_builder.add(std::make_shared<memory::zero_memory_unit>(0x17, std::endian::big), 0xC00008, 0xC0001F);
 
-	// Controller 1/2 and Expansion port
-	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1D, std::endian::big), 0xA10002, 0xA1001F);
+	/* IO ports */
+
+	// Controller 1
+	io_ports::controller controller1(m_input_dev1);
+	m68k_builder.add(controller1.data_port(), 0xA10002, 0xA10003);
+	m68k_builder.add(controller1.control_port(), 0xA10008, 0xA10009);
+
+	// Controller 2
+	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA10004, 0xA10005);
+	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA1000A, 0xA1000B);
+
+	// Expansion
+	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA10006, 0xA10007);
+	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA1000C, 0xA1000D);
+
+	// Serial interface for controllers/expansion
+	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x11, std::endian::big), 0xA1000E, 0xA1001F);
 
 	/* Z80 control registers */
 	m68k_builder.add(m_z80_ctrl_registers.z80_bus_request_register(), 0xA11100, 0xA11101);

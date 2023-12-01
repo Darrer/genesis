@@ -89,6 +89,10 @@ PRIVATE
 	vdp/output_color.h
 	vdp/m68k_bus_access.h
 	vdp/m68k_interrupt_access.h
+
+	io_ports/controller.h
+	io_ports/input_device.h
+	io_ports/key_type.h
 )
 
 # executable based on core lib
@@ -103,6 +107,7 @@ PRIVATE
 	sdl/palette_display.h
 	sdl/plane_display.h
 	sdl/plane_display.cpp
+	sdl/input_device.h
 )
 
 # target_link_libraries(${GENESIS} PRIVATE ${GENESIS_LIB} SDL3::SDL3)

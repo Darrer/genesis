@@ -9,6 +9,8 @@
 
 #include "impl/z80_control_registers.h"
 
+#include "io_ports/input_device.h"
+
 #include <memory>
 #include <string_view>
 
@@ -19,7 +21,7 @@ namespace genesis
 class smd
 {
 public:
-	smd(std::string_view rom_path);
+	smd(std::string_view rom_path, std::shared_ptr<io_ports::input_device> input_dev1);
 
 	void cycle();
 
@@ -53,6 +55,9 @@ protected:
 
 	std::uint32_t prev_pc = 0x0;
 	unsigned cycles = 0;
+
+private:
+	 std::shared_ptr<io_ports::input_device> m_input_dev1;
 };
 
 } // namespace genesis

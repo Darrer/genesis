@@ -9,6 +9,7 @@
 
 #include "sdl/palette_display.h"
 #include "sdl/plane_display.h"
+#include "sdl/input_device.h"
 
 using namespace genesis;
 
@@ -104,11 +105,13 @@ int main(int args, char* argv[])
 			return EXIT_FAILURE;
 		}
 
-		genesis::smd smd(rom_path);
+		auto input_device = std::make_shared<sdl::input_device>();
+
+		genesis::smd smd(rom_path, input_device);
 
 		auto displays = create_displays(smd);
 
-		smd.vdp().on_frame_end([&displays]()
+		smd.vdp().on_frame_end([&]()
 		{
 			measure_and_log([&]()
 			{
@@ -120,8 +123,9 @@ int main(int args, char* argv[])
 				{
 					for(auto& disp: displays)
 						disp->handle_event(e);
+					input_device->handle_event(e);
 				}
-			}, "update displays");
+			}, "render frame");
 		});
 
 		while(true) // Don't really care about timings so far
