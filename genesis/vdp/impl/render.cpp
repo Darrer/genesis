@@ -18,7 +18,7 @@ render::render(genesis::vdp::register_set& regs, genesis::vdp::settings& sett,
 {
 }
 
-std::uint16_t render::background_color() const
+output_color render::background_color() const
 {
 	return cram.read_color(regs.R7.PAL, regs.R7.COL);
 }

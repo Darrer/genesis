@@ -3,6 +3,7 @@
 
 #include <array>
 #include "memory/memory_unit.h"
+#include "output_color.h"
 
 
 namespace genesis::vdp
@@ -30,18 +31,18 @@ public:
 
 	void write(std::uint16_t addr, std::uint16_t data)
 	{
-		mem.write(format_addr(addr), data);
+		addr = format_addr(addr);
+		mem.write(addr, data);
+
+		unsigned palette = addr / 32;
+		unsigned color_idx = (addr % 32) / 2;
+
+		colors.at(palette).at(color_idx) = data;
 	}
 
-	std::uint16_t read_color(unsigned palette, unsigned color_idx)
+	output_color read_color(unsigned palette, unsigned color_idx)
 	{
-		if(palette > 3)
-			throw std::invalid_argument("palette");
-		if(color_idx > 15)
-			throw std::invalid_argument("color_idx");
-
-		std::uint16_t addr = (palette * 32) + (color_idx * 2);
-		return read(addr);
+		return colors.at(palette).at(color_idx);
 	}
 
 private:
@@ -52,6 +53,7 @@ private:
 
 private:
 	memory::memory_unit mem;
+	std::array<std::array<output_color, 16>, 4> colors;
 };
 
 

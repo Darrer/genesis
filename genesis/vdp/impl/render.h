@@ -24,7 +24,7 @@ public:
 	 genesis::vdp::vram_t& vram,  genesis::vdp::vsram_t& vsram, genesis::vdp::cram_t& cram);
 
 
-	std::uint16_t background_color() const;
+	output_color background_color() const;
 
 	/* A/B/W Planes */
 
