@@ -199,7 +199,9 @@ public:
 
 	draw_horizontal_direction window_horizontal_draw_direction() const
 	{
-		if(regs.R17.R == 1)
+		// if(regs.R17.R == 1)
+		// TODO: figure out why window plane works only when we invert R17.R bit
+		if(regs.R17.R == 0)
 			return draw_horizontal_direction::right;
 		return draw_horizontal_direction::left;
 	}
