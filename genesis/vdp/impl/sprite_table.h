@@ -53,9 +53,8 @@ public:
 		sprite_table_entry entry;
 
 		// Read vertical position
-		std::uint8_t vp2 = vram.read<std::uint8_t>(address++) & 0b1; // TODO: or 0b11?
-		std::uint8_t vp1 = vram.read<std::uint8_t>(address++);
-		entry.vertical_position = (vp2 << 8) | vp1;
+		entry.vertical_position = vram.read<std::uint16_t>(address) & 0b111111111; // use 9 bits only
+		address += 2;
 
 		// Read sprite size
 		std::uint8_t size = vram.read<std::uint8_t>(address++);
@@ -79,9 +78,7 @@ public:
 		entry.priority_flag = (pattern_addr2 >> 7) & 0b1;
 
 		// Read horizontal position
-		std::uint8_t hp2 = vram.read<std::uint8_t>(address++) & 0b1;
-		std::uint8_t hp1 = vram.read<std::uint8_t>(address++);
-		entry.horizontal_position = (hp2 << 8) | hp1;
+		entry.horizontal_position = vram.read<std::uint16_t>(address) & 0b111111111; // use 9 bits only
 
 		return entry;
 	}

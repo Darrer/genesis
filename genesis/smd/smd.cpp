@@ -7,6 +7,7 @@
 
 #include "impl/m68k_bus_access.h"
 #include "impl/m68k_interrupt_access.h"
+#include "impl/z80_io_ports.h"
 
 #include "io_ports/controller.h"
 
@@ -26,7 +27,8 @@ smd::smd(std::string_view rom_path, std::shared_ptr<io_ports::input_device> inpu
 	build_cpu_memory_map(std::move(rom), parsed_rom);
 
 	// z80::memory z80_mem(z80_mem_map);
-	m_z80_cpu = std::make_unique<z80::cpu>(std::make_shared<z80::memory>(z80_mem_map));
+	auto z80_ports = std::make_shared<impl::z80_io_ports>();
+	m_z80_cpu = std::make_unique<z80::cpu>(std::make_shared<z80::memory>(z80_mem_map), z80_ports);
 
 	m_m68k_cpu = std::make_unique<m68k::cpu>(m68k_mem_map);
 
