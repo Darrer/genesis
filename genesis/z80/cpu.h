@@ -53,6 +53,10 @@ public:
 
 	z80::io_ports& io_ports()
 	{
+		// It's okay to have CPU without IO ports as most of the program do not use it,
+		// so throw exception only when a program makes an attempt to execute IN/OUT commands
+		if(ports == nullptr)
+			throw std::runtime_error("Z80 cpu was not configured with io ports");
 		return *ports;
 	}
 
