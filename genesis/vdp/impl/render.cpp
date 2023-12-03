@@ -111,7 +111,7 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 	// TODO: window plane
 	auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
 	auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
-	auto window = get_active_window_row(row_number, window_buffer);
+	// auto window = get_active_window_row(row_number, window_buffer);
 	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
 
 	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size()
@@ -123,8 +123,8 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 
 	for(std::size_t i = 0; i < buffer.size(); ++i)
 	{
-		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], window[i], sprites[i]);
-		// buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], TRANSPARENT_PIXEL, sprites[i]);
+		// buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], window[i], sprites[i]);
+		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], TRANSPARENT_PIXEL, sprites[i]);
 	}
 
 	return buffer;
@@ -359,7 +359,7 @@ genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color b
 std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
 	bool hflip, bool vflip, std::uint8_t palette_id) const
 {
-	if(pattern_row_number > 8)
+	if(pattern_row_number >= 8)
 		throw internal_error();
 
 	if(vflip)
@@ -367,37 +367,36 @@ std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_n
 
 	pattern_addres = pattern_addres + (pattern_row_number * 0x4 /* single row occupies 4 bytes */);
 
-	std::uint32_t row_data = vram.read<std::uint32_t>(pattern_addres);
+	std::uint32_t row_data = vram.read_raw<std::uint32_t>(pattern_addres);
 
 	std::array<vdp::output_color, 8> colors;
+
 	if(hflip)
 	{
-		int i_color = 0;
-		for(int i = 0; i < 4; ++i)
+		for(auto it = colors.rbegin(); it != colors.rend();)
 		{
-			std::uint8_t row_element = row_data & 0xFF;
-			row_data = row_data >> 8;
+			unsigned second_idx = row_data & 0xF;
+			row_data = row_data >> 4;
 
-			std::uint8_t first_idx = row_element >> 4;
-			std::uint8_t second_idx = row_element & 0xF;
+			unsigned first_idx = row_data & 0xF;
+			row_data = row_data >> 4;
 
-			colors[i_color++] = read_color(palette_id, second_idx);
-			colors[i_color++] = read_color(palette_id, first_idx);
+			*(it++) = read_color(palette_id, first_idx);
+			*(it++) = read_color(palette_id, second_idx);
 		}
 	}
 	else
 	{
-		int i_color = 7;
-		for(int i = 0; i < 4; ++i)
+		for(auto it = colors.begin(); it != colors.end();)
 		{
-			std::uint8_t row_element = row_data & 0xFF;
-			row_data = row_data >> 8;
+			unsigned second_idx = row_data & 0xF;
+			row_data = row_data >> 4;
 
-			std::uint8_t first_idx = row_element >> 4;
-			std::uint8_t second_idx = row_element & 0xF;
+			unsigned first_idx = row_data & 0xF;
+			row_data = row_data >> 4;
 
-			colors[i_color--] = read_color(palette_id, second_idx);
-			colors[i_color--] = read_color(palette_id, first_idx);
+			*(it++) = read_color(palette_id, first_idx);
+			*(it++) = read_color(palette_id, second_idx);
 		}
 	}
 

@@ -104,9 +104,19 @@ public:
 		return data;
 	}
 
+	/* Read data without BE/LE conversion */
+	template<class T>
+	T read_raw(std::uint32_t address)
+	{
+		check_addr(address, sizeof(T));
+		T data = *reinterpret_cast<T*>(&mem[address]);
+		return data;
+	}
+
 private:
 	inline void check_addr(std::uint32_t addr, size_t size)
 	{
+		// TODO: change exception type
 		if(addr > max_address() || (addr + size - 1) > max_address())
 			throw internal_error("memory_unit check: wrong address (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
