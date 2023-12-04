@@ -268,7 +268,7 @@ std::span<render::pixel> render::get_active_window_row(unsigned row_number, std:
 // Rename to render_active_sprite_line
 std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std::span<render::pixel> buffer)
 {
-	const auto buffer_size = active_display_width();
+	const auto buffer_size = sprite_width_in_pixels();
 	check_buffer_size(buffer, buffer_size);
 
 	bool prev_line_overflow = regs.SR.SO == 1;
@@ -277,7 +277,8 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 
 	row_number += 128;
 
-	std::fill_n(pixel_buffer.begin(), pixel_buffer.size(), TRANSPARENT_PIXEL);
+	buffer = std::span<pixel>(buffer.begin(), buffer_size);
+	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_PIXEL);
 
 	sprites_limits_tracker sprites_limits(sett);
 	sprite_table stable(sett, vram);
@@ -298,7 +299,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 
 		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
 		{
-			// Sprite masking, mode 1
+			// Sprite masking
 			if(entry.horizontal_position == 0 && (rendered_sprites > 0 || prev_line_overflow))
 			{
 				// All other sprites should be masked
@@ -310,12 +311,12 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 
 			if(masked == false)
 			{
-				bool collision = read_sprite(row_number, entry, pixel_buffer, sprites_limits.line_pixels_limit());
+				bool collision = read_sprite(row_number, entry, buffer, sprites_limits.line_pixels_limit());
 				if(collision)
 					regs.SR.SC = 1;
 			}
 
-			// Keep limits tracking to correctly set sprite overflow (SO) flag
+			// Keep tracking limits to correctly set Sprite Overflow (SO) flag
 			sprites_limits.on_sprite_draw(entry);
 		}
 
@@ -324,11 +325,9 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 			break;
 	}
 
-	if(buffer_size + 128 > pixel_buffer.size())
-		throw genesis::internal_error();
-
-	std::copy(pixel_buffer.begin() + 128, pixel_buffer.begin() + buffer_size + 128, buffer.begin());
-	return std::span<pixel>(buffer.begin(), buffer_size);
+	// sprites on active display starts on 128 position
+	auto first_it = std::next(buffer.begin(), 128);
+	return std::span<pixel>(first_it, active_display_width());
 }
 
 genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color background_color,
@@ -414,12 +413,12 @@ vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) c
 // TODO: rename to should_render_sprite
 bool render::should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const
 {
-	std::uint16_t last_vert_pos = vertical_position + ((vertical_size + 1) * 8);
+	unsigned last_vert_pos = vertical_position + ((vertical_size + 1) * 8);
 	return vertical_position <= row_number && row_number < last_vert_pos;
 }
 
 void render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
-	std::span<genesis::vdp::output_color> dest) const
+	std::span<vdp::output_color> dest) const
 {
 	check_buffer_size(dest, entry.horizontal_position);
 
@@ -473,6 +472,7 @@ bool render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
 				collision = true;
 			}
 
+			// TODO: does pixels limit affect collision bit?
 			--pixels_limit;
 			if(++dest_it == dest.end() || pixels_limit == 0)
 				return collision;

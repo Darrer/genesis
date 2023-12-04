@@ -56,7 +56,7 @@ public:
 private:
 	struct pixel
 	{
-		genesis::vdp::output_color color;
+		vdp::output_color color;
 
 		// we greatly simplify algorithm by using priority flag per pixel
 		// even though plane A/B have priority flag per tail
@@ -97,7 +97,7 @@ private:
 	mutable std::array<pixel, 320> plane_a_buffer;
 	mutable std::array<pixel, 320> plane_b_buffer;
 	mutable std::array<pixel, 320> window_buffer;
-	mutable std::array<pixel, 320> sprite_buffer;
+	mutable std::array<pixel, 512> sprite_buffer;
 	
 	mutable std::array<pixel, 1024> pixel_a_buffer;
 	mutable std::array<pixel, 1024> pixel_b_buffer;
