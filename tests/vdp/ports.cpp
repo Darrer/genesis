@@ -1,6 +1,6 @@
 #include "../helpers/random.h"
 #include "test_vdp.h"
-#include "vdp/impl/color.h"
+#include "vdp/output_color.h"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -336,7 +336,7 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 		{
 			for(int blue = 0; blue <= 7; ++blue)
 			{
-				impl::color color;
+				output_color color;
 				color.red = red;
 				color.green = green;
 				color.blue = blue;
@@ -346,12 +346,12 @@ TEST(VDP_PORTS, DATA_PORT_READ_CRAM)
 				expected_color |= green << 5;
 				expected_color |= blue << 9;
 
-				ASSERT_EQ(expected_color, color.value());
+				ASSERT_EQ(expected_color, color.to_internal());
 
 				for(int addr = 0; addr <= 127; ++addr)
 				{
 					// prepare mem
-					const std::uint16_t expected_data = color.value();
+					const std::uint16_t expected_data = color.to_internal();
 					mem.write(addr, expected_data);
 					ASSERT_EQ(expected_data, mem.read(addr));
 
@@ -529,12 +529,11 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 	control_register write_ctrl = setup_control(0, vmem_type::cram, control_type::write);
 	control_register read_ctrl = setup_control(0, vmem_type::cram, control_type::read);
 
-	impl::color color;
 	for(int addr = 0; addr <= 0xFFFF - 1; ++addr)
 	{
 		const int effective_addr = addr & 0b0000000001111110;
 		std::uint16_t data = test::random::next<std::uint16_t>();
-		color.value(data);
+		output_color color(data);
 
 		// setup write
 		write_ctrl.address(addr);
@@ -544,7 +543,7 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 		vdp.wait_io_ports();
 
 		// we can be sure only for some bits
-		ASSERT_TRUE((mem.read(effective_addr) & color.value()) == color.value());
+		ASSERT_TRUE((mem.read(effective_addr) & color.to_internal()) == color.to_internal());
 
 		// setup read
 		read_ctrl.address(addr);
@@ -554,7 +553,7 @@ TEST(VDP_PORTS, DATA_PORT_CRAM_ADDRESS_WRAP)
 		vdp.wait_io_ports();
 
 		// we can be sure only for some bits
-		ASSERT_TRUE((ports.read_result() & color.value()) == color.value());
+		ASSERT_TRUE((ports.read_result() & color.to_internal()) == color.to_internal());
 	}
 }
 

@@ -9,7 +9,6 @@
 #include "vdp/settings.h"
 #include "vdp/memory.h"
 #include "vdp/output_color.h"
-#include "color.h"
 
 #include "name_table.h"
 #include "sprite_table.h"
