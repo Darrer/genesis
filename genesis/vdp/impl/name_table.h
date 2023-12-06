@@ -30,6 +30,7 @@ union name_table_entry
 		std::uint16_t priority : 1;
 	};
 
+private:
 	std::uint16_t raw_value;
 };
 
@@ -39,11 +40,56 @@ class name_table
 {
 public:
 	name_table(plane_type plane, genesis::vdp::settings& sett, genesis::vdp::vram_t& vram)
-		: plane(plane), sett(sett), vram(vram)
+		: vram(vram)
 	{
+		m_plane_address = plane_address_impl(plane, sett);
+		m_entries_per_row = entries_per_row_impl(plane, sett);
+		m_row_count = row_count_impl(plane, sett);
+		m_row_size_in_bytes = m_entries_per_row * sizeof(name_table_entry);
 	}
 
-	std::uint8_t entries_per_row() const
+	int entries_per_row() const
+	{
+		return m_entries_per_row;
+	}
+
+	int row_count() const
+	{
+		return m_row_count;
+	}
+
+	// row_number & entry_number are zero-based
+	name_table_entry get(int row_number, int entry_number) const
+	{
+		if(row_number >= row_count())
+			throw std::invalid_argument("row_number");
+		
+		if(entry_number >= entries_per_row())
+			throw std::invalid_argument("entry_number");
+
+		std::uint32_t address = m_plane_address
+			+ (m_row_size_in_bytes * row_number)
+			+ (entry_number * sizeof(name_table_entry));
+
+		return vram.read<std::uint16_t>(address);
+	}
+
+private:
+	static std::uint32_t plane_address_impl(plane_type plane, vdp::settings& sett)
+	{
+		switch (plane)
+		{
+		case plane_type::a:
+			return sett.plane_a_address();
+		case plane_type::b:
+			return sett.plane_b_address();
+		case plane_type::w:
+			return sett.plane_w_address();
+		default: throw internal_error();
+		}
+	}
+
+	static int entries_per_row_impl(plane_type plane, vdp::settings& sett)
 	{
 		switch (plane)
 		{
@@ -59,7 +105,7 @@ public:
 		}
 	}
 
-	std::uint8_t row_count() const
+	static int row_count_impl(plane_type plane, vdp::settings& sett)
 	{
 		switch (plane)
 		{
@@ -72,43 +118,13 @@ public:
 		}
 	}
 
-	// row_number & entry_number are zero-based
-	name_table_entry get(std::uint8_t row_number, std::uint8_t entry_number) const
-	{
-		if(row_number >= row_count())
-			throw std::invalid_argument("row_number");
-		
-		if(entry_number >= entries_per_row())
-			throw std::invalid_argument("entry_number");
-
-		const int row_size_in_bytes = entries_per_row() * sizeof(name_table_entry);
-
-		std::uint32_t address = plane_address()
-			+ (row_size_in_bytes * row_number)
-			+ (entry_number * sizeof(name_table_entry));
-		
-		return vram.read<std::uint16_t>(address);
-	}
-
 private:
-	std::uint32_t plane_address() const
-	{
-		switch (plane)
-		{
-		case plane_type::a:
-			return sett.plane_a_address();
-		case plane_type::b:
-			return sett.plane_b_address();
-		case plane_type::w:
-			return sett.plane_w_address();
-		default: throw internal_error();
-		}
-	}
-
-private:
-	plane_type plane;
-	genesis::vdp::settings& sett;
 	genesis::vdp::vram_t& vram;
+
+	std::uint32_t m_plane_address;
+	int m_entries_per_row;
+	int m_row_count;
+	int m_row_size_in_bytes;
 };
 
 };
