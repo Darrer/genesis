@@ -111,8 +111,9 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
 
 	auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
+	plane_a = get_active_window_row(row_number, plane_a);
+
 	auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
-	auto window = get_active_window_row(row_number, window_buffer);
 	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
 
 	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size()
@@ -123,8 +124,7 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 
 	for(std::size_t i = 0; i < buffer.size(); ++i)
 	{
-		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], window[i], sprites[i]);
-		// buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], TRANSPARENT_PIXEL, sprites[i]);
+		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], sprites[i]);
 	}
 
 	return buffer;
@@ -192,13 +192,14 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 	return buffer;
 }
 
-std::span<render::pixel> render::get_active_window_row(unsigned line_number, std::span<render::pixel> buffer) const
+// render active window in plane a buffer (effectively overwriting plane a) 
+std::span<render::pixel> render::get_active_window_row(unsigned line_number,
+	std::span<render::pixel> plane_a_buffer) const
 {
 	std::size_t buffer_size = active_display_width();
-	check_buffer_size(buffer, buffer_size);
+	check_buffer_size(plane_a_buffer, buffer_size);
 
-	buffer = std::span<pixel>(buffer.begin(), buffer_size);
-	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_PIXEL);
+	plane_a_buffer = std::span<pixel>(plane_a_buffer.begin(), buffer_size);
 
 	// range: [start_col; end_col), 0-based, in tails
 	int start_col = regs.R17.R == 0 ? 0 : (regs.R17.HP * 2);
@@ -228,10 +229,15 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number, std
 	// }
 
 	if(tail_row < start_row || tail_row >= end_row)
-		return buffer;
+		return plane_a_buffer;
 
-	auto buffer_it = buffer.begin();
+	std::size_t start_position = start_col * 8;
+	if(start_position >= buffer_size)
+		return plane_a_buffer;
+
 	name_table table(plane_type::w, sett, vram);
+
+	auto buffer_it = std::next(plane_a_buffer.begin(), start_position);
 	for(int col = start_col; col < end_col; ++col)
 	{
 		name_table_entry entry = table.get(tail_row, col);
@@ -239,11 +245,12 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number, std
 		auto pattern_row = read_pattern_row(line_number % 8, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, entry.palette);
 
+		// TODO: check that buffer has enough room for pattern_row
 		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
 			[&entry](auto color) -> pixel { return { color, true }; });
 	}
 
-	return buffer;
+	return plane_a_buffer;
 }
 
 // Rename to render_active_sprite_line
@@ -312,10 +319,8 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 }
 
 genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color background_color,
-	pixel plane_a, pixel plane_b, pixel window, pixel sprite) const
+	pixel plane_a, pixel plane_b, pixel sprite) const
 {
-	if(window.color != TRANSPARENT_COLOR && window.priority_flag)
-		return window.color;
 	if(sprite.color != TRANSPARENT_COLOR && sprite.priority_flag)
 		return sprite.color;
 	if(plane_a.color != TRANSPARENT_COLOR && plane_a.priority_flag)
@@ -323,8 +328,6 @@ genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color b
 	if(plane_b.color != TRANSPARENT_COLOR && plane_b.priority_flag)
 		return plane_b.color;
 
-	if(window.color != TRANSPARENT_COLOR)
-		return window.color;
 	if(sprite.color != TRANSPARENT_COLOR)
 		return sprite.color;
 	if(plane_a.color != TRANSPARENT_COLOR)

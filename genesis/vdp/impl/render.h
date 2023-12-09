@@ -88,10 +88,10 @@ private:
 
 	std::span<pixel> get_active_plane_row(plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
 	std::span<pixel> get_scrolled_plane_row(impl::plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
-	std::span<pixel> get_active_window_row(unsigned line_number, std::span<pixel> buffer) const;
+	std::span<pixel> get_active_window_row(unsigned line_number, std::span<pixel> plane_a_buffer) const;
 
 	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,
-		pixel plane_a, pixel plane_b, pixel window, pixel sprite) const;
+		pixel plane_a, pixel plane_b, pixel sprite) const;
 
 	// internal buffers used during rendering
 	mutable std::array<pixel, 320> window_buffer;
