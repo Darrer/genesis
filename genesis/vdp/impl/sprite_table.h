@@ -27,33 +27,36 @@ struct sprite_table_entry
 	bool priority_flag;
 };
 
+static_assert(sizeof(sprite_table_entry) == 16);
+
 
 class sprite_table
 {
 public:
 	sprite_table(genesis::vdp::settings& sett, genesis::vdp::vram_t& vram)
-		: sett(sett), vram(vram)
+		: vram(vram)
 	{
+		m_num_entries = num_entries_impl(sett);
+		m_sprite_address = sett.sprite_address();
 	}
 
-	unsigned num_entries() const
+	int num_entries() const
 	{
-		return sett.display_width() == display_width::c32 ? 64 : 80;
+		return m_num_entries;
 	}
 
 	// entry is zero-based
-	sprite_table_entry get(unsigned entry_number) const
+	sprite_table_entry get(int entry_number) const
 	{
 		if(entry_number >= num_entries())
 			throw std::invalid_argument("entry_number");
 
-		const std::uint32_t entry_size = 8;
-		std::uint32_t address = sett.sprite_address() + (entry_number * entry_size);
+		std::uint32_t address = m_sprite_address + (entry_number * 8 /* entry size */);
 
 		sprite_table_entry entry;
 
 		// Read vertical position
-		entry.vertical_position = vram.read<std::uint16_t>(address) & 0b111111111; // use 9 bits only
+		entry.vertical_position = vram.read<std::uint16_t>(address) & 0b111'111'111; // use 9 bits only
 		address += 2;
 
 		// Read sprite size
@@ -84,8 +87,16 @@ public:
 	}
 
 private:
-	genesis::vdp::settings& sett;
+	static int num_entries_impl(vdp::settings& sett)
+	{
+		return sett.display_width() == display_width::c32 ? 64 : 80;
+	}
+
+private:
 	genesis::vdp::vram_t& vram;
+
+	int m_num_entries;
+	std::uint32_t m_sprite_address;
 };
 
 }

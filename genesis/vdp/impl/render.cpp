@@ -58,14 +58,14 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 
 	name_table table(plane_type, sett, vram);
 	const auto tail_row_number = row_number / PIXELS_IN_TAILE_COL;
-	const auto tail_row = row_number % PIXELS_IN_TAILE_COL;
+	const auto pattern_row = row_number % PIXELS_IN_TAILE_COL;
 
 	auto buffer_it = buffer.begin();
-	for(auto i = 0; i < table.entries_per_row(); ++i)
+	for(int i = 0; i < table.entries_per_row(); ++i)
 	{
 		auto entry = table.get(tail_row_number, i);
 
-		auto row = read_pattern_row(tail_row, entry.effective_pattern_address(),
+		auto row = read_pattern_row(pattern_row, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, entry.palette);
 		buffer_it = std::copy(row.begin(), row.end(), buffer_it);
 	}
@@ -84,8 +84,8 @@ std::span<genesis::vdp::output_color> render::get_sprite_row(unsigned row_number
 
 	sprite_table stable(sett, vram);
 
-	unsigned sprite_number = 0;
-	for(unsigned i = 0; i < stable.num_entries(); ++i)
+	int sprite_number = 0;
+	for(int i = 0; i < stable.num_entries(); ++i)
 	{
 		auto entry = stable.get(sprite_number);
 
@@ -108,23 +108,23 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 	const auto buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
 
-	// TODO: window plane
+	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+
 	auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
 	auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
-	// auto window = get_active_window_row(row_number, window_buffer);
+	auto window = get_active_window_row(row_number, window_buffer);
 	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
 
 	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size()
 	// 	|| buffer_size != sprites.size() || buffer_size != window.size())
 	// 	throw genesis::internal_error();
 
-	genesis::vdp::output_color bg_color = background_color();
-	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+	vdp::output_color bg_color = background_color();
 
 	for(std::size_t i = 0; i < buffer.size(); ++i)
 	{
-		// buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], window[i], sprites[i]);
-		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], TRANSPARENT_PIXEL, sprites[i]);
+		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], window[i], sprites[i]);
+		// buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], TRANSPARENT_PIXEL, sprites[i]);
 	}
 
 	return buffer;
@@ -144,14 +144,10 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 		throw genesis::internal_error();
 
 	auto plane = get_scrolled_plane_row(plane_type, row_number, buffer);
-	// auto plane = get_scrolled_plane_row(plane_type, row_number, pixel_buffer);
 
 	// TODO: what if returned plane size is less then active display row?
 	if(plane.size() < buffer_size)
 		throw genesis::not_implemented();
-
-	// Copy result to the buffer
-	// std::copy(plane.begin(), plane.begin() + buffer_size, buffer.begin());
 
 	return std::span<render::pixel>(buffer.begin(), buffer_size);
 }
@@ -196,71 +192,56 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 	return buffer;
 }
 
-std::span<render::pixel> render::get_active_window_row(unsigned row_number, std::span<render::pixel> buffer) const
+std::span<render::pixel> render::get_active_window_row(unsigned line_number, std::span<render::pixel> buffer) const
 {
 	std::size_t buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
 
 	buffer = std::span<pixel>(buffer.begin(), buffer_size);
+	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_PIXEL);
 
-	pixel transparent_pixel { TRANSPARENT_COLOR, false };
-	std::fill(buffer.begin(), buffer.end(), transparent_pixel);
+	// range: [start_col; end_col), 0-based, in tails
+	int start_col = regs.R17.R == 0 ? 0 : (regs.R17.HP * 2);
+	int end_col = regs.R17.R == 0 ? (regs.R17.HP * 2) : sett.display_width_in_tails();
 
-	// disabled
-	if(sett.window_vertical_draw_direction() == draw_vertical_direction::up && sett.window_vertical_pos_in_cells() == 0)
-		return buffer;
+	// range: [start_row; end_row), 0-based, in tails
+	int start_row = regs.R18.D == 0 ? 0 : regs.R18.VP;
+	int end_row = regs.R18.D == 0 ? regs.R18.VP : sett.display_height_in_tails();
 
-	if(sett.window_horizontal_draw_direction() == draw_horizontal_direction::left && sett.window_horizontal_pos_in_cells() == 0)
-		return buffer;
+	/* NOTE:
+	 * Some games use R17.R = 0 and R17.HP = 0 to display a full-width window.
+	 * However, I can't find that this behavior is actually documented.
+	 * So emulate this behavior based on empirical observations.
+	 * 
+	 * Perhaps the same rule applies to the R18 register, but it's very unlikely
+	 * that any games actually use the full-height window plane.
+	 */
+	if(regs.R17.R == 0 && regs.R17.HP == 0)
+		end_col = sett.display_width_in_tails();
 
-	// in tails
-	unsigned start_col = 0;
-	unsigned end_col = 0;
-	if(sett.window_horizontal_draw_direction() == draw_horizontal_direction::left)
-	{
-		start_col = 0;
-		end_col = sett.window_horizontal_pos_in_cells() * 2 - 1;
-	}
-	else
-	{
-		start_col = sett.window_horizontal_pos_in_cells() == 0 ? 0 : (sett.window_horizontal_pos_in_cells() * 2 - 1);
-		end_col = active_display_width() / 8 - 1;
-	}
+	int tail_row = line_number / 8;
+	// if(tail_row == 0)
+	// {
+	// 	std::cout << "Window settings: R: " << (int)regs.R17.R << ", HP: " << (int)regs.R17.HP
+	// 		<< ", D: " << (int)regs.R18.D << ", VP: " << (int)regs.R18.VP << "\n";
+	// 	std::cout << "Window start row: " << start_row << ", end row: " << end_row << ", start col: " << start_col << ", end col: " << end_col << "\n";
+	// }
 
-	// in tails
-	unsigned start_row = 0;
-	unsigned end_row = 0;
-	if(sett.window_vertical_draw_direction() == draw_vertical_direction::down)
-	{
-		start_row = sett.window_vertical_pos_in_cells() == 0 ? 0 : (sett.window_vertical_pos_in_cells() - 1);
-		end_row = active_display_height() / 8 - 1;
-	}
-	else
-	{
-		start_row = 0;
-		end_row = sett.window_vertical_pos_in_cells() - 1;
-	}
-
-	unsigned row_tail = row_number / 8;
-	if(row_tail == 0)
-		std::cout << "Window start row: " << start_row << ", end row: " << end_row << ", start col: " << start_col << ", end col: " << end_col << "\n";
-
-	if(row_tail < start_row || row_tail > end_row)
+	if(tail_row < start_row || tail_row >= end_row)
 		return buffer;
 
 	auto buffer_it = buffer.begin();
 	name_table table(plane_type::w, sett, vram);
-	for(unsigned i = start_col; i <= end_col; ++i)
+	for(int col = start_col; col < end_col; ++col)
 	{
-		name_table_entry entry = table.get(row_tail, i);
+		name_table_entry entry = table.get(tail_row, col);
 
-		auto pattern_row = read_pattern_row(row_number % 8, entry.effective_pattern_address(),
+		auto pattern_row = read_pattern_row(line_number % 8, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, entry.palette);
 
 		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
-			[&entry](auto color) -> pixel { return { color, /* entry.priority == 1 */true }; });
+			[&entry](auto color) -> pixel { return { color, true }; });
 	}
-
 
 	return buffer;
 }
@@ -283,10 +264,10 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 	sprites_limits_tracker sprites_limits(sett);
 	sprite_table stable(sett, vram);
 
-	unsigned sprite_number = 0;
+	int sprite_number = 0;
 	unsigned rendered_sprites = 0;
 	bool masked = false;
-	for(unsigned i = 0; i < stable.num_entries(); ++i)
+	for(int i = 0; i < stable.num_entries(); ++i)
 	{
 		// check limits
 		if(sprites_limits.line_limit_exceeded())

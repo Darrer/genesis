@@ -20,7 +20,7 @@ public:
 			throw genesis::internal_error();
 
 		std::uint16_t offset = vsram.read(get_address(plane_type, tail_column_number, sett));
-		return offset & 0b1111111111;
+		return offset & 0b1'111'111'111;
 	}
 
 private:
