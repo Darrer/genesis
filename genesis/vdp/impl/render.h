@@ -94,7 +94,6 @@ private:
 		pixel plane_a, pixel plane_b, pixel sprite) const;
 
 	// internal buffers used during rendering
-	mutable std::array<pixel, 320> window_buffer;
 	mutable std::array<pixel, 512> sprite_buffer;
 	mutable std::array<pixel, 1024> pixel_a_buffer;
 	mutable std::array<pixel, 1024> pixel_b_buffer;

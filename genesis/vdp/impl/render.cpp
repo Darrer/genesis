@@ -213,9 +213,6 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number,
 	 * Some games use R17.R = 0 and R17.HP = 0 to display a full-width window.
 	 * However, I can't find that this behavior is actually documented.
 	 * So emulate this behavior based on empirical observations.
-	 * 
-	 * Perhaps the same rule applies to the R18 register, but it's very unlikely
-	 * that any games actually use the full-height window plane.
 	 */
 	if(regs.R17.R == 0 && regs.R17.HP == 0)
 		end_col = sett.display_width_in_tails();
@@ -247,14 +244,14 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number,
 
 		// TODO: check that buffer has enough room for pattern_row
 		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
-			[&entry](auto color) -> pixel { return { color, true }; });
+			[](auto color) -> pixel { return { color, true }; });
 	}
 
 	return plane_a_buffer;
 }
 
 // Rename to render_active_sprite_line
-std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std::span<render::pixel> buffer)
+std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, std::span<render::pixel> buffer)
 {
 	const auto buffer_size = sprite_width_in_pixels();
 	check_buffer_size(buffer, buffer_size);
@@ -263,7 +260,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 	regs.SR.SO = 0;
 	regs.SR.SC = 0;
 
-	row_number += 128;
+	line_number += 128;
 
 	buffer = std::span<pixel>(buffer.begin(), buffer_size);
 	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_PIXEL);
@@ -285,7 +282,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 
 		auto entry = stable.get(sprite_number);
 
-		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
+		if(should_read_sprite(line_number, entry.vertical_position, entry.vertical_size))
 		{
 			// Sprite masking
 			if(entry.horizontal_position == 0 && (rendered_sprites > 0 || prev_line_overflow))
@@ -299,7 +296,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned row_number, std
 
 			if(masked == false)
 			{
-				bool collision = read_sprite(row_number, entry, buffer, sprites_limits.line_pixels_limit());
+				bool collision = read_sprite(line_number, entry, buffer, sprites_limits.line_pixels_limit());
 				if(collision)
 					regs.SR.SC = 1;
 			}
@@ -338,19 +335,20 @@ genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color b
 	return background_color;
 }
 
-// pattern_row_number - zero based
-std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
+// line_number - zero based
+// TODO: rename to read_pattern_line
+std::array<vdp::output_color, 8> render::read_pattern_row(unsigned line_number, std::uint32_t pattern_addres,
 	bool hflip, bool vflip, std::uint8_t palette_id) const
 {
-	if(pattern_row_number >= 8)
+	if(line_number >= 8)
 		throw internal_error();
 
 	if(vflip)
-		pattern_row_number = 7 - pattern_row_number;
+		line_number = 7 - line_number;
 
-	pattern_addres = pattern_addres + (pattern_row_number * 0x4 /* single row occupies 4 bytes */);
+	pattern_addres += line_number * 0x4 /* single line occupies 4 bytes */;
 
-	std::uint32_t row_data = vram.read_raw<std::uint32_t>(pattern_addres);
+	std::uint32_t raw_line = vram.read_raw<std::uint32_t>(pattern_addres);
 
 	std::array<vdp::output_color, 8> colors;
 
@@ -358,11 +356,11 @@ std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_n
 	{
 		for(auto it = colors.rbegin(); it != colors.rend();)
 		{
-			unsigned second_idx = row_data & 0xF;
-			row_data = row_data >> 4;
+			unsigned second_idx = raw_line & 0xF;
+			raw_line = raw_line >> 4;
 
-			unsigned first_idx = row_data & 0xF;
-			row_data = row_data >> 4;
+			unsigned first_idx = raw_line & 0xF;
+			raw_line = raw_line >> 4;
 
 			*(it++) = read_color(palette_id, first_idx);
 			*(it++) = read_color(palette_id, second_idx);
@@ -372,11 +370,11 @@ std::array<vdp::output_color, 8> render::read_pattern_row(unsigned pattern_row_n
 	{
 		for(auto it = colors.begin(); it != colors.end();)
 		{
-			unsigned second_idx = row_data & 0xF;
-			row_data = row_data >> 4;
+			unsigned second_idx = raw_line & 0xF;
+			raw_line = raw_line >> 4;
 
-			unsigned first_idx = row_data & 0xF;
-			row_data = row_data >> 4;
+			unsigned first_idx = raw_line & 0xF;
+			raw_line = raw_line >> 4;
 
 			*(it++) = read_color(palette_id, first_idx);
 			*(it++) = read_color(palette_id, second_idx);
