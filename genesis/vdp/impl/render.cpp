@@ -318,21 +318,40 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, st
 genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color background_color,
 	pixel plane_a, pixel plane_b, pixel sprite) const
 {
-	if(sprite.color != TRANSPARENT_COLOR && sprite.priority_flag)
+	if(sprite.color.transparent)
+	{
+		// check only a/b
+		if(plane_a.color.transparent)
+		{
+			// check only b
+			if(plane_b.color.transparent)
+				return background_color;
+			return plane_b.color;
+		}
+		else if(plane_a.priority_flag)
+		{
+			return plane_a.color;
+		}
+		else
+		{
+			if(plane_b.priority_flag && plane_b.color.transparent == false)
+				return plane_b.color;
+			return plane_a.color;
+		}
+	}
+	else if(sprite.priority_flag)
+	{
 		return sprite.color;
-	if(plane_a.color != TRANSPARENT_COLOR && plane_a.priority_flag)
-		return plane_a.color;
-	if(plane_b.color != TRANSPARENT_COLOR && plane_b.priority_flag)
-		return plane_b.color;
-
-	if(sprite.color != TRANSPARENT_COLOR)
+	}
+	else
+	{
+		// check a/b
+		if(plane_a.priority_flag && plane_a.color.transparent == false)
+			return plane_a.color;
+		if(plane_b.priority_flag && plane_b.color.transparent == false)
+			return plane_b.color;
 		return sprite.color;
-	if(plane_a.color != TRANSPARENT_COLOR)
-		return plane_a.color;
-	if(plane_b.color != TRANSPARENT_COLOR)
-		return plane_b.color;
-
-	return background_color;
+	}
 }
 
 // line_number - zero based
