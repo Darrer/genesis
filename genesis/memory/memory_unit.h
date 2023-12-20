@@ -55,8 +55,19 @@ public:
 		_latched_word = read<std::uint16_t>(address);
 	}
 
-	std::uint8_t latched_byte() const override { return _latched_byte.value(); }
-	std::uint16_t latched_word() const override { return _latched_word.value(); }
+	std::uint8_t latched_byte() const override
+	{
+		if(!_latched_byte.has_value())
+			throw genesis::internal_error();
+		return _latched_byte.value();
+	}
+
+	std::uint16_t latched_word() const override
+	{
+		if(!_latched_word.has_value())
+			throw genesis::internal_error();
+		return _latched_word.value();
+	}
 
 	/* direct interface */
 

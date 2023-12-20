@@ -37,6 +37,7 @@ PRIVATE
 	smd/impl/m68k_interrupt_access.h
 	smd/impl/z80_control_registers.h
 	smd/impl/z80_io_ports.h
+	smd/impl/z80_68bank.h
 
 	memory/addressable.h
 	memory/dummy_memory.h

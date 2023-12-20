@@ -37,6 +37,8 @@ private:
 	std::shared_ptr<memory::addressable> m68k_mem_map;
 	std::shared_ptr<memory::addressable> z80_mem_map;
 
+	std::shared_ptr<memory::memory_unit> m_rom;
+
 	// tmp
 	void z80_cycle();
 	impl::z80_control_registers m_z80_ctrl_registers;
