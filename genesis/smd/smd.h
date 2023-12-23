@@ -28,8 +28,8 @@ public:
 	vdp::vdp& vdp() { return *m_vdp; }
 
 private:
-	void build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis::rom& parsed_rom);
-	std::shared_ptr<memory::addressable> load_rom(std::string_view rom_path);
+	void build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_ptr, genesis::rom& parsed_rom);
+	std::shared_ptr<std::vector<std::uint8_t>> load_rom(std::string_view rom_path);
 
 	std::uint8_t version_register_value(genesis::rom& parsed_rom) const;
 
@@ -37,17 +37,9 @@ private:
 	std::shared_ptr<memory::addressable> m68k_mem_map;
 	std::shared_ptr<memory::addressable> z80_mem_map;
 
-	std::shared_ptr<memory::memory_unit> m_rom;
-
 	// tmp
 	void z80_cycle();
 	impl::z80_control_registers m_z80_ctrl_registers;
-
-	std::shared_ptr<memory::memory_unit> z80_request;
-	std::shared_ptr<memory::memory_unit> z80_reset;
-
-	bool m_z80_request = false;
-	bool m_z80_reset = false;
 
 protected:
 	// unique_ptr for simplicity for now

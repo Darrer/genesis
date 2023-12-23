@@ -4,6 +4,7 @@
 #include "memory/memory_builder.h"
 #include "memory/memory_unit.h"
 #include "memory/dummy_memory.h"
+#include "memory/logging_memory.h"
 
 #include "impl/m68k_bus_access.h"
 #include "impl/m68k_interrupt_access.h"
@@ -23,9 +24,8 @@ smd::smd(std::string_view rom_path, std::shared_ptr<io_ports::input_device> inpu
 {
 	m_vdp = std::make_unique<vdp::vdp>();
 
-	auto rom = load_rom(rom_path);
 	genesis::rom parsed_rom(rom_path);
-	build_cpu_memory_map(std::move(rom), parsed_rom);
+	build_cpu_memory_map(load_rom(rom_path), parsed_rom);
 
 	// z80::memory z80_mem(z80_mem_map);
 	auto z80_ports = std::make_shared<impl::z80_io_ports>();
@@ -82,27 +82,44 @@ void smd::z80_cycle()
 	m_z80_cpu->execute_one();
 }
 
-void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis::rom& parsed_rom)
+std::shared_ptr<memory::addressable> logging(std::shared_ptr<memory::addressable> mem, std::string_view name)
+{
+	return mem;
+	// return std::make_shared<memory::logging_memory>(mem, std::cout, name);
+}
+
+void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_ptr, genesis::rom& parsed_rom)
 {
 	/* Build z80 memory map */
 	memory::memory_builder z80_builder;
 
 	z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
 
-	// z80_builder.add(std::make_shared<memory::dummy_memory>(0x3, std::endian::little), 0x4000, 0x4003); // YM2612
+	auto ym_addr1 = logging(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), "YMA1");
+	auto ym_data1 = logging(std::make_shared<memory::zero_memory_unit>(0x0, std::endian::little), "YMD1");
+
+	auto ym_addr2 = logging(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), "YMA2");
+	auto ym_data2 = logging(std::make_shared<memory::zero_memory_unit>(0x0, std::endian::little), "YMD2");
+
+	z80_builder.add(ym_addr1, 0x4000, 0x4000);
+	z80_builder.add(ym_data1, 0x4001, 0x4001);
+	z80_builder.add(ym_addr2, 0x4002, 0x4002);
+	z80_builder.add(ym_data2, 0x4003, 0x4003);
+
 	// TODO: YM2612 should be repeated from 0x4004 up to 0x5FFF.
+	// auto ym2612 = logging(std::make_shared<memory::dummy_memory>(0x3, std::endian::little), "ym2612");
+	// auto ym2612 = std::make_shared<memory::dummy_memory>(0x3, std::endian::little);
+	// z80_builder.add(ym2612, 0x4000, 0x4003); // YM2612
+
 	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFB, std::endian::little), 0x4004, 0x5FFF); // TMP
-	// z80_builder.add(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), 0x7F11, 0x7F11); // PSG
+	auto psg = logging(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), "psg");
+	z80_builder.add(psg, 0x7F11, 0x7F11); // PSG
 
 
-	// TODO: do not copy ROM, share instead
-	auto rom_copy = std::make_shared<memory::memory_unit>(*m_rom);
-	impl::z80_68bank z80_bank(rom_copy); // TODO: only rom is accessible for now
+	// TODO: only rom is accessible for now
+	impl::z80_68bank z80_bank(std::make_shared<memory::memory_unit>(rom_ptr, std::endian::big));
 	z80_builder.add(z80_bank.bank_register(), 0x6000, 0x6000);
 	z80_builder.add(z80_bank.bank_area(), 0x8000, 0xFFFF);
-
-	// z80_builder.add(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), 0x6000, 0x6000); // bank register
-	// z80_builder.add(std::make_shared<memory::zero_memory_unit>(0x7FFF, std::endian::little), 0x8000, 0xFFFF); // ROM
 
 	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x2000, 0x3FFF); // reserved
 	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1F0F, std::endian::little), 0x6001, 0x7F10); // reserved
@@ -118,7 +135,7 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	version_register->write<std::uint16_t>(0, /* (ver_reg << 8) | */ ver_reg);
 
 
-	m68k_builder.add(rom, 0x0, 0x3FFFFF);
+	m68k_builder.add(std::make_shared<memory::memory_unit>(rom_ptr, std::endian::big), 0x0, 0x3FFFFF);
 	m68k_builder.add(z80_mem_map, 0xA00000, 0xA0FFFF);
 	m68k_builder.add(version_register, 0xA10000, 0xA10001);
 
@@ -139,7 +156,7 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 
 	// Reserved
 	// m68k_builder.add(std::make_shared<memory::memory_unit>(0x2DFD, std::endian::big), 0xA11202, 0xA13FFF);
-	// m68k_builder.add(std::make_shared<memory::memory_unit>(0x1EEDFD, std::endian::big), 0xA11202, 0xBFFFFF);
+	m68k_builder.add(std::make_shared<memory::memory_unit>(0x1EEDFD, std::endian::big), 0xA11202, 0xBFFFFF);
 	// m68k_builder.add(std::make_shared<memory::memory_unit>(0xFFFF, std::endian::big), 0xBF0000, 0xBFFFFF);
 	// m68k_builder.add(std::make_shared<memory::memory_unit>(0x3EFFDF, std::endian::big), 0xC00020, 0xFEFFFF);
 	// m68k_builder.add(std::make_shared<memory::memory_unit>(0x0, std::endian::big), 0x009FFFFF, 0x009FFFFF);
@@ -147,7 +164,8 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 	// VDP Ports
 	m68k_builder.add(m_vdp->io_ports(), 0xC00000, 0xC00007);
 	// unemplemented VDP Ports
-	m68k_builder.add(std::make_shared<memory::dummy_memory>(0x17, std::endian::big), 0xC00008, 0xC0001F);
+	auto vdp_ports = logging(std::make_shared<memory::dummy_memory>(0x17, std::endian::big), "Uports");
+	m68k_builder.add(vdp_ports, 0xC00008, 0xC0001F);
 
 	/* IO ports */
 
@@ -158,45 +176,56 @@ void smd::build_cpu_memory_map(std::shared_ptr<memory::addressable> rom, genesis
 
 	// Controller 2
 	// TODO: add unpluged controller
-	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA10004, 0xA10005);
-	m68k_builder.add(std::make_shared<memory::zero_memory_unit>(0x1, std::endian::big), 0xA1000A, 0xA1000B);
+	auto c2_data = logging(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), "CD2");
+	auto c2_ctrl = logging(std::make_shared<memory::zero_memory_unit>(0x1, std::endian::big), "CC2");
+
+	m68k_builder.add(c2_data, 0xA10004, 0xA10005);
+	m68k_builder.add(c2_ctrl, 0xA1000A, 0xA1000B);
 
 	// Expansion
 	m68k_builder.add(std::make_shared<memory::ffff_memory_unit>(0x1, std::endian::big), 0xA10006, 0xA10007); // data
-	m68k_builder.add(std::make_shared<memory::zero_memory_unit>(0x1, std::endian::big), 0xA1000C, 0xA1000D); // control
+	auto exp_ctrl = logging(std::make_shared<memory::zero_memory_unit>(0x1, std::endian::big), "EC");
+	m68k_builder.add(exp_ctrl, 0xA1000C, 0xA1000D); // control
 
 	// Serial interface for controllers/expansion
-	// m68k_builder.add(std::make_shared<memory::zero_memory_unit>(0x11, std::endian::big), 0xA1000E, 0xA1001F);
+	auto ser_int = logging(std::make_shared<memory::zero_memory_unit>(0x11, std::endian::big), "SER");
+	m68k_builder.add(ser_int, 0xA1000E, 0xA1001F);
 
 	/* Z80 control registers */
-	m68k_builder.add(m_z80_ctrl_registers.z80_bus_request_register(), 0xA11100, 0xA11101);
-	m68k_builder.add(m_z80_ctrl_registers.z80_reset_register(), 0xA11200, 0xA11201);
+	auto z80_bus_req = logging(m_z80_ctrl_registers.z80_bus_request_register(), "Z80BR");
+	auto z80_reset = logging(m_z80_ctrl_registers.z80_reset_register(), "Z80RES");
+
+	m68k_builder.add(z80_bus_req, 0xA11100, 0xA11101);
+	m68k_builder.add(z80_reset, 0xA11200, 0xA11201);
 	
 	m68k_mem_map = m68k_builder.build();
 }
 
-std::shared_ptr<memory::addressable> smd::load_rom(std::string_view rom_path)
+std::shared_ptr<std::vector<std::uint8_t>> smd::load_rom(std::string_view rom_path)
 {
-	auto rom = std::make_shared<memory::read_only_memory_unit>(0x3FFFFF, std::endian::big);
-
 	std::ifstream fs(rom_path.data(), std::ios_base::binary);
 	if(!fs.is_open())
 		throw std::runtime_error("cannot find rom");
 
 	// TODO: check if ROM is too big
-	std::uint32_t offset = 0x0;
+	std::vector<std::uint8_t> rom;
 	while(fs)
 	{
 		char c;
 		if(fs.get(c))
 		{
-			rom->write(offset, c);
-			++offset;
+			rom.push_back(c);
 		}
 	}
 
-	m_rom = rom;
-	return rom;
+	const std::size_t ROM_SIZE = 0x400000;
+
+	// pad rom
+	for(std::size_t i = rom.size(); i < ROM_SIZE; ++i)
+		rom.push_back(0);
+
+	rom.shrink_to_fit();
+	return std::make_shared<std::vector<std::uint8_t>>(std::move(rom));
 }
 
 std::uint8_t smd::version_register_value(genesis::rom& parsed_rom) const

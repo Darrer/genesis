@@ -61,7 +61,7 @@ public:
 		// alwyas write MSB first
 		m_bank_register = (m_bank_register >> 1) | (data << 8);
 
-		std::cout << "Updating bank register: " << su::bin_str(m_bank_register) << ", data: " << (int)data << '\n';
+		// std::cout << "Updating bank register: " << su::bin_str(m_bank_register) << ", data: " << (int)data << '\n';
 	}
 
 	std::uint32_t bank_value() const
@@ -140,11 +140,8 @@ private:
 	std::uint32_t fix_address(std::uint32_t address)
 	{
 		std::uint32_t bank_reg = m_bank_register->bank_value();
-		bank_reg = bank_reg << 15;
 
-		address = address & 0xFFFF;
-
-		address = bank_reg | address;
+		address = (bank_reg << 15) | (address & 0x7fff);
 
 		if(address > 0x3FFFFF)
 			throw not_implemented("z80 bank area: only ROM is supported for now (address: "

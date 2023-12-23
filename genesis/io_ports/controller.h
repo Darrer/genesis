@@ -6,7 +6,6 @@
 
 #include "input_device.h"
 #include "memory/addressable.h"
-#include "memory/dummy_memory.h"
 
 namespace genesis::io_ports
 {

@@ -40,11 +40,13 @@ PRIVATE
 	smd/impl/z80_68bank.h
 
 	memory/addressable.h
-	memory/dummy_memory.h
+	memory/base_unit.h
+	memory/memory_unit.h
 	memory/memory_builder.h
 	memory/memory_builder.cpp
-	memory/dummy_memory.h
 	memory/read_only_memory_unit.h
+	memory/dummy_memory.h
+	memory/logging_memory.h
 
 	z80/cpu_bus.hpp
 	z80/cpu_registers.hpp
