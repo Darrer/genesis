@@ -10,8 +10,7 @@ void ports::init_read_control()
 
 void ports::init_write_control(std::uint8_t data)
 {
-	std::uint16_t ex_data = std::uint16_t(data) << 8;
-	ex_data |= data;
+	std::uint16_t ex_data = (data << 8) | data;
 	init_write_control(ex_data);
 }
 
@@ -133,7 +132,7 @@ void ports::cycle()
 		// note: write directly to queue
 		if(regs.fifo.full())
 		{
-			// wait till fifo get a free slot
+			// wait till fifo gets a free slot
 			break;
 		}
 

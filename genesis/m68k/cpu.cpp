@@ -76,14 +76,23 @@ bool cpu::is_idle() const
 void cpu::set_interrupt(std::uint8_t priority)
 {
 	// TODO: check if we support interrupts (int_dev is not null)
+	// std::cout << "Rise interrupt " << (int)priority << ", IPM: " << (int)regs.flags.IPM << std::endl;
 
-	if(priority > 7 || priority == 0)
-		throw std::invalid_argument("priority");
-	if(_bus.interrupt_priority() != 0)
-		throw not_implemented("having multiple interrupts at the same time is not supported yet");
+	// if(_bus.interrupt_priority() != 0)
+	// 	return;
+		// throw not_implemented("having multiple interrupts at the same time is not supported yet");
+
+	if(priority > 7)
+		throw std::invalid_argument("cpu::set_interrupt priority");
+
+	// if(priority == 0b111 && _bus.interrupt_priority() == 0b111)
+	// {
+	// 	// nonmaskable interrupt occurs only when interrupt
+	// 	// request level changes from some lower level to level 7
+	// 	return;
+	// }
 
 	_bus.interrupt_priority(priority);
-	exman.rise_interrupt();
 }
 
 } // namespace genesis::m68k

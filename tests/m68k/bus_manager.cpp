@@ -272,7 +272,7 @@ bus_state int_ack_and_track(test::test_cpu& cpu, std::uint8_t priority = 1)
 	auto& busm = cpu.bus_manager();
 	auto& mem = cpu.memory();
 
-	cpu.registers().flags.IPM = 0; // enable all interrupts
+	cpu.registers().flags.IPM = priority;
 	bus.interrupt_priority(priority);
 
 	std::uint32_t cycle = 0;
@@ -425,7 +425,7 @@ template<class Callback = std::nullptr_t>
 std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1, Callback callback = nullptr)
 {
 	cpu.bus().interrupt_priority(int_priority);
-	cpu.registers().flags.IPM = 0;
+	cpu.registers().flags.IPM = int_priority;
 	auto& busm = cpu.bus_manager();
 	busm.init_interrupt_ack(callback);
 	return wait_idle(busm);
