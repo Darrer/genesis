@@ -84,8 +84,6 @@ private:
 
 	bool pre_cache_read_is_required() const;
 
-	void update_status_register();
-
 	// TODO: refactor this interface
 	void vram_write(std::uint32_t address, std::uint8_t data);
 	void cram_write(std::uint32_t address, std::uint16_t data);

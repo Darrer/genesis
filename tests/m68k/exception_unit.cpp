@@ -15,7 +15,7 @@
 using namespace genesis::m68k;
 using namespace genesis::test;
 
-void clear_vector_table(genesis::memory::memory_unit& mem)
+void clean_vector_table(genesis::memory::memory_unit& mem)
 {
 	for(int addr = 0; addr <= 1024; ++addr)
 		mem.write(addr, std::uint8_t(0));
@@ -45,6 +45,12 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 		exman.rise_trace();
 		break;
 
+	case exception_type::interrupt:
+	{
+		rise_interrupt(cpu);
+		break;
+	}
+
 	default:
 		exman.rise(ex);
 		break;
@@ -53,7 +59,7 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 
 void setup_interrupt(test_cpu& cpu, std::uint8_t priority = 1, std::uint8_t IPM = 0)
 {
-	clear_vector_table(cpu.memory());
+	clean_vector_table(cpu.memory());
 	rise_interrupt(cpu, priority, IPM);
 }
 
@@ -62,7 +68,7 @@ void check_timings(exception_type ex, std::uint8_t expected_cycles)
 	genesis::test::test_cpu cpu;
 	auto& exman = cpu.exception_manager();
 
-	clear_vector_table(cpu.memory());
+	clean_vector_table(cpu.memory());
 	cpu.registers().SSP.LW = 2048;
 
 	rise_exception(cpu, ex);
@@ -104,15 +110,7 @@ const std::uint8_t interrupt_cycles = 44;
 
 TEST(M68K_EXCEPTION_UNIT, INTERRUPT_TIMINGS)
 {
-	// Setup
-	test_cpu cpu;
-	setup_interrupt(cpu);
-
-	// Act
-	auto cycles = cpu.cycle_till_idle();
-
-	// Assert
-	ASSERT_EQ(interrupt_cycles, cycles);
+	check_timings(exception_type::interrupt, interrupt_cycles);
 }
 
 TEST(M68K_EXCEPTION_UNIT, INTERRUPT_VALIDATE_STACK)
@@ -159,7 +157,7 @@ void prepare_vector_table(test_cpu& cpu, std::uint32_t address, std::uint32_t pc
 {
 	auto& mem = cpu.memory();
 
-	clear_vector_table(mem);
+	clean_vector_table(mem);
 
 	mem.write(address, pc_value);
 	mem.write(pc_value, ird);
@@ -279,7 +277,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_UNMASKED)
 
 	// Assert
 	ASSERT_EQ(interrupt_cycles, cycles);
-	ASSERT_TRUE(cpu.is_idle());
+	ASSERT_FALSE(cpu.exception_manager().is_raised(exception_type::interrupt));
 }
 
 TEST(M68K_EXCEPTION_UNIT, INTERRUPT_MASKED)
@@ -300,7 +298,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_MASKED)
 
 		// Assert
 		ASSERT_EQ(4, cycles); // it takes 4 cycles to execute NOP
-		ASSERT_TRUE(cpu.is_idle());
+		ASSERT_TRUE(cpu.exception_manager().is_raised(exception_type::interrupt));
 	}
 }
 
@@ -352,7 +350,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 	std::uint32_t old_vec_addr = 0x0;
 	std::uint8_t old_ipm = 0x0;
 
-	// test program set SSP too close to the vector table, so pushing data on the stack may overwrite interrupt vectors
+	// test program set SSP too close to the vector table, so pusing data on the stack may overwrite interrupt vectors
 	std::uint32_t test_ssp = 0x0;
 	std::uint32_t old_ssp = 0x0;
 
@@ -410,7 +408,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 			break;
 
 		case test_state::wait_idle:
-			if(!cpu.is_idle())
+			if(!cpu.is_idle() || cpu.exception_manager().is_raised_any())
 				break;
 
 			state = test_state::start;
@@ -450,9 +448,6 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 		{
 			if(cpu.is_idle() && regs.PC == return_pc)
 			{
-				// remove pending interrupt
-				cpu.set_interrupt(0);
-
 				// restore state
 				mem.write(vec_addr, old_vec_addr);
 				regs.SSP.LW = old_ssp;
@@ -470,7 +465,14 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 	});
 
 	// wait for last interrupt to complete (if any)
-	cpu.cycle_till_idle();
+	auto& exman = cpu.exception_manager();
+	if(exman.is_raised(exception_type::interrupt))
+	{
+		cpu.cycle_until([&exman]()
+		{
+			return exman.is_raised(exception_type::interrupt);
+		});
+	}
 
 	ASSERT_TRUE(success);
 

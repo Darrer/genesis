@@ -29,8 +29,6 @@ void vdp::cycle()
 
 	// TODO: can we execute io ports and DMA requests in 1 cycle?
 	handle_dma_requests();
-
-	update_status_register();
 }
 
 void vdp::handle_ports_requests()
@@ -314,13 +312,6 @@ bool vdp::pre_cache_read_is_required() const
 	// TODO: what if vdp just started and control register is not set by ports?
 
 	return true;
-}
-
-void vdp::update_status_register()
-{
-	regs.SR.E = regs.fifo.empty() ? 1 : 0;
-	regs.SR.F = regs.fifo.full() ? 1 : 0;
-	regs.SR.PAL = regs.R1.M2;
 }
 
 

@@ -98,6 +98,7 @@ public:
 
 	std::uint8_t latched_byte() const override
 	{
+		// TODO:
 		return read_result() & 0xFF;
 	}
 

@@ -54,6 +54,9 @@ public:
 		if(state != ex_state::IDLE)
 			return false;
 
+		if(!exman.is_raised_any())
+			return true;
+
 		return !exception_0_group_is_rised() &&
 			!exception_1_group_is_rised() &&
 			!exception_2_group_is_rised();
@@ -98,6 +101,10 @@ private:
 			trace();
 			break;
 
+		case exception_type::interrupt:
+			interrupt();
+			break;
+
 		case exception_type::illegal_instruction:
 			illegal_instruction();
 			break;
@@ -132,14 +139,7 @@ private:
 			division_by_zero();
 			break;
 
-		default:
-			if(interrupt_is_pending())
-			{
-				interrupt();
-				break;
-			}
-
-			throw internal_error();
+		default: throw internal_error();
 		}
 	}
 
@@ -164,10 +164,30 @@ private:
 		if(!instruction_unit_is_idle())
 			return false;
 
-		if(interrupt_is_pending())
-			return true;
+		auto exps = group_exceptions(exception_group::group_1);
+		for(auto ex : exps)
+		{
+			if(!exman.is_raised(ex))
+				continue;
 
-		return exman.is_raised(exception_group::group_1);
+			// consider interrupt exception is rised only
+			// if we have enough priority to execute the interrupt
+			if(ex == exception_type::interrupt)
+			{
+				if(bus.interrupt_priority() == 0)
+					throw internal_error("interrupt exception is rised but there is no pending interrupt");
+
+				if(can_process_interrupt())
+					return true;
+			}
+			// don't need to check extra conditions for other exceptions
+			else
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// Checks if current executing instruction is over and any of the following exceptions are reised:
@@ -190,14 +210,6 @@ private:
 
 		/* In practice 2nd group has priority over 1st group */
 		if(accept_group(exception_group::group_2))
-			return;
-
-		/* 1st group */
-
-		if(accept(exception_type::trace))
-			return;
-		
-		if(interrupt_is_pending())
 			return;
 
 		if(accept_group(exception_group::group_1))
@@ -246,14 +258,14 @@ private:
 		return true;
 	}
 
-	bool interrupt_is_pending() const
+	bool can_process_interrupt() const
 	{
 		auto ipl = bus.interrupt_priority();
 
 		if(ipl == 0b111)
 			return true;
-
-		return ipl != 0 && ipl > regs.flags.IPM;
+		
+		return ipl > regs.flags.IPM;
 	}
 
 	/*

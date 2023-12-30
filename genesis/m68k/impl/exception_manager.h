@@ -4,7 +4,6 @@
 #include <array>
 #include <type_traits>
 #include <span>
-#include <cstdint>
 #include "exception.hpp"
 
 namespace genesis::m68k
@@ -21,6 +20,7 @@ enum class exception_type
 
 	/* 1 group */
 	trace,
+	interrupt,
 	illegal_instruction,
 	privilege_violations,
 	line_1010_emulator,
@@ -48,7 +48,7 @@ namespace groups
 static constexpr const exception_type ex_group_0[] = { exception_type::reset,
 	exception_type::address_error, exception_type::bus_error };
 
-static constexpr const exception_type ex_group_1[] = { exception_type::trace,
+static constexpr const exception_type ex_group_1[] = { exception_type::trace, exception_type::interrupt,
 	exception_type::illegal_instruction, exception_type::privilege_violations,
 	exception_type::line_1010_emulator, exception_type::line_1111_emulator, };
 
@@ -103,9 +103,6 @@ public:
 
 	bool is_raised(exception_group group) const
 	{
-		if(!is_raised_any())
-			return false;
-
 		for(auto ex : group_exceptions(group))
 		{
 			if(is_raised(ex))
@@ -186,6 +183,11 @@ public:
 	void rise_trace()
 	{
 		rise_unsafe(exception_type::trace);
+	}
+
+	void rise_interrupt()
+	{
+		rise_unsafe(exception_type::interrupt);
 	}
 
 	void rise_illegal_instruction()
