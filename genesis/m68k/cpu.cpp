@@ -24,6 +24,8 @@ cpu::cpu(std::shared_ptr<memory::addressable> external_memory, std::shared_ptr<i
 
 	tracer = std::make_unique<impl::trace_riser>(regs, exman, instruction_unit_is_idle);
 
+	m_int_riser = std::make_unique<impl::interrupt_riser>(regs, _bus, exman);
+
 	reset();
 }
 
@@ -38,6 +40,8 @@ void cpu::reset()
 
 void cpu::cycle()
 {
+	m_int_riser->cycle();
+
 	// TODO: move to instruction unit
 	// tracer->cycle();
 
@@ -69,7 +73,6 @@ void cpu::cycle()
 
 bool cpu::is_idle() const
 {
-	// TODO: add exman?
 	return busm.is_idle() && scheduler.is_idle() && inst_unit->is_idle() && excp_unit->is_idle();
 }
 
@@ -77,13 +80,10 @@ void cpu::set_interrupt(std::uint8_t priority)
 {
 	// TODO: check if we support interrupts (int_dev is not null)
 
-	if(priority > 7 || priority == 0)
+	if(priority > 7)
 		throw std::invalid_argument("priority");
-	if(_bus.interrupt_priority() != 0)
-		throw not_implemented("having multiple interrupts at the same time is not supported yet");
 
 	_bus.interrupt_priority(priority);
-	exman.rise_interrupt();
 }
 
 } // namespace genesis::m68k

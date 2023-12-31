@@ -11,6 +11,7 @@
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
 #include "impl/trace_riser.hpp"
+#include "impl/interrupt_riser.h"
 
 #include <memory>
 
@@ -63,6 +64,7 @@ protected:
 	std::unique_ptr<m68k::instruction_unit> inst_unit;
 	std::unique_ptr<m68k::exception_unit> excp_unit;
 	std::unique_ptr<impl::trace_riser> tracer;
+	std::unique_ptr<impl::interrupt_riser> m_int_riser;
 };
 
 } // namespace genesis::m68k

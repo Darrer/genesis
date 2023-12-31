@@ -48,6 +48,7 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 	case exception_type::interrupt:
 	{
 		rise_interrupt(cpu);
+		exman.rise_interrupt();
 		break;
 	}
 
@@ -298,7 +299,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_MASKED)
 
 		// Assert
 		ASSERT_EQ(4, cycles); // it takes 4 cycles to execute NOP
-		ASSERT_TRUE(cpu.exception_manager().is_raised(exception_type::interrupt));
+		ASSERT_FALSE(cpu.exception_manager().is_raised(exception_type::interrupt));
 	}
 }
 

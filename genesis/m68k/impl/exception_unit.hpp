@@ -143,7 +143,7 @@ private:
 		}
 	}
 
-	// Checks if any of the following exceptions are reised:
+	// Checks if any of the following exceptions are raised:
 	// 1. Reset
 	// 2. Address error
 	// 3. Bus error
@@ -152,7 +152,7 @@ private:
 		return exman.is_raised(exception_group::group_0);
 	}
 
-	// Checks if current executing instruction is over and any of the following exceptions are reised:
+	// Checks if the current executing instruction is over and any of the following exceptions are raised:
 	// 1. Trace
 	// 2. Interrupt
 	// 3. Illegal
@@ -163,34 +163,11 @@ private:
 	{
 		if(!instruction_unit_is_idle())
 			return false;
-
-		auto exps = group_exceptions(exception_group::group_1);
-		for(auto ex : exps)
-		{
-			if(!exman.is_raised(ex))
-				continue;
-
-			// consider interrupt exception is rised only
-			// if we have enough priority to execute the interrupt
-			if(ex == exception_type::interrupt)
-			{
-				if(bus.interrupt_priority() == 0)
-					throw internal_error("interrupt exception is rised but there is no pending interrupt");
-
-				if(can_process_interrupt())
-					return true;
-			}
-			// don't need to check extra conditions for other exceptions
-			else
-			{
-				return true;
-			}
-		}
-
-		return false;
+		
+		return exman.is_raised(exception_group::group_1);
 	}
 
-	// Checks if current executing instruction is over and any of the following exceptions are reised:
+	// Checks if the current executing instruction is over and any of the following exceptions are raised:
 	// 1. Trap
 	// 2. Trapv
 	// 3. CHK
@@ -218,7 +195,7 @@ private:
 		throw internal_error(); // why we were called?
 	}
 
-	// accept 1 exception from group according to its priority
+	// accept one exception from the group according its priority
 	bool accept_group(exception_group group)
 	{
 		auto exps = group_exceptions(group);
@@ -250,22 +227,18 @@ private:
 			trap_vector = exman.accept_trap();
 			break;
 
+		case exception_type::interrupt:
+			if(bus.interrupt_priority() == 0)
+				throw internal_error("interrupt exception is rised but there is no pending interrupt");
+			exman.accept(curr_ex);
+			break;
+
 		default:
 			exman.accept(curr_ex);
 			break;
 		}
 
 		return true;
-	}
-
-	bool can_process_interrupt() const
-	{
-		auto ipl = bus.interrupt_priority();
-
-		if(ipl == 0b111)
-			return true;
-		
-		return ipl > regs.flags.IPM;
 	}
 
 	/*
@@ -483,7 +456,7 @@ private:
 		scheduler.write(regs.SSP.LW, endian::lsw(pc), size_type::WORD);
 
 		// PUSH SR
-		// note, for some reason we first push SR, then PC HIGH
+		// note, we first push SR, then PC HIGH
 		scheduler.write(regs.SSP.LW - 4, regs.SR, size_type::WORD);
 
 		// update SR
