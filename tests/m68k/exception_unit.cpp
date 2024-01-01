@@ -48,7 +48,7 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 	case exception_type::interrupt:
 	{
 		rise_interrupt(cpu);
-		exman.rise_interrupt();
+		exman.rise_interrupt(cpu.bus().interrupt_priority());
 		break;
 	}
 
@@ -418,8 +418,12 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 		case test_state::start:
 		{
 			ASSERT_TRUE(cpu.is_idle());
-			ASSERT_FALSE(cpu.exception_manager().is_raised_any()); // there should be no other exceptions pending
 
+			// there should be no other interrupt/exceptions pending
+			ASSERT_FALSE(cpu.exception_manager().is_raised_any());
+			ASSERT_TRUE(cpu.bus().interrupt_priority() == 0);
+
+			// TODO: may not work if we pick 124 two times in a row (m68k should process only first interrupt)
 			vec_addr = random::pick(interrupt_vectors);
 
 			// save old state
@@ -466,12 +470,11 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 	});
 
 	// wait for last interrupt to complete (if any)
-	auto& exman = cpu.exception_manager();
-	if(exman.is_raised(exception_type::interrupt))
+	if(state == test_state::finish)
 	{
-		cpu.cycle_until([&exman]()
+		cpu.cycle_until([&cpu, return_pc]()
 		{
-			return exman.is_raised(exception_type::interrupt);
+			return cpu.is_idle() && cpu.registers().PC == return_pc;
 		});
 	}
 

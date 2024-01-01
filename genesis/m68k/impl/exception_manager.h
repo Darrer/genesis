@@ -138,6 +138,7 @@ public:
 		{
 		case exception_type::address_error:
 		case exception_type::bus_error:
+		case exception_type::interrupt:
 		case exception_type::trap:
 			throw internal_error("Specialized rise method should be used for this exception");
 		}
@@ -185,9 +186,16 @@ public:
 		rise_unsafe(exception_type::trace);
 	}
 
-	void rise_interrupt()
+	void rise_interrupt(std::uint8_t ipl)
 	{
 		rise_unsafe(exception_type::interrupt);
+		m_ipl = ipl;
+	}
+
+	std::uint8_t accept_interrupt()
+	{
+		accept(exception_type::interrupt);
+		return m_ipl;
 	}
 
 	void rise_illegal_instruction()
@@ -258,6 +266,7 @@ private:
 	std::array<bool, static_cast<index_type>(exception_type::count)> exps;
 	address_error addr_error;
 	std::uint8_t trap_vector;
+	std::uint8_t m_ipl;
 	unsigned int ex_counter = 0;
 };
 

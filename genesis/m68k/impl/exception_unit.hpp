@@ -228,9 +228,7 @@ private:
 			break;
 
 		case exception_type::interrupt:
-			if(bus.interrupt_priority() == 0)
-				throw internal_error("interrupt exception is rised but there is no pending interrupt");
-			exman.accept(curr_ex);
+			m_ipl = exman.accept_interrupt();
 			break;
 
 		default:
@@ -408,9 +406,9 @@ private:
 		// update SR
 		regs.flags.S = 1;
 		regs.flags.TR = 0;
-		regs.flags.IPM = bus.interrupt_priority();
+		regs.flags.IPM = m_ipl;
 
-		scheduler.int_ack([this](std::uint8_t vector_number)
+		scheduler.int_ack(m_ipl, [this](std::uint8_t vector_number)
 		{
 			scheduler.wait(4);
 
@@ -564,6 +562,7 @@ private:
 
 	m68k::address_error addr_error;
 	std::uint8_t trap_vector;
+	std::uint8_t m_ipl;
 };
 
 }

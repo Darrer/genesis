@@ -273,12 +273,11 @@ bus_state int_ack_and_track(test::test_cpu& cpu, std::uint8_t priority = 1)
 	auto& mem = cpu.memory();
 
 	cpu.registers().flags.IPM = 0; // enable all interrupts
-	bus.interrupt_priority(priority);
 
 	std::uint32_t cycle = 0;
 	bus_state bs;
 
-	busm.init_interrupt_ack();
+	busm.init_interrupt_ack(priority);
 
 	while(!busm.is_idle())
 	{
@@ -424,10 +423,9 @@ const std::uint32_t int_ack_cycles = 4;
 template<class Callback = std::nullptr_t>
 std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1, Callback callback = nullptr)
 {
-	cpu.bus().interrupt_priority(int_priority);
 	cpu.registers().flags.IPM = 0;
 	auto& busm = cpu.bus_manager();
-	busm.init_interrupt_ack(callback);
+	busm.init_interrupt_ack(int_priority, callback);
 	return wait_idle(busm);
 }
 
@@ -632,8 +630,7 @@ TEST(M68K_BUS_MANAGER, INT_ACK_GET_RESULT_WHEN_IS_NOT_IDLE)
 	test::test_cpu cpu;
 	auto& busm = cpu.bus_manager();
 
-	cpu.bus().interrupt_priority(1);
-	busm.init_interrupt_ack();
+	busm.init_interrupt_ack(1);
 
 	ASSERT_THROW(busm.get_vector_number(), std::runtime_error);
 }
@@ -645,19 +642,16 @@ TEST(M68K_BUS_MANAGER, INT_ACK_START_NEW_CYCLE_WHEN_IS_NOT_IDLE)
 
 	busm.init_read_byte(0x100, m68k::addr_space::PROGRAM);
 
-	cpu.bus().interrupt_priority(1);
-
-	ASSERT_THROW(busm.init_interrupt_ack();, std::runtime_error);
+	ASSERT_THROW(busm.init_interrupt_ack(1), std::runtime_error);
 }
 
-TEST(M68K_BUS_MANAGER, INT_ACK_START_CYCLE_WITH_0_PRIORITY)
+TEST(M68K_BUS_MANAGER, INT_ACK_START_CYCLE_WITH_INCORRECT_PRIORITY)
 {
 	test::test_cpu cpu;
 	auto& busm = cpu.bus_manager();
 
-	cpu.bus().interrupt_priority(0);
-
-	ASSERT_THROW(busm.init_interrupt_ack(), std::runtime_error);
+	ASSERT_THROW(busm.init_interrupt_ack(0), std::runtime_error);
+	ASSERT_THROW(busm.init_interrupt_ack(8), std::runtime_error);
 }
 
 TEST(M68K_BUS_MANAGER, INT_ACK_READ_BYTE_AND_GET_INTERRUPT_VECTOR)

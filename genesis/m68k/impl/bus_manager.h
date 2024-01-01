@@ -164,15 +164,16 @@ public:
 	/* interrupt interface */
 
 	template <class Callable = std::nullptr_t>
-	void init_interrupt_ack(Callable on_complete = nullptr)
+	void init_interrupt_ack(std::uint8_t ipl, Callable on_complete = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();
 
-		if(bus.interrupt_priority() == 0)
-			throw internal_error("Cannot start interrupt acknowledge cycle as there is no interrupt asserted");
+		if(ipl == 0 || ipl > 7)
+			throw genesis::internal_error();
 
 		state = bus_cycle_state::IAC0;
+		m_ipl = ipl;
 		vector_number.reset();
 		on_complete_cb = on_complete;
 	}
@@ -233,6 +234,7 @@ private:
 	bool address_even;
 	addr_space space;
 	std::uint16_t data_to_write;
+	std::uint8_t m_ipl;
 	std::optional<std::uint8_t> vector_number;
 };
 

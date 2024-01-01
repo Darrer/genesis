@@ -16,16 +16,31 @@ public:
 		: m_regs(regs), m_bus(bus), m_exman(exman)
 	{
 		m_prev_ipl = m_bus.interrupt_priority();
+		m_raised_ipl = 0;
 	}
 
 	void cycle()
 	{
 		auto ipl = m_bus.interrupt_priority();
 
-		if(ipl != 0 && !m_exman.is_raised(exception_type::interrupt))
+		if(m_exman.is_raised(exception_type::interrupt))
+		{
+			// TODO: what if IPM changes after raising but before processing interrupt?
+			if(m_raised_ipl != ipl)
+			{
+				// clear pending interrupt as IPL changed
+				// and we haven't started processing it yet
+				m_exman.accept_interrupt();
+			}
+		}
+
+		if(!m_exman.is_raised(exception_type::interrupt))
 		{
 			if((ipl == 0b111 && m_prev_ipl != ipl) || (ipl > m_regs.flags.IPM))
-				m_exman.rise(exception_type::interrupt);
+			{
+				m_exman.rise_interrupt(ipl);
+				m_raised_ipl = ipl;
+			}
 		}
 
 		m_prev_ipl = ipl;
@@ -36,6 +51,7 @@ private:
 	m68k::cpu_bus& m_bus;
 	m68k::exception_manager& m_exman;
 	std::uint8_t m_prev_ipl;
+	std::uint8_t m_raised_ipl;
 };
 
 }

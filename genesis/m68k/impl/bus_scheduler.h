@@ -77,10 +77,10 @@ public:
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
 	template<class Callable>
-	void int_ack(Callable on_complete)
+	void int_ack(std::uint8_t ipl, Callable on_complete)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
-		int_ack_impl(on_complete);
+		int_ack_impl(ipl, on_complete);
 	}
 
 	void prefetch_ird();
@@ -144,6 +144,7 @@ public:
 	using int_ack_complete = std::function<void(std::uint8_t /* vector number */)>;
 	struct int_ack_operation
 	{
+		std::uint8_t ipl; // interrupt priority level
 		int_ack_complete on_complete;
 	};
 
@@ -182,7 +183,7 @@ public:
 private:
 	void read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete);
 	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
-	void int_ack_impl(int_ack_complete);
+	void int_ack_impl(std::uint8_t ipl, int_ack_complete);
 	void call_impl(callback);
 
 	void latch_data(size_type size);

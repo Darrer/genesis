@@ -106,9 +106,9 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 	}
 }
 
-void bus_scheduler::int_ack_impl(int_ack_complete on_complete)
+void bus_scheduler::int_ack_impl(std::uint8_t ipl, int_ack_complete on_complete)
 {
-	int_ack_operation op { on_complete };
+	int_ack_operation op { ipl, on_complete };
 	queue.push({op_type::INT_ACK, op});
 }
 
@@ -322,7 +322,7 @@ void bus_scheduler::start_operation(operation& op)
 
 	case op_type::INT_ACK: {
 		int_ack_operation& int_ack = std::get<int_ack_operation>(op.op);
-		busm.init_interrupt_ack([this]() { on_int_ack_finished(); });
+		busm.init_interrupt_ack(int_ack.ipl, [this]() { on_int_ack_finished(); });
 		break;
 	}
 

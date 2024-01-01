@@ -239,7 +239,7 @@ void bus_manager::cycle()
 		return;
 
 	case IAC2:
-		int_dev->init_interrupt_ack(bus.interrupt_priority());
+		int_dev->init_interrupt_ack(m_ipl);
 
 		advance_state();
 		[[fallthrough]];
@@ -357,11 +357,7 @@ std::uint8_t bus_manager::gen_func_codes() const
 
 std::uint32_t bus_manager::gen_int_addr() const
 {
-	std::uint8_t priority = bus.interrupt_priority();
-	std::uint32_t addr = 0xfffffff8; // 3 low bits are 0, all other are high
-
-	addr = addr | (priority & 0b111);
-	return addr;
+	return 0xfffffff8 | (m_ipl & 0b111);
 }
 
 void bus_manager::set_data_strobe_bus()
@@ -452,6 +448,8 @@ bool bus_manager::should_rise_address_error() const
 void bus_manager::rise_address_error()
 {
 	// TODO: what if bus is granted to some other device?
+	if(bus_granted())
+		throw std::runtime_error("Some other device triggered Address Error exception");
 
 	// NOTE: we don't need to check for RMW_READ0 state as read-modify-write cycle performs
 	// only single byte operations and they cannot generate address error exception.
