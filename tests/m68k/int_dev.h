@@ -20,9 +20,10 @@ public:
 		return true;
 	}
 
-	virtual void init_interrupt_ack(std::uint8_t priority) override
+	void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) override
 	{
 		this->priority = priority;
+		bus.interrupt_priority(0);
 	}
 
 	virtual m68k::interrupt_type interrupt_type() override

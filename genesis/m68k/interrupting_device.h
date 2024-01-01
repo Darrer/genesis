@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "m68k/cpu_bus.hpp"
+
 namespace genesis::m68k
 {
 
@@ -22,7 +24,7 @@ public:
 	virtual ~interrupting_device() = default;
 
 	virtual bool is_idle() const = 0;
-	virtual void init_interrupt_ack(std::uint8_t priority) = 0;
+	virtual void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) = 0;
 
 	virtual m68k::interrupt_type interrupt_type() = 0;
 	virtual std::uint8_t vector_number() = 0;
@@ -44,9 +46,10 @@ public:
 		return true;
 	}
 
-	void init_interrupt_ack(std::uint8_t priority) override
+	void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) override
 	{
 		this->priority = priority;
+		bus.interrupt_priority(0);
 	}
 
 	m68k::interrupt_type interrupt_type() override

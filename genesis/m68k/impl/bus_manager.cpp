@@ -239,7 +239,7 @@ void bus_manager::cycle()
 		return;
 
 	case IAC2:
-		int_dev->init_interrupt_ack(m_ipl);
+		int_dev->init_interrupt_ack(bus, m_ipl);
 
 		advance_state();
 		[[fallthrough]];
@@ -272,7 +272,6 @@ void bus_manager::cycle()
 
 	case IAC3:
 		clear_bus();
-		bus.interrupt_priority(0);
 		set_idle();
 		return;
 
