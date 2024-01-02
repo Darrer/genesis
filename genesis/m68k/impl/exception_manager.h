@@ -6,6 +6,8 @@
 #include <span>
 #include "exception.hpp"
 
+// TODO: fix typo riser -> raiser
+
 namespace genesis::m68k
 {
 

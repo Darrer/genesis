@@ -230,7 +230,7 @@ void vdp::on_start_scanline()
 
 	if(regs.v_counter == 0xFF)
 	{
-		regs.SR.VI = 0;
+		// regs.SR.VI = 0;
 		vcounter_flag = false;
 	}
 }
@@ -242,6 +242,8 @@ void vdp::on_end_scanline()
 	{
 		if(on_frame_end_callback != nullptr)
 			on_frame_end_callback();
+
+		m_render.reset_limits();
 	}
 
 	check_interrupts();
@@ -249,15 +251,16 @@ void vdp::on_end_scanline()
 
 void vdp::check_interrupts()
 {
+	regs.SR.VI = regs.SR.VB = regs.SR.HB = 0;
 	if(_sett.horizontal_interrupt_enabled())
 	{
 		if(hint_counter == 0)
 		{
 			if(m68k_int == nullptr)
 				throw genesis::internal_error();
-			m68k_int->rise_horizontal_interrupt();
+			m68k_int->interrupt_priority(4);
 			hint_counter = _sett.horizontal_interrupt_counter();
-
+			regs.SR.HB = 1;
 			return; // can trigger only 1 interrupt at a time
 		}
 	}
@@ -270,8 +273,9 @@ void vdp::check_interrupts()
 		{
 			if(m68k_int == nullptr)
 				throw genesis::internal_error();
-			m68k_int->rise_vertical_interrupt();
+			m68k_int->interrupt_priority(6);
 			regs.SR.VI = 1;
+			regs.SR.VB = 1;
 			// TODO: for more precision also check h_counter
 		}
 	}

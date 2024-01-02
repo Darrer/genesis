@@ -69,6 +69,7 @@ public:
 
 	impl::render& render() { return m_render; }
 
+	// must be called before VINT/HINT
 	void on_frame_end(std::function<void()> callback)
 	{
 		on_frame_end_callback = callback;

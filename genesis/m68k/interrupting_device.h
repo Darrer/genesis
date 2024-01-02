@@ -2,6 +2,7 @@
 #define __M68K_INTERRUPTING_DEVICE_H__
 
 #include <cstdint>
+#include <stdexcept>
 
 #include "m68k/cpu_bus.hpp"
 
@@ -26,13 +27,16 @@ public:
 	virtual bool is_idle() const = 0;
 	virtual void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) = 0;
 
-	virtual m68k::interrupt_type interrupt_type() = 0;
-	virtual std::uint8_t vector_number() = 0;
+	virtual m68k::interrupt_type interrupt_type() const = 0;
+	virtual std::uint8_t vector_number() const = 0;
 
 protected:
-	/* helpers */
-	std::uint8_t autovectored(std::uint8_t priority)
+	// helper method
+	static std::uint8_t autovectored(std::uint8_t priority)
 	{
+		if(priority > 7)
+			throw std::invalid_argument("interrupting_device::autovectored: priority");
+
 		return 0x18 + priority;
 	}
 };
@@ -52,12 +56,12 @@ public:
 		bus.interrupt_priority(0);
 	}
 
-	m68k::interrupt_type interrupt_type() override
+	m68k::interrupt_type interrupt_type() const override
 	{
 		return m68k::interrupt_type::autovectored;
 	}
 
-	std::uint8_t vector_number() override
+	std::uint8_t vector_number() const override
 	{
 		return autovectored(priority);
 	}

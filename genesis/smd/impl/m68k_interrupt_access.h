@@ -2,34 +2,70 @@
 #define __SMD_IMPL_M68K_INTERRUPT_ACCESS_H__
 
 #include "m68k/cpu.h"
+#include "m68k/interrupting_device.h"
 #include "vdp/m68k_interrupt_access.h"
+
+#include <optional>
+#include <functional>
 
 namespace genesis::impl
 {
 
-class m68k_interrupt_access_impl : public vdp::m68k_interrupt_access
+class m68k_interrupt_access_impl : public m68k::interrupting_device, public vdp::m68k_interrupt_access
 {
 public:
-	m68k_interrupt_access_impl(genesis::m68k::cpu& cpu) : cpu(cpu) { }
-	
+	m68k_interrupt_access_impl() = default;
+
+	void set_cpu(genesis::m68k::cpu& cpu)
+	{
+		m_cpu = cpu;
+	}
+
+	/* m68k::interrupting_device interface */
+	bool is_idle() const override
+	{
+		return true;
+	}
+
+	void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) override
+	{
+		m_priority = priority;
+
+		if(m_int_cb)
+			m_int_cb(priority);
+	}
+
+	m68k::interrupt_type interrupt_type() const override
+	{
+		return m68k::interrupt_type::autovectored;
+	}
+
+	std::uint8_t vector_number() const override
+	{
+		return autovectored(m_priority);
+	}
+
 	/* vdp::m68k_interrupt_access interface */
-	void rise_vertical_interrupt() override
+
+	void interrupt_priority(std::uint8_t ipl) override
 	{
-		cpu.set_interrupt(6);
+		m_cpu.value().get().set_interrupt(ipl);
 	}
 
-	void rise_horizontal_interrupt() override
+	std::uint8_t interrupt_priority() const override
 	{
-		cpu.set_interrupt(4);
+		return m_cpu.value().get().bus().interrupt_priority();
 	}
 
-	void rise_external_interrupt() override
+	void set_interrupt_callback(interrupt_callback cb) override
 	{
-		cpu.set_interrupt(2);
+		m_int_cb = cb;
 	}
 
 private:
-	genesis::m68k::cpu& cpu;
+	std::uint8_t m_priority = 0;
+	vdp::m68k_interrupt_access::interrupt_callback m_int_cb;
+	std::optional<std::reference_wrapper<genesis::m68k::cpu>> m_cpu;
 };
 
 }

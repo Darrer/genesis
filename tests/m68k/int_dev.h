@@ -26,12 +26,12 @@ public:
 		bus.interrupt_priority(0);
 	}
 
-	virtual m68k::interrupt_type interrupt_type() override
+	virtual m68k::interrupt_type interrupt_type() const override
 	{
 		return type;
 	}
 
-	virtual std::uint8_t vector_number() override
+	virtual std::uint8_t vector_number() const override
 	{
 		switch (type)
 		{

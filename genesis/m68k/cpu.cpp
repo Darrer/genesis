@@ -35,6 +35,7 @@ cpu::~cpu()
 
 void cpu::reset()
 {
+	// TODO: reset other units
 	exman.rise(exception_type::reset);
 }
 

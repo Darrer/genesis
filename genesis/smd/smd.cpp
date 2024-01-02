@@ -31,13 +31,14 @@ smd::smd(std::string_view rom_path, std::shared_ptr<io_ports::input_device> inpu
 	auto z80_ports = std::make_shared<impl::z80_io_ports>();
 	m_z80_cpu = std::make_unique<z80::cpu>(std::make_shared<z80::memory>(z80_mem_map), z80_ports);
 
-	m_m68k_cpu = std::make_unique<m68k::cpu>(m68k_mem_map);
+	auto m68k_int_access = std::make_shared<impl::m68k_interrupt_access_impl>();
+	m_m68k_cpu = std::make_unique<m68k::cpu>(m68k_mem_map, m68k_int_access);
 
 	// TODO: it does not make much senete to have a shared_pointer to an object containing a reference
 	auto m68k_bus_access = std::make_shared<impl::m68k_bus_access_impl>(m_m68k_cpu->bus_access());
 	m_vdp->set_m68k_bus_access(m68k_bus_access);
 
-	auto m68k_int_access = std::make_shared<impl::m68k_interrupt_access_impl>(*m_m68k_cpu);
+	m68k_int_access->set_cpu(*m_m68k_cpu);
 	m_vdp->set_m68k_interrupt_access(m68k_int_access);
 }
 
