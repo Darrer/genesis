@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
 	add_compile_options(/W3 /WX /O2)
+
+	# add_compile_options(/DEBUG:FULL /Zi)
+	# add_link_options(/DEBUG:FULL)
 else()
 	add_compile_options(-Wall -Wextra -pedantic -O3 -fpermissive -Wno-switch)
 endif()
