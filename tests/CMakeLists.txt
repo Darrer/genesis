@@ -70,6 +70,7 @@ PRIVATE
 	vdp/dma.cpp
 	vdp/render.cpp
 	vdp/hv_counters.cpp
+	vdp/blank_flags.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)

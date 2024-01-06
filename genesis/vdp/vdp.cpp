@@ -5,6 +5,49 @@
 namespace genesis::vdp
 {
 
+const bool PAL = true;
+
+// MCLK = 53203424 - 50hz
+// MCLK = 53693175 - 60hz
+enum class clock_rate
+{
+	hz50,
+	hz60,
+};
+
+int cycles_per_line(settings& sett)
+{
+	return 3420;
+}
+
+int cycles_per_pixel(settings& sett)
+{
+	if(sett.display_width() == display_width::c32)
+		return 10; // 3420 / 342
+	return 8; // 3420 / 420
+}
+
+int lines_per_frame(settings& sett, clock_rate rate = clock_rate::hz60)
+{
+	if(rate == clock_rate::hz50)
+	{
+		return 313;
+	}
+	else
+	{
+		if(sett.display_height() == display_height::c30)
+			return 512;
+		return 262;
+	}
+}
+
+int pixels_per_line(settings& sett)
+{
+	if(sett.display_width() == display_width::c32)
+		return 342;
+	return 420;
+}
+
 vdp::vdp(std::shared_ptr<m68k_bus_access> m68k_bus)
 	: _sett(regs), ports(regs), dma(regs, _sett, dma_memory, m68k_bus),
 	  m_render(regs, _sett, _vram, _vsram, _cram)
@@ -13,22 +56,23 @@ vdp::vdp(std::shared_ptr<m68k_bus_access> m68k_bus)
 
 void vdp::cycle()
 {
-	if(cycles++ % 3420 == 0)
+	mclk++;
+
+	update_hv_counters();
+
+	if(mclk == 1)
 	{
-		on_end_scanline(); // TMP
 		on_start_scanline();
 	}
 
-	ports.cycle();
+	on_scanline();
 
-	if(_sett.dma_enabled())
-		dma.cycle();
-
-	// io ports have priority over DMA
-	handle_ports_requests();
-
-	// TODO: can we execute io ports and DMA requests in 1 cycle?
-	handle_dma_requests();
+	if(mclk == cycles_per_line(_sett))
+	{
+		on_end_scanline();
+		m_scanline = (m_scanline + 1) % lines_per_frame(_sett);
+		mclk = 0;
+	}
 }
 
 void vdp::handle_ports_requests()
@@ -210,35 +254,46 @@ void vdp::handle_dma_requests()
 	}
 }
 
+void vdp::update_status_register()
+{
+	regs.SR.E = regs.fifo.empty() ? 1 : 0;
+	regs.SR.F = regs.fifo.full() ? 1 : 0;
+	regs.SR.PAL = regs.R1.M2;
+	regs.SR.VI = m_vint_pending ? 1 : 0;
+}
+
 void vdp::on_start_scanline()
 {
-	if(regs.h_counter == 0)
+	// TODO: do we alway reset it?
+	if(regs.v_counter == 0)
 	{
 		// must update hint_counter on the first scanline
 		hint_counter = _sett.horizontal_interrupt_counter();
 	}
 
-	if(regs.v_counter == 0xEA && vcounter_flag == false)
+	int vint_threshold = _sett.display_height() == display_height::c28 ? 0xE0 : 0xF0;
+
+	if(regs.v_counter > vint_threshold)
 	{
-		regs.v_counter = 0xE5;
-		vcounter_flag = true;
+		hint_counter = _sett.horizontal_interrupt_counter();
 	}
-	else
-		regs.v_counter++;
 
-	hint_counter--;
-
-	if(regs.v_counter == 0xFF)
+	if(hint_counter > 0 && regs.v_counter <= vint_threshold /* && regs.h_counter == 0xA6/0x86 */)
 	{
-		// regs.SR.VI = 0;
-		vcounter_flag = false;
+		--hint_counter;
+		if(hint_counter == 0)
+		{
+			m_hint_pending = true;
+			hint_counter = _sett.horizontal_interrupt_counter();
+		}
 	}
 }
 
 void vdp::on_end_scanline()
 {
 	// primitive approach
-	if(regs.v_counter == 0xE0)
+	int vint_threshold = _sett.display_height() == display_height::c28 ? 0xE0 : 0xF0;
+	if(regs.v_counter == vint_threshold)
 	{
 		if(on_frame_end_callback != nullptr)
 			on_frame_end_callback();
@@ -249,38 +304,152 @@ void vdp::on_end_scanline()
 	check_interrupts();
 }
 
+void vdp::on_scanline()
+{
+	ports.cycle();
+
+	if(_sett.dma_enabled())
+		dma.cycle();
+
+	// io ports have priority over DMA
+	handle_ports_requests();
+
+	// TODO: can we execute io ports and DMA requests in 1 cycle?
+	handle_dma_requests();
+
+	update_status_register();
+}
+
 void vdp::check_interrupts()
 {
-	regs.SR.VI = regs.SR.VB = regs.SR.HB = 0;
-	if(_sett.horizontal_interrupt_enabled())
+	if(m_hint_pending && _sett.horizontal_interrupt_enabled())
 	{
-		if(hint_counter == 0)
-		{
-			if(m68k_int == nullptr)
-				throw genesis::internal_error();
-			m68k_int->interrupt_priority(4);
-			hint_counter = _sett.horizontal_interrupt_counter();
-			regs.SR.HB = 1;
-			return; // can trigger only 1 interrupt at a time
-		}
+		if(m68k_int == nullptr)
+			throw genesis::internal_error();
+		// m68k_int->interrupt_priority(4);
+		return; // can trigger only 1 interrupt at a time
 	}
 
-	// TODO: write tests for vertical interrupts
-	if(_sett.vertical_interrupt_enabled())
+	if(m_vint_pending && _sett.vertical_interrupt_enabled())
 	{
-		// std::cout << "Checking interrupt: " << (int)regs.v_counter << ", VI: " << (int)regs.SR.VI << "\n";
-		if(regs.v_counter == 0xE0 && regs.SR.VI == 0)
+		if(m68k_int == nullptr)
+			throw genesis::internal_error();
+		m68k_int->interrupt_priority(6);
+	}
+}
+
+void vdp::on_interrupt(std::uint8_t ipl)
+{
+	if(ipl == 6)
+	{
+		m_vint_pending = false;
+	}
+
+	if(ipl == 4)
+	{
+		m_hint_pending = false;
+		hint_counter = 0;
+	}
+
+	if(m_vint_pending)
+		m68k_int->interrupt_priority(6);
+	else if(m_hint_pending)
+		m68k_int->interrupt_priority(4);
+	else
+		m68k_int->interrupt_priority(0);
+}
+
+void vdp::update_hv_counters()
+{
+	if(mclk % (cycles_per_pixel(_sett) * 2) == 0)
+	{
+		auto width = _sett.display_width();
+		inc_h_counter();
+		update_hblank(width);
+
+		if((width == display_width::c32 && m_h_counter.raw_value() == 0x85) ||
+			(width == display_width::c40 && m_h_counter.raw_value() == 0xA5))
 		{
-			if(m68k_int == nullptr)
-				throw genesis::internal_error();
-			m68k_int->interrupt_priority(6);
-			regs.SR.VI = 1;
-			regs.SR.VB = 1;
-			// TODO: for more precision also check h_counter
+			inc_v_counter();
+			update_vblank(_sett.display_height(), PAL);
 		}
 	}
 }
 
+void vdp::inc_h_counter()
+{
+	m_h_counter.inc(_sett.display_width());
+	regs.h_counter = m_h_counter.value();
+}
+
+void vdp::inc_v_counter()
+{
+	m_v_counter.inc(_sett.display_height(), PAL);
+	regs.v_counter = m_v_counter.value();
+}
+
+void vdp::update_vblank(display_height height, bool pal)
+{
+	int old_vb = regs.SR.VB;
+	if(pal)
+	{
+		if(height == display_height::c28)
+		{
+			if(m_v_counter.raw_value() == 0xE0)
+				regs.SR.VB = 1;
+			else if(m_v_counter.raw_value() == 0x138)
+				regs.SR.VB = 0;
+		}
+		else
+		{
+			if(m_v_counter.raw_value() == 0xF0)
+				regs.SR.VB = 1;
+			else if(m_v_counter.raw_value() == 0x138)
+				regs.SR.VB = 0;
+		}
+	}
+	else
+	{
+		if(height == display_height::c28)
+		{
+			if(m_v_counter.raw_value() == 0xE0)
+				regs.SR.VB = 1;
+			else if(m_v_counter.raw_value() == 0x105)
+				regs.SR.VB = 0;
+		}
+		else
+		{
+			if(m_v_counter.raw_value() == 0xF0)
+				regs.SR.VB = 1;
+			else if(m_v_counter.raw_value() == 0x1FF)
+				regs.SR.VB = 0;
+		}
+	}
+
+	// VB changed 0 -> 1
+	if(old_vb == 0 && regs.SR.VB == 1)
+	{
+		m_vint_pending = true;
+	}
+}
+
+void vdp::update_hblank(display_width width)
+{
+	if(width == display_width::c32)
+	{
+		if(m_h_counter.raw_value() == 0x93)
+			regs.SR.HB = 1;
+		else if(m_h_counter.raw_value() == 0x05)
+			regs.SR.HB = 0;
+	}
+	else
+	{
+		if(m_h_counter.raw_value() == 0xB3)
+			regs.SR.HB = 1;
+		else if(m_h_counter.raw_value() == 0x06)
+			regs.SR.HB = 0;
+	}
+}
 
 bool vdp::pre_cache_read_is_required() const
 {
@@ -317,7 +486,6 @@ bool vdp::pre_cache_read_is_required() const
 
 	return true;
 }
-
 
 void vdp::vram_write(std::uint32_t address, std::uint8_t data)
 {
