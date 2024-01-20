@@ -4,6 +4,8 @@
 #include "impl/dma.h"
 #include "impl/render.h"
 #include "impl/hv_counters.h"
+#include "impl/blank_flags.h"
+
 #include "m68k_bus_access.h"
 #include "m68k_interrupt_access.h"
 #include "memory.h"
@@ -94,7 +96,7 @@ private:
 	void inc_h_counter();
 	void inc_v_counter();
 
-	void update_vblank(display_height height, bool pal);
+	void update_vblank(display_height height, genesis::vdp::mode);
 	void update_hblank(display_width width);
 
 	bool pre_cache_read_is_required() const;
@@ -115,6 +117,9 @@ private:
 
 	impl::h_counter m_h_counter;
 	impl::v_counter m_v_counter;
+
+	impl::hblank_flag m_hblank_flag;
+	impl::vblank_flag m_vblank_flag;
 
 	std::uint8_t hint_counter = 0;
 	unsigned mclk = 0;

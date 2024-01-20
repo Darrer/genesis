@@ -11,6 +11,11 @@
 #include "base_display.h"
 #include "vdp/output_color.h"
 
+#include "time_utils.h"
+
+#include <iostream>
+#include <iomanip>
+
 namespace genesis::sdl
 {
 
@@ -45,6 +50,8 @@ public:
 		m_width = get_width();
 		m_height = get_height();
 
+		m_title = title;
+
 		create_window(title, m_width, m_height);
 		m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
 		m_texture = create_texture(m_width, m_height);
@@ -77,20 +84,26 @@ public:
 			m_texture = create_texture(m_width, m_height);
 		}
 
-		for(int row_number = 0; row_number < m_height; ++row_number)
+		auto ns = time::measure_in_ns([&]()
 		{
-			auto row = m_get_row(row_number, buffer);
-			int pixel_pos = row_number * m_width;
-			for(auto color : row)
+			int pixel_pos = 0;
+			for(int row_number = 0; row_number < m_height; ++row_number)
 			{
-				// TODO: use alpha
-				std::uint32_t pix = 0x0;
-				pix |= color.red << 21;
-				pix |= color.green << 13;
-				pix |= color.blue << 5;
-				pixels.at(pixel_pos++) = pix;
+				auto row = m_get_row(row_number, buffer);
+				for(auto color : row)
+				{
+					// TODO: use alpha
+					std::uint32_t pix = 0x0;
+					pix |= color.red << 21;
+					pix |= color.green << 13;
+					pix |= color.blue << 5;
+					pixels.at(pixel_pos++) = pix;
+				}
 			}
-		}
+		});
+
+		double ms = (double)ns / 1'000'000;
+		// std::cout << "Forming " << m_title << " frame took " << std::setprecision(3) << ms << " ms\n";
 
 		SDL_SetWindowSize(m_window, m_width, m_height);
 		SDL_UpdateTexture(m_texture, nullptr, pixels.data(), 4 * m_width);
@@ -126,6 +139,8 @@ private:
 
 	int m_width;
 	int m_height;
+
+	std::string m_title;
 };
 
 }

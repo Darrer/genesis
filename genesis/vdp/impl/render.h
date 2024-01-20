@@ -68,6 +68,8 @@ private:
 	std::array<vdp::output_color, 8> read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
 		bool hflip, bool vflip, std::uint8_t palette_id) const;
 
+	// std::span<pixel>::iterator write_pattern()
+
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
 	/* Sprites helpers */
@@ -86,8 +88,11 @@ private:
 
 	/* Plane helpers */
 
-	std::span<pixel> get_active_plane_row(plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
-	std::span<pixel> get_scrolled_plane_row(impl::plane_type plane_type, unsigned row_number, std::span<pixel> buffer) const;
+	std::span<pixel>::iterator get_active_plane_row(plane_type plane_type, unsigned row_number,
+		std::span<pixel> buffer) const;
+	std::span<pixel>::iterator get_scrolled_plane_row(impl::plane_type plane_type, unsigned row_number,
+		std::span<pixel> buffer) const;
+
 	std::span<pixel> get_active_window_row(unsigned line_number, std::span<pixel> plane_a_buffer) const;
 
 	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,

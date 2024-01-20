@@ -113,8 +113,8 @@ int main(int args, char* argv[])
 
 		smd.vdp().on_frame_end([&]()
 		{
-			measure_and_log([&]()
-			{
+			// measure_and_log([&]()
+			// {
 				for(auto& disp: displays)
 					disp->update();
 
@@ -125,7 +125,7 @@ int main(int args, char* argv[])
 						disp->handle_event(e);
 					input_device->handle_event(e);
 				}
-			}, "render frame");
+			// }, "render frame");
 		});
 
 		while(true) // Don't really care about timings so far

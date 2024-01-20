@@ -6,6 +6,7 @@ namespace genesis::vdp
 {
 
 const bool PAL = true;
+const genesis::vdp::mode MODE = genesis::vdp::mode::PAL;
 
 // MCLK = 53203424 - 50hz
 // MCLK = 53693175 - 60hz
@@ -264,28 +265,9 @@ void vdp::update_status_register()
 
 void vdp::on_start_scanline()
 {
-	// TODO: do we alway reset it?
-	if(regs.v_counter == 0)
-	{
-		// must update hint_counter on the first scanline
-		hint_counter = _sett.horizontal_interrupt_counter();
-	}
-
-	int vint_threshold = _sett.display_height() == display_height::c28 ? 0xE0 : 0xF0;
-
-	if(regs.v_counter > vint_threshold)
+	if(regs.v_counter == 0 || regs.SR.VB == 1 || hint_counter == 0)
 	{
 		hint_counter = _sett.horizontal_interrupt_counter();
-	}
-
-	if(hint_counter > 0 && regs.v_counter <= vint_threshold /* && regs.h_counter == 0xA6/0x86 */)
-	{
-		--hint_counter;
-		if(hint_counter == 0)
-		{
-			m_hint_pending = true;
-			hint_counter = _sett.horizontal_interrupt_counter();
-		}
 	}
 }
 
@@ -326,14 +308,16 @@ void vdp::check_interrupts()
 	{
 		if(m68k_int == nullptr)
 			throw genesis::internal_error();
-		// m68k_int->interrupt_priority(4);
-		return; // can trigger only 1 interrupt at a time
+		// std::cout << "Raising HINT\n";
+		m68k_int->interrupt_priority(4);
+		// return; // can trigger only 1 interrupt at a time
 	}
 
 	if(m_vint_pending && _sett.vertical_interrupt_enabled())
 	{
 		if(m68k_int == nullptr)
 			throw genesis::internal_error();
+		// std::cout << "Raising VINT\n";
 		m68k_int->interrupt_priority(6);
 	}
 }
@@ -342,19 +326,27 @@ void vdp::on_interrupt(std::uint8_t ipl)
 {
 	if(ipl == 6)
 	{
+		// std::cout << "ACK VINT\n";
 		m_vint_pending = false;
 	}
 
 	if(ipl == 4)
 	{
+		std::cout << "ACK HINT\n";
 		m_hint_pending = false;
 		hint_counter = 0;
 	}
 
 	if(m_vint_pending)
+	{
+		// std::cout << "Raising VINT\n";
 		m68k_int->interrupt_priority(6);
+	}
 	else if(m_hint_pending)
+	{
+		// std::cout << "Raising HINT\n";
 		m68k_int->interrupt_priority(4);
+	}
 	else
 		m68k_int->interrupt_priority(0);
 }
@@ -371,7 +363,15 @@ void vdp::update_hv_counters()
 			(width == display_width::c40 && m_h_counter.raw_value() == 0xA5))
 		{
 			inc_v_counter();
-			update_vblank(_sett.display_height(), PAL);
+			update_vblank(_sett.display_height(), MODE);
+		}
+
+		int hint_threshold = _sett.display_width() == display_width::c32 ? 0x86 : 0xA6;
+		if(hint_counter > 0 && regs.SR.VB == 0 && m_h_counter.raw_value() == hint_threshold)
+		{
+			--hint_counter;
+			if(hint_counter == 0)
+				m_hint_pending = true;
 		}
 	}
 }
@@ -384,71 +384,27 @@ void vdp::inc_h_counter()
 
 void vdp::inc_v_counter()
 {
-	m_v_counter.inc(_sett.display_height(), PAL);
+	m_v_counter.inc(_sett.display_height(), MODE);
 	regs.v_counter = m_v_counter.value();
 }
 
-void vdp::update_vblank(display_height height, bool pal)
+void vdp::update_vblank(display_height height, genesis::vdp::mode mode)
 {
-	int old_vb = regs.SR.VB;
-	if(pal)
-	{
-		if(height == display_height::c28)
-		{
-			if(m_v_counter.raw_value() == 0xE0)
-				regs.SR.VB = 1;
-			else if(m_v_counter.raw_value() == 0x138)
-				regs.SR.VB = 0;
-		}
-		else
-		{
-			if(m_v_counter.raw_value() == 0xF0)
-				regs.SR.VB = 1;
-			else if(m_v_counter.raw_value() == 0x138)
-				regs.SR.VB = 0;
-		}
-	}
-	else
-	{
-		if(height == display_height::c28)
-		{
-			if(m_v_counter.raw_value() == 0xE0)
-				regs.SR.VB = 1;
-			else if(m_v_counter.raw_value() == 0x105)
-				regs.SR.VB = 0;
-		}
-		else
-		{
-			if(m_v_counter.raw_value() == 0xF0)
-				regs.SR.VB = 1;
-			else if(m_v_counter.raw_value() == 0x1FF)
-				regs.SR.VB = 0;
-		}
-	}
+	m_vblank_flag.update(m_v_counter.raw_value(), height, mode);
 
-	// VB changed 0 -> 1
-	if(old_vb == 0 && regs.SR.VB == 1)
+	// VB changes 0 -> 1
+	if(m_vblank_flag.value() == true && regs.SR.VB == 0)
 	{
 		m_vint_pending = true;
 	}
+
+	regs.SR.VB = m_vblank_flag.value() ? 1 : 0;
 }
 
 void vdp::update_hblank(display_width width)
 {
-	if(width == display_width::c32)
-	{
-		if(m_h_counter.raw_value() == 0x93)
-			regs.SR.HB = 1;
-		else if(m_h_counter.raw_value() == 0x05)
-			regs.SR.HB = 0;
-	}
-	else
-	{
-		if(m_h_counter.raw_value() == 0xB3)
-			regs.SR.HB = 1;
-		else if(m_h_counter.raw_value() == 0x06)
-			regs.SR.HB = 0;
-	}
+	m_hblank_flag.update(m_h_counter.raw_value(), width);
+	regs.SR.HB = m_hblank_flag.value() ? 1 : 0;
 }
 
 bool vdp::pre_cache_read_is_required() const

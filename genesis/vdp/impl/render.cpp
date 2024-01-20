@@ -108,23 +108,34 @@ std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned ro
 	const auto buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
 
-	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+	std::span<pixel> a_buffer = pixel_a_buffer;
+	std::span<pixel> b_buffer = pixel_b_buffer;
 
-	auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
-	plane_a = get_active_window_row(row_number, plane_a);
+	auto a_it = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
+	auto b_it = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
 
-	auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
+	// auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
+	// plane_a = get_active_window_row(row_number, plane_a);
+	// auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
+
 	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
 
-	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size()
-	// 	|| buffer_size != sprites.size() || buffer_size != window.size())
-	// 	throw genesis::internal_error();
+	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size() || buffer_size != sprites.size())
+		// throw genesis::internal_error();
 
 	vdp::output_color bg_color = background_color();
 
+	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+
 	for(std::size_t i = 0; i < buffer.size(); ++i)
 	{
-		buffer[i] = resolve_priority(bg_color, plane_a[i], plane_b[i], sprites[i]);
+		// buffer[i] = resolve_priority(bg_color, TRANSPARENT_PIXEL, TRANSPARENT_PIXEL, TRANSPARENT_PIXEL);
+		buffer[i] = resolve_priority(bg_color, *(a_it++), *(b_it++), sprites[i]);
+
+		if(a_it == a_buffer.end())
+			a_it = a_buffer.begin();
+		if(b_it == b_buffer.end())
+			b_it = b_buffer.begin();
 	}
 
 	return buffer;
@@ -134,7 +145,7 @@ void render::reset_limits()
 {
 }
 
-std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
+std::span<render::pixel>::iterator render::get_active_plane_row(plane_type plane_type, unsigned row_number,
 	std::span<render::pixel> buffer) const
 {
 	std::size_t buffer_size = active_display_width();
@@ -143,16 +154,18 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 	if(row_number >= active_display_height())
 		throw genesis::internal_error();
 
-	auto plane = get_scrolled_plane_row(plane_type, row_number, buffer);
+	return get_scrolled_plane_row(plane_type, row_number, buffer);
+
+	// auto plane = get_scrolled_plane_row(plane_type, row_number, buffer);
 
 	// TODO: what if returned plane size is less then active display row?
-	if(plane.size() < buffer_size)
-		throw genesis::not_implemented();
+	// if(plane.size() < buffer_size)
+		// throw genesis::not_implemented();
 
-	return std::span<render::pixel>(buffer.begin(), buffer_size);
+	// return std::span<render::pixel>(buffer.begin(), buffer_size);
 }
 
-std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_type,
+std::span<render::pixel>::iterator render::get_scrolled_plane_row(impl::plane_type plane_type,
 	unsigned row_number, std::span<render::pixel> buffer) const
 {
 	std::size_t buffer_size = plane_width_in_pixels(plane_type);
@@ -167,7 +180,7 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 	auto buffer_it = buffer.begin();
 	for(int tail_column_number = 0; tail_column_number < table.entries_per_row(); ++tail_column_number)
 	{
-		// apply horizontal scrolling just by changing row_number
+		// apply vertical scrolling just by changing row_number
 		int offset = vscroll_table::get_offset(plane_type, tail_column_number, sett, vsram);
 		int shifted_row_number = (row_number + offset) % max_height;
 
@@ -187,9 +200,14 @@ std::span<render::pixel> render::get_scrolled_plane_row(impl::plane_type plane_t
 	// apply horizontal scrolling
 	hscroll_table hscroll(plane_type, sett, vram);
 	int offset = hscroll.get_offset(row_number) % plane_width_in_pixels(plane_type);
+	// if(offset == 0)
+	// 	return buffer.begin();
+	// return buffer.end() - offset;
 	std::rotate(buffer.rbegin(), buffer.rbegin() + offset, buffer.rend());
 
-	return buffer;
+	return buffer.begin();
+
+	// return buffer;
 }
 
 // render active window in plane a buffer (effectively overwriting plane a) 
