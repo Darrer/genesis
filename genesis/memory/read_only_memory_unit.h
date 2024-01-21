@@ -15,19 +15,20 @@ public:
 
 	void init_write(std::uint32_t address, std::uint8_t data) override
 	{
-		rise_access_violation(address);
+		rise_access_violation(address, data);
 	}
 
 	void init_write(std::uint32_t address, std::uint16_t data) override
 	{
-		rise_access_violation(address);
+		rise_access_violation(address, data);
 	}
 
 private:
-	static void rise_access_violation(std::uint32_t address)
+	template<class T>
+	static void rise_access_violation(std::uint32_t address, T data)
 	{
 		throw std::runtime_error("Access violation: Attempt to write to read-only memory at address "
-			+ su::hex_str(address));
+			+ su::hex_str(address) + " (data " + su::hex_str(data) + ")");
 	}
 };
 

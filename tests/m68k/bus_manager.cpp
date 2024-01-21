@@ -270,7 +270,6 @@ bus_state int_ack_and_track(test::test_cpu& cpu, std::uint8_t priority = 1)
 {
 	auto& bus = cpu.bus();
 	auto& busm = cpu.bus_manager();
-	auto& mem = cpu.memory();
 
 	cpu.registers().flags.IPM = 0; // enable all interrupts
 
@@ -404,7 +403,7 @@ TEST(M68K_BUS_MANAGER, REQUEST_BUS_WHEN_ALREADY_GRANTED)
 	auto& busm = cpu.bus_manager();
 
 	busm.request_bus();
-	auto cycles = cpu.cycle_until([&]() { return busm.bus_granted(); });
+	cpu.cycle_until([&]() { return busm.bus_granted(); });
 
 	ASSERT_THROW(busm.request_bus(), std::runtime_error);
 }

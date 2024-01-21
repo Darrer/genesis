@@ -5,13 +5,20 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
-	add_compile_options(/W3 /WX /O2)
+	# /w34189 - enable unused variable warnings
+	# /w34100 - enable unused parameter warnings
+	set(GENESIS_CXX_FLAGS /W3 /WX /O2 /w34189 /w34100)
+	set(GENESIS_LINK_FLAGS)
 
-	# add_compile_options(/DEBUG:FULL /Zi)
-	# add_link_options(/DEBUG:FULL)
+	# list(APPEND GENESIS_CXX_FLAGS /DEBUG:FULL /Zi)
+	# list(APPEND GENESIS_LINK_FLAGS /DEBUG:FULL)
 else()
-	add_compile_options(-Wall -Wextra -pedantic -O3 -fpermissive -Wno-switch)
+	set(GENESIS_CXX_FLAGS -Wall -Wextra -pedantic -O3 -fpermissive -Wno-switch)
+	set(GENESIS_LINK_FLAGS)
 endif()
+
+message("Genesis CXX flags: ${GENESIS_CXX_FLAGS}")
+message("Genesis link flags: ${GENESIS_LINK_FLAGS}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

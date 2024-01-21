@@ -144,7 +144,6 @@ TEST(VDP_DMA, BASIC_FILL_VRAM_EVEN_ADDR_AUTO_INC_1)
 	const std::uint16_t length = 100;
 	const std::uint16_t fill_data = 0xDEAD;
 	const std::uint8_t fill_msb = endian::msb(fill_data);
-	const std::uint8_t fill_lsb = endian::lsb(fill_data);
 
 	auto& mem = vdp.vram();
 	zero_mem(mem);

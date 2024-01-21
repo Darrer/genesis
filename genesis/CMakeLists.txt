@@ -3,8 +3,10 @@ cmake_minimum_required (VERSION 3.0)
 project (genesis)
 
 include(FetchContent)
+
 # set(SDL_SHARED TRUE CACHE BOOL "Build a SDL shared library (if available)")
 # set(SDL_STATIC TRUE CACHE BOOL "Build a SDL static library (if available)")
+set(SDL_TEST FALSE CACHE BOOL "Do not build the SDL test library")
 FetchContent_Declare(
 	SDL
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -17,6 +19,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(SDL)
 
 # set_property(DIRECTORY "${CMAKE_BINARY_DIR}/_deps/sdl-src" PROPERTY EXCLUDE_FROM_ALL TRUE)
+
+add_compile_options(${GENESIS_CXX_FLAGS})
+add_link_options(${GENESIS_LINK_FLAGS})
 
 # library
 add_library(${GENESIS_LIB})

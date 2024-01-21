@@ -503,7 +503,6 @@ TEST(M68K_EXCEPTION_UNIT, MULTIPLE_ADDRESS_ERRORS)
 {
 	test_cpu cpu;
 	auto& mem = cpu.memory();
-	auto& exman = cpu.exception_manager();
 
 	rise_exception(cpu, exception_type::address_error);
 

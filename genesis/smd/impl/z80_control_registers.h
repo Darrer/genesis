@@ -37,8 +37,8 @@ public:
 		std::uint16_t bus_request = m_z80_request->read<std::uint16_t>(0x0);
 		std::uint16_t cpu_reset = m_z80_reset->read<std::uint16_t>(0x0);
 
-		bool bus_granted = m_z80_bus_granted;
-		bool reset_requested = m_z80_reset_requested;
+		// bool bus_granted = m_z80_bus_granted;
+		// bool reset_requested = m_z80_reset_requested;
 
 		// Z80 bus is requested
 		if(bus_request == BUS_REQUESTED)

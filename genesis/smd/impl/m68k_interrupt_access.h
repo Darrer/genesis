@@ -27,7 +27,7 @@ public:
 		return true;
 	}
 
-	void init_interrupt_ack(m68k::cpu_bus& bus, std::uint8_t priority) override
+	void init_interrupt_ack(m68k::cpu_bus& /* bus */, std::uint8_t priority) override
 	{
 		m_priority = priority;
 

@@ -50,7 +50,7 @@ public:
 		on_read();
 	}
 
-	virtual void init_read_word(std::uint32_t address)
+	virtual void init_read_word(std::uint32_t /* address */)
 	{
 		on_read();
 	}

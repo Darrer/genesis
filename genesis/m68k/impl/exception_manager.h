@@ -1,6 +1,7 @@
 #ifndef __M68K_EXCEPTION_MANAGER_H__
 #define __M68K_EXCEPTION_MANAGER_H__
 
+#include <cstdint>
 #include <array>
 #include <type_traits>
 #include <span>

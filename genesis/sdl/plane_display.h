@@ -84,7 +84,7 @@ public:
 			m_texture = create_texture(m_width, m_height);
 		}
 
-		auto ns = time::measure_in_ns([&]()
+		/* auto ns =  */time::measure_in_ns([&]()
 		{
 			int pixel_pos = 0;
 			for(int row_number = 0; row_number < m_height; ++row_number)
@@ -102,7 +102,7 @@ public:
 			}
 		});
 
-		double ms = (double)ns / 1'000'000;
+		// double ms = (double)ns / 1'000'000;
 		// std::cout << "Forming " << m_title << " frame took " << std::setprecision(3) << ms << " ms\n";
 
 		SDL_SetWindowSize(m_window, m_width, m_height);

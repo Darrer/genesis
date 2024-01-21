@@ -10,7 +10,7 @@ class dummy_memory : public memory::addressable
 {
 public:
 	/* in bytes [0 ; highest_address] */
-	dummy_memory(std::uint32_t highest_address, std::endian byte_order = std::endian::native)
+	dummy_memory(std::uint32_t highest_address, std::endian /* byte_order */ = std::endian::native)
 		: highest_address(highest_address)
 	{
 	}
@@ -31,13 +31,13 @@ public:
 		reset();
 	}
 
-	void init_read_byte(std::uint32_t address) override
+	void init_read_byte(std::uint32_t /* address */) override
 	{
 		reset();
 		_latched_byte = next_8++;
 	}
 
-	void init_read_word(std::uint32_t address) override
+	void init_read_word(std::uint32_t /* address */) override
 	{
 		reset();
 		_latched_word = next_16++;
@@ -66,7 +66,7 @@ class constant_memory_unit : public memory::addressable
 {
 public:
 	/* in bytes [0 ; highest_address] */
-	constant_memory_unit(std::uint32_t highest_address, std::endian byte_order = std::endian::native)
+	constant_memory_unit(std::uint32_t highest_address, std::endian /* byte_order */ = std::endian::native)
 		: highest_address(highest_address)
 	{
 	}

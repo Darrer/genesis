@@ -21,6 +21,8 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googletest json)
 
+add_compile_options(${GENESIS_CXX_FLAGS})
+add_link_options(${GENESIS_LINK_FLAGS})
 
 add_executable(${GENESIS_TESTS})
 target_sources(${GENESIS_TESTS}

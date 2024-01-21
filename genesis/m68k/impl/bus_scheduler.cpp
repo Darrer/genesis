@@ -69,15 +69,15 @@ void bus_scheduler::read_impl(std::uint32_t addr, size_type size, addr_space spa
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
 		read_operation read{addr, size, space, on_complete};
-		queue.push({op_type::READ, read});
+		queue.emplace(op_type::READ, read);
 	}
 	else
 	{
 		read_operation read_msw{addr, size, space, nullptr}; // call back only when second word is read
 		read_operation read_lsw{addr + 2, size, space, on_complete};
 
-		queue.push({op_type::READ, read_msw});
-		queue.push({op_type::READ, read_lsw});
+		queue.emplace(op_type::READ, read_msw);
+		queue.emplace(op_type::READ, read_lsw);
 	}
 }
 
@@ -86,7 +86,7 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
 		read_imm_operation read{size, on_complete, flags};
-		queue.push({op_type::READ_IMM, read});
+		queue.emplace(op_type::READ_IMM, read);
 	}
 	else
 	{
@@ -95,13 +95,13 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 			read_imm_operation read_msw{size, nullptr, flags};
 			read_imm_operation read_lsw{size, on_complete, flags};
 
-			queue.push({op_type::READ_IMM, read_msw});
-			queue.push({op_type::READ_IMM, read_lsw});
+			queue.emplace(op_type::READ_IMM, read_msw);
+			queue.emplace(op_type::READ_IMM, read_lsw);
 		}
 		else
 		{
 			read_imm_operation read{size, on_complete, flags};
-			queue.push({op_type::READ_IMM, read});
+			queue.emplace(op_type::READ_IMM, read);
 		}
 	}
 }
@@ -109,7 +109,7 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 void bus_scheduler::int_ack_impl(std::uint8_t ipl, int_ack_complete on_complete)
 {
 	int_ack_operation op { ipl, on_complete };
-	queue.push({op_type::INT_ACK, op});
+	queue.emplace(op_type::INT_ACK, op);
 }
 
 void bus_scheduler::latch_data(size_type size)
@@ -167,7 +167,7 @@ void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
 		write_operation write{addr, data, size};
-		queue.push({op_type::WRITE, write});
+		queue.emplace(op_type::WRITE, write);
 	}
 	else
 	{
@@ -176,30 +176,30 @@ void bus_scheduler::write(std::uint32_t addr, std::uint32_t data, size_type size
 
 		if(order == order::lsw_first)
 		{
-			queue.push({op_type::WRITE, write_lsw});
-			queue.push({op_type::WRITE, write_msw});
+			queue.emplace(op_type::WRITE, write_lsw);
+			queue.emplace(op_type::WRITE, write_msw);
 		}
 		else
 		{
-			queue.push({op_type::WRITE, write_msw});
-			queue.push({op_type::WRITE, write_lsw});
+			queue.emplace(op_type::WRITE, write_msw);
+			queue.emplace(op_type::WRITE, write_lsw);
 		}
 	}
 }
 
 void bus_scheduler::prefetch_ird()
 {
-	queue.push({op_type::PREFETCH_IRD});
+	queue.emplace(op_type::PREFETCH_IRD);
 }
 
 void bus_scheduler::prefetch_irc()
 {
-	queue.push({op_type::PREFETCH_IRC});
+	queue.emplace(op_type::PREFETCH_IRC);
 }
 
 void bus_scheduler::prefetch_one()
 {
-	queue.push({op_type::PREFETCH_ONE});
+	queue.emplace(op_type::PREFETCH_ONE);
 }
 
 void bus_scheduler::prefetch_two()
@@ -214,25 +214,25 @@ void bus_scheduler::wait(std::uint_fast8_t cycles)
 		return;
 
 	wait_operation wait_op{cycles};
-	queue.push({op_type::WAIT, wait_op});
+	queue.emplace(op_type::WAIT, wait_op);
 }
 
 void bus_scheduler::call_impl(callback cb)
 {
 	call_operation call_op{cb};
-	queue.push({op_type::CALL, call_op});
+	queue.emplace(op_type::CALL, call_op);
 }
 
 void bus_scheduler::inc_addr_reg(std::uint_fast8_t reg, size_type size)
 {
 	register_operation reg_op{reg, size};
-	queue.push({op_type::INC_ADDR, reg_op});
+	queue.emplace(op_type::INC_ADDR, reg_op);
 }
 
 void bus_scheduler::dec_addr_reg(std::uint_fast8_t reg, size_type size)
 {
 	register_operation reg_op{reg, size};
-	queue.push({op_type::DEC_ADDR, reg_op});
+	queue.emplace(op_type::DEC_ADDR, reg_op);
 }
 
 void bus_scheduler::push(std::uint32_t data, size_type size, order order)
@@ -244,21 +244,21 @@ void bus_scheduler::push(std::uint32_t data, size_type size, order order)
 
 		if(order == order::lsw_first)
 		{
-			queue.push({op_type::PUSH, push_lsw});
-			queue.push({op_type::PUSH, push_msw});
+			queue.emplace(op_type::PUSH, push_lsw);
+			queue.emplace(op_type::PUSH, push_msw);
 		}
 		else
 		{
 			push_msw.offset = -2;
 			push_lsw.offset = 2;
-			queue.push({op_type::PUSH, push_msw});
-			queue.push({op_type::PUSH, push_lsw});
+			queue.emplace(op_type::PUSH, push_msw);
+			queue.emplace(op_type::PUSH, push_lsw);
 		}
 	}
 	else
 	{
 		push_operation push{data, size};
-		queue.push({op_type::PUSH, push});
+		queue.emplace(op_type::PUSH, push);
 	}
 }
 

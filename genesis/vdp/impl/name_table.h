@@ -11,27 +11,26 @@
 namespace genesis::vdp::impl
 {
 
-union name_table_entry
+struct name_table_entry
 {
-	name_table_entry() : raw_value(0) { }
-	name_table_entry(std::uint16_t value) : raw_value (value) { }
+	name_table_entry() : name_table_entry(0) { }
+
+	name_table_entry(std::uint16_t value)
+	{
+		// TODO: check if it's UB
+		*reinterpret_cast<std::uint16_t*>(this) = value;
+	}
 
 	std::uint32_t effective_pattern_address() const
 	{
 		return pattern_addr << 5;
 	}
 
-	struct 
-	{
-		std::uint16_t pattern_addr : 11;
-		std::uint16_t horizontal_flip : 1;
-		std::uint16_t vertical_flip : 1;
-		std::uint16_t palette : 2;
-		std::uint16_t priority : 1;
-	};
-
-private:
-	std::uint16_t raw_value;
+	std::uint16_t pattern_addr : 11;
+	std::uint16_t horizontal_flip : 1;
+	std::uint16_t vertical_flip : 1;
+	std::uint16_t palette : 2;
+	std::uint16_t priority : 1;
 };
 
 static_assert(sizeof(name_table_entry) == 2);

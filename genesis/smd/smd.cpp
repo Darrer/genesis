@@ -83,7 +83,7 @@ void smd::z80_cycle()
 	m_z80_cpu->execute_one();
 }
 
-std::shared_ptr<memory::addressable> logging(std::shared_ptr<memory::addressable> mem, std::string_view name)
+std::shared_ptr<memory::addressable> logging(std::shared_ptr<memory::addressable> mem, std::string_view /* name */)
 {
 	return mem;
 	// return std::make_shared<memory::logging_memory>(mem, std::cout, name);

@@ -418,7 +418,6 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 {
 	// Setup
 	vdp vdp;
-	auto& regs = vdp.registers();
 	auto& vram = vdp.vram();
 	auto& render = vdp.render();
 
@@ -465,8 +464,6 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 		{
 			auto row_number = (tail_row * 8) + pixel_row;
 			auto row = get_plane_row(vdp, plane_type, row_number);
-
-			auto first_row_el = *row.begin();
 
 			int col_idx = 0;
 			for(auto actual_color : row)

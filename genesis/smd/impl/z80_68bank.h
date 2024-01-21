@@ -28,12 +28,12 @@ public:
 		return true;
 	}
 
-	void init_write(std::uint32_t address, std::uint16_t data) override
+	void init_write(std::uint32_t /* address */, std::uint16_t /* data */) override
 	{
 		throw std::runtime_error("z80 bank register does not support 16-bit write operations");
 	}
 
-	void init_read_word(std::uint32_t address) override
+	void init_read_word(std::uint32_t /* address */) override
 	{
 		throw std::runtime_error("z80 bank register does not support 16-bit read operations");
 	}
@@ -151,8 +151,8 @@ private:
 	}
 
 private:
-	std::shared_ptr<memory::addressable> m_memory;
 	std::shared_ptr<bank_register> m_bank_register;
+	std::shared_ptr<memory::addressable> m_memory;
 };
 
 class z80_68bank

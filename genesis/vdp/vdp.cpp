@@ -16,7 +16,7 @@ enum class clock_rate
 	hz60,
 };
 
-int cycles_per_line(settings& sett)
+unsigned int cycles_per_line(settings& /* sett */)
 {
 	return 3420;
 }
