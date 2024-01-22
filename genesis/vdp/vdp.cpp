@@ -5,7 +5,6 @@
 namespace genesis::vdp
 {
 
-const bool PAL = true;
 const genesis::vdp::mode MODE = genesis::vdp::mode::PAL;
 
 // MCLK = 53203424 - 50hz

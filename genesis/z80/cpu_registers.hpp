@@ -31,42 +31,55 @@ static_assert(sizeof(flags) == 1);
 class register_set
 {
 private:
-	union {
-		struct
+	struct af_regs
+	{
+		union
 		{
-			union {
-				z80::flags flags;
-				std::int8_t f;
-			};
-			std::int8_t a;
-		} af_t;
+			z80::flags flags;
+			std::int8_t f;
+		};
+		std::int8_t a;
+	};
+
+	struct bc_regs
+	{
+		std::int8_t c;
+		std::int8_t b;
+	};
+
+	struct de_regs
+	{
+		std::int8_t e;
+		std::int8_t d;
+	};
+
+	struct hl_regs
+	{
+		std::int8_t l;
+		std::int8_t h;
+	};
+
+	union
+	{
+		af_regs af_t;
 		std::int16_t af;
 	};
 
-	union {
-		struct
-		{
-			std::int8_t c;
-			std::int8_t b;
-		} bc_t;
+	union
+	{
+		bc_regs bc_t;
 		std::int16_t bc;
 	};
 
-	union {
-		struct
-		{
-			std::int8_t e;
-			std::int8_t d;
-		} de_t;
+	union
+	{
+		de_regs de_t;
 		std::int16_t de;
 	};
 
-	union {
-		struct
-		{
-			std::int8_t l;
-			std::int8_t h;
-		} hl_t;
+	union
+	{
+		hl_regs hl_t;
 		std::int16_t hl;
 	};
 
@@ -104,21 +117,27 @@ public:
 class cpu_registers
 {
 private:
-	union {
-		struct
-		{
-			std::int8_t ixl;
-			std::int8_t ixh;
-		} ix_lh;
+	struct ix_regs
+	{
+		std::int8_t ixl;
+		std::int8_t ixh;
+	};
+
+	struct iy_regs
+	{
+		std::int8_t iyl;
+		std::int8_t iyh;
+	};
+
+	union
+	{
+		ix_regs ix_lh;
 		std::int16_t ix;
 	};
 
-	union {
-		struct
-		{
-			std::int8_t iyl;
-			std::int8_t iyh;
-		} iy_lh;
+	union
+	{
+		iy_regs iy_lh;
 		std::int16_t iy;
 	};
 

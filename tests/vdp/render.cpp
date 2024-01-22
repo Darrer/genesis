@@ -427,7 +427,7 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 
 	std::vector<std::vector<std::uint8_t>> tails;
 	for(unsigned i = 0; i < render.plane_hight_in_pixels(plane_type) / 8; ++i)
-		tails.push_back(std::move(random_tail()));
+		tails.push_back(random_tail());
 	ASSERT_TRUE(tails.size() > 0 && tails.size() <= 128);
 
 	const std::uint32_t tail_base_address = 0b0001000000000000;

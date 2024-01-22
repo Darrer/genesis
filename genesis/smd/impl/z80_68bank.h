@@ -23,7 +23,7 @@ public:
 		return 0x1;
 	}
 
-	bool is_idle() const
+	bool is_idle() const override
 	{
 		return true;
 	}
