@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string_view>
 
 #include "rom.h"
@@ -14,16 +15,51 @@
 using namespace genesis;
 
 
+void print_usage(const char* prog_path)
+{
+	std::cout << "Usage ./" << prog_path << " <path to rom>" << std::endl;
+}
+
+void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
+{
+	std::cout << "==== Key layout ====" << std::endl;
+
+	const auto keys = {
+		io_ports::key_type::UP,
+		io_ports::key_type::DOWN,
+		io_ports::key_type::LEFT,
+		io_ports::key_type::RIGHT,
+		io_ports::key_type::START,
+		io_ports::key_type::MODE,
+		io_ports::key_type::A,
+		io_ports::key_type::B,
+		io_ports::key_type::C,
+		io_ports::key_type::X,
+		io_ports::key_type::Y,
+		io_ports::key_type::Z,
+	};
+
+	for(auto key : keys)
+	{
+		auto it = std::find_if(layout.cbegin(), layout.cend(),
+			[key](const auto& el) { return el.second == key; });
+
+		if(it == layout.cend())
+			continue;
+
+		auto sdl_key = it->first;
+		std::cout << std::setw(5) << io_ports::key_type_name(key)
+			<< " -> " << SDL_GetKeyName(sdl_key) << std::endl;
+	}
+
+	std::cout << "====================" << std::endl;
+}
+
 template<class T>
 void measure_and_log(const T& func, std::string_view msg)
 {
 	auto ms = time::measure_in_ms(func);
 	std::cout << "Executing " << msg << " took " << ms << " ms\n";
-}
-
-void print_usage(const char* prog_path)
-{
-	std::cout << "Usage ./" << prog_path << " <path to rom>" << std::endl;
 }
 
 std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
@@ -105,6 +141,7 @@ int main(int args, char* argv[])
 			return EXIT_FAILURE;
 		}
 
+		print_key_layout(sdl::default_key_layout);
 		auto input_device = std::make_shared<sdl::input_device>();
 
 		genesis::smd smd(rom_path, input_device);
