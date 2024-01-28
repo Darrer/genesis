@@ -5,6 +5,8 @@
 #include "impl/render.h"
 #include "impl/hv_counters.h"
 #include "impl/blank_flags.h"
+#include "impl/hv_unit.h"
+#include "impl/interrupt_unit.h"
 
 #include "m68k_bus_access.h"
 #include "m68k_interrupt_access.h"
@@ -34,8 +36,7 @@ public:
 
 	void set_m68k_interrupt_access(std::shared_ptr<m68k_interrupt_access> m68k_int)
 	{
-		this->m68k_int = m68k_int;
-		this->m68k_int->set_interrupt_callback([this](std::uint8_t ipl) { on_interrupt(ipl); } );
+		m_int_unit.set_m68k_interrupt_access(m68k_int);
 	}
 
 	// TODO: it should have multiple cycle methods with different clock rate
@@ -89,16 +90,6 @@ private:
 	void on_end_scanline();
 	void on_scanline();
 
-	void check_interrupts();
-	void on_interrupt(std::uint8_t ipl);
-
-	void update_hv_counters();
-	void inc_h_counter();
-	void inc_v_counter();
-
-	void update_vblank(display_height height, genesis::vdp::mode);
-	void update_hblank(display_width width);
-
 	bool pre_cache_read_is_required() const;
 
 	// TODO: refactor this interface
@@ -115,23 +106,15 @@ private:
 	cram_t _cram;
 	vsram_t _vsram;
 
-	impl::h_counter m_h_counter;
-	impl::v_counter m_v_counter;
+	impl::hv_unit m_hv_unit;
+	impl::interrupt_unit m_int_unit;
 
-	impl::hblank_flag m_hblank_flag;
-	impl::vblank_flag m_vblank_flag;
-
-	std::uint8_t hint_counter = 0;
 	unsigned mclk = 0;
 
 protected:
 	impl::memory_access dma_memory;
 	impl::dma dma;
 	impl::render m_render;
-	std::shared_ptr<m68k_interrupt_access> m68k_int;
-
-	bool m_vint_pending = false;
-	bool m_hint_pending = false;
 
 	int m_scanline = 0;
 

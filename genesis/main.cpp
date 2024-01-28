@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string_view>
+#include <filesystem>
 
 #include "rom.h"
 #include "smd/smd.h"
@@ -17,7 +18,8 @@ using namespace genesis;
 
 void print_usage(const char* prog_path)
 {
-	std::cout << "Usage ./" << prog_path << " <path to rom>" << std::endl;
+	std::wcout << "Usage ." << std::filesystem::path::preferred_separator
+		<< prog_path << " <path to rom>" << std::endl;
 }
 
 void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
@@ -125,14 +127,14 @@ int main(int args, char* argv[])
 	{
 		std::string_view rom_path = argv[1];
 
-		std::cout << "Going to parse: " << rom_path << std::endl;
+		std::cout << "Parsing: " << rom_path << std::endl;
 		genesis::rom rom(rom_path);
 
-		std::ostream& os = std::cout;
-		genesis::debug::print_rom_header(os, rom.header());
+		genesis::debug::print_rom_header(std::cout, rom.header());
 		// os << "Actual checksum: " << su::hex_str(rom.checksum()) << std::endl;
 
-		genesis::debug::print_rom_vectors(os, rom.vectors());
+		std::cout << "ROM vector table:" << std::endl;
+		genesis::debug::print_rom_vectors(std::cout, rom.vectors());
 		// genesis::debug::print_rom_body(os, rom.body());
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)

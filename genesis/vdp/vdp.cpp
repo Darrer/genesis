@@ -49,7 +49,7 @@ int pixels_per_line(settings& sett)
 }
 
 vdp::vdp(std::shared_ptr<m68k_bus_access> m68k_bus)
-	: _sett(regs), ports(regs), dma(regs, _sett, dma_memory, m68k_bus),
+	: _sett(regs), ports(regs), m_hv_unit(regs), m_int_unit(regs, _sett), dma(regs, _sett, dma_memory, m68k_bus),
 	  m_render(regs, _sett, _vram, _vsram, _cram)
 {
 }
@@ -58,7 +58,9 @@ void vdp::cycle()
 {
 	mclk++;
 
-	update_hv_counters();
+	if(mclk % (cycles_per_pixel(_sett) * 2) == 0)
+		m_hv_unit.on_pixel(_sett.display_width(), _sett.display_height(), MODE);
+	m_int_unit.cycle(m_hv_unit.v_counter_raw(), m_hv_unit.h_counter_raw());
 
 	if(mclk == 1)
 	{
@@ -259,15 +261,11 @@ void vdp::update_status_register()
 	regs.SR.E = regs.fifo.empty() ? 1 : 0;
 	regs.SR.F = regs.fifo.full() ? 1 : 0;
 	regs.SR.PAL = regs.R1.M2;
-	regs.SR.VI = m_vint_pending ? 1 : 0;
 }
 
 void vdp::on_start_scanline()
 {
-	if(regs.v_counter == 0 || regs.SR.VB == 1 || hint_counter == 0)
-	{
-		hint_counter = _sett.horizontal_interrupt_counter();
-	}
+
 }
 
 void vdp::on_end_scanline()
@@ -278,11 +276,7 @@ void vdp::on_end_scanline()
 	{
 		if(on_frame_end_callback != nullptr)
 			on_frame_end_callback();
-
-		m_render.reset_limits();
 	}
-
-	check_interrupts();
 }
 
 void vdp::on_scanline()
@@ -299,111 +293,6 @@ void vdp::on_scanline()
 	handle_dma_requests();
 
 	update_status_register();
-}
-
-void vdp::check_interrupts()
-{
-	if(m_hint_pending && _sett.horizontal_interrupt_enabled())
-	{
-		if(m68k_int == nullptr)
-			throw genesis::internal_error();
-		// std::cout << "Raising HINT\n";
-		m68k_int->interrupt_priority(4);
-		// return; // can trigger only 1 interrupt at a time
-	}
-
-	if(m_vint_pending && _sett.vertical_interrupt_enabled())
-	{
-		if(m68k_int == nullptr)
-			throw genesis::internal_error();
-		// std::cout << "Raising VINT\n";
-		m68k_int->interrupt_priority(6);
-	}
-}
-
-void vdp::on_interrupt(std::uint8_t ipl)
-{
-	if(ipl == 6)
-	{
-		// std::cout << "ACK VINT\n";
-		m_vint_pending = false;
-	}
-
-	if(ipl == 4)
-	{
-		std::cout << "ACK HINT\n";
-		m_hint_pending = false;
-		hint_counter = 0;
-	}
-
-	if(m_vint_pending)
-	{
-		// std::cout << "Raising VINT\n";
-		m68k_int->interrupt_priority(6);
-	}
-	else if(m_hint_pending)
-	{
-		// std::cout << "Raising HINT\n";
-		m68k_int->interrupt_priority(4);
-	}
-	else
-		m68k_int->interrupt_priority(0);
-}
-
-void vdp::update_hv_counters()
-{
-	if(mclk % (cycles_per_pixel(_sett) * 2) == 0)
-	{
-		auto width = _sett.display_width();
-		inc_h_counter();
-		update_hblank(width);
-
-		if((width == display_width::c32 && m_h_counter.raw_value() == 0x85) ||
-			(width == display_width::c40 && m_h_counter.raw_value() == 0xA5))
-		{
-			inc_v_counter();
-			update_vblank(_sett.display_height(), MODE);
-		}
-
-		int hint_threshold = _sett.display_width() == display_width::c32 ? 0x86 : 0xA6;
-		if(hint_counter > 0 && regs.SR.VB == 0 && m_h_counter.raw_value() == hint_threshold)
-		{
-			--hint_counter;
-			if(hint_counter == 0)
-				m_hint_pending = true;
-		}
-	}
-}
-
-void vdp::inc_h_counter()
-{
-	m_h_counter.inc(_sett.display_width());
-	regs.h_counter = m_h_counter.value();
-}
-
-void vdp::inc_v_counter()
-{
-	m_v_counter.inc(_sett.display_height(), MODE);
-	regs.v_counter = m_v_counter.value();
-}
-
-void vdp::update_vblank(display_height height, genesis::vdp::mode mode)
-{
-	m_vblank_flag.update(m_v_counter.raw_value(), height, mode);
-
-	// VB changes 0 -> 1
-	if(m_vblank_flag.value() == true && regs.SR.VB == 0)
-	{
-		m_vint_pending = true;
-	}
-
-	regs.SR.VB = m_vblank_flag.value() ? 1 : 0;
-}
-
-void vdp::update_hblank(display_width width)
-{
-	m_hblank_flag.update(m_h_counter.raw_value(), width);
-	regs.SR.HB = m_hblank_flag.value() ? 1 : 0;
 }
 
 bool vdp::pre_cache_read_is_required() const
