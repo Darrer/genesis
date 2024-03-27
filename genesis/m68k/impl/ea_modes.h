@@ -95,7 +95,7 @@ static constexpr std::span<const addressing_mode> supported_modes(ea_modes modes
 	case ea_modes::postincrement:
 		return modes::postincrement;
 	default:
-		return { };
+		return {};
 	}
 }
 

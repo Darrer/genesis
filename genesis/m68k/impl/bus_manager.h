@@ -231,7 +231,7 @@ private:
 
 	bool byte_operation;
 	std::uint32_t address;
-	bool address_even;
+	bool address_even; // TODO: do we need it?
 	addr_space space;
 	std::uint16_t data_to_write;
 	std::uint8_t m_ipl;

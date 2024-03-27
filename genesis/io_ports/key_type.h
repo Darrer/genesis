@@ -24,11 +24,13 @@ enum class key_type
 
 static constexpr const int key_type_count = 12;
 
+[[maybe_unused]]
 static constexpr std::underlying_type_t<enum key_type> key_type_index(key_type key)
 {
 	return static_cast<std::underlying_type_t<key_type>>(key);
 }
 
+[[maybe_unused]]
 static std::string_view key_type_name(key_type key)
 {
 	switch (key)

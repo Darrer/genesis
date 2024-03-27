@@ -94,7 +94,9 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 	/* Build z80 memory map */
 	memory::memory_builder z80_builder;
 
-	z80_builder.add(std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
+	auto z80_ram = std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little);
+	z80_builder.add(z80_ram, 0x0, 0x1FFF); // main RAM
+	z80_builder.add(z80_ram, 0x2000, 0x3FFF); // main RAM (mirror)
 
 	auto ym_addr1 = logging(std::make_shared<memory::dummy_memory>(0x0, std::endian::little), "YMA1");
 	auto ym_data1 = logging(std::make_shared<memory::zero_memory_unit>(0x0, std::endian::little), "YMD1");

@@ -62,6 +62,7 @@ public:
 		IRC = IR = IRD = SIRD = 0x0;
 	}
 
+	// TODO: remove uint_fast, just use int
 	data_register& D(std::uint_fast8_t reg)
 	{
 		switch(reg)

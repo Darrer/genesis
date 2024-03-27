@@ -102,7 +102,7 @@ public:
 
 	void push(std::uint32_t data, size_type size, order order = order::msw_first);
 
-public:
+private:
 	enum class op_type
 	{
 		READ,
@@ -150,7 +150,7 @@ public:
 
 	struct wait_operation
 	{
-		std::uint_fast8_t cycles;
+		std::uint_fast8_t cycles; // TODO: use int
 	};
 
 	using callback = std::function<void()>;
@@ -204,7 +204,7 @@ private:
 	m68k::bus_manager& busm;
 	m68k::prefetch_queue pq;
 
-	// TODO: replace to stack-allocated queue
+	// TODO: replace to const size queue
 	std::queue<operation> queue;
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;

@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (MSVC)
 	# /w34189 - enable unused variable warnings
 	# /w34100 - enable unused parameter warnings
-	set(GENESIS_CXX_FLAGS /W3 /WX /O2 /w34189 /w34100)
+	# /w34505 - enable unused function warnings
+	set(GENESIS_CXX_FLAGS /W3 /WX /O2 /w34189 /w34100 /w34505)
 	set(GENESIS_LINK_FLAGS)
 
 	# list(APPEND GENESIS_CXX_FLAGS /DEBUG:FULL /Zi)

@@ -137,7 +137,7 @@ void bus_manager::cycle()
 
 	case READ_WAIT:
 	case RMW_READ_WAIT:
-		// TODO: add wait cycles limit to prevent CPU freezes
+		// TODO: add wait cycles limit to prevent endless waiting
 		if(external_memory->is_idle())
 		{
 			if(byte_operation)
@@ -178,6 +178,7 @@ void bus_manager::cycle()
 	case RMW_WRITE0:
 		if(check_exceptions())
 			return;
+
 		bus.func_codes(gen_func_codes());
 		bus.set(bus::RW);
 		bus.address(address);
@@ -295,15 +296,17 @@ void bus_manager::set_idle()
 	state = bus_cycle_state::IDLE;
 
 	if(on_complete_cb)
+	{
 		on_complete_cb();
-	on_complete_cb = nullptr;
+		on_complete_cb = nullptr;
+
+		// If callback started a new operation, throw an exception
+		// chaining leads to occupying bus for 2 (or more) bus cycles,
+		// we should not allow that
+		assert_idle();
+	}
 
 	on_idle();
-
-	// If callback started a new operation, throw an exception
-	// chaining leads to occupying bus for 2 (or more) bus cycles,
-	// we should not allow that
-	assert_idle();
 }
 
 void bus_manager::on_idle()
@@ -314,7 +317,7 @@ void bus_manager::on_idle()
 	if(bus.is_set(bus::BR) && !bus_granted())
 	{
 		// we're idle and bus is requsted - perfect time to give it up
-		bus.set(bus::BG); // grant access just by setting BR flag
+		bus.set(bus::BG); // grant access just by setting BG flag
 	} 
 	else if(bus_granted() && !bus.is_set(bus::BR))
 	{
@@ -327,6 +330,11 @@ void bus_manager::on_idle()
 
 void bus_manager::clear_bus()
 {
+	// NOTE: clear_bus cannot clear BR/BG buses as it's usualy called in the end of a bus cycle
+	// therefore by clearing BR/BG we can clear current state
+
+	// NOTE: clear_bus cannot clear IPL as it can clear pending interrupt
+
 	bus.clear(bus::AS);
 	bus.clear(bus::UDS);
 	bus.clear(bus::LDS);
@@ -336,21 +344,17 @@ void bus_manager::clear_bus()
 	bus.clear(bus::FC2);
 	bus.clear(bus::BERR);
 	bus.clear(bus::VPA);
-	// NOTE: clear_bus cannot clear BR/BG buses as it's usualy called in the end of a bus cycle
-	// therefore by clearing BR/BG we can clear current state
-
-	// NOTE: clear_bus cannot clear IPL as it can clear pending interrupt
 }
 
 std::uint8_t bus_manager::gen_func_codes() const
 {
 	std::uint8_t func_codes = 0;
 	if(space == addr_space::DATA)
-		func_codes |= 1;
-	if(space == addr_space::PROGRAM)
-		func_codes |= 1 << 1;
+		func_codes |= 0b001;
+	else if(space == addr_space::PROGRAM)
+		func_codes |= 0b010;
 	if(regs.flags.S)
-		func_codes |= 1 << 2;
+		func_codes |= 0b100;
 	return func_codes;
 }
 

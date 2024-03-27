@@ -54,6 +54,8 @@ public:
 		else if(bus_request == BUS_RELEASED)
 		{
 			m_z80_bus_granted = false;
+			// set 8th bit to indicate the bus is taken by z80
+			m_z80_request->write<std::uint16_t>(0, 0x101);
 		}
 
 		// TODO: not sure how it should behave if z80 first reseted and only then bus requested
