@@ -16,7 +16,7 @@ namespace genesis::m68k
 {
 
 bus_scheduler::bus_scheduler(m68k::cpu_registers& regs, m68k::bus_manager& busm)
-	: regs(regs), busm(busm), pq(busm, regs)
+	: regs(regs), busm(busm), pq(regs, busm)
 {
 }
 
@@ -26,6 +26,7 @@ void bus_scheduler::reset()
 	while(!queue.empty())
 		queue.pop();
 	pq.reset();
+	curr_wait_cycles = 0;
 }
 
 bool bus_scheduler::is_idle() const
@@ -52,10 +53,10 @@ void bus_scheduler::cycle()
 		return;
 	}
 
+	run_cycless_operations();
+
 	if(queue.empty())
 		return;
-
-	run_cycless_operations();
 
 	if(!can_use_bus() && next_bus_operation())
 		return;
@@ -85,6 +86,12 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 {
 	if(size == size_type::BYTE || size == size_type::WORD)
 	{
+		if(flags == read_imm_flags::no_prefetch)
+		{
+			// Reading imm with no_prefetch flag for byte/word is cycle-free, if got here - we have a cycle issue
+			throw internal_error();
+		}
+
 		read_imm_operation read{size, on_complete, flags};
 		queue.emplace(op_type::READ_IMM, read);
 	}
@@ -280,32 +287,35 @@ void bus_scheduler::start_operation(operation& op)
 
 	case op_type::READ_IMM: {
 		read_imm_operation& read = std::get<read_imm_operation>(op.op);
+
 		if(read.size == size_type::LONG)
 			data = (data << 16) | regs.IRC;
+		else if(read.size == size_type::WORD)
+			data = regs.IRC;
 		else
-			data = read.size == size_type::BYTE ? endian::lsb(regs.IRC) : regs.IRC;
+			data = endian::lsb(regs.IRC);
 
 		if(read.flags == read_imm_flags::do_prefetch)
 		{
 			pq.init_fetch_irc([this]() {
 				regs.PC += 2;
+
+				read_imm_operation& imm = std::get<read_imm_operation>(current_op.value().op);
+				if(imm.on_complete != nullptr)
+					imm.on_complete(data, imm.size);
+
 				run_cycless_operations();
 			});
 		}
-		// Even if we're requested to not do a prefetch, we must read second word for a long operation
+		// Even if we're requested not to do a prefetch, we must read the second word for a long operation
 		else if(read.size == size_type::LONG)
 		{
 			busm.init_read_word(regs.PC + 2, addr_space::PROGRAM, [this]() { on_read_imm_finished(); });
-			return;
 		}
 		else
 		{
-			// Read imm with no_prefetch flag for byte/word are cycle-free, if got here - we have a cycle issue
 			throw internal_error();
 		}
-
-		if(read.on_complete)
-			read.on_complete(data, read.size);
 
 		break;
 	}

@@ -29,7 +29,7 @@ private:
 	constexpr const static std::size_t max_callable_size = sizeof(void*);
 
 public:
-	prefetch_queue(m68k::bus_manager& busm, m68k::cpu_registers& regs) : busm(busm), regs(regs)
+	prefetch_queue(m68k::cpu_registers& regs, m68k::bus_manager& busm) : regs(regs), busm(busm)
 	{
 	}
 
@@ -122,8 +122,8 @@ private:
 	}
 
 private:
-	m68k::bus_manager& busm;
 	m68k::cpu_registers& regs;
+	m68k::bus_manager& busm;
 	fetch_state state = fetch_state::IDLE;
 	on_complete on_complete_cb;
 };

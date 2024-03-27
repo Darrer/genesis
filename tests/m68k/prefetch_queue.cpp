@@ -111,7 +111,7 @@ TEST(M68K_PREFETCH_QUEUE, FETCH_ONE)
 TEST(M68K_PREFETCH_QUEUE, INTERRUPT_CYCLE_THROW)
 {
 	test::test_cpu cpu;
-	m68k::prefetch_queue pq(cpu.bus_manager(), cpu.registers());
+	m68k::prefetch_queue pq(cpu.registers(), cpu.bus_manager());
 
 	pq.init_fetch_one();
 
