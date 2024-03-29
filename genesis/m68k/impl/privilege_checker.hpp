@@ -12,7 +12,7 @@ class privilege_checker
 public:
 	privilege_checker() = delete;
 
-	static bool is_authorized(m68k::inst_type inst, m68k::cpu_registers& regs)
+	static bool is_authorized(m68k::inst_type inst, const m68k::cpu_registers& regs)
 	{
 		if(regs.flags.S == 1)
 			return true;

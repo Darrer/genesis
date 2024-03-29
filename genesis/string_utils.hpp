@@ -25,19 +25,8 @@ std::string hex_str(T t, size_t wide = sizeof(T) * 2)
 template <class T>
 std::string bin_str(T t)
 {
-	const size_t num_bits = sizeof(T) * 8;
-	std::bitset<num_bits> bits(t);
-
-	std::stringstream ss;
-	for(size_t i = 1; i <= num_bits; ++i)
-	{
-		if(bits.test(num_bits - i))
-			ss << '1';
-		else
-			ss << '0';
-	}
-
-	return ss.str();
+	std::bitset<sizeof(T) * 8> bits(t);
+	return bits.to_string();
 }
 
 
@@ -50,6 +39,7 @@ inline void trim(std::string& str)
 	// rtrim
 	str.erase(std::find_if(str.rbegin(), str.rend(), not_space).base(), str.end());
 }
+
 
 inline void remove_ch(std::string& str, char ch_to_remove)
 {
