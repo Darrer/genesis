@@ -31,7 +31,6 @@ PRIVATE
 
 	endian.cpp
 	rom.cpp
-	memory.cpp
 	helper.hpp
 
 	memory/helper.h

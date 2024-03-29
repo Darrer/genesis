@@ -34,7 +34,6 @@ PRIVATE
 	string_utils.hpp
 	exception.hpp
 	endian.hpp
-	memory.hpp
 
 	smd/smd.h
 	smd/smd.cpp
