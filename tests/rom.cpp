@@ -17,7 +17,7 @@
 namespace builtin_rom
 {
 
-const genesis::rom::byte_array empty_array = {};
+const std::vector<std::uint8_t> empty_array = {};
 
 
 const genesis::rom::vector_array raw_vectors = {
@@ -78,16 +78,16 @@ const genesis::rom::header_data header = {.system_type = "SEGA GENESIS",
 										  .copyright = "(C) GENESIS 2021",
 										  .game_name_domestic = "Game name (domestic) - GENESIS test rom",
 										  .game_name_overseas = "Game name (overseas) - GENESIS test rom",
+										  .region_support = "UEJ",
 										  .rom_checksum = 0x6413,
 										  .rom_start_addr = 0x12003400,
 										  .rom_end_addr = 0x001fffff,
 										  .ram_start_addr = 0x56007800,
-										  .ram_end_addr = 0x00ffffff,
-										  .region_support = "UEJ"};
+										  .ram_end_addr = 0x00ffffff};
 
 
 // random bytes, checksum: 0x64, 0x13
-const genesis::rom::byte_array raw_body = {
+const std::vector<std::uint8_t> raw_body = {
 	0xe0, 0x9b, 0x34, 0xd9, 0xae, 0x62, 0x7c, 0xa5, 0xd9, 0x9a, 0x3c, 0x93, 0x01, 0x84, 0xf1, 0xa4, 0x09, 0x9a, 0x57,
 	0x2b, 0xd0, 0xc7, 0xbd, 0x28, 0x22, 0x69, 0xc1, 0xcd, 0x9a, 0xdb, 0x3c, 0x45, 0x6a, 0xd5, 0x0b, 0x82, 0x38, 0x20,
 	0xac, 0x70, 0xa3, 0x8b, 0x7f, 0x50, 0xa9, 0xfa, 0xf1, 0xda, 0x55, 0x5e, 0x5a, 0x8a, 0xf2, 0xd0, 0xe4, 0x3f, 0x1a,

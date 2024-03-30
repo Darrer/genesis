@@ -135,7 +135,7 @@ int main(int args, char* argv[])
 
 		std::cout << "ROM vector table:" << std::endl;
 		genesis::debug::print_rom_vectors(std::cout, rom.vectors());
-		// genesis::debug::print_rom_body(os, rom.body());
+		// genesis::debug::print_rom_body(std::cout, rom.body());
 
 		if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		{

@@ -21,14 +21,12 @@ std::string hex_str(T t, size_t wide = sizeof(T) * 2)
 	return ss.str();
 }
 
-
 template <class T>
 std::string bin_str(T t)
 {
 	std::bitset<sizeof(T) * 8> bits(t);
 	return bits.to_string();
 }
-
 
 inline void trim(std::string& str)
 {
@@ -40,6 +38,15 @@ inline void trim(std::string& str)
 	str.erase(std::find_if(str.rbegin(), str.rend(), not_space).base(), str.end());
 }
 
+inline void trim(std::string_view& str)
+{
+	str.remove_prefix(std::min(str.find_first_not_of(' '), str.size()));
+
+	// TODO: fixme
+	auto last_space_pos = str.find_last_not_of(' ');
+	if(last_space_pos != std::string_view::npos)
+		str.remove_suffix(str.size() - last_space_pos - 1);
+}
 
 inline void remove_ch(std::string& str, char ch_to_remove)
 {

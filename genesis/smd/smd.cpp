@@ -206,29 +206,12 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 
 std::shared_ptr<std::vector<std::uint8_t>> smd::load_rom(std::string_view rom_path)
 {
-	std::ifstream fs(rom_path.data(), std::ios_base::binary);
-	if(!fs.is_open())
-		throw std::runtime_error("cannot find rom");
-
-	// TODO: check if ROM is too big
-	std::vector<std::uint8_t> rom;
-	while(fs)
-	{
-		char c;
-		if(fs.get(c))
-		{
-			rom.push_back(c);
-		}
-	}
-
-	const std::size_t ROM_SIZE = 0x400000;
-
-	// pad rom
-	for(std::size_t i = rom.size(); i < ROM_SIZE; ++i)
-		rom.push_back(0);
-
-	rom.shrink_to_fit();
-	return std::make_shared<std::vector<std::uint8_t>>(std::move(rom));
+	genesis::rom rom{rom_path};
+	std::vector<std::uint8_t> data;
+	data.assign_range(rom.data());
+	for(std::size_t i = data.size(); i < 0x400000; ++i)
+		data.push_back(0);
+	return std::make_shared<std::vector<std::uint8_t>>(std::move(data));
 }
 
 std::uint8_t smd::version_register_value(genesis::rom& parsed_rom) const

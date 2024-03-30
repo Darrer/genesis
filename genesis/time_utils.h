@@ -7,7 +7,7 @@ namespace genesis::time
 {
 
 template <class Callable>
-static long long measure_in_ms(const Callable& func)
+static long long measure_in_ms(Callable func)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -20,7 +20,7 @@ static long long measure_in_ms(const Callable& func)
 }
 
 template <class Callable>
-static long long measure_in_ns(const Callable& func)
+static long long measure_in_ns(Callable func)
 {
 	auto start = std::chrono::high_resolution_clock::now();
 

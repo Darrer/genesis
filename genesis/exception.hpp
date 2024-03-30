@@ -21,7 +21,7 @@ static std::string build_msg(std::string_view error_type, std::string_view msg,
 	ss << ' ' << error_type;
 
 	if(msg.size() != 0)
-		ss << '(' << msg << ')';
+		ss << " (" << msg << ')';
 
 	ss << '\n' << strace;
 

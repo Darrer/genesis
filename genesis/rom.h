@@ -2,10 +2,11 @@
 #define __ROM_H__
 
 #include <array>
-#include <filesystem>
-#include <inttypes.h>
-#include <string>
+#include <cstdint>
 #include <vector>
+#include <span>
+#include <optional>
+#include <string_view>
 
 
 namespace genesis
@@ -14,57 +15,76 @@ namespace genesis
 class rom
 {
 public:
-	class header_data
+	static const constexpr std::size_t MAX_SIZE = 0x400000;
+	static const constexpr std::size_t MIN_SIZE = 0x201; // header + vector + 1 body byte
+
+	struct header_data
 	{
-	public:
 		bool operator==(const header_data&) const = default;
 
-	public:
-		std::string system_type;
-		std::string copyright;
-		std::string game_name_domestic;
-		std::string game_name_overseas;
+		std::string_view system_type;
+		std::string_view copyright;
+		std::string_view game_name_domestic;
+		std::string_view game_name_overseas;
+		std::string_view region_support;
 
-		uint16_t rom_checksum;
+		std::uint16_t rom_checksum;
 
-		uint32_t rom_start_addr;
-		uint32_t rom_end_addr;
+		std::uint32_t rom_start_addr;
+		std::uint32_t rom_end_addr;
 
-		uint32_t ram_start_addr;
-		uint32_t ram_end_addr;
-
-		std::string region_support;
+		std::uint32_t ram_start_addr;
+		std::uint32_t ram_end_addr;
 	};
 
-	using vector_array = std::array<uint32_t, 64>;
-	using byte_array = std::vector<uint8_t>;
+	using vector_array = std::array<std::uint32_t, 64>;
 
 public:
-	rom(const std::string_view path_to_rom);
+	rom(std::string_view path_to_rom);
 
-	inline const header_data& header() const
+	std::span<const std::uint8_t> data() const
 	{
-		return _header;
+		return {m_rom_data.begin(), m_rom_data.size()};
 	}
 
-	inline const vector_array& vectors() const
+	// NOTE: rom class is supposed to be immutable, but keep this method for now
+	std::span<std::uint8_t> data()
 	{
-		return _vectors;
+		return {m_rom_data.begin(), m_rom_data.size()};
 	}
 
-	inline const byte_array& body() const
+	const header_data& header() const
 	{
-		return _body;
+		return m_header;
 	}
 
-	uint16_t checksum() const;
+	const vector_array& vectors() const
+	{
+		return m_vectors;
+	}
+
+	std::span<const std::uint8_t> body() const
+	{
+		const std::size_t BODY_OFFSET = MIN_SIZE - 1;
+
+		if(m_rom_data.size() <= BODY_OFFSET)
+			return {}; // no body
+
+		return {m_rom_data.begin() + BODY_OFFSET, m_rom_data.size() - BODY_OFFSET};
+	}
+
+	std::uint16_t checksum() const;
 
 private:
-	header_data _header;
-	vector_array _vectors;
-	byte_array _body;
+	void setup_header();
+	void setup_vectors();
 
-	mutable uint16_t saved_checksum = 0;
+private:
+	std::vector<std::uint8_t> m_rom_data;
+	mutable std::optional<std::uint16_t> m_checksum;
+
+	header_data m_header;
+	vector_array m_vectors;
 };
 
 } // namespace genesis

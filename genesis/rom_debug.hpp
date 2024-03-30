@@ -24,7 +24,6 @@ namespace genesis::debug
 	os << "RAM address range: " << hex_str(header.ram_start_addr) << " - " << hex_str(header.ram_end_addr) << std::endl;
 }
 
-
 template <class array, class format_func>
 static void print_array(std::ostream& os, const array& arr, format_func fn, size_t elments_per_row)
 {
@@ -41,25 +40,23 @@ static void print_array(std::ostream& os, const array& arr, format_func fn, size
 	}
 }
 
-
-template <class array>
-static void print_hex_array(std::ostream& os, const array& arr, size_t elements_per_row)
+template <class array_t>
+static void print_hex_array(std::ostream& os, array_t arr, size_t elements_per_row)
 {
-	auto format_fn = [](const auto& el) { return su::hex_str(el); };
+	auto format_fn = [](auto el) { return su::hex_str(el); };
 	print_array(os, arr, format_fn, elements_per_row);
 }
-
 
 [[maybe_unused]] static void print_rom_vectors(std::ostream& os, const rom::vector_array& vectors)
 {
 	print_hex_array(os, vectors, 4);
 }
 
-
-[[maybe_unused]] static void print_rom_body(std::ostream& os, const rom::byte_array& body)
+[[maybe_unused]] static void print_rom_body(std::ostream& os, std::span<const std::uint8_t> body)
 {
-	auto format_fn = [](const auto& addr) { return su::hex_str<int>(static_cast<unsigned>(addr), sizeof(addr) * 2); };
-	print_array(os, body, format_fn, 16);
+	print_hex_array(os, body, 16);
+	// auto format_fn = [](std::uint8_t addr) { return su::hex_str(addr); };
+	// print_array(os, body, format_fn, 16);
 }
 
 } // namespace genesis::debug
