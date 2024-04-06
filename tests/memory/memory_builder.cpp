@@ -7,9 +7,14 @@
 
 using namespace genesis;
 
-std::shared_ptr<memory::memory_unit> device(std::uint32_t highest_address)
+std::shared_ptr<memory::memory_unit> shared_device(std::uint32_t highest_address)
 {
 	return std::make_shared<memory::memory_unit>(highest_address);
+}
+
+std::unique_ptr<memory::addressable> unique_device(std::uint32_t highest_address)
+{
+	return std::make_unique<memory::memory_unit>(highest_address);
 }
 
 std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_per_device)
@@ -19,7 +24,15 @@ std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_pe
 	std::uint32_t start_address = 0;
 	for(unsigned i = 0; i < num_devices; ++i)
 	{
-		builder.add(device(mem_per_device - 1), start_address);
+		if(i % 2 == 0)
+		{
+			builder.add(shared_device(mem_per_device - 1), start_address);
+		}
+		else
+		{
+			builder.add(unique_device(mem_per_device - 1), start_address);
+		}
+
 		start_address += mem_per_device;
 	}
 
@@ -28,20 +41,26 @@ std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_pe
 
 TEST(MEMORY, MEMORY_BUILDER_INTERSECT_DEVICES)
 {
-	memory::memory_builder builder;
+	auto test_boundaries = [](auto make_device)
+	{
+		memory::memory_builder builder;
+		builder.add(make_device(1024), 1024);
 
-	auto dev = device(1024);
-	builder.add(dev, 1024);
+		auto dev = shared_device(1024);
 
-	/* check start address intersection */
-	ASSERT_THROW(builder.add(dev, 1024), std::exception); // check low boundary
-	ASSERT_THROW(builder.add(dev, 2048), std::exception); // check upper boundary
-	ASSERT_THROW(builder.add(dev, 1536), std::exception); // check in between
+		/* check start address intersection */
+		ASSERT_THROW(builder.add(dev, 1024), std::exception); // check low boundary
+		ASSERT_THROW(builder.add(dev, 2048), std::exception); // check upper boundary
+		ASSERT_THROW(builder.add(dev, 1536), std::exception); // check in between
 
-	/* check end address intersection */
-	ASSERT_THROW(builder.add(dev, 0), std::exception);	  // check low boundary
-	ASSERT_THROW(builder.add(dev, 1023), std::exception); // check upper boundary
-	ASSERT_THROW(builder.add(dev, 512), std::exception);  // check in between
+		/* check end address intersection */
+		ASSERT_THROW(builder.add(dev, 0), std::exception);	  // check low boundary
+		ASSERT_THROW(builder.add(dev, 1023), std::exception); // check upper boundary
+		ASSERT_THROW(builder.add(dev, 512), std::exception);  // check in between
+	};
+
+	test_boundaries(shared_device);
+	test_boundaries(unique_device);
 }
 
 TEST(MEMORY, MEMORY_BUILDER_READ_WRITE_8)
@@ -60,8 +79,8 @@ TEST(MEMORY, MEMORY_BUILDER_GAP)
 {
 	memory::memory_builder builder;
 
-	builder.add(device(32), 0);	   // [0 ; 32]
-	builder.add(device(32), 1024); // [1024 ; 1056]
+	builder.add(shared_device(32), 0);	   // [0 ; 32]
+	builder.add(unique_device(32), 1024); // [1024 ; 1056]
 
 	auto mem = builder.build();
 
@@ -79,8 +98,8 @@ TEST(MEMORY, MEMORY_BUILDER_UNITS_BORDER)
 {
 	memory::memory_builder builder;
 
-	builder.add(device(32), 0);	 // [0 ; 32]
-	builder.add(device(32), 33); // [33 ; 65]
+	builder.add(shared_device(32), 0);	 // [0 ; 32]
+	builder.add(unique_device(32), 33); // [33 ; 65]
 
 	const std::uint32_t border_address = 32;
 
@@ -106,8 +125,8 @@ TEST(MEMORY, MEMORY_BUILDER_CLEAR_AFTER_BUILD)
 {
 	memory::memory_builder builder;
 
-	builder.add(device(32), 0);
-	builder.add(device(32), 1024);
+	builder.add(shared_device(32), 0);
+	builder.add(unique_device(32), 1024);
 
 	ASSERT_NO_THROW(builder.build());
 	ASSERT_THROW(builder.build(), std::runtime_error); // second build call must throw

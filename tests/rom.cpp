@@ -19,7 +19,6 @@ namespace builtin_rom
 
 const std::vector<std::uint8_t> empty_array = {};
 
-
 const genesis::rom::vector_array raw_vectors = {
 	0x00fffff6, 0x00000200, 0x00002460, 0x0000246e, 0x0000247c, 0x0000248a, 0x00002498, 0x000024a6,
 	0x000024b4, 0x000024c2, 0x000024d0, 0x000024de, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec,
@@ -29,7 +28,6 @@ const genesis::rom::vector_array raw_vectors = {
 	0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec,
 	0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec,
 	0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec, 0x000024ec};
-
 
 const std::array<std::uint8_t, 256> raw_header = {
 	// sys type
@@ -72,8 +70,7 @@ const std::array<std::uint8_t, 256> raw_header = {
 	0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
 };
 
-
-// this reflects raw_header byte array, so any changes here must be propagated to raw data (and vs)
+// this reflects raw_header byte array, so any changes here must be reflected in raw data (and vs)
 const genesis::rom::header_data header = {.system_type = "SEGA GENESIS",
 										  .copyright = "(C) GENESIS 2021",
 										  .game_name_domestic = "Game name (domestic) - GENESIS test rom",
@@ -145,7 +142,6 @@ const std::vector<std::uint8_t> raw_body = {
 
 } // namespace builtin_rom
 
-
 class TempFile
 {
 public:
@@ -161,12 +157,15 @@ public:
 		std::remove(_path.c_str());
 	}
 
-	inline std::string path() const
+	TempFile(const TempFile&) = delete;
+	TempFile& operator=(const TempFile&) = delete;
+
+	std::string path() const
 	{
 		return _path;
 	}
 
-	inline std::ostream& stream()
+	std::ostream& stream()
 	{
 		return _stream;
 	}
@@ -192,24 +191,11 @@ private:
 
 std::atomic_uint64_t TempFile::file_id = 0;
 
-
 template <class Vectors, class Header, class Body>
 class ROMConstructor
 {
 public:
 	ROMConstructor(const Vectors& vectors, const Header& header, const Body& body)
-		: _vectors(vectors), _header(header), _body(body)
-	{
-		dump_rom();
-	}
-
-	inline std::string path() const
-	{
-		return tmp_file.path();
-	}
-
-private:
-	void dump_rom()
 	{
 		auto write_array = [this](const auto& arr) {
 			auto write = [this](auto val) {
@@ -220,30 +206,30 @@ private:
 			std::for_each(std::cbegin(arr), std::cend(arr), write);
 		};
 
-		write_array(_vectors);
-		write_array(_header);
-		write_array(_body);
+		write_array(vectors);
+		write_array(header);
+		write_array(body);
 
 		tmp_file.stream().flush();
 	}
 
+	std::string path() const
+	{
+		return tmp_file.path();
+	}
+
 private:
-	const Vectors& _vectors;
-	const Header& _header;
-	const Body& _body;
 	TempFile tmp_file;
 };
 
-
-TEST(ROM, WrongPath)
+TEST(ROM, WRONG_PATH)
 {
 	EXPECT_THROW(genesis::rom("/some/path/rom"), std::runtime_error);
 	EXPECT_THROW(genesis::rom("/some/path/rom."), std::runtime_error);
 	EXPECT_THROW(genesis::rom("/some/path/rom.txt"), std::runtime_error);
 }
 
-
-TEST(ROM, DataParsing)
+TEST(ROM, DATA_PARSING)
 {
 	ROMConstructor rom(builtin_rom::raw_vectors, builtin_rom::raw_header, builtin_rom::raw_body);
 	genesis::rom test_rom(rom.path());
@@ -261,9 +247,24 @@ TEST(ROM, DataParsing)
 
 	ASSERT_EQ(test_rom.checksum(), test_rom.header().rom_checksum);
 
+	// check field by field to get nice error message
+	ASSERT_EQ(builtin_rom::header.system_type, test_rom.header().system_type);
+	ASSERT_EQ(builtin_rom::header.copyright, test_rom.header().copyright);
+	ASSERT_EQ(builtin_rom::header.game_name_domestic, test_rom.header().game_name_domestic);
+	ASSERT_EQ(builtin_rom::header.game_name_overseas, test_rom.header().game_name_overseas);
+	ASSERT_EQ(builtin_rom::header.region_support, test_rom.header().region_support);
+
+	ASSERT_EQ(builtin_rom::header.rom_checksum, test_rom.header().rom_checksum);
+
+	ASSERT_EQ(builtin_rom::header.rom_start_addr, test_rom.header().rom_start_addr);
+	ASSERT_EQ(builtin_rom::header.rom_end_addr, test_rom.header().rom_end_addr);
+
+	ASSERT_EQ(builtin_rom::header.ram_start_addr, test_rom.header().ram_start_addr);
+	ASSERT_EQ(builtin_rom::header.ram_end_addr, test_rom.header().ram_end_addr);
+
+	// check all fields just in case
 	ASSERT_EQ(builtin_rom::header, test_rom.header());
 }
-
 
 template <class Vectors, class Header, class Body>
 void check_ill_formatted_rom(const Vectors& vectors, const Header& header, const Body& body)
@@ -278,8 +279,7 @@ auto half_array(const Array& arr)
 	return std::span(arr.data(), arr.size() / 2);
 }
 
-
-TEST(ROM, CorruptedInput)
+TEST(ROM, CORRUPTED_INPUT)
 {
 	using namespace builtin_rom;
 

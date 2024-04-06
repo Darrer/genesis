@@ -52,13 +52,6 @@ static void print_hex_array(std::ostream& os, array_t arr, size_t elements_per_r
 	print_hex_array(os, vectors, 4);
 }
 
-[[maybe_unused]] static void print_rom_body(std::ostream& os, std::span<const std::uint8_t> body)
-{
-	print_hex_array(os, body, 16);
-	// auto format_fn = [](std::uint8_t addr) { return su::hex_str(addr); };
-	// print_array(os, body, format_fn, 16);
-}
-
 } // namespace genesis::debug
 
 #endif // __ROM_DEBUG_HPP_

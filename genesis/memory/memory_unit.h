@@ -43,6 +43,13 @@ private:
 	std::shared_ptr<std::vector<std::uint8_t>> m_buffer;
 };
 
+[[maybe_unused]] [[nodiscard]]
+static std::unique_ptr<memory::addressable> make_memory_unit(std::uint32_t highest_address,
+	std::endian byte_order = std::endian::native)
+{
+	return std::make_unique<memory::memory_unit>(highest_address, byte_order);
+}
+
 }
 
 #endif // __MEMORY_MEMORY_UNIT_H__

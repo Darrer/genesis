@@ -32,6 +32,13 @@ private:
 	}
 };
 
+[[maybe_unused]] [[nodiscard]]
+static std::unique_ptr<memory::addressable> make_read_only_memory_unit(std::uint32_t highest_address,
+	std::endian byte_order = std::endian::native)
+{
+	return std::make_unique<memory::read_only_memory_unit>(highest_address, byte_order);
+}
+
 }
 
 #endif // __MEMORY_READ_ONLY_MEMORY_UNIT_H__

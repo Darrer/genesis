@@ -5,42 +5,44 @@
 
 #include <optional>
 #include <stdexcept>
+#include <compare>
+#include <functional>
 
 
 namespace genesis::memory
 {
 
-// extendable_memory?
+struct addressable_device
+{
+	std::reference_wrapper<addressable> memory_unit;
+
+	std::uint32_t start_address;
+	std::uint32_t end_address;
+};
+
 class composite_memory : public addressable
 {
-private:
-	struct addressable_device
-	{
-		addressable& memory_unit;
-		std::uint32_t start_address;
-		std::uint32_t end_address;
-	};
-
 public:
-	/* Implement addressable interface */
+
+	/* Addressable interface */
 
 	std::uint32_t max_address() const override
 	{
 		std::uint32_t max_address = 0;
-		for(auto& dev : refs)
+		for(auto& dev : m_refs)
 			max_address = std::max(max_address, dev.end_address);
 		return max_address;
 	}
 
 	bool is_idle() const override
 	{
-		if(last_device.has_value() == false)
+		if(m_last_device.has_value() == false)
 		{
 			// there were not requests so far
 			return true;
 		}
 
-		return last_device.value().memory_unit.is_idle();
+		return m_last_device.value().memory_unit.get().is_idle();
 	}
 
 	void init_write(std::uint32_t address, std::uint8_t data) override
@@ -49,9 +51,9 @@ public:
 
 		auto dev = find_device(address);
 		address = convert_address(dev, address);
-		dev.memory_unit.init_write(address, data);
+		dev.memory_unit.get().init_write(address, data);
 
-		last_device.emplace(dev);
+		m_last_device.emplace(dev);
 	}
 
 	void init_write(std::uint32_t address, std::uint16_t data) override
@@ -60,9 +62,9 @@ public:
 
 		auto dev = find_device(address);
 		address = convert_address(dev, address);
-		dev.memory_unit.init_write(address, data);
+		dev.memory_unit.get().init_write(address, data);
 
-		last_device.emplace(dev);
+		m_last_device.emplace(dev);
 	}
 
 	void init_read_byte(std::uint32_t address) override
@@ -71,9 +73,9 @@ public:
 
 		auto dev = find_device(address);
 		address = convert_address(dev, address);
-		dev.memory_unit.init_read_byte(address);
+		dev.memory_unit.get().init_read_byte(address);
 
-		last_device.emplace(dev);
+		m_last_device.emplace(dev);
 	}
 
 	void init_read_word(std::uint32_t address) override
@@ -82,32 +84,39 @@ public:
 
 		auto dev = find_device(address);
 		address = convert_address(dev, address);
-		dev.memory_unit.init_read_word(address);
+		dev.memory_unit.get().init_read_word(address);
 
-		last_device.emplace(dev);
+		m_last_device.emplace(dev);
 	}
 
 	std::uint8_t latched_byte() const override
 	{
-		return last_device.value().memory_unit.latched_byte();
+		return m_last_device.value().memory_unit.get().latched_byte();
 	}
 
 	std::uint16_t latched_word() const override
 	{
-		return last_device.value().memory_unit.latched_word();
+		return m_last_device.value().memory_unit.get().latched_word();
 	}
 
-	/* Composite methods */
+	/* Composite interface */
 
-	void add(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
+	void save_devices(std::vector<addressable_device> devices)
 	{
-		refs.push_back({memory_unit, start_address, end_address});
+		m_refs = std::move(devices);
+		m_refs.shrink_to_fit();
 	}
 
-	void add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address, std::uint32_t end_address)
+	void save_ptrs(std::vector<std::shared_ptr<addressable>> ptrs)
 	{
-		dev_shared_ptrs.push_back(memory_unit);
-		refs.push_back({*memory_unit, start_address, end_address});
+		m_shared_ptrs = std::move(ptrs);
+		m_shared_ptrs.shrink_to_fit();
+	}
+
+	void save_ptrs(std::vector<std::unique_ptr<addressable>> ptrs)
+	{
+		m_unique_ptrs = std::move(ptrs);
+		m_unique_ptrs.shrink_to_fit();
 	}
 
 private:
@@ -119,101 +128,143 @@ private:
 		}
 	}
 
-	addressable_device find_device(std::uint32_t address)
+	addressable_device find_device(std::uint32_t address) const
 	{
-		for(auto& dev : refs)
+		for(auto& dev : m_refs)
 		{
 			if(dev.start_address <= address && address <= dev.end_address)
 				return dev;
 		}
 
-		throw internal_error("cannot find addressable device serving address " + su::hex_str(address));
+		throw std::runtime_error("cannot find addressable device serving address " + su::hex_str(address));
 	}
 
-	std::uint32_t convert_address(addressable_device dev, std::uint32_t address)
+	static std::uint32_t convert_address(addressable_device dev, std::uint32_t address)
 	{
 		return address - dev.start_address;
 	}
 
 private:
-	std::vector<addressable_device> refs;
-	std::vector<std::shared_ptr<addressable>> dev_shared_ptrs; // just keep them to prevent deallocation
+	std::vector<addressable_device> m_refs;
 
-	std::optional<addressable_device> last_device;
+	// keep ptrs to prevent deallocation
+	std::vector<std::shared_ptr<addressable>> m_shared_ptrs;
+	std::vector<std::unique_ptr<addressable>> m_unique_ptrs;
+
+	std::optional<addressable_device> m_last_device;
 };
 
 
 std::shared_ptr<addressable> memory_builder::build()
 {
-	if(refs.empty() && shared_ptrs.empty())
+	if(m_refs.empty() && m_shared_ptrs.empty() && m_unique_ptrs.empty())
 		throw internal_error("tried to build without devices");
 
+	std::vector<addressable_device> devices;
+	devices.reserve(m_refs.size());
+
+	for(auto& dev : m_refs)
+		devices.push_back({dev.memory_unit, dev.start_address, dev.end_address});
+
+	// Place devices with larger capacities at the beginning of the array
+	std::ranges::sort(devices, [](const addressable_device& a, const addressable_device& b)
+	{
+		auto a_capacity = a.end_address - a.start_address;
+		auto b_capacity = b.end_address - b.start_address;
+		return b_capacity < a_capacity;
+	});
+
 	std::shared_ptr<composite_memory> comp = std::make_shared<composite_memory>();
+	
+	comp->save_devices(std::move(devices));
+	comp->save_ptrs(std::move(m_shared_ptrs));
+	comp->save_ptrs(std::move(m_unique_ptrs));
 
-	for(auto& dev : refs)
-		comp->add(dev.memory_unit, dev.start_address, dev.end_address);
-
-	for(auto& dev : shared_ptrs)
-		comp->add(dev.memory_unit, dev.start_address, dev.end_address);
-
-	refs.clear();
-	shared_ptrs.clear();
+	m_refs.clear();
+	m_shared_ptrs.clear();
+	m_unique_ptrs.clear();
 
 	return comp;
 }
 
-void memory_builder::add(addressable& memory_unit, std::uint32_t start_address)
+void memory_builder::add(addressable& device, std::uint32_t start_address)
 {
-	add(memory_unit, start_address, start_address + memory_unit.max_address());
+	add(device, start_address, start_address + device.max_address());
 }
 
-void memory_builder::add(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
+void memory_builder::add(addressable& device, std::uint32_t start_address, std::uint32_t end_address)
 {
-	check_args(memory_unit, start_address, end_address);
+	check_args(device, start_address, end_address);
 
-	refs.push_back({memory_unit, start_address, end_address});
+	m_refs.push_back({device, start_address, end_address});
 }
 
-void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address)
+void memory_builder::add(std::shared_ptr<addressable> device, std::uint32_t start_address)
 {
-	if(memory_unit == nullptr)
-		throw std::invalid_argument("memory_unit cannot be null");
-
-	add(memory_unit, start_address, start_address + memory_unit->max_address());
+	assert_not_null(device.get());
+	add(device, start_address, start_address + device->max_address());
 }
 
-void memory_builder::add(std::shared_ptr<addressable> memory_unit, std::uint32_t start_address,
+void memory_builder::add(std::shared_ptr<addressable> device, std::uint32_t start_address,
 						 std::uint32_t end_address)
 {
-	if(memory_unit == nullptr)
-		throw std::invalid_argument("memory_unit cannot be null");
+	check_args(device.get(), start_address, end_address);
 
-	check_args(*memory_unit, start_address, end_address);
-
-	shared_ptrs.push_back({std::move(memory_unit), start_address, end_address});
+	m_refs.push_back({*device, start_address, end_address});
+	m_shared_ptrs.push_back(std::move(device));
 }
 
-void memory_builder::check_args(addressable& memory_unit, std::uint32_t start_address, std::uint32_t end_address)
+void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t start_address)
+{
+	assert_not_null(device.get());
+
+	std::uint32_t end_address = start_address + device->max_address();
+	add(std::move(device), start_address, end_address);
+}
+
+void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t start_address,
+	std::uint32_t end_address)
+{
+	check_args(device.get(), start_address, end_address);
+
+	m_refs.push_back({*device, start_address, end_address});
+	m_unique_ptrs.push_back(std::move(device));
+}
+
+void memory_builder::assert_not_null(addressable* device) const
+{
+	if(device == nullptr)
+		throw std::invalid_argument("addressable device cannot be null");
+}
+
+void memory_builder::check_args(addressable* device, std::uint32_t start_address, std::uint32_t end_address) const
+{
+	assert_not_null(device);
+	check_args(*device, start_address, end_address);
+}
+
+void memory_builder::check_args(addressable& device, std::uint32_t start_address, std::uint32_t end_address) const
 {
 	if(end_address < start_address)
 		throw std::invalid_argument("end_address cannot be less than start_address");
 
 	std::uint32_t max_address = end_address - start_address;
+
 	// TODO: temporary disable this check
-	if(memory_unit.max_address() != max_address && false)
+	if(device.max_address() != max_address && false)
 		throw std::invalid_argument("provided addressable device has unexpected space size");
 
 	check_intersect(start_address, end_address);
 }
 
-void memory_builder::check_intersect(std::uint32_t start_address, std::uint32_t end_address)
+void memory_builder::check_intersect(std::uint32_t start_address, std::uint32_t end_address) const
 {
-	auto is_intersect = [start_address, end_address](auto& unit) {
+	auto is_intersect = [start_address, end_address](const auto& unit) {
 		return (unit.start_address <= start_address && start_address <= unit.end_address) ||
 			   (unit.start_address <= end_address && end_address <= unit.end_address);
 	};
 
-	if(std::ranges::any_of(refs, is_intersect) || std::ranges::any_of(shared_ptrs, is_intersect))
+	if(std::ranges::any_of(m_refs, is_intersect))
 		throw std::invalid_argument("specified address range intersects with existing device");
 }
 

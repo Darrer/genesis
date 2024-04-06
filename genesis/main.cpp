@@ -1,7 +1,7 @@
 #include <iostream>
-#include <iomanip>
 #include <string_view>
 #include <filesystem>
+#include <print>
 
 #include "rom.h"
 #include "smd/smd.h"
@@ -24,7 +24,7 @@ void print_usage(const char* prog_path)
 
 void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
 {
-	std::cout << "==== Key layout ====" << std::endl;
+	std::println("==== Key layout ====");
 
 	const auto keys = {
 		io_ports::key_type::UP,
@@ -50,21 +50,20 @@ void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout
 			continue;
 
 		auto sdl_key = it->first;
-		std::cout << std::setw(5) << io_ports::key_type_name(key)
-			<< " -> " << SDL_GetKeyName(sdl_key) << std::endl;
+		std::println("{:5} -> {}", io_ports::key_type_name(key), SDL_GetKeyName(sdl_key));
 	}
 
-	std::cout << "====================" << std::endl;
+	std::println("====================");
 }
 
 template<class T>
-void measure_and_log(const T& func, std::string_view msg)
+void measure_and_log(T func, std::string_view msg)
 {
 	auto ms = time::measure_in_ms(func);
-	std::cout << "Executing " << msg << " took " << ms << " ms\n";
+	std::println("Executing {} took {} ms", msg, ms);
 }
 
-std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
+std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::string rom_title)
 {
 	// TODO: interface between vdp/smd is not established yet, so use vdp::render directly
 
@@ -104,7 +103,7 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
 	);
 
 	displays.push_back(
-		std::make_unique<sdl::plane_display>("active display",
+		std::make_unique<sdl::plane_display>(rom_title,
 			[&smd]() { return smd.vdp().render().active_display_width(); },
 			[&smd]() { return smd.vdp().render().active_display_height(); },
 			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
@@ -113,6 +112,14 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd)
 	);
 
 	return displays;
+}
+
+std::string get_rom_title(const genesis::rom& rom)
+{
+	const auto& header = rom.header();
+	if(!header.game_name_overseas.empty())
+		return std::string{header.game_name_overseas};
+	return std::string{header.game_name_domestic};
 }
 
 int main(int args, char* argv[])
@@ -127,28 +134,30 @@ int main(int args, char* argv[])
 	{
 		std::string_view rom_path = argv[1];
 
-		std::cout << "Parsing: " << rom_path << std::endl;
+		std::print("Reading {}", rom_path);
 		genesis::rom rom(rom_path);
 
 		genesis::debug::print_rom_header(std::cout, rom.header());
-		// os << "Actual checksum: " << su::hex_str(rom.checksum()) << std::endl;
-
-		std::cout << "ROM vector table:" << std::endl;
-		genesis::debug::print_rom_vectors(std::cout, rom.vectors());
-		// genesis::debug::print_rom_body(std::cout, rom.body());
-
-		if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		if(rom.checksum() != rom.header().rom_checksum)
 		{
-			std::cerr << "Cannot initialize SDL: " << SDL_GetError() << std::endl;
+			std::println("WARNING: ROM checksum mismatch (expected {:#04X} vs actual {:#04X})",
+				rom.checksum(), rom.header().rom_checksum);
+		}
+
+		if(SDL_Init(SDL_INIT_VIDEO) < 0)
+		{
+			std::println(std::cerr, "Cannot initialize SDL: {}", SDL_GetError());
 			return EXIT_FAILURE;
 		}
 
 		print_key_layout(sdl::default_key_layout);
 		auto input_device = std::make_shared<sdl::input_device>();
 
-		genesis::smd smd(rom_path, input_device);
+		std::string rom_title = get_rom_title(rom);
 
-		auto displays = create_displays(smd);
+		genesis::smd smd(std::move(rom), input_device);
+
+		auto displays = create_displays(smd, std::move(rom_title));
 
 		smd.vdp().on_frame_end([&]()
 		{
@@ -167,18 +176,35 @@ int main(int args, char* argv[])
 			// }, "render frame");
 		});
 
+		const auto cycles_batch_log = 10'000'000ull;
+		auto cycle = 0ull;
+
+		auto start = std::chrono::high_resolution_clock::now();
+
 		while(true) // Don't really care about timings so far
 		{
 			smd.cycle();
+			++cycle;
+
+			if(cycle == cycles_batch_log)
+			{
+				auto stop = std::chrono::high_resolution_clock::now();
+				auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+				auto ns_per_cycle = dur / cycle;
+				std::println("ns per cycle: {}", ns_per_cycle.count());
+
+				start = stop;
+				cycle = 0;
+			}
 		}
 	}
 	catch(const std::invalid_argument& e)
 	{
-		std::cerr << "Invalid Argument exception: " << e.what() << std::endl;
+		std::println(std::cerr, "Invalid Argument exception: {}", e.what());
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		std::println(std::cerr, "{}", e.what());
 	}
 
 	SDL_Quit();
