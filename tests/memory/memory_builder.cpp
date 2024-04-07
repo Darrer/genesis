@@ -131,3 +131,51 @@ TEST(MEMORY, MEMORY_BUILDER_CLEAR_AFTER_BUILD)
 	ASSERT_NO_THROW(builder.build());
 	ASSERT_THROW(builder.build(), std::runtime_error); // second build call must throw
 }
+
+TEST(MEMORY, MEMORY_BUILDER_MIRROR_INVALID_ADDRESSES)
+{
+	memory::memory_builder builder;
+
+	builder.add(shared_device(0x20), 0);	 // [0 ; 0x20]
+	builder.add(unique_device(0x20), 0x21); // [0x21 ; 0x41]
+
+	// different ranges capacity
+	ASSERT_THROW(builder.mirror(0x0, 0x2, 0x21, 0x23), std::exception);
+
+	// ranges belong to the same existing device
+	ASSERT_THROW(builder.mirror(0x0, 0x2, 0x0, 0x2), std::exception);
+	ASSERT_THROW(builder.mirror(0x0, 0x2, 0x2, 0x4), std::exception);
+	ASSERT_THROW(builder.mirror(0x0, 0x2, 0x3, 0x5), std::exception);
+
+	// initial address range occupies 2 devices
+	ASSERT_THROW(builder.mirror(0x20, 0x21, 0x50, 0x51), std::exception);
+
+	// initial address range is unknown
+	ASSERT_THROW(builder.mirror(0x45, 0x46, 0x50, 0x51), std::exception);
+
+	// try to map on existing device
+	ASSERT_THROW(builder.mirror(0x0, 0x2, 0x21, 0x23), std::exception);
+}
+
+TEST(MEMORY, MEMORY_BUILDER_MIRROR)
+{
+	memory::memory_builder builder;
+
+	builder.add(shared_device(0x20), 0);	 // [0 ; 0x20]
+	builder.add(unique_device(0x20), 0x21); // [0x21 ; 0x41]
+
+	const std::uint32_t START_MIRROR = 0x50;
+	const std::uint32_t END_MIRROR = 0x70;
+
+	builder.mirror(0x0, 0x20, START_MIRROR, END_MIRROR);
+	auto mem = builder.build();
+
+	for(std::uint32_t addr = START_MIRROR; addr <= END_MIRROR; ++addr)
+	{
+		std::uint8_t data = test::random::next<std::uint8_t>();
+		mem->init_write(addr, data);
+
+		mem->init_read_byte(addr - START_MIRROR);
+		ASSERT_EQ(data, mem->latched_byte());
+	}
+}

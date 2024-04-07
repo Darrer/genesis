@@ -88,9 +88,8 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 	/* Build z80 memory map */
 	memory::memory_builder z80_builder;
 
-	auto z80_ram = std::make_shared<memory::memory_unit>(0x1FFF, std::endian::little);
-	z80_builder.add(z80_ram, 0x0, 0x1FFF); // main RAM
-	z80_builder.add(z80_ram, 0x2000, 0x3FFF); // main RAM (mirror)
+	z80_builder.add_unique(memory::make_memory_unit(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
+	z80_builder.mirror(0x0, 0x1FFF, 0x2000, 0x3FFF); // main RAM mirror
 
 	z80_builder.add_unique(std::make_unique<memory::dummy_memory>(0x0, std::endian::little), 0x4000, 0x4000);
 	z80_builder.add_unique(std::make_unique<memory::zero_memory_unit>(0x0, std::endian::little), 0x4001, 0x4001);
@@ -126,12 +125,16 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 	m68k_builder.add(z80_mem_map, 0xA00000, 0xA0FFFF);
 
 	// M68K RAM, mirrored every $FFFF
-	auto m68k_ram = std::make_shared<memory::memory_unit>(0xFFFF, std::endian::big);
-	std::uint32_t start_addr = 0x00E00000;
-	for(int i = 0; i < 32; ++i)
+	const std::uint32_t M68K_RAM_START = 0xE00000;
+	const std::uint32_t M68K_RAM_END = 0xE0FFFF;
+	const std::uint32_t M68K_RAM_HA = 0xFFFF;
+
+	m68k_builder.add_unique(memory::make_memory_unit(M68K_RAM_HA, std::endian::big), M68K_RAM_START, M68K_RAM_END);
+	for(int i = 1; i <= 32; ++i)
 	{
-		m68k_builder.add(m68k_ram, start_addr, start_addr + 0xFFFF);
-		start_addr += 0xFFFF + 1;
+		std::uint32_t mirror_start = M68K_RAM_START + ((M68K_RAM_HA + 1) * i);
+		std::uint32_t mirror_end = mirror_start + M68K_RAM_HA;
+		m68k_builder.mirror(M68K_RAM_START, M68K_RAM_END, mirror_start, mirror_end);
 	}
 
 	// TMSS register

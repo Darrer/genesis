@@ -5,7 +5,6 @@
 
 #include <optional>
 #include <stdexcept>
-#include <compare>
 #include <functional>
 
 
@@ -19,6 +18,11 @@ struct addressable_device
 	std::uint32_t start_address;
 	std::uint32_t end_address;
 };
+
+bool is_intersect(const auto& device, std::uint32_t address)
+{
+	return device.start_address <= address && address <= device.end_address;
+}
 
 class composite_memory : public addressable
 {
@@ -229,6 +233,36 @@ void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t star
 
 	m_refs.push_back({*device, start_address, end_address});
 	m_unique_ptrs.push_back(std::move(device));
+}
+
+void memory_builder::mirror(std::uint32_t start_address, std::uint32_t end_address,
+		std::uint32_t mirrored_start_address, std::uint32_t mirrored_end_address)
+{
+	if((end_address - start_address) != (mirrored_end_address - mirrored_start_address))
+		throw std::invalid_argument("address ranges must have the same size");
+
+	check_intersect(mirrored_start_address, mirrored_end_address);
+
+	// check that start_address and end_address belong to the same device
+	for(const auto& device : m_refs)
+	{
+		if((is_intersect(device, start_address) && !is_intersect(device, end_address))
+			|| (is_intersect(device, end_address) && !is_intersect(device, start_address)))
+		{
+			throw std::invalid_argument("start/end addresses must belong to the same device");
+		}
+	}
+
+	const auto& device = std::ranges::find_if(m_refs, [start_address, end_address](const auto& dev)
+	{
+		return is_intersect(dev, start_address) && is_intersect(dev, end_address);
+	});
+
+	if(device == m_refs.end())
+		throw std::invalid_argument("cannot find device serving inital addresses");
+
+	memory_ref new_device {device->memory_unit, mirrored_start_address, mirrored_end_address};
+	m_refs.push_back(new_device);
 }
 
 void memory_builder::assert_not_null(addressable* device) const
