@@ -155,7 +155,7 @@ int main(int args, char* argv[])
 
 		std::string rom_title = get_rom_title(rom);
 
-		genesis::smd smd(std::move(rom), input_device);
+		genesis::smd smd(rom, input_device);
 
 		auto displays = create_displays(smd, std::move(rom_title));
 

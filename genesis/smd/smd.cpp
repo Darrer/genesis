@@ -14,44 +14,35 @@
 #include "io_ports/controller.h"
 #include "io_ports/disabled_port.h"
 
-#include <fstream>
-
 
 namespace genesis
 {
 
-smd::smd(genesis::rom rom, std::shared_ptr<io_ports::input_device> input_dev1)
-	: m_rom(std::move(rom)), m_input_dev1(input_dev1)
+smd::smd(const genesis::rom& rom, std::shared_ptr<io_ports::input_device> input_dev1)
+	: m_input_dev1(input_dev1)
 {
 	m_vdp = std::make_unique<vdp::vdp>();
 
-	build_cpu_memory_map(load_rom());
+	build_cpu_memory_map(rom);
 
-	// z80::memory z80_mem(z80_mem_map);
+	// z80::memory z80_mem(m_z80_mem_map);
 	auto z80_ports = std::make_shared<impl::z80_io_ports>();
-	m_z80_cpu = std::make_unique<z80::cpu>(std::make_shared<z80::memory>(z80_mem_map), z80_ports);
+	m_z80_cpu = std::make_unique<z80::cpu>(std::make_shared<z80::memory>(m_z80_mem_map), z80_ports);
 
 	auto m68k_int_access = std::make_shared<impl::m68k_interrupt_access_impl>();
-	m_m68k_cpu = std::make_unique<m68k::cpu>(m68k_mem_map, m68k_int_access);
-
-	// TODO: it does not make much senete to have a shared_pointer to an object containing a reference
-	auto m68k_bus_access = std::make_shared<impl::m68k_bus_access_impl>(m_m68k_cpu->bus_access());
-	m_vdp->set_m68k_bus_access(m68k_bus_access);
+	m_m68k_cpu = std::make_unique<m68k::cpu>(m_m68k_mem_map, m68k_int_access);
 
 	m68k_int_access->set_cpu(*m_m68k_cpu);
 	m_vdp->set_m68k_interrupt_access(m68k_int_access);
+
+	// TODO: it does not make much sense to have a shared_pointer to an object containing a reference
+	auto m68k_bus_access = std::make_shared<impl::m68k_bus_access_impl>(m_m68k_cpu->bus_access());
+	m_vdp->set_m68k_bus_access(m68k_bus_access);
 }
 
 void smd::cycle()
 {
 	// NOTE: preliminary implementation
-	std::uint32_t pc = m_m68k_cpu->registers().PC;
-	if(pc != prev_pc)
-	{
-		prev_pc = pc;
-		// std::cout << "PC: " << su::hex_str(pc) << "\n";
-	}
-
 	++cycles;
 
 	// TODO: temporary use random numbers
@@ -79,17 +70,18 @@ void smd::z80_cycle()
 		return;
 	}
 
-	// std::cout << "Run z80\n";
 	m_z80_cpu->execute_one();
 }
 
-void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_ptr)
+void smd::build_cpu_memory_map(const genesis::rom& rom)
 {
+	auto rom_data = load_rom(rom);
+
 	/* Build z80 memory map */
 	memory::memory_builder z80_builder;
 
 	z80_builder.add_unique(memory::make_memory_unit(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
-	z80_builder.mirror(0x0, 0x1FFF, 0x2000, 0x3FFF); // main RAM mirror
+	z80_builder.mirror(0x0, 0x1FFF, 0x2000, 0x3FFF); // main RAM mirrored
 
 	z80_builder.add_unique(std::make_unique<memory::dummy_memory>(0x0, std::endian::little), 0x4000, 0x4000);
 	z80_builder.add_unique(std::make_unique<memory::zero_memory_unit>(0x0, std::endian::little), 0x4001, 0x4001);
@@ -106,7 +98,7 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 
 
 	// TODO: only rom is accessible for now
-	impl::z80_68bank z80_bank(std::make_shared<memory::memory_unit>(rom_ptr, std::endian::big));
+	impl::z80_68bank z80_bank(std::make_shared<memory::memory_unit>(rom_data, std::endian::big));
 	z80_builder.add(z80_bank.bank_register(), 0x6000, 0x6000);
 	z80_builder.add(z80_bank.bank_area(), 0x8000, 0xFFFF);
 
@@ -114,15 +106,15 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 	// z80_builder.add(std::make_shared<memory::memory_unit>(0x1F0F, std::endian::little), 0x6001, 0x7F10); // reserved
 	// z80_builder.add(std::make_shared<memory::memory_unit>(0xED, std::endian::little), 0x7F12, 0x7FFF); // reserved
 
-	z80_mem_map = z80_builder.build();
+	m_z80_mem_map = z80_builder.build();
 
 	memory::memory_builder m68k_builder;
 
 	// Setup version register based on the loaded rom
-	m68k_builder.add_unique(build_version_register(), 0xA10000, 0xA10001);
+	m68k_builder.add_unique(build_version_register(rom), 0xA10000, 0xA10001);
 
-	m68k_builder.add_unique(std::make_unique<memory::memory_unit>(rom_ptr, std::endian::big), 0x0, 0x3FFFFF);
-	m68k_builder.add(z80_mem_map, 0xA00000, 0xA0FFFF);
+	m68k_builder.add_unique(std::make_unique<memory::memory_unit>(rom_data, std::endian::big), 0x0, 0x3FFFFF);
+	m68k_builder.add(m_z80_mem_map, 0xA00000, 0xA0FFFF);
 
 	// M68K RAM, mirrored every $FFFF
 	const std::uint32_t M68K_RAM_START = 0xE00000;
@@ -176,14 +168,14 @@ void smd::build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_pt
 	m68k_builder.add(m_z80_ctrl_registers.z80_bus_request_register(), 0xA11100, 0xA11101);
 	m68k_builder.add(m_z80_ctrl_registers.z80_reset_register(), 0xA11200, 0xA11201);
 	
-	m68k_mem_map = m68k_builder.build();
+	m_m68k_mem_map = m68k_builder.build();
 }
 
-std::unique_ptr<memory::addressable> smd::build_version_register() const
+std::unique_ptr<memory::addressable> smd::build_version_register(const genesis::rom& rom)
 {
-	auto supports = [this](char region_type)
+	auto supports = [&rom](char region_type)
 	{
-		return m_rom.header().region_support.contains(region_type);
+		return rom.header().region_support.contains(region_type);
 	};
 
 	std::uint8_t reg_value = 0x0;
@@ -208,13 +200,22 @@ std::unique_ptr<memory::addressable> smd::build_version_register() const
 	return version_register;
 }
 
-std::shared_ptr<std::vector<std::uint8_t>> smd::load_rom()
+std::shared_ptr<std::vector<std::uint8_t>> smd::load_rom(const genesis::rom& rom)
 {
-	std::vector<std::uint8_t> data;
-	data.assign_range(m_rom.data());
-	for(std::size_t i = data.size(); i < 0x400000; ++i)
-		data.push_back(0);
-	return std::make_shared<std::vector<std::uint8_t>>(std::move(data));
+	const std::uint32_t ROM_SIZE = 0x400000;
+
+	if(rom.data().size() > ROM_SIZE)
+		throw std::runtime_error("The ROM cannot be loaded due to its size being too large");
+
+	auto rom_data = std::make_shared<std::vector<std::uint8_t>>();
+	rom_data->reserve(ROM_SIZE);
+	rom_data->assign_range(rom.data());
+
+	// pad ROM
+	for(std::size_t i = rom_data->size(); i < ROM_SIZE; ++i)
+		rom_data->push_back(0);
+
+	return rom_data;
 }
 
 } // namespace genesis

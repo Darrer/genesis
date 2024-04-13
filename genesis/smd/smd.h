@@ -21,34 +21,31 @@ namespace genesis
 class smd
 {
 public:
-	smd(genesis::rom rom, std::shared_ptr<io_ports::input_device> input_dev1);
+	smd(const genesis::rom& rom, std::shared_ptr<io_ports::input_device> input_dev1);
 
 	void cycle();
 
 	vdp::vdp& vdp() { return *m_vdp; }
 
 private:
-	void build_cpu_memory_map(std::shared_ptr<std::vector<std::uint8_t>> rom_ptr);
-	std::unique_ptr<memory::addressable> build_version_register() const;
+	void build_cpu_memory_map(const genesis::rom& rom);
 
-	std::shared_ptr<std::vector<std::uint8_t>> load_rom();
+	static std::unique_ptr<memory::addressable> build_version_register(const genesis::rom& rom);
+	static std::shared_ptr<std::vector<std::uint8_t>> load_rom(const genesis::rom& rom);
 
 private:
-	genesis::rom m_rom;
-	std::shared_ptr<memory::addressable> m68k_mem_map;
-	std::shared_ptr<memory::addressable> z80_mem_map;
+	std::shared_ptr<memory::addressable> m_m68k_mem_map;
+	std::shared_ptr<memory::addressable> m_z80_mem_map;
 
 	// tmp
 	void z80_cycle();
 	impl::z80_control_registers m_z80_ctrl_registers;
 
 protected:
-	// unique_ptr for simplicity for now
 	std::unique_ptr<m68k::cpu> m_m68k_cpu;
 	std::unique_ptr<z80::cpu> m_z80_cpu;
 	std::unique_ptr<vdp::vdp> m_vdp;
 
-	std::uint32_t prev_pc = 0x0;
 	unsigned cycles = 0;
 
 private:
