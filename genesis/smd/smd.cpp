@@ -209,7 +209,9 @@ std::shared_ptr<std::vector<std::uint8_t>> smd::load_rom(const genesis::rom& rom
 
 	auto rom_data = std::make_shared<std::vector<std::uint8_t>>();
 	rom_data->reserve(ROM_SIZE);
-	rom_data->assign_range(rom.data());
+
+	for(auto val : rom.data())
+		rom_data->push_back(val);
 
 	// pad ROM
 	for(std::size_t i = rom_data->size(); i < ROM_SIZE; ++i)

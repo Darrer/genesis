@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string_view>
 #include <filesystem>
-#include <print>
+#include <iomanip>
 
 #include "rom.h"
 #include "smd/smd.h"
@@ -24,7 +24,7 @@ void print_usage(const char* prog_path)
 
 void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
 {
-	std::println("==== Key layout ====");
+	std::cout << "==== Key layout ====\n";
 
 	const auto keys = {
 		io_ports::key_type::UP,
@@ -50,17 +50,17 @@ void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout
 			continue;
 
 		auto sdl_key = it->first;
-		std::println("{:5} -> {}", io_ports::key_type_name(key), SDL_GetKeyName(sdl_key));
+		std::cout << std::setw(5) << io_ports::key_type_name(key) << " -> " << SDL_GetKeyName(sdl_key) << '\n';
 	}
 
-	std::println("====================");
+	std::cout << "====================\n";
 }
 
 template<class T>
 void measure_and_log(T func, std::string_view msg)
 {
 	auto ms = time::measure_in_ms(func);
-	std::println("Executing {} took {} ms", msg, ms);
+	std::cout << "Executing " << msg << " took " << ms << " ms\n";
 }
 
 std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::string rom_title)
@@ -134,19 +134,19 @@ int main(int args, char* argv[])
 	{
 		std::string_view rom_path = argv[1];
 
-		std::print("Reading {}", rom_path);
+		std::cout << "Reading " << rom_path << '\n';
 		genesis::rom rom(rom_path);
 
 		genesis::debug::print_rom_header(std::cout, rom.header());
 		if(rom.checksum() != rom.header().rom_checksum)
 		{
-			std::println("WARNING: ROM checksum mismatch (expected {:#04X} vs actual {:#04X})",
-				rom.checksum(), rom.header().rom_checksum);
+			std::cout << "WARNING: ROM checksum mismatch (expected " << su::hex_str(rom.checksum())
+				<< " vs actual " << su::hex_str(rom.header().rom_checksum) << ")\n";
 		}
 
 		if(SDL_Init(SDL_INIT_VIDEO) < 0)
 		{
-			std::println(std::cerr, "Cannot initialize SDL: {}", SDL_GetError());
+			std::cerr << "Cannot initialize SDL: " << SDL_GetError() << '\n';
 			return EXIT_FAILURE;
 		}
 
@@ -191,7 +191,7 @@ int main(int args, char* argv[])
 				auto stop = std::chrono::high_resolution_clock::now();
 				auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 				auto ns_per_cycle = dur / cycle;
-				std::println("ns per cycle: {}", ns_per_cycle.count());
+				std::cout << "ns per cycle: " << ns_per_cycle.count() << '\n';
 
 				start = stop;
 				cycle = 0;
@@ -200,11 +200,11 @@ int main(int args, char* argv[])
 	}
 	catch(const std::invalid_argument& e)
 	{
-		std::println(std::cerr, "Invalid Argument exception: {}", e.what());
+		std::cerr << "Invalid Argument exception: " << e.what() << '\n';
 	}
 	catch(const std::exception& e)
 	{
-		std::println(std::cerr, "{}", e.what());
+		std::cerr << e.what() << '\n';
 	}
 
 	SDL_Quit();
