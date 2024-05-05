@@ -12,7 +12,6 @@ namespace genesis::test
 
 class random
 {
-	static bool inited;
 public:
 	template<class T>
 	static T next()

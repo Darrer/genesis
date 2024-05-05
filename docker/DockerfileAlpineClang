@@ -1,7 +1,9 @@
 FROM alpine:latest
 
 RUN apk update
-RUN apk add cmake git make clang lld musl-dev
+
+# compiler-rt for clang sanitizers
+RUN apk add cmake git make clang lld musl-dev compiler-rt
 
 WORKDIR /genesis
 COPY . .

@@ -92,7 +92,6 @@ public:
 			endian::sys_to_big(data);
 		}
 
-		// TODO: why do we need to iterate?
 		for (size_t i = 0; i < sizeof(T); ++i)
 			m_buffer[address + i] = *(reinterpret_cast<std::uint8_t*>(&data) + i);
 	}
@@ -102,7 +101,9 @@ public:
 	{
 		check_addr(address, sizeof(T));
 
-		T data = *reinterpret_cast<T*>(&(m_buffer[address]));
+		T data{};
+		for(std::size_t i = 0; i < sizeof(T); ++i)
+			*(reinterpret_cast<std::uint8_t*>(&data) + i) = m_buffer[address + i];
 
 		// convert to sys byte order
 		if (m_byte_order == std::endian::little)
@@ -127,11 +128,10 @@ public:
 	}
 
 private:
-	inline void check_addr(std::uint32_t addr, size_t size)
+	void check_addr(std::uint32_t addr, size_t size)
 	{
-		// TODO: change exception type
 		if(addr > max_address() || (addr + size - 1) > max_address())
-			throw internal_error("buffer_unit check: wrong address (" + su::hex_str(addr) +
+			throw internal_error("buffer_unit check_addr error (" + su::hex_str(addr) +
 									 ") size: " + std::to_string(size));
 	}
 

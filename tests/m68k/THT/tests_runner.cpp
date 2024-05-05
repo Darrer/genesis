@@ -17,6 +17,8 @@ using namespace genesis;
 
 static bool log_memory_allocations = false;
 
+#ifdef LOG_MEMORY_ALLOCATIONS
+
 void* operator new(size_t size)
 {
 	if(log_memory_allocations)
@@ -54,6 +56,8 @@ void operator delete[](void* p, std::size_t /* size */) noexcept
 {
 	::operator delete[](p);
 }
+
+#endif
 
 void set_preconditions(test::test_cpu& cpu, const cpu_state& state)
 {
