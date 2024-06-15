@@ -17,7 +17,7 @@ if (MSVC)
 	set(GENESIS_CXX_FLAGS /W3 /WX /O2 /w34189 /w34100 /w34505)
 	set(GENESIS_LINK_FLAGS)
 else()
-	set(GENESIS_CXX_FLAGS -Wall -Wextra -pedantic -O0 -fpermissive -Wno-switch)
+	set(GENESIS_CXX_FLAGS -Wall -Wextra -pedantic -O3 -fpermissive -Wno-switch)
 	set(GENESIS_LINK_FLAGS)
 endif()
 
