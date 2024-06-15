@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 #include <ranges>
+#include <cstring>
 
 
 namespace genesis
@@ -129,16 +130,17 @@ std::uint16_t rom::checksum() const
 template <class T>
 T read_builtin_type(std::span<const std::uint8_t> buffer, std::size_t offset)
 {
-	if(offset + sizeof(T) >= buffer.size())
+	if(offset + sizeof(T) > buffer.size())
 		throw internal_error();
-	T data {*reinterpret_cast<const T*>(buffer.data() + offset)};
+	T data;
+	std::memcpy(&data, buffer.data() + offset, sizeof(T));
 	endian::big_to_sys(data); // rom has big-endian format
 	return data;
 }
 
-std::string_view read_string(std::span<const std::uint8_t> buffer, std::size_t offset, std::size_t size)
+std::string_view read_string_view(std::span<const std::uint8_t> buffer, std::size_t offset, std::size_t size)
 {
-	if(offset + size >= buffer.size())
+	if(offset + size > buffer.size())
 		throw internal_error();
 	std::string_view str {reinterpret_cast<const char*>(buffer.data() + offset), size};
 	su::trim(str);
@@ -147,11 +149,11 @@ std::string_view read_string(std::span<const std::uint8_t> buffer, std::size_t o
 
 void rom::setup_header()
 {
-	m_header.system_type = read_string(m_rom_data, 0x100, 16);
-	m_header.copyright = read_string(m_rom_data, 0x110, 16);
-	m_header.game_name_domestic = read_string(m_rom_data, 0x120, 48);
-	m_header.game_name_overseas = read_string(m_rom_data, 0x150, 48);
-	m_header.region_support = read_string(m_rom_data, 0x1F0, 3);
+	m_header.system_type = read_string_view(m_rom_data, 0x100, 16);
+	m_header.copyright = read_string_view(m_rom_data, 0x110, 16);
+	m_header.game_name_domestic = read_string_view(m_rom_data, 0x120, 48);
+	m_header.game_name_overseas = read_string_view(m_rom_data, 0x150, 48);
+	m_header.region_support = read_string_view(m_rom_data, 0x1F0, 3);
 
 	m_header.rom_checksum = read_builtin_type<std::uint16_t>(m_rom_data, 0x18E);
 	m_header.rom_start_addr = read_builtin_type<std::uint32_t>(m_rom_data, 0x1A0);

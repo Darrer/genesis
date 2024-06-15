@@ -4,6 +4,7 @@
 #include <span>
 #include <cstdint>
 #include <optional>
+#include <cstring>
 
 #include "addressable.h"
 #include "endian.hpp"
@@ -92,18 +93,13 @@ public:
 			endian::sys_to_big(data);
 		}
 
-		for (size_t i = 0; i < sizeof(T); ++i)
-			m_buffer[address + i] = *(reinterpret_cast<std::uint8_t*>(&data) + i);
+		std::memcpy(&m_buffer[address], &data, sizeof(T));
 	}
 
 	template<class T>
 	T read(std::uint32_t address)
 	{
-		check_addr(address, sizeof(T));
-
-		T data{};
-		for(std::size_t i = 0; i < sizeof(T); ++i)
-			*(reinterpret_cast<std::uint8_t*>(&data) + i) = m_buffer[address + i];
+		T data = read_raw<T>(address);
 
 		// convert to sys byte order
 		if (m_byte_order == std::endian::little)
@@ -123,7 +119,10 @@ public:
 	T read_raw(std::uint32_t address)
 	{
 		check_addr(address, sizeof(T));
-		T data = *reinterpret_cast<T*>(&(m_buffer[address]));
+
+		T data;
+		std::memcpy(&data, &m_buffer[address], sizeof(T));
+
 		return data;
 	}
 

@@ -17,8 +17,11 @@ struct name_table_entry
 
 	name_table_entry(std::uint16_t value)
 	{
-		// TODO: check if it's UB
-		*reinterpret_cast<std::uint16_t*>(this) = value;
+		pattern_addr = value & 0x07FF; // bits 0-10
+		horizontal_flip = (value >> 11) & 0b1; 
+		vertical_flip = (value >> 12) & 0b1;
+		palette = (value >> 13) & 0b11;
+		priority = (value >> 15) & 0b1;
 	}
 
 	std::uint32_t effective_pattern_address() const

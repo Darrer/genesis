@@ -16,7 +16,13 @@ class register_set
 public:
 	register_set()
 	{
-		for(std::uint8_t i = 0; i <= 23; ++i)
+		m_registers = {
+			&R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7, &R8, &R9, &R10,
+			&R11, &R12, &R13, &R14, &R15, &R16, &R17, &R18, &R19, &R20,
+			&R21, &R22, &R23
+		};
+
+		for(std::uint8_t i = 0; i < m_registers.size(); ++i)
 			set_register(i, 0);
 		h_counter = v_counter = 0;
 		sr_raw = 0;
@@ -24,66 +30,20 @@ public:
 
 	void set_register(std::uint8_t reg, std::uint8_t value)
 	{
-		get_register(reg) = value;
+		if(reg >= m_registers.size())
+			throw internal_error();
+
+		std::memcpy(m_registers[reg], &value, sizeof(value));
 	}
 
-	std::uint8_t& get_register(std::uint8_t reg)
+	std::uint8_t get_register(std::uint8_t reg)
 	{
-		// TODO: check if it's UB to use reinterpret_cast here
-		switch(reg)
-		{
-		case 0:
-			return *reinterpret_cast<std::uint8_t*>(&R0);
-		case 1:
-			return *reinterpret_cast<std::uint8_t*>(&R1);
-		case 2:
-			return *reinterpret_cast<std::uint8_t*>(&R2);
-		case 3:
-			return *reinterpret_cast<std::uint8_t*>(&R3);
-		case 4:
-			return *reinterpret_cast<std::uint8_t*>(&R4);
-		case 5:
-			return *reinterpret_cast<std::uint8_t*>(&R5);
-		case 6:
-			return *reinterpret_cast<std::uint8_t*>(&R6);
-		case 7:
-			return *reinterpret_cast<std::uint8_t*>(&R7);
-		case 8:
-			return *reinterpret_cast<std::uint8_t*>(&R8);
-		case 9:
-			return *reinterpret_cast<std::uint8_t*>(&R9);
-		case 10:
-			return *reinterpret_cast<std::uint8_t*>(&R10);
-		case 11:
-			return *reinterpret_cast<std::uint8_t*>(&R11);
-		case 12:
-			return *reinterpret_cast<std::uint8_t*>(&R12);
-		case 13:
-			return *reinterpret_cast<std::uint8_t*>(&R13);
-		case 14:
-			return *reinterpret_cast<std::uint8_t*>(&R14);
-		case 15:
-			return *reinterpret_cast<std::uint8_t*>(&R15);
-		case 16:
-			return *reinterpret_cast<std::uint8_t*>(&R16);
-		case 17:
-			return *reinterpret_cast<std::uint8_t*>(&R17);
-		case 18:
-			return *reinterpret_cast<std::uint8_t*>(&R18);
-		case 19:
-			return *reinterpret_cast<std::uint8_t*>(&R19);
-		case 20:
-			return *reinterpret_cast<std::uint8_t*>(&R20);
-		case 21:
-			return *reinterpret_cast<std::uint8_t*>(&R21);
-		case 22:
-			return *reinterpret_cast<std::uint8_t*>(&R22);
-		case 23:
-			return *reinterpret_cast<std::uint8_t*>(&R23);
-
-		default:
+		if(reg >= m_registers.size())
 			throw internal_error();
-		}
+
+		std::uint8_t value;
+		std::memcpy(&value, m_registers[reg], sizeof(value));
+		return value;
 	}
 
 	/* Registers */
@@ -124,6 +84,9 @@ public:
 	control_register control;
 	read_buffer read_cache;
 	vdp::fifo fifo;
+
+private:
+	std::array<void*, 24> m_registers;
 };
 
 } // namespace genesis::vdp

@@ -4,6 +4,7 @@
 #include "size_type.h"
 #include "m68k/cpu_registers.hpp"
 #include "bus_scheduler.h"
+#include "endian.hpp"
 
 #include <cstdint>
 
@@ -495,12 +496,16 @@ private:
 	{
 		brief_ext(std::uint16_t raw)
 		{
-			static_assert(sizeof(brief_ext) == 2);
-			*reinterpret_cast<std::uint16_t*>(this) = raw;
+			displacement = endian::lsb(raw);
+
+			std::uint8_t msb = endian::msb(raw);
+			wl = (msb >> 3) & 0b1;
+			reg = (msb >> 4) & 0b111;
+			da = (msb >> 7) & 0b1;
 		}
 
 		std::uint8_t displacement;
-		std::uint8_t _res : 3;
+		// std::uint8_t reserved : 3;
 		std::uint8_t wl : 1;
 		std::uint8_t reg : 3;
 		std::uint8_t da : 1;
