@@ -6,9 +6,9 @@ namespace genesis::vdp::impl
 
 enum class plane_type
 {
-	a,
-	b,
-	w
+	a, // foreground
+	b, // background
+	w  // window
 };
 
 }

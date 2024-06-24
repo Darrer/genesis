@@ -16,6 +16,7 @@
 namespace genesis::vdp::impl
 {
 
+// TODO: rename to renderer
 class render
 {
 public:

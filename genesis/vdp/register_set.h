@@ -1,6 +1,8 @@
 #ifndef __VDP_REGISTER_SET_H__
 #define __VDP_REGISTER_SET_H__
 
+#include <cstring>
+
 #include "control_register.h"
 #include "exception.hpp"
 #include "impl/fifo.h"
