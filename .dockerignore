@@ -1,4 +1,3 @@
 .vs/
 build*
 release_build*
-docker/
