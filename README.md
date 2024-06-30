@@ -1,87 +1,22 @@
 # Genesis project
 
-The goal of this project is to create Genesis (Sega Mega Drive) emulator. The project does not aim to create an accurate emulator, it just should be good enough to run at least some games.
+Genesis is an early-stage emulator for the Sega Genesis (Mega Drive) console. While it is still under development, the project aims to provide an accurate and high-performance emulation of the classic Sega Genesis system. Despite its early state, the emulator is already capable of running most Genesis games, though users may encounter some bugs and incomplete features. Ongoing development is focused on enhancing emulation accuracy, improving performance, and expanding games compatibility.
 
-## Work done so far
+## Emulator Demo Video
 
-- Implemented Z80 CPU emulator (not cycle accurate yet). It passes ZEXDOC/ZEXALL tests:
+This demo video showcases an early version of emulator running various Sega Genesis games. Please note that the emulator is still in development, and some features may be incomplete (e.g. the sound subsystem is currently under development) or not fully optimized.
 
-```console
-Z80all instruction exerciser
+Games featured in this demo:
 
-<adc,sbc> hl,<bc,de,hl,sp>....OK
-add hl,<bc,de,hl,sp>..........OK
-add ix,<bc,de,ix,sp>..........OK
-add iy,<bc,de,iy,sp>..........OK
-aluop a,nn....................OK
-aluop a,<b,c,d,e,h,l,(hl),a>..OK
-aluop a,<ixh,ixl,iyh,iyl>.....OK
-aluop a,(<ix,iy>+1)...........OK
-bit n,(<ix,iy>+1).............OK
-bit n,<b,c,d,e,h,l,(hl),a>....OK
-cpd<r>........................OK
-cpi<r>........................OK
-<daa,cpl,scf,ccf>.............OK
-<inc,dec> a...................OK
-<inc,dec> b...................OK
-<inc,dec> bc..................OK
-<inc,dec> c...................OK
-<inc,dec> d...................OK
-<inc,dec> de..................OK
-<inc,dec> e...................OK
-<inc,dec> h...................OK
-<inc,dec> hl..................OK
-<inc,dec> ix..................OK
-<inc,dec> iy..................OK
-<inc,dec> l...................OK
-<inc,dec> (hl)................OK
-<inc,dec> sp..................OK
-<inc,dec> (<ix,iy>+1).........OK
-<inc,dec> ixh.................OK
-<inc,dec> ixl.................OK
-<inc,dec> iyh.................OK
-<inc,dec> iyl.................OK
-ld <bc,de>,(nnnn).............OK
-ld hl,(nnnn)..................OK
-ld sp,(nnnn)..................OK
-ld <ix,iy>,(nnnn).............OK
-ld (nnnn),<bc,de>.............OK
-ld (nnnn),hl..................OK
-ld (nnnn),sp..................OK
-ld (nnnn),<ix,iy>.............OK
-ld <bc,de,hl,sp>,nnnn.........OK
-ld <ix,iy>,nnnn...............OK
-ld a,<(bc),(de)>..............OK
-ld <b,c,d,e,h,l,(hl),a>,nn....OK
-ld (<ix,iy>+1),nn.............OK
-ld <b,c,d,e>,(<ix,iy>+1)......OK
-ld <h,l>,(<ix,iy>+1)..........OK
-ld a,(<ix,iy>+1)..............OK
-ld <ixh,ixl,iyh,iyl>,nn.......OK
-ld <bcdehla>,<bcdehla>........OK
-ld <bcdexya>,<bcdexya>........OK
-ld a,(nnnn) / ld (nnnn),a.....OK
-ldd<r> (1)....................OK
-ldd<r> (2)....................OK
-ldi<r> (1)....................OK
-ldi<r> (2)....................OK
-neg...........................OK
-<rrd,rld>.....................OK
-<rlca,rrca,rla,rra>...........OK
-shf/rot (<ix,iy>+1)...........OK
-shf/rot <b,c,d,e,h,l,(hl),a>..OK
-<set,res> n,<bcdehl(hl)a>.....OK
-<set,res> n,(<ix,iy>+1).......OK
-ld (<ix,iy>+1),<b,c,d,e>......OK
-ld (<ix,iy>+1),<h,l>..........OK
-ld (<ix,iy>+1),a..............OK
-ld (<bc,de>),a................OK
-Z80 Test complete, succeeded: 67, failed: 0
-```
+- [PapiRium Demo](https://vetea.itch.io/papirium-official-demo)
+- [FoxyLand Demo](https://pscdgames.itch.io/foxyland)
+- [PapiCommandoReload Demo](https://vetea.itch.io/papi-commando-reload-free-demo-tectoy)
 
-## How to build
+Feel free to explore the current capabilities of the emulator through these gameplay demonstrations.
 
-Run the following commands to build the project:
+## Building and Testing
+
+To build the project using `make`, follow these steps:
 
 ```console
 mkdir build && cd build
@@ -89,24 +24,27 @@ cmake .. -G "Unix Makefiles"
 make
 ```
 
-To run tests just execute:
+To run tests, execute the following command:
 
 ```console
-make test
+ctest
 ```
 
-Or to get a more detailed output:
+For a more detailed output, you can alternatively run:
 
 ```console
-make && ./tests/genesis_tests.exe
+make && ./tests/genesis_tests
 ```
 
-## Build requirements
+## Build Requirements
 
-The following is required to build the project:
+To build the project, you need the following:
 
-- c++ compiler supporting c++ 20
-- cmake 3.0 or higher
-- make
+- C++ compiler that supports C++23
+- CMake version 3.5 or higher
 
-Some other dependencies (like gtest framework) should be loaded automatically.
+All other dependencies will be loaded automatically.
+
+## License
+
+This project is licensed under the GNU GPLv3 - see the LICENSE file for details.
