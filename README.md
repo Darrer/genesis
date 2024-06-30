@@ -6,6 +6,8 @@ Genesis is an early-stage emulator for the Sega Genesis (Mega Drive) console. Wh
 
 This demo video showcases an early version of emulator running various Sega Genesis games. Please note that the emulator is still in development, and some features may be incomplete (e.g. the sound subsystem is currently under development) or not fully optimized.
 
+[demo.webm](https://github.com/Darrer/genesis/assets/20683759/30d23ba4-dcf3-4b78-9356-de83126dd733)
+
 Games featured in this demo:
 
 - [PapiRium Demo](https://vetea.itch.io/papirium-official-demo)
