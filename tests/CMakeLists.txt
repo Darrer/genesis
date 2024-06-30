@@ -83,10 +83,10 @@ include(GoogleTest)
 gtest_discover_tests(${GENESIS_TESTS})
 
 # copy z80 exercisers
-file(COPY z80/exercisers/zexdoc DESTINATION z80)
-file(COPY z80/exercisers/zexall DESTINATION z80)
-file(COPY z80/exercisers/z80full.tap DESTINATION z80)
-file(COPY z80/exercisers/z80doc.tap DESTINATION z80)
+file(COPY z80/exercisers/Spectrum/zexdoc DESTINATION z80)
+file(COPY z80/exercisers/Spectrum/zexall DESTINATION z80)
+file(COPY z80/exercisers/z80test/z80full.tap DESTINATION z80)
+file(COPY z80/exercisers/z80test/z80doc.tap DESTINATION z80)
 
 # copy m68k test files
 file(COPY m68k/exercisers/OPCLOGR3.BIN DESTINATION m68k)
