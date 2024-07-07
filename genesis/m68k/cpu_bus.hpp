@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <array>
 #include <type_traits>
+#include <algorithm>
 
 
 namespace genesis::m68k
