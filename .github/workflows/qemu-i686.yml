@@ -1,0 +1,90 @@
+name: Qemu i686 CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        ALPINE_VER: [latest-stable, edge]
+        CXX_APK: [g++, clang]
+
+    steps:
+    - name: Install qemu and related tools
+      run: sudo -E apt update && sudo -E apt -y install qemu-system-x86 qemu-utils screen openssh-client wget
+      env:
+        NEEDRESTART_SUSPEND: 1
+        DEBIAN_FRONTEND: noninteractive
+        DEBCONF_NONINTERACTIVE_SEEN: true
+
+    - name: Download alpine i686 files and prepare VM
+      run: |
+        wget -nv https://dl-cdn.alpinelinux.org/alpine/${{matrix.ALPINE_VER}}/releases/x86/netboot/vmlinuz-lts
+        wget -nv https://dl-cdn.alpinelinux.org/alpine/${{matrix.ALPINE_VER}}/releases/x86/netboot/initramfs-lts
+        wget -nv https://dl-cdn.alpinelinux.org/alpine/${{matrix.ALPINE_VER}}/releases/x86/netboot/modloop-lts
+        qemu-img create -f raw disk.raw 5G # qemu i686 supports only 2G RAM so disk is required to build
+        mkfs.ext4 disk.raw
+        export LOOPDEVICE=`sudo losetup -f` # find /dev/loopX device to map disk.raw as a block device
+        sudo losetup -v -P $LOOPDEVICE disk.raw # map disk.raw as a block device
+        mkdir genesis # mount point for disk.raw
+        sudo mount -t ext4 $LOOPDEVICE genesis # will be used for git clone
+        sudo rm -rf genesis/* # it's required to deleted lost+found to avoid git checkout errors
+        sudo chmod 777 genesis
+        ssh-keygen -t ed25519 -q -N "" -f ssh-key
+
+    - uses: actions/checkout@v4
+      with:
+        path: genesis
+
+    - name: Run VM
+      run: |
+        sudo umount genesis # umount from runner to avoid disk.raw corruption
+        screen -dmS web-server python3 -m http.server 8000 --bind 127.0.0.1 # server ssh-key and modloop file
+        sudo screen -dmS qemu qemu-system-i386 -accel kvm -cpu host \
+          -M microvm,x-option-roms=off,pic=off,pit=off,rtc=off \
+          -m 2048 -smp 2 -nographic \
+          -kernel vmlinuz-lts \
+          -initrd initramfs-lts \
+          -drive format=raw,file=disk.raw,if=none,id=disk0 \
+          -device virtio-blk-device,drive=disk0 \
+          -netdev user,id=net0,hostfwd=tcp:0.0.0.0:2222-:22 \
+          -device virtio-net-device,netdev=net0  \
+          -append "ip=dhcp alpine_repo=https://dl-cdn.alpinelinux.org/alpine/${{matrix.ALPINE_VER}}/main \
+          modloop=http://10.0.2.2:8000/modloop-lts console=ttyS0 \
+          ssh_key=http://10.0.2.2:8000/ssh-key.pub"
+
+    - name: Wait for ssh connection
+      timeout-minutes: 30
+      run: >
+        while ! ssh -o StrictHostKeyChecking=accept-new -p2222 -o ConnectTimeout=5 -i ssh-key root@localhost "exit 0";
+        do
+        echo "Trying to establish ssh connection";
+        sleep 5;
+        done;
+        cat ~/.ssh/known_hosts
+
+    - name: Display free space, current dir, kernel version and cpuinfo
+      run: ssh -i ssh-key -p2222 root@localhost "df -h && pwd && uname -a && cat /proc/cpuinfo"
+
+    - name: Mount Source Code, Cleanup Alpine and Install Build Tools
+      run: >
+        DATE=`date +%s` &&
+        ssh -i ssh-key -p2222 root@localhost "date @$DATE && 
+        mount -t ext4 /dev/vda /mnt && 
+        umount /dev/shm && umount /.modloop && rm -rf /lib/modloop-lts && df -h &&  
+        apk update && apk add --no-cache cmake make git ${{matrix.CXX_APK}}"
+
+    - name: Build Project
+      run: >
+        ssh -i ssh-key -p2222 root@localhost "df -h && mkdir /mnt/build && cd /mnt/build &&
+        cmake -G 'Unix Makefiles' .. && make -j2"
+
+    - name: Run tests
+      run: ssh -i ssh-key -p2222 root@localhost "cd /mnt/build && ctest"
