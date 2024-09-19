@@ -12,7 +12,7 @@ using namespace genesis::vdp;
 
 void zero_mem(vram_t& mem)
 {
-	for(std::size_t addr = 0; addr <= mem.max_address(); ++addr)
+	for(std::uint32_t addr = 0; addr <= mem.max_address(); ++addr)
 		mem.write<std::uint8_t>(addr, 0);
 }
 
@@ -30,7 +30,7 @@ void zero_mem(vsram_t& mem)
 
 void zero_mem(test::mock_m68k_bus_access::m68k_memory_t& mem)
 {
-	for(std::size_t addr = 0; addr <= mem.max_address(); ++addr)
+	for(std::uint32_t addr = 0; addr <= mem.max_address(); ++addr)
 		mem.write<std::uint8_t>(addr, 0);
 }
 

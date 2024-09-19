@@ -1,0 +1,40 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - CC: "clang"
+            CXX: "clang++"
+            choco_package: llvm
+          - CC: "cl"
+            CXX: "cl"
+            # assume that microsoft cl is always preinstalled
+            choco_package:
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install build tools using choco
+      run: choco install ${{ matrix.choco_package }} ninja -y
+
+    - name: Setup environment to use cl (microsoft cl only)
+      if: ${{ matrix.CC == 'cl' }}
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Build project
+      run: |
+        cmake -DCMAKE_C_COMPILER=${{ matrix.CC }} -DCMAKE_CXX_COMPILER=${{ matrix.CXX }} -DCMAKE_BUILD_TYPE=Release -Bbuild -GNinja 
+        ninja -C build
+
+    - name: Run tests
+      run: ctest --test-dir build
