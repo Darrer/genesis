@@ -215,7 +215,7 @@ void bus_scheduler::prefetch_two()
 	prefetch_irc();
 }
 
-void bus_scheduler::wait(std::uint_fast8_t cycles)
+void bus_scheduler::wait(int cycles)
 {
 	if(cycles == 0)
 		return;
@@ -230,13 +230,13 @@ void bus_scheduler::call_impl(callback cb)
 	queue.emplace(op_type::CALL, call_op);
 }
 
-void bus_scheduler::inc_addr_reg(std::uint_fast8_t reg, size_type size)
+void bus_scheduler::inc_addr_reg(int reg, size_type size)
 {
 	register_operation reg_op{reg, size};
 	queue.emplace(op_type::INC_ADDR, reg_op);
 }
 
-void bus_scheduler::dec_addr_reg(std::uint_fast8_t reg, size_type size)
+void bus_scheduler::dec_addr_reg(int reg, size_type size)
 {
 	register_operation reg_op{reg, size};
 	queue.emplace(op_type::DEC_ADDR, reg_op);

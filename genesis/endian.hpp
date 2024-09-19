@@ -13,22 +13,7 @@ static_assert(std::endian::native == std::endian::big || std::endian::native == 
 
 
 template <class T>
-inline void swap(T&)
-{
-	// Default implementation for 1-byte types
-	static_assert(sizeof(T) == 1, "not supported");
-}
-
-
-template <>
-inline void swap<std::uint32_t>(std::uint32_t& val)
-{
-	val = std::byteswap(val);
-}
-
-
-template <>
-inline void swap<std::uint16_t>(std::uint16_t& val)
+inline void swap(T& val)
 {
 	val = std::byteswap(val);
 }

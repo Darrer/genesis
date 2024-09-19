@@ -88,7 +88,7 @@ public:
 	void prefetch_one();
 	void prefetch_two();
 
-	void wait(std::uint_fast8_t cycles);
+	void wait(int cycles);
 
 	template<class Callable>
 	void call(Callable cb)
@@ -97,8 +97,8 @@ public:
 		call_impl(cb);
 	}
 
-	void inc_addr_reg(std::uint_fast8_t reg, size_type size);
-	void dec_addr_reg(std::uint_fast8_t reg, size_type size);
+	void inc_addr_reg(int reg, size_type size);
+	void dec_addr_reg(int reg, size_type size);
 
 	void push(std::uint32_t data, size_type size, order order = order::msw_first);
 
@@ -150,7 +150,7 @@ private:
 
 	struct wait_operation
 	{
-		std::uint_fast8_t cycles; // TODO: use int
+		int cycles;
 	};
 
 	using callback = std::function<void()>;
@@ -161,7 +161,7 @@ private:
 
 	struct register_operation
 	{
-		std::uint_fast8_t reg;
+		int reg;
 		size_type size;
 	};
 
@@ -169,7 +169,7 @@ private:
 	{
 		std::uint32_t data;
 		size_type size;
-		std::int_fast8_t offset = 0;
+		int offset = 0;
 	};
 
 	struct operation
@@ -208,7 +208,7 @@ private:
 	std::queue<operation> queue;
 	std::optional<operation> current_op;
 	std::uint32_t data = 0;
-	std::uint_fast8_t curr_wait_cycles = 0;
+	int curr_wait_cycles = 0;
 };
 
 

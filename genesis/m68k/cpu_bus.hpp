@@ -76,19 +76,19 @@ public:
 
 	std::uint32_t address() const { return addr_bus; }
 
-	void data(std::uint_fast16_t val) { data_bus = val; }
-	std::uint_fast16_t data() const { return data_bus; }
+	void data(std::uint16_t val) { data_bus = val; }
+	std::uint16_t data() const { return data_bus; }
 
-	void func_codes(std::uint_fast8_t fc)
+	void func_codes(int fc)
 	{
 		bus_state[bus_index(bus::FC0)] = (fc & 0b001) != 0;
 		bus_state[bus_index(bus::FC1)] = (fc & 0b010) != 0;
 		bus_state[bus_index(bus::FC2)] = (fc & 0b100) != 0;
 	}
 
-	std::uint_fast8_t func_codes() const
+	int func_codes() const
 	{
-		std::uint_fast8_t func_codes = 0;
+		int func_codes = 0;
 		if(is_set(bus::FC0)) func_codes |= 0b001;
 		if(is_set(bus::FC1)) func_codes |= 0b010;
 		if(is_set(bus::FC2)) func_codes |= 0b100;
@@ -119,7 +119,7 @@ private:
 
 private:
 	std::uint32_t addr_bus = 0;
-	std::uint_fast16_t data_bus = 0;
+	std::uint16_t data_bus = 0;
 	bool bus_state[num_buses];
 };
 

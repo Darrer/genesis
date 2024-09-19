@@ -22,6 +22,7 @@ union address_register {
 	std::uint32_t LW;
 };
 
+// TODO: the order of bit fields is undefined by the standard
 struct status_register
 {
 	/* user byte */
@@ -62,8 +63,7 @@ public:
 		IRC = IR = IRD = SIRD = 0x0;
 	}
 
-	// TODO: remove uint_fast, just use int
-	data_register& D(std::uint_fast8_t reg)
+	data_register& D(int reg)
 	{
 		switch(reg)
 		{
@@ -88,7 +88,7 @@ public:
 		}
 	}
 
-	address_register& A(std::uint_fast8_t reg)
+	address_register& A(int reg)
 	{
 		switch(reg)
 		{
@@ -118,14 +118,14 @@ public:
 		return flags.S ? SSP : USP;
 	}
 
-	void inc_addr(std::uint_fast8_t reg, size_type size)
+	void inc_addr(int reg, size_type size)
 	{
 		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
 		A(reg).LW += size_in_bytes(size);
 	}
 
-	void dec_addr(std::uint_fast8_t reg, size_type size)
+	void dec_addr(int reg, size_type size)
 	{
 		if(reg == 0b111 && size == size_type::BYTE)
 			size = size_type::WORD;
@@ -146,10 +146,10 @@ public:
 	};
 
 	/* Prefetch queue registers */
-	std::uint_fast16_t IRC;
-	std::uint_fast16_t IR;
-	std::uint_fast16_t IRD;
-	std::uint_fast16_t SIRD; // contains opcode of instruction being executed
+	std::uint16_t IRC;
+	std::uint16_t IR;
+	std::uint16_t IRD;
+	std::uint16_t SIRD; // contains opcode of instruction being executed
 };
 
 } // namespace genesis::m68k
