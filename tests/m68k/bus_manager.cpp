@@ -74,7 +74,7 @@ void test_read(std::array<T, N> test_values)
 	for(std::size_t i = 0; i < test_values.size(); ++i)
 	{
 		auto expected = test_values[i];
-		std::uint32_t addr = base + i * sizeof(expected);
+		std::uint32_t addr = std::uint32_t(base + i * sizeof(expected));
 
 		std::uint32_t cycles = 0;
 		decltype(expected) actual = 0;
@@ -109,7 +109,7 @@ void test_write(std::array<T, N> values_to_write)
 	for(std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto val = values_to_write[i];
-		std::uint32_t addr = base + i * sizeof(val);
+		std::uint32_t addr = std::uint32_t(base + i * sizeof(val));
 
 		auto cycles = write(busm, addr, val);
 
@@ -120,7 +120,7 @@ void test_write(std::array<T, N> values_to_write)
 	for(std::size_t i = 0; i < values_to_write.size(); ++i)
 	{
 		auto expected = values_to_write[i];
-		std::uint32_t addr = base + i * sizeof(expected);
+		std::uint32_t addr = std::uint32_t(base + i * sizeof(expected));
 		auto actual = mem.read<decltype(expected)>(addr);
 
 		ASSERT_EQ(expected, actual);
