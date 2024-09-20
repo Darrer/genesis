@@ -78,6 +78,11 @@ public:
 		return *it;
 	}
 
+	static const bool is_true()
+	{
+		return next<unsigned>() % 2 == 0;
+	}
+
 private:
 	static std::mt19937 gen;
 	static std::uniform_int_distribution<int> dist;

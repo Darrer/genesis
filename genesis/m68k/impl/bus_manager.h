@@ -209,11 +209,9 @@ private:
 	/* exceptoins */
 	bool check_exceptions();
 
-	bool check_bus_error();
 	bool should_rise_bus_error() const;
 	void rise_bus_error();
 
-	bool check_address_error();
 	bool should_rise_address_error() const;
 	void rise_address_error();
 

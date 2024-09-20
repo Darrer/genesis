@@ -12,8 +12,9 @@ using namespace genesis::vdp;
 
 void zero_mem(vram_t& mem)
 {
-	for(std::uint32_t addr = 0; addr <= mem.max_address(); ++addr)
+	for(std::uint32_t addr = 0; addr < mem.max_address(); ++addr)
 		mem.write<std::uint8_t>(addr, 0);
+	mem.write<std::uint8_t>(mem.max_address(), 0);
 }
 
 void zero_mem(cram_t& mem)
@@ -30,8 +31,9 @@ void zero_mem(vsram_t& mem)
 
 void zero_mem(test::mock_m68k_bus_access::m68k_memory_t& mem)
 {
-	for(std::uint32_t addr = 0; addr <= mem.max_address(); ++addr)
+	for(std::uint32_t addr = 0; addr < mem.max_address(); ++addr)
 		mem.write<std::uint8_t>(addr, 0);
+	mem.write<std::uint8_t>(mem.max_address(), 0);
 }
 
 void prepare_fill_data_for_cram_vsram(test::vdp& vdp, std::uint16_t fill_data)

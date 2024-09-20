@@ -306,6 +306,8 @@ void bus_manager::set_idle()
 		assert_idle();
 	}
 
+	// TODO: reset space, also can we use/have space when we're processing interrupt (maybe we need it to process exception)?
+
 	on_idle();
 }
 
@@ -400,47 +402,49 @@ void bus_manager::set_data_bus(std::uint16_t data)
 
 bool bus_manager::check_exceptions()
 {
-	return check_address_error() || check_bus_error();
-}
+	bool has_bus_error = should_rise_bus_error();
+	bool has_addr_error = should_rise_address_error();
+	bool has_exception = has_bus_error || has_addr_error;
 
-bool bus_manager::check_bus_error()
-{
-	// TODO: temporarily disabled
-	if(false && should_rise_bus_error())
+	if(bus_granted() && has_exception)
 	{
-		rise_bus_error();
-		return true;
+		// to process the exception the cpu must have access to the bus, but if the external device
+		// triggered the address/bus error, how we can process it without getting back the bus?
+		// throw an exception for now
+		throw std::runtime_error("External device triggered the Address Error exception");
 	}
 
-	return false;
+	if(has_bus_error)
+	{
+		rise_bus_error();
+	}
+	else if(has_addr_error)
+	{
+		rise_address_error();
+	}
+
+	if(has_exception)
+	{
+		reset();
+	}
+
+	return has_exception;
 }
 
 bool bus_manager::should_rise_bus_error() const
 {
-	const std::uint32_t max_address = external_memory->max_address();
-	auto size = byte_operation ? 1 : 2;
-	// TODO: check only 24 bits (as only they are put on the address bus)
-	return (address & max_address) + size > max_address;
+	return bus.is_set(bus::BERR) && !bus.is_set(bus::HALT);
 }
 
 void bus_manager::rise_bus_error()
 {
-	// TODO: what if bus is granted to some other device?
-	// TODO: check for RMW_READ0
-	bool read_operation = state == bus_cycle_state::READ0;
-	exman.rise_bus_error({address, gen_func_codes(), read_operation, false});
-	reset();
-}
+	// TODO: if bus error occured during interrupt, to what state we should set rw flag?
+	bool read_operation = state == bus_cycle_state::READ0 || state == bus_cycle_state::RMW_READ0;
 
-bool bus_manager::check_address_error()
-{
-	if(should_rise_address_error())
-	{
-		rise_address_error();
-		return true;
-	}
+	// TODO: figure out how in flag should be set
+	bool in = false;
 
-	return false;
+	exman.rise_bus_error({address, gen_func_codes(), read_operation, in});
 }
 
 bool bus_manager::should_rise_address_error() const
@@ -450,16 +454,11 @@ bool bus_manager::should_rise_address_error() const
 
 void bus_manager::rise_address_error()
 {
-	// TODO: what if bus is granted to some other device?
-	if(bus_granted())
-		throw std::runtime_error("Some other device triggered Address Error exception");
-
 	// NOTE: we don't need to check for RMW_READ0 state as read-modify-write cycle performs
 	// only single byte operations and they cannot generate address error exception.
 	bool read_operation = state == bus_cycle_state::READ0;
 	bool in = space == addr_space::PROGRAM; // just to satisfy external tests
 	exman.rise_address_error({address, gen_func_codes(), read_operation, in});
-	reset();
 }
 
 } // namespace genesis::m68k

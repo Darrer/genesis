@@ -37,8 +37,11 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 	switch(ex)
 	{
 	case exception_type::address_error:
-	case exception_type::bus_error:
 		exman.rise_address_error({0, 0, false, false});
+		break;
+
+	case exception_type::bus_error:
+		exman.rise_bus_error({0, 0, false, false});
 		break;
 
 	case exception_type::trace:
@@ -93,6 +96,12 @@ TEST(M68K_EXCEPTION_UNIT, ADDRESS_ERROR_TIMINGS)
 {
 	// TODO: why 50 - 1?
 	check_timings(exception_type::address_error, 50 - 1);
+}
+
+TEST(M68K_EXCEPTION_UNIT, BUS_ERROR_TIMINGS)
+{
+	// TODO: why 50 - 1?
+	check_timings(exception_type::bus_error, 50 - 1);
 }
 
 TEST(M68K_EXCEPTION_UNIT, TRACE_TIMINGS)
@@ -167,23 +176,19 @@ void prepare_vector_table(test_cpu& cpu, std::uint32_t address, std::uint32_t pc
 
 std::uint32_t random_pc(test_cpu& cpu)
 {
-	auto max_address = cpu.memory().max_address();
-	std::uint32_t pc = random::next<std::uint32_t>() % max_address;
+	// PC should not point to vector table
+	std::uint32_t min_address = 1024;
+
+	// there should be at least 4 bytes for prefetch queue (IRD/IRC)
+	std::uint32_t max_address = cpu.memory().max_address() - 4;
+
+	std::uint32_t pc = random::in_range<std::uint32_t>(min_address, max_address);
 
 	if(pc % 2 == 1)
 	{
-		++pc; // PC must be even
-	}
-
-	if(pc < 1024)
-	{
-		pc += 1024; // PC should not point to vector table
-	}
-
-	std::uint32_t diff = max_address - pc;
-	if(diff < 4)
-	{
-		pc -= 4; // there should be at least 4 bytes for prefetch queue (IRD/IRC)
+		// decrement will always keep PC in range [min_address; max_address]
+		// as min_address is even and minimum odd value would be min_address + 1
+		--pc; // PC must be even
 	}
 
 	return pc;
@@ -511,4 +516,79 @@ TEST(M68K_EXCEPTION_UNIT, MULTIPLE_ADDRESS_ERRORS)
 	mem.write<std::uint32_t>(0xC, 0x1);
 
 	ASSERT_THROW(cpu.cycle_until([&]() { return cpu.is_idle(); } ), std::runtime_error);
+}
+
+TEST(M68K_EXCEPTION_UNIT, BUS_ADDRESS_ERROR_VALIDATE_STACK)
+{
+	// Setup
+	test_cpu cpu;
+	auto& exman = cpu.exception_manager();
+	auto& regs = cpu.registers();
+	auto& mem = cpu.memory();
+
+	// prepare exception data
+	exception_type exp = random::pick({exception_type::bus_error, exception_type::address_error});
+
+	std::uint32_t address = random::next<std::uint32_t>();
+	std::uint8_t func_codes = random::in_range<std::uint8_t>(0b000, 0b111);
+	bool rw = random::is_true();
+	bool in = random::is_true();
+
+	std::uint32_t table_pc = random_pc(cpu);
+
+	clean_vector_table(mem);
+	if(exp == exception_type::bus_error)
+	{
+		exman.rise_bus_error({address, func_codes, rw, in});
+		mem.write<std::uint32_t>(0x8, table_pc);
+	}
+	else
+	{
+		exman.rise_address_error({address, func_codes, rw, in});
+		mem.write<std::uint32_t>(0xC, table_pc);
+	}
+
+	// prepare registers/memory
+	const std::uint32_t initial_sp = 2048;
+	regs.SSP.LW = initial_sp;
+
+	regs.SR = random::next<std::uint16_t>();
+	regs.flags.IPM = 0;
+	const std::uint16_t initial_sr = regs.SR;
+
+	const std::uint32_t initial_pc = random_pc(cpu);
+	regs.PC = initial_pc;
+
+	const std::uint16_t initial_sird = random::next<std::uint16_t>();
+	regs.SIRD = initial_sird; // assume SIRD is correctly copied from IRD
+
+	// Act
+	cpu.cycle_till_idle();
+
+	// Assert
+	ASSERT_FALSE(exman.is_raised(exp));
+
+	const std::uint32_t pushed_pc = mem.read<std::uint32_t>(initial_sp - 4);
+	// as PC is corrected during pushing, we cannot simply compare it, make sure it's just 'close enough'
+	EXPECT_LT(initial_pc - pushed_pc, 10); // assume pushed PC cannot be less than 10 bytes from the initial one.
+
+	const std::uint16_t pushed_sr = mem.read<std::uint16_t>(initial_sp - 6);
+	ASSERT_EQ(initial_sr, pushed_sr);
+
+	const std::uint16_t pushed_ird = mem.read<std::uint16_t>(initial_sp - 8);
+	ASSERT_EQ(pushed_ird, initial_sird);
+
+	const std::uint32_t pushed_adrr = mem.read<std::uint32_t>(initial_sp - 12);
+	ASSERT_EQ(pushed_adrr, address);
+
+	const std::uint16_t pushed_status = mem.read<std::uint16_t>(initial_sp - 14);
+	std::uint16_t expected_status = func_codes;
+	expected_status |= (in ? 1 : 0) << 3;
+	expected_status |= (rw ? 1 : 0) << 4;
+	ASSERT_EQ(pushed_status & 0b11111, expected_status); // check only documented the first 5 bits
+
+	const std::uint32_t expected_sp = initial_sp - 4 /* PC */ - 2 /* SR */  - 2 /* ISR */ - 4 /* ADDR */ - 2 /* status word */;
+	ASSERT_EQ(expected_sp, regs.SSP.LW);
+
+	ASSERT_EQ(table_pc, regs.PC);
 }

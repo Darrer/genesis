@@ -81,7 +81,7 @@ static constexpr std::span<const exception_type> group_exceptions(exception_grou
 struct address_error
 {
 	std::uint32_t address;
-	std::uint8_t func_codes;
+	std::uint8_t func_codes; // TODO: change to int
 	bool rw;
 	bool in;
 };

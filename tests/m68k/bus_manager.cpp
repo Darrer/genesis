@@ -914,3 +914,22 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 
 	ASSERT_TRUE(succeed);
 }
+
+TEST(M68K_BUS_MANAGER, RISE_BUS_ERROR)
+{
+	test::test_cpu cpu;
+
+	auto& bus = cpu.bus();
+	auto& busm = cpu.bus_manager();
+
+	// set bus state to indicate pending bus error
+	bus.set(m68k::bus::BERR);
+	bus.clear(m68k::bus::HALT);
+
+	// so far exception cannot be processed while bus manager is idle (nut sure if we need to change this behavior),
+	// so start read operation to get the ball rolling
+	read_byte(busm, 0x0);
+
+	auto& exman = cpu.exception_manager();
+	ASSERT_TRUE(exman.is_raised(m68k::exception_type::bus_error));
+}

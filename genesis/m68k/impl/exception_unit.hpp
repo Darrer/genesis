@@ -92,6 +92,7 @@ private:
 
 		case exception_type::address_error:
 		case exception_type::bus_error:
+			// the exception processing sequence is the same for bus/address error
 			address_error();
 			break;
 
