@@ -53,7 +53,21 @@ public:
 		m_title = title;
 
 		create_window(title, m_width, m_height);
-		m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+		m_renderer = SDL_CreateRenderer(m_window, -1, 0);
+		SDL_RendererInfo rendererInfo;
+		if(SDL_GetRendererInfo(m_renderer, &rendererInfo) == 0)
+		{
+			std::cout << "Renderer name for window '" << title << "' : " << rendererInfo.name << ". Flags:";
+			std::cout << " SOFTWARE=" << !!(rendererInfo.flags & SDL_RENDERER_SOFTWARE);
+			std::cout << " ACCELERATED=" << !!(rendererInfo.flags & SDL_RENDERER_ACCELERATED);
+			std::cout << " PRESENTVSYNC=" << !!(rendererInfo.flags & SDL_RENDERER_PRESENTVSYNC);
+			std::cout << " TARGETTEXTURE=" << !!(rendererInfo.flags & SDL_RENDERER_TARGETTEXTURE);
+			std::cout << std::endl;
+		}
+		else
+		{
+			std::cerr << "Could not get renderer info! SDL_Error: " << SDL_GetError() << std::endl;
+		}
 		m_texture = create_texture(m_width, m_height);
 	}
 
