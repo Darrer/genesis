@@ -113,6 +113,12 @@ void bus_scheduler::read_imm_impl(size_type size, on_read_complete on_complete, 
 	}
 }
 
+void bus_scheduler::read_modify_write_impl(std::uint32_t addr, on_modify modify)
+{
+	rmw_operation rmw{addr, modify};
+	queue.emplace(op_type::RMW, rmw);
+}
+
 void bus_scheduler::int_ack_impl(std::uint8_t ipl, int_ack_complete on_complete)
 {
 	int_ack_operation op { ipl, on_complete };
@@ -330,6 +336,12 @@ void bus_scheduler::start_operation(operation& op)
 		break;
 	}
 
+	case op_type::RMW: {
+		rmw_operation& rmw = std::get<rmw_operation>(op.op);
+		busm.init_read_modify_write(rmw.addr, std::move(rmw.modify), addr_space::DATA, [this]() { run_cycless_operations(); });
+		break;
+	}
+
 	case op_type::INT_ACK: {
 		int_ack_operation& int_ack = std::get<int_ack_operation>(op.op);
 		busm.init_interrupt_ack(int_ack.ipl, [this]() { on_int_ack_finished(); });
@@ -418,6 +430,7 @@ bool bus_scheduler::next_bus_operation() const
 	{
 	case op_type::READ:
 	case op_type::READ_IMM:
+	case op_type::RMW:
 	case op_type::WRITE:
 	case op_type::PREFETCH_IRD:
 	case op_type::PREFETCH_IRC:

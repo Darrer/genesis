@@ -40,8 +40,8 @@ private:
 
 public:
 	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman,
-		cpu_bus& bus, bus_manager& busm, m68k::bus_scheduler& scheduler)
-		: regs(regs), dec(regs, scheduler), exman(exman), bus(bus), busm(busm), scheduler(scheduler)
+		cpu_bus& bus, m68k::bus_scheduler& scheduler)
+		: regs(regs), dec(regs, scheduler), exman(exman), bus(bus), scheduler(scheduler)
 	{
 		reset();
 	}
@@ -1791,55 +1791,37 @@ private:
 			{
 				auto& reg = op.data_reg();
 				reg.B = operations::tas(reg, regs.flags);
-				scheduler.prefetch_one();
-				return exec_state::done;
 			}
-
-			++exec_stage;
-
-			if(op.is_imm())
-				addr = op.imm();
-			else if(op.is_addr_reg())
-				addr = op.addr_reg().LW;
 			else
-				addr = op.pointer().address;
-
-			std::uint8_t reg = opcode & 0x7;
-			if(op.mode() == addressing_mode::postinc)
 			{
-				regs.inc_addr(reg, size_type::BYTE);
+				if(op.is_imm())
+					addr = op.imm();
+				else if(op.is_addr_reg())
+					addr = op.addr_reg().LW;
+				else
+					addr = op.pointer().address;
+
+				std::uint8_t reg = opcode & 0x7;
+				if(op.mode() == addressing_mode::postinc)
+				{
+					regs.inc_addr(reg, size_type::BYTE);
+				}
+				else if(op.mode() == addressing_mode::predec)
+				{
+					scheduler.wait(2);
+					regs.dec_addr(reg, size_type::BYTE);
+					addr = regs.A(reg).LW;
+				}
+
+				scheduler.read_modify_write(addr, [this](std::uint8_t data)
+				{
+					return operations::tas(data, regs.flags);
+				});
 			}
-			else if(op.mode() == addressing_mode::predec)
-			{
-				scheduler.wait(2);
-				regs.dec_addr(reg, size_type::BYTE);
-				addr = regs.A(reg).LW;
-				return exec_state::wait_scheduler;
-			}
 
-			[[fallthrough]];
-		}
-
-		case 2:
-			// TODO: do not use bus_manager directly
-			if(busm.bus_granted())
-			{
-				return exec_state::in_progress;
-			}
-
-			busm.init_read_modify_write(addr, [this](std::uint8_t data)
-			{
-				return operations::tas(data, regs.flags);
-			});
-
-			++exec_stage;
-			return exec_state::in_progress;
-
-		case 3:
-			if(!busm.is_idle())
-				return exec_state::in_progress;
 			scheduler.prefetch_one();
 			return exec_state::done;
+		}
 
 		default: throw internal_error();
 		}
@@ -2008,7 +1990,6 @@ private:
 	m68k::ea_decoder dec;
 	exception_manager& exman;
 	cpu_bus& bus;
-	bus_manager& busm;
 	m68k::bus_scheduler& scheduler;
 
 	std::uint16_t opcode = 0;

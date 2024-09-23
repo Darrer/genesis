@@ -19,7 +19,7 @@
 namespace genesis::sdl
 {
 
-// create active_display class to render VDP Active Display?
+// TODO: create active_display class to render VDP Active Display?
 
 // This class responsible for displaying:
 // - Plane A/B/W

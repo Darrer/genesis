@@ -77,6 +77,13 @@ public:
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
 	template<class Callable>
+	void read_modify_write(std::uint32_t addr, Callable modify)
+	{
+		static_assert(sizeof(Callable) <= max_callable_size);
+		read_modify_write_impl(addr, modify);
+	}
+
+	template<class Callable>
 	void int_ack(std::uint8_t ipl, Callable on_complete)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -108,6 +115,7 @@ private:
 		READ,
 		READ_IMM,
 		WRITE,
+		RMW, // Read Modify Write
 		INT_ACK,
 		PREFETCH_IRD,
 		PREFETCH_IRC,
@@ -139,6 +147,13 @@ private:
 		std::uint32_t addr;
 		std::uint32_t data;
 		size_type size;
+	};
+
+	using on_modify = std::function<std::uint8_t(std::uint8_t)>;
+	struct rmw_operation
+	{
+		std::uint32_t addr;
+		on_modify modify;
 	};
 
 	using int_ack_complete = std::function<void(std::uint8_t /* vector number */)>;
@@ -175,14 +190,15 @@ private:
 	struct operation
 	{
 		op_type type;
-		std::variant<read_operation, read_imm_operation, int_ack_operation,
-			write_operation, wait_operation, call_operation,
+		std::variant<read_operation, read_imm_operation, rmw_operation,
+		int_ack_operation, write_operation, wait_operation, call_operation,
 			register_operation, push_operation> op = {};
 	};
 
 private:
 	void read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete);
 	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
+	void read_modify_write_impl(std::uint32_t addr, on_modify modify);
 	void int_ack_impl(std::uint8_t ipl, int_ack_complete);
 	void call_impl(callback);
 

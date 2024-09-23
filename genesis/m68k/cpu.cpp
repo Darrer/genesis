@@ -9,7 +9,7 @@ cpu::cpu(std::shared_ptr<memory::addressable> external_memory, std::shared_ptr<i
 	: external_memory(external_memory), busm(_bus, regs, exman, external_memory, int_dev),
 	bus_acs(busm), scheduler(regs, busm)
 {
-	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, busm, scheduler);
+	inst_unit = std::make_unique<m68k::instruction_unit>(regs, exman, _bus, scheduler);
 
 	auto abort_execution = [this]() {
 		inst_unit->reset();

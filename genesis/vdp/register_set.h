@@ -24,27 +24,21 @@ public:
 			&R21, &R22, &R23
 		};
 
-		for(std::uint8_t i = 0; i < m_registers.size(); ++i)
-			set_register(i, 0);
+		for(std::size_t i = 0; i < m_registers.size(); ++i)
+			set_register((int)i, 0);
 		h_counter = v_counter = 0;
 		sr_raw = 0;
 	}
 
-	void set_register(std::uint8_t reg, std::uint8_t value)
+	void set_register(int reg, std::uint8_t value)
 	{
-		if(reg >= m_registers.size())
-			throw internal_error();
-
-		std::memcpy(m_registers[reg], &value, sizeof(value));
+		std::memcpy(m_registers.at(reg), &value, sizeof(value));
 	}
 
 	std::uint8_t get_register(std::uint8_t reg)
 	{
-		if(reg >= m_registers.size())
-			throw internal_error();
-
 		std::uint8_t value;
-		std::memcpy(&value, m_registers[reg], sizeof(value));
+		std::memcpy(&value, m_registers.at(reg), sizeof(value));
 		return value;
 	}
 
