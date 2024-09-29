@@ -29,8 +29,7 @@ public:
 	/* A/B/W Planes */
 
 	unsigned plane_width_in_pixels(plane_type) const;
-	// TODO: rename to height
-	unsigned plane_hight_in_pixels(plane_type) const;
+	unsigned plane_height_in_pixels(plane_type) const;
 
 	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,
 		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const;
@@ -75,7 +74,7 @@ private:
 
 	/* Sprites helpers */
 	std::span<pixel> get_active_sprites_row(unsigned row_number, std::span<pixel> buffer);
-	bool should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const;
+	bool should_render_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const;
 
 	// For performance reason it better to duplicate these functions
 	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<vdp::output_color> buffer) const;
@@ -89,18 +88,20 @@ private:
 
 	/* Plane helpers */
 
-	std::span<pixel>::iterator get_active_plane_row(plane_type plane_type, unsigned row_number,
-		std::span<pixel> buffer) const;
-	std::span<pixel>::iterator get_scrolled_plane_row(impl::plane_type plane_type, unsigned row_number,
+	std::span<pixel> get_active_plane_row(plane_type plane_type, unsigned row_number,
 		std::span<pixel> buffer) const;
 
-	std::span<pixel> get_active_window_row(unsigned line_number, std::span<pixel> plane_a_buffer) const;
+	void render_active_window_row(unsigned line_number, std::span<pixel> plane_a_buffer) const;
 
 	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,
 		pixel plane_a, pixel plane_b, pixel sprite) const;
 
-	// internal buffers used during rendering
+	/* internal buffers used during rendering */
+
+	// 512 is sprite plane width
 	mutable std::array<pixel, 512> sprite_buffer;
+
+	// 1024 is max palne width
 	mutable std::array<pixel, 1024> pixel_a_buffer;
 	mutable std::array<pixel, 1024> pixel_b_buffer;
 

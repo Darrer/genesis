@@ -20,7 +20,7 @@ static void nop_some_tests(genesis::memory::memory_unit& mem)
 		mem.write(jump_addr + 4, nop_opcode);
 	};
 
-	// TODO: ABCD/SBCD have tricky logic and now I'm to lazy to figure it out,
+	// TODO: ABCD/SBCD have tricky logic and I'm too lazy to figure it out,
 	// so just skip these tests so far
 	const std::uint32_t abcd_jump_addr = 0x4A8;
 	const std::uint32_t sbcd_jump_addr = 0x4AE;

@@ -78,7 +78,7 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::st
 	displays.push_back(
 		std::make_unique<sdl::plane_display>("plane a",
 			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::a); },
-			[&smd]() { return smd.vdp().render().plane_hight_in_pixels(plane_type::a); },
+			[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::a); },
 			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
 				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::a, row_number, buffer); }
 		)
@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::st
 	displays.push_back(
 		std::make_unique<sdl::plane_display>("plane b",
 			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::b); },
-			[&smd]() { return smd.vdp().render().plane_hight_in_pixels(plane_type::b); },
+			[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::b); },
 			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
 				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::b, row_number, buffer); }
 		)

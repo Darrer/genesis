@@ -148,7 +148,7 @@ void fill_plane_table(vdp& vdp, plane_type plane, std::uint32_t plane_address, s
 	if(plane_address != expected_plane_address)
 		throw genesis::internal_error();
 
-	auto plane_entries = (render.plane_hight_in_pixels(plane) / 8)
+	auto plane_entries = (render.plane_height_in_pixels(plane) / 8)
 		* (render.plane_width_in_pixels(plane) / 8);
 	for(unsigned i = 0; i < plane_entries; ++i)
 	{
@@ -243,7 +243,7 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 
 	// Run test
 	auto& render = vdp.render();
-	for(unsigned row_idx = 0; row_idx < render.plane_hight_in_pixels(plane_type); ++row_idx)
+	for(unsigned row_idx = 0; row_idx < render.plane_height_in_pixels(plane_type); ++row_idx)
 	{
 		auto row = get_plane_row(vdp, plane_type, row_idx);
 
@@ -303,7 +303,7 @@ TEST(VDP_RENDER, PLANE_W_ROW_WIDTH)
 	ASSERT_EQ(32 * 8, render.plane_width_in_pixels(plane_type::w));
 }
 
-TEST(VDP_RENDER, PLANE_AB_HIGHT)
+TEST(VDP_RENDER, PLANE_AB_HEIGHT)
 {
 	vdp vdp;
 	const auto plane = random::pick({plane_type::a, plane_type::b});
@@ -313,16 +313,16 @@ TEST(VDP_RENDER, PLANE_AB_HIGHT)
 	regs.R16.W = 0b00;
 
 	regs.R16.H = 0b00; // 32 tiles width
-	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane));
+	ASSERT_EQ(32 * 8, render.plane_height_in_pixels(plane));
 
 	regs.R16.H = 0b01; // 128 tiles width
-	ASSERT_EQ(64 * 8, render.plane_hight_in_pixels(plane));
+	ASSERT_EQ(64 * 8, render.plane_height_in_pixels(plane));
 
 	regs.R16.H = 0b11; // 128 tiles width
-	ASSERT_EQ(128 * 8, render.plane_hight_in_pixels(plane));
+	ASSERT_EQ(128 * 8, render.plane_height_in_pixels(plane));
 }
 
-TEST(VDP_RENDER, PLANE_W_HIGHT)
+TEST(VDP_RENDER, PLANE_W_HEIGHT)
 {
 	vdp vdp;
 	auto& regs = vdp.registers();
@@ -330,11 +330,11 @@ TEST(VDP_RENDER, PLANE_W_HIGHT)
 
 	// TODO: take into accout RS1?
 	regs.R12.RS0 = 1;
-	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane_type::w));
+	ASSERT_EQ(32 * 8, render.plane_height_in_pixels(plane_type::w));
 
 	// TODO: take into accout RS1?
 	regs.R12.RS0 = 0;
-	ASSERT_EQ(32 * 8, render.plane_hight_in_pixels(plane_type::w));
+	ASSERT_EQ(32 * 8, render.plane_height_in_pixels(plane_type::w));
 }
 
 TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
@@ -426,7 +426,7 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 	set_plane_dimension(vdp, plane_type);
 
 	std::vector<std::vector<std::uint8_t>> tails;
-	for(unsigned i = 0; i < render.plane_hight_in_pixels(plane_type) / 8; ++i)
+	for(unsigned i = 0; i < render.plane_height_in_pixels(plane_type) / 8; ++i)
 		tails.push_back(random_tail());
 	ASSERT_TRUE(tails.size() > 0 && tails.size() <= 128);
 
@@ -457,7 +457,7 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 	fill_cram(vdp);
 
 	// Assert
-	for(unsigned tail_row = 0; tail_row < render.plane_hight_in_pixels(plane_type) / 8; ++tail_row)
+	for(unsigned tail_row = 0; tail_row < render.plane_height_in_pixels(plane_type) / 8; ++tail_row)
 	{
 		const auto& tail = tails.at(tail_row);
 		for(int pixel_row = 0; pixel_row < 8; ++pixel_row)
@@ -495,7 +495,7 @@ TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
 	// as it's 0-based, 1024 is always invalid row number
 	ASSERT_THROW(get_plane_row(vdp, plane, 1024), std::exception);
 
-	const unsigned last_valid_row = render.plane_hight_in_pixels(plane) - 1;
+	const unsigned last_valid_row = render.plane_height_in_pixels(plane) - 1;
 
 	ASSERT_NO_THROW(get_plane_row(vdp, plane, last_valid_row));
 	ASSERT_THROW(get_plane_row(vdp, plane, last_valid_row + 1), std::exception);

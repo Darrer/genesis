@@ -30,10 +30,10 @@ unsigned render::plane_width_in_pixels(plane_type plane_type) const
 	return table.entries_per_row() * 8;
 }
 
-unsigned render::plane_hight_in_pixels(plane_type plane_type) const
+unsigned render::plane_height_in_pixels(plane_type plane_type) const
 {
 	name_table table(plane_type, sett, vram);
-	// as each row is 1 tail hight
+	// as each row is 1 tail height
 	return table.row_count() * 8;
 }
 
@@ -53,7 +53,7 @@ std::span<genesis::vdp::output_color> render::get_plane_row(impl::plane_type pla
 	std::size_t buffer_size = plane_width_in_pixels(plane_type);
 	check_buffer_size(buffer, buffer_size);
 
-	if(row_number >= plane_hight_in_pixels(plane_type))
+	if(row_number >= plane_height_in_pixels(plane_type))
 		throw genesis::internal_error();
 
 	name_table table(plane_type, sett, vram);
@@ -89,7 +89,7 @@ std::span<genesis::vdp::output_color> render::get_sprite_row(unsigned row_number
 	{
 		auto entry = stable.get(sprite_number);
 
-		if(should_read_sprite(row_number, entry.vertical_position, entry.vertical_size))
+		if(should_render_sprite(row_number, entry.vertical_position, entry.vertical_size))
 		{
 			read_sprite(row_number, entry, buffer);
 		}
@@ -105,37 +105,28 @@ std::span<genesis::vdp::output_color> render::get_sprite_row(unsigned row_number
 std::span<genesis::vdp::output_color> render::get_active_display_row(unsigned row_number,
 	std::span<genesis::vdp::output_color> buffer)
 {
+	if(row_number >= active_display_height())
+		throw std::invalid_argument("row_number exceeds active display height");
+
 	const auto buffer_size = active_display_width();
 	check_buffer_size(buffer, buffer_size);
+	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
 
-	std::span<pixel> a_buffer = pixel_a_buffer;
-	std::span<pixel> b_buffer = pixel_b_buffer;
-
-	auto a_it = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
-	auto b_it = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
-
-	// auto plane_a = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
-	// plane_a = get_active_window_row(row_number, plane_a);
-	// auto plane_b = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
+	auto a_buffer = get_active_plane_row(plane_type::a, row_number, pixel_a_buffer);
+	auto b_buffer = get_active_plane_row(plane_type::b, row_number, pixel_b_buffer);
 
 	auto sprites = get_active_sprites_row(row_number, sprite_buffer);
 
-	// if(buffer_size != plane_a.size() || buffer_size != plane_b.size() || buffer_size != sprites.size())
-		// throw genesis::internal_error();
+	render_active_window_row(row_number, a_buffer);
 
 	vdp::output_color bg_color = background_color();
 
-	buffer = std::span<genesis::vdp::output_color>(buffer.begin(), buffer_size);
+	auto a_it = a_buffer.begin();
+	auto b_it = b_buffer.begin();
 
 	for(std::size_t i = 0; i < buffer.size(); ++i)
 	{
-		// buffer[i] = resolve_priority(bg_color, TRANSPARENT_PIXEL, TRANSPARENT_PIXEL, TRANSPARENT_PIXEL);
 		buffer[i] = resolve_priority(bg_color, *(a_it++), *(b_it++), sprites[i]);
-
-		if(a_it == a_buffer.end())
-			a_it = a_buffer.begin();
-		if(b_it == b_buffer.end())
-			b_it = b_buffer.begin();
 	}
 
 	return buffer;
@@ -145,44 +136,35 @@ void render::reset_limits()
 {
 }
 
-std::span<render::pixel>::iterator render::get_active_plane_row(plane_type plane_type, unsigned row_number,
+std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
 	std::span<render::pixel> buffer) const
 {
-	std::size_t buffer_size = active_display_width();
+	std::size_t buffer_size = active_display_width() + 8 /* room for one more tail */;
 	check_buffer_size(buffer, buffer_size);
 
-	if(row_number >= active_display_height())
-		throw genesis::internal_error();
-
-	return get_scrolled_plane_row(plane_type, row_number, buffer);
-
-	// auto plane = get_scrolled_plane_row(plane_type, row_number, buffer);
-
-	// TODO: what if returned plane size is less then active display row?
-	// if(plane.size() < buffer_size)
-		// throw genesis::not_implemented();
-
-	// return std::span<render::pixel>(buffer.begin(), buffer_size);
-}
-
-std::span<render::pixel>::iterator render::get_scrolled_plane_row(impl::plane_type plane_type,
-	unsigned row_number, std::span<render::pixel> buffer) const
-{
-	std::size_t buffer_size = plane_width_in_pixels(plane_type);
-	check_buffer_size(buffer, buffer_size);
-
-	buffer = std::span<pixel>(buffer.begin(), buffer_size);
-
-	unsigned max_height = plane_hight_in_pixels(plane_type);
+	unsigned max_height = plane_height_in_pixels(plane_type);
 
 	name_table table(plane_type, sett, vram);
 
+	hscroll_table hscroll(plane_type, sett, vram);
+	int hoffset = hscroll.get_offset(row_number);
+
+	// ceiling division by 8
+	int tail_hoffset = (hoffset + 7) / 8;
+
+	// do offset from the end
+	tail_hoffset = table.entries_per_row() - (tail_hoffset % table.entries_per_row());
+
 	auto buffer_it = buffer.begin();
-	for(int tail_column_number = 0; tail_column_number < table.entries_per_row(); ++tail_column_number)
+	int tails_to_render = std::min(buffer_size / 8, (std::size_t)table.entries_per_row());
+	for(int tail = 0; tail < tails_to_render; ++tail)
 	{
+		// apply horizontal-tail scrolling
+		int tail_column_number = (tail + tail_hoffset) % table.entries_per_row();
+
 		// apply vertical scrolling just by changing row_number
-		int offset = vscroll_table::get_offset(plane_type, tail_column_number, sett, vsram);
-		int shifted_row_number = (row_number + offset) % max_height;
+		int voffset = vscroll_table::get_offset(plane_type, tail_column_number, sett, vsram);
+		int shifted_row_number = (row_number + voffset) % max_height;
 
 		int tail_row_number = shifted_row_number / PIXELS_IN_TAILE_COL;
 		int tail_row = shifted_row_number % PIXELS_IN_TAILE_COL;
@@ -196,28 +178,34 @@ std::span<render::pixel>::iterator render::get_scrolled_plane_row(impl::plane_ty
 		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
 			[priority](output_color color) -> pixel { return { color, priority }; });
 	}
+	
+	// apply horizontal-pixel scrolling
+	int hpixel_offset = 0;
+	if((hoffset % 8) != 0)
+		hpixel_offset = 8 - (hoffset % 8);
 
-	// apply horizontal scrolling
-	hscroll_table hscroll(plane_type, sett, vram);
-	int offset = hscroll.get_offset(row_number) % plane_width_in_pixels(plane_type);
-	// if(offset == 0)
-	// 	return buffer.begin();
-	// return buffer.end() - offset;
-	std::rotate(buffer.rbegin(), buffer.rbegin() + offset, buffer.rend());
+	// sometimes plane width can be less then active display width, do the tail-based padding in this case
+	if(plane_width_in_pixels(plane_type) < active_display_width())
+	{
+		auto begin = buffer.begin() + (hpixel_offset == 0 ? 0 : 8); // skip the first tail if needed
+		auto end = buffer.begin() + hpixel_offset + active_display_width();
+		// buffer_it already points to the next tail
+		for(auto it = begin; buffer_it != end; ++it, ++buffer_it)
+			*buffer_it = *it;
+	}
 
-	return buffer.begin();
 
-	// return buffer;
+	buffer = std::span<pixel>(buffer.begin() + hpixel_offset, active_display_width());
+	return buffer;
 }
 
 // render active window in plane a buffer (effectively overwriting plane a) 
-std::span<render::pixel> render::get_active_window_row(unsigned line_number,
+void render::render_active_window_row(unsigned line_number,
 	std::span<render::pixel> plane_a_buffer) const
 {
 	std::size_t buffer_size = active_display_width();
-	check_buffer_size(plane_a_buffer, buffer_size);
-
-	plane_a_buffer = std::span<pixel>(plane_a_buffer.begin(), buffer_size);
+	if(plane_a_buffer.size() != buffer_size)
+		throw internal_error("Expected plane a buffer");
 
 	// range: [start_col; end_col), 0-based, in tails
 	int start_col = regs.R17.R == 0 ? 0 : (regs.R17.HP * 2);
@@ -244,11 +232,11 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number,
 	// }
 
 	if(tail_row < start_row || tail_row >= end_row)
-		return plane_a_buffer;
+		return;
 
 	std::size_t start_position = start_col * 8;
 	if(start_position >= buffer_size)
-		return plane_a_buffer;
+		return;
 
 	name_table table(plane_type::w, sett, vram);
 
@@ -264,8 +252,6 @@ std::span<render::pixel> render::get_active_window_row(unsigned line_number,
 		buffer_it = std::transform(pattern_row.begin(), pattern_row.end(), buffer_it,
 			[](auto color) -> pixel { return { color, true }; });
 	}
-
-	return plane_a_buffer;
 }
 
 // Rename to render_active_sprite_line
@@ -300,7 +286,7 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, st
 
 		auto entry = stable.get(sprite_number);
 
-		if(should_read_sprite(line_number, entry.vertical_position, entry.vertical_size))
+		if(should_render_sprite(line_number, entry.vertical_position, entry.vertical_size))
 		{
 			// Sprite masking
 			if(entry.horizontal_position == 0 && (rendered_sprites > 0 || prev_line_overflow))
@@ -429,8 +415,7 @@ vdp::output_color render::read_color(unsigned palette_idx, unsigned color_idx) c
 	return cram.read_color(palette_idx, color_idx);
 }
 
-// TODO: rename to should_render_sprite
-bool render::should_read_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const
+bool render::should_render_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const
 {
 	unsigned last_vert_pos = vertical_position + ((vertical_size + 1) * 8);
 	return vertical_position <= row_number && row_number < last_vert_pos;

@@ -34,8 +34,8 @@ private:
 
 		case vertical_scrolling::two_cell:
 		{
-			// >> 1 as 2 tails (8pixels) use the same scrolling 
-			// * 2 bytes for each A/B plane
+			// (tail_column_number >> 1) as each 2 tails (16 pixels) use the same scrolling 
+			// * 4 bytes for each A/B plane
 			int strip = (tail_column_number >> 1) % num_strips(sett);
 			address += strip * 4;
 			break;
