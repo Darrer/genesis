@@ -155,6 +155,25 @@ public:
 		return *m68k_bus;
 	}
 
+	void zero_vram()
+	{
+		for(std::uint32_t addr = 0; addr < vram().max_address(); ++addr)
+			vram().write<std::uint8_t>(addr, 0);
+		vram().write<std::uint8_t>(vram().max_address(), 0);
+	}
+
+	void zero_cram()
+	{
+		for(int addr = 0; addr <= 126; addr += 2)
+			cram().write(addr, 0);
+	}
+
+	void zero_vsram()
+	{
+		for(int addr = 0; addr <= 78; addr += 2)
+			vsram().write(addr, 0);
+	}
+
 private:
 	template<class Callable>
 	std::uint32_t wait(const Callable&& predicate)

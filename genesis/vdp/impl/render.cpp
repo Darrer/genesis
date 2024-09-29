@@ -156,7 +156,7 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 	tail_hoffset = table.entries_per_row() - (tail_hoffset % table.entries_per_row());
 
 	auto buffer_it = buffer.begin();
-	int tails_to_render = std::min(buffer_size / 8, (std::size_t)table.entries_per_row());
+	int tails_to_render = std::min((int)buffer_size / 8, table.entries_per_row());
 	for(int tail = 0; tail < tails_to_render; ++tail)
 	{
 		// apply horizontal-tail scrolling

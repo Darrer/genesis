@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "test_vdp.h"
+#include "renderer_builder.hpp"
 #include "helpers/random.h"
 #include "exception.hpp"
 
@@ -40,10 +41,26 @@ TEST(VDP_RENDER, BACKGROUND_COLOR)
 	}
 }
 
-std::vector<std::uint8_t> random_tail()
+std::vector<std::uint8_t> transparent_tail()
 {
-	return random::next_few_in_range<std::uint8_t>(64, 0, 0xF);
+	return {
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
+	};
 }
+
+std::vector<std::uint8_t> random_tail(std::uint8_t min = 0x0, std::uint8_t max = 0xF)
+{
+	return random::next_few_in_range<std::uint8_t>(64, min, max);
+}
+
+const int TAIL_SIZE = 64; // bytes
 
 std::uint8_t random_palette()
 {
@@ -106,7 +123,8 @@ void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 }
 
 std::uint16_t get_plane_entry(std::uint32_t tail_address,
-	bool horizintal_flip = false, bool vertical_flip = false, std::uint8_t palette = 0)
+	bool horizintal_flip = false, bool vertical_flip = false, std::uint8_t palette = 0,
+	bool priority = false)
 {
 	if(palette > 4)
 		throw std::invalid_argument("palette");
@@ -120,6 +138,9 @@ std::uint16_t get_plane_entry(std::uint32_t tail_address,
 
 	if(vertical_flip)
 		plane_entry |= 1 << 12;
+
+	if(priority)
+		plane_entry |= 1 << 15;
 
 	return plane_entry;
 }
@@ -173,6 +194,11 @@ auto get_plane_row(vdp& vdp, plane_type plane, unsigned row_number)
 	return vdp.render().get_plane_row(plane, row_number, plane_buffer);
 }
 
+auto get_active_plane_row(vdp& vdp, unsigned row_number)
+{
+	return vdp.render().get_active_display_row(row_number, plane_buffer);
+}
+
 std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address)
 {
 	auto& regs = vdp.registers();
@@ -213,25 +239,6 @@ void set_plane_dimension(vdp& vdp, plane_type plane)
 	}
 }
 
-template<class T>
-void setup_plane_test(vdp& vdp, plane_type plane_type, bool hflip, bool vflip, 
-	std::uint8_t palette, const T& tail)
-{
-	// use constant address for simple test
-	const std::uint32_t tail_address = 0b1111111111100000;
-	copy_tail(vdp, tail_address, tail);
-
-	// use constant plane address for simple test
-	std::uint32_t plane_address = set_plane_address(vdp, plane_type, 0b100);
-
-	set_plane_dimension(vdp, plane_type);
-
-	std::uint16_t plane_entry = get_plane_entry(tail_address, hflip, vflip, palette);
-	fill_plane_table(vdp, plane_type, plane_address, plane_entry);
-
-	fill_cram(vdp);
-}
-
 template<class T, class Callable>
 void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 	const T& tail, Callable expected_color)
@@ -239,7 +246,11 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 	// Setup
 	const std::uint8_t palette = random_palette();
 	auto plane_type = random_plane();
-	setup_plane_test(vdp, plane_type, hflip, vflip, palette, tail);
+
+	renderer_builder builder(vdp);
+	builder.setup_plane(plane_type, tail, hflip, vflip, palette);
+
+	fill_cram(vdp);
 
 	// Run test
 	auto& render = vdp.render();
@@ -254,6 +265,27 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 					
 			ASSERT_EQ(actual_color, color)
 				<< "row: " << row_idx << ", col: " << col_idx - 1;
+		}
+	}
+}
+
+template<class Callable>
+void run_active_display_test(vdp& vdp, Callable expected_color)
+{
+	auto& render = vdp.render();
+	for(unsigned row_idx = 0; row_idx < render.active_display_height(); ++row_idx)
+	{
+		auto row = get_active_plane_row(vdp, row_idx);
+
+		int col_idx = 0;
+		for(auto actual_color : row)
+		{
+			genesis::vdp::output_color color = expected_color(row_idx, col_idx++);
+					
+			ASSERT_EQ(actual_color, color)
+				<< "row: " << row_idx << ", col: " << col_idx - 1
+				<< ", expected " << color.to_internal()
+				<< ", actual " << actual_color.to_internal();
 		}
 	}
 }
@@ -485,9 +517,12 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
 {
 	vdp vdp;
+	renderer_builder builder(vdp);
+
 	auto tail = random_tail();
 	auto plane = random_plane();
-	setup_plane_test(vdp, plane, false, false, 0, tail);
+	
+	builder.setup_plane(plane, tail);
 
 	auto& render = vdp.render();
 
@@ -499,4 +534,104 @@ TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
 
 	ASSERT_NO_THROW(get_plane_row(vdp, plane, last_valid_row));
 	ASSERT_THROW(get_plane_row(vdp, plane, last_valid_row + 1), std::exception);
+}
+
+TEST(VDP_RENDERER, RENDER_TRANSPARENT_FRAMES)
+{
+	// Setup
+	vdp vdp;
+	renderer_builder builder(vdp);
+
+	// Act
+	builder.reset();
+
+	// Assert
+	run_active_display_test(vdp, [&](int /* row */, int /* col */)
+	{
+		return vdp.render().background_color();
+	});
+}
+
+TEST(VDP_RENDERER, ACTIVE_AB_PLANE_DRAW_TAIL)
+{
+	vdp vdp;
+	auto all_planes = {plane_type::a, plane_type::b};
+	for(auto plane : all_planes)
+	{
+		auto other_plane = plane == plane_type::a ? plane_type::b : plane_type::a;
+
+		renderer_builder builder(vdp);
+
+		// Setup planes
+		auto tail_main = random_tail();
+		auto tail_trans = transparent_tail();
+
+		bool hflip = random::is_true();
+		bool vflip = random::is_true();
+		std::uint8_t palette = random_palette();
+
+		// set priority to false for the main plane and to true for the other
+		// as second plane is transparent, priority flag should not affect the result
+
+		// setup main plane to random tail
+		builder.setup_plane(plane, tail_main, hflip, vflip, palette, false);
+
+		// and the other to transparent tail
+		builder.setup_plane(other_plane, tail_trans, hflip, vflip, random_palette(), true);
+
+		builder.setup_plane(plane_type::w, tail_trans);
+
+		fill_cram(vdp);
+
+		// Assert
+		run_active_display_test(vdp, [&](int row, int col)
+		{
+			auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
+			auto color = read_color(vdp, palette, tail_main.at(tail_idx));
+			if(color.transparent)
+				return vdp.render().background_color();
+			return color;
+		});
+
+		if(testing::Test::HasFatalFailure())
+		{
+			FAIL() << "Failed plane: " << static_cast<int>(plane) << '\n';
+			break;
+		}
+	}
+}
+
+TEST(VDP_RENDERER, ACTIVE_W_PLANE_DRAW_TAIL)
+{
+	vdp vdp;
+	renderer_builder builder(vdp);
+
+	// Setup planes
+	auto tail_main = random_tail(0x1, 0xF); // do not use transparent pixels
+
+	bool hflip = random::is_true();
+	bool vflip = random::is_true();
+	std::uint8_t palette = random_palette();
+
+	// setup main plane to random tail
+	builder.setup_plane(plane_type::w, tail_main, hflip, vflip, palette);
+
+	auto& regs = vdp.registers();
+	regs.R17.HP = 0; // from the 0th column
+	regs.R17.R = 1;  // to the last one
+	regs.R18.D = 1;  // from the 0th line
+	regs.R18.VP = 0; // to he last one
+
+	// use random tails for A/B planes as they should be overlaped by W plane anyway
+	builder.setup_plane(plane_type::a, random_tail(), hflip, vflip, random_palette());
+	builder.setup_plane(plane_type::b, random_tail(), hflip, vflip, random_palette());
+
+	fill_cram(vdp);
+
+	// Assert
+	run_active_display_test(vdp, [&](int row, int col)
+	{
+		auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
+		return read_color(vdp, palette, tail_main.at(tail_idx));
+	});
 }
