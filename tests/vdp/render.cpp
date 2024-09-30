@@ -73,10 +73,14 @@ plane_type random_plane()
 }
 
 std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
-	bool horizontal_flip = false, bool vertical_flip = false)
+	bool horizontal_flip = false, bool vertical_flip = false,
+	int hscroll = 0)
 {
 	if(row > 8 || col > 8)
 		throw genesis::internal_error();
+
+	hscroll = hscroll % 8;
+	col = (col + 8 - hscroll) % 8;
 
 	if(vertical_flip)
 		row = 7 - row;
@@ -91,6 +95,13 @@ genesis::vdp::output_color read_color(vdp& vdp, std::uint8_t palette_idx, std::u
 {
 	if(col_idx == 0)
 		return genesis::vdp::TRANSPARENT_COLOR;
+	return vdp.cram().read_color(palette_idx, col_idx);
+}
+
+genesis::vdp::output_color read_active_color(vdp& vdp, std::uint8_t palette_idx, std::uint8_t col_idx)
+{
+	if(col_idx == 0)
+		return vdp.render().background_color();
 	return vdp.cram().read_color(palette_idx, col_idx);
 }
 
@@ -145,39 +156,6 @@ std::uint16_t get_plane_entry(std::uint32_t tail_address,
 	return plane_entry;
 }
 
-void fill_plane_table(vdp& vdp, plane_type plane, std::uint32_t plane_address, std::uint16_t plane_entry)
-{
-	auto& sett = vdp.sett();
-	auto& vram = vdp.vram();
-	auto& render = vdp.render();
-
-	std::uint32_t expected_plane_address = 0;
-	switch (plane)
-	{
-	case plane_type::a:
-		expected_plane_address = sett.plane_a_address();
-		break;
-	case plane_type::b:
-		expected_plane_address = sett.plane_b_address();
-		break;
-	case plane_type::w:
-		expected_plane_address = sett.plane_w_address();
-		break;
-	default: throw genesis::internal_error();
-	}
-
-	if(plane_address != expected_plane_address)
-		throw genesis::internal_error();
-
-	auto plane_entries = (render.plane_height_in_pixels(plane) / 8)
-		* (render.plane_width_in_pixels(plane) / 8);
-	for(unsigned i = 0; i < plane_entries; ++i)
-	{
-		vram.write<std::uint16_t>(plane_address, plane_entry);
-		plane_address += sizeof(plane_entry);
-	}
-}
-
 void fill_cram(vdp& vdp)
 {
 	auto& cram = vdp.cram();
@@ -192,11 +170,6 @@ void fill_cram(vdp& vdp)
 auto get_plane_row(vdp& vdp, plane_type plane, unsigned row_number)
 {
 	return vdp.render().get_plane_row(plane, row_number, plane_buffer);
-}
-
-auto get_active_plane_row(vdp& vdp, unsigned row_number)
-{
-	return vdp.render().get_active_display_row(row_number, plane_buffer);
 }
 
 std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address)
@@ -264,7 +237,9 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 			genesis::vdp::output_color color = expected_color(row_idx, col_idx++, palette);
 					
 			ASSERT_EQ(actual_color, color)
-				<< "row: " << row_idx << ", col: " << col_idx - 1;
+				<< "row: " << row_idx << ", col: " << col_idx - 1
+				<< ", expected " << color.to_internal()
+				<< ", actual " << actual_color.to_internal();
 		}
 	}
 }
@@ -275,7 +250,7 @@ void run_active_display_test(vdp& vdp, Callable expected_color)
 	auto& render = vdp.render();
 	for(unsigned row_idx = 0; row_idx < render.active_display_height(); ++row_idx)
 	{
-		auto row = get_active_plane_row(vdp, row_idx);
+		auto row = render.get_active_display_row(row_idx, plane_buffer);
 
 		int col_idx = 0;
 		for(auto actual_color : row)
@@ -555,8 +530,7 @@ TEST(VDP_RENDERER, RENDER_TRANSPARENT_FRAMES)
 TEST(VDP_RENDERER, ACTIVE_AB_PLANE_DRAW_TAIL)
 {
 	vdp vdp;
-	auto all_planes = {plane_type::a, plane_type::b};
-	for(auto plane : all_planes)
+	for(auto plane : {plane_type::a, plane_type::b})
 	{
 		auto other_plane = plane == plane_type::a ? plane_type::b : plane_type::a;
 
@@ -587,10 +561,7 @@ TEST(VDP_RENDERER, ACTIVE_AB_PLANE_DRAW_TAIL)
 		run_active_display_test(vdp, [&](int row, int col)
 		{
 			auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
-			auto color = read_color(vdp, palette, tail_main.at(tail_idx));
-			if(color.transparent)
-				return vdp.render().background_color();
-			return color;
+			return read_active_color(vdp, palette, tail_main.at(tail_idx));
 		});
 
 		if(testing::Test::HasFatalFailure())
@@ -620,7 +591,7 @@ TEST(VDP_RENDERER, ACTIVE_W_PLANE_DRAW_TAIL)
 	regs.R17.HP = 0; // from the 0th column
 	regs.R17.R = 1;  // to the last one
 	regs.R18.D = 1;  // from the 0th line
-	regs.R18.VP = 0; // to he last one
+	regs.R18.VP = 0; // to the last one
 
 	// use random tails for A/B planes as they should be overlaped by W plane anyway
 	builder.setup_plane(plane_type::a, random_tail(), hflip, vflip, random_palette());
@@ -632,6 +603,98 @@ TEST(VDP_RENDERER, ACTIVE_W_PLANE_DRAW_TAIL)
 	run_active_display_test(vdp, [&](int row, int col)
 	{
 		auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
-		return read_color(vdp, palette, tail_main.at(tail_idx));
+		return read_active_color(vdp, palette, tail_main.at(tail_idx));
 	});
+}
+
+TEST(VDP_RENDERER, ACTIVE_FULL_SCREEN_H_SCROLLING)
+{
+	vdp vdp;
+	for(auto plane : {plane_type::a, plane_type::b})
+	{
+		auto other_plane = plane == plane_type::a ? plane_type::b : plane_type::a;
+
+		for(std::uint16_t hscroll : {1, 2, 0xFFFE, 0xFFFF, 8, 16, (int)random::next<std::uint16_t>()})
+		{
+			renderer_builder builder(vdp);
+
+			// Setup planes
+			auto tail_main = random_tail();
+			auto tail_trans = transparent_tail();
+
+			bool hflip = random::is_true();
+			bool vflip = random::is_true();
+
+			builder.setup_plane(plane, tail_main, hflip, vflip);
+			builder.setup_plane(other_plane, tail_trans);
+
+			fill_cram(vdp);
+
+			// Act
+			if(plane == plane_type::a)
+				builder.set_screen_hscroll(hscroll, random::next<std::uint16_t>());
+			else
+				builder.set_screen_hscroll(random::next<std::uint16_t>(), hscroll);
+
+			// Assert
+			run_active_display_test(vdp, [&](int row, int col)
+			{
+				auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip, hscroll);
+				return read_active_color(vdp, 0, tail_main.at(tail_idx));
+			});
+
+			if(testing::Test::HasFatalFailure())
+			{
+				FAIL() << "Failed plane: " << static_cast<int>(plane)
+					<< ", hscroll: " << hscroll << '\n';
+				return;
+			}
+		}
+	}
+}
+
+TEST(VDP_RENDERER, ACTIVE_LINE_H_SCROLLING)
+{
+	vdp vdp;
+	for(auto plane : {plane_type::a, plane_type::b})
+	{
+		auto other_plane = plane == plane_type::a ? plane_type::b : plane_type::a;
+
+		// we can have up to 240 lines per display
+		std::vector<std::uint16_t> scroll_main = random::next_few<std::uint16_t>(240);
+		std::vector<std::uint16_t> scroll_other = random::next_few<std::uint16_t>(240);
+
+		renderer_builder builder(vdp);
+
+		// Setup planes
+		auto tail_main = random_tail();
+		auto tail_trans = transparent_tail();
+
+		bool hflip = random::is_true();
+		bool vflip = random::is_true();
+
+		builder.setup_plane(plane, tail_main, hflip, vflip);
+		builder.setup_plane(other_plane, tail_trans);
+
+		fill_cram(vdp);
+
+		// Act
+		if(plane == plane_type::a)
+			builder.set_line_hscroll(scroll_main, scroll_other);
+		else
+			builder.set_line_hscroll(scroll_other, scroll_main);
+
+		// Assert
+		run_active_display_test(vdp, [&](int row, int col)
+		{
+			auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip, scroll_main.at(row));
+			return read_active_color(vdp, 0, tail_main.at(tail_idx));
+		});
+
+		if(testing::Test::HasFatalFailure())
+		{
+			FAIL() << "Failed plane: " << static_cast<int>(plane) << '\n';
+			return;
+		}
+	}
 }

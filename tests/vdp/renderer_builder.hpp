@@ -1,6 +1,8 @@
 #ifndef __TEST_RENDERER_BUILDER_H__
 #define __TEST_RENDERER_BUILDER_H__
 
+#include <vector>
+
 #include "test_vdp.h"
 #include "helpers/random.h"
 
@@ -115,6 +117,40 @@ public:
 		m_vdp.registers().R13.HS5_0 = address >> 10;
 	}
 
+	// set full scren horizontal scroll
+	void set_screen_hscroll(std::uint16_t scroll_a, std::uint16_t scroll_b)
+	{
+		m_vdp.registers().R11.HS = 0b00;
+
+		std::uint32_t addr = m_vdp.sett().horizontal_scroll_address();
+
+		auto& mem = m_vdp.vram();
+		mem.write<std::uint16_t>(addr, scroll_a);
+		mem.write<std::uint16_t>(addr + 2, scroll_b);
+	}
+
+	// set horizontal scroll per row
+	void set_line_hscroll(const std::vector<std::uint16_t>& scroll_a, const std::vector<std::uint16_t>& scroll_b)
+	{
+		if(scroll_a.size() != scroll_b.size())
+			throw std::invalid_argument("scroll array must have the same size");
+		if(scroll_a.size() < m_vdp.sett().display_height_in_pixels())
+			throw std::invalid_argument("scroll arrays must have entries for each display line");
+
+		m_vdp.registers().R11.HS = 0b11;
+
+		std::uint32_t addr = m_vdp.sett().horizontal_scroll_address();
+		auto& mem = m_vdp.vram();
+
+		for(int i = 0; i < m_vdp.sett().display_height_in_pixels(); ++i)
+		{
+			mem.write<std::uint16_t>(addr, scroll_a[i]);
+			mem.write<std::uint16_t>(addr + 2, scroll_b[i]);
+
+			addr += 4;
+		}
+	}
+
 private:
 	template<class T>
 	void copy_tail(std::uint32_t address, const T& tail)
@@ -196,6 +232,7 @@ private:
 		return plane_entry;
 	}
 
+private:
 	std::uint32_t get_tail_address(plane_type plane)
 	{
 		const std::uint32_t TAIL_SIZE = 32;
@@ -216,7 +253,7 @@ private:
 
 	std::uint32_t get_plane_address(plane_type plane)
 	{
-		// note max plane size is 4096 tails or 8192 bytes
+		// max plane size is 4096 tails or 8192 bytes
 		const std::uint32_t MAX_PLANE_SIZE = 8192;
 
 		std::uint32_t base_addr = 0x0;
@@ -232,6 +269,8 @@ private:
 		}
 	}
 
+	// display can be up to 240 pixels height, each line in table is 4 bytes
+	const std::uint32_t HSCROLL_TABLE_SIZE = 960;
 	std::uint32_t get_hscroll_address()
 	{
 		return 24576;
