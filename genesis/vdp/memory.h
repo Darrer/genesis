@@ -2,6 +2,8 @@
 #define __VDP_MEMORY_H__
 
 #include <array>
+#include <cassert>
+
 #include "memory/memory_unit.h"
 #include "output_color.h"
 
@@ -37,12 +39,18 @@ public:
 		unsigned palette = addr / 32;
 		unsigned color_idx = (addr % 32) / 2;
 
-		colors.at(palette).at(color_idx) = data;
+		assert(palette < colors.size());
+		assert(color_idx < colors[palette].size());
+
+		colors[palette][color_idx] = data;
 	}
 
 	output_color read_color(unsigned palette, unsigned color_idx)
 	{
-		return colors.at(palette).at(color_idx);
+		assert(palette < colors.size());
+		assert(color_idx < colors[palette].size());
+
+		return colors[palette][color_idx];
 	}
 
 private:

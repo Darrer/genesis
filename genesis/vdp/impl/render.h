@@ -2,6 +2,7 @@
 #define __VDP_IMPL_RENDER_H__
 
 #include <cstdint>
+#include <cassert>
 #include <array>
 #include <span>
 
@@ -63,10 +64,48 @@ private:
 		bool priority_flag;
 	};
 
+	// the actual pixel produced by vdp does not have priority or transparency,
+	// but these properties are required to build the vdp frame,
+	// so use different pixel representation for internal purposes
+	struct internal_pixel
+	{
+		std::uint8_t palette_id;
+
+		// pixel is transparent if color_id is 0
+		std::uint8_t color_id;
+
+		// only tails have priority, but it would be easier to assign each pixel a priority
+		bool priority;
+	};
+
 	const pixel TRANSPARENT_PIXEL = { TRANSPARENT_COLOR, false };
 
-	std::array<vdp::output_color, 8> read_pattern_row(unsigned pattern_row_number, std::uint32_t pattern_addres,
-		bool hflip, bool vflip, std::uint8_t palette_id) const;
+	// line_number - zero based
+	template<class Callable>
+	void read_pattern_line(unsigned line_number, std::uint32_t pattern_addres,
+		bool hflip, bool vflip, Callable on_pixel_read) const
+	{
+		assert(line_number < 8);
+
+		if(vflip)
+			line_number = 7 - line_number;
+
+		pattern_addres += line_number * 0x4 /* single line occupies 4 bytes */;
+		std::uint32_t raw_line = vram.read_raw<std::uint32_t>(pattern_addres);
+
+		if(hflip)
+		{
+			constexpr auto offsets = {24, 28, 16, 20, 8, 12, 0, 4};
+			for(int offset : offsets)
+				on_pixel_read((raw_line >> offset) & 0xF);
+		}
+		else
+		{
+			constexpr auto offsets = {4, 0, 12, 8, 20, 16, 28, 24};
+			for(int offset : offsets)
+				on_pixel_read((raw_line >> offset) & 0xF);
+		}
+	}
 
 	// std::span<pixel>::iterator write_pattern()
 
@@ -111,7 +150,7 @@ private:
 	static void check_buffer_size(std::span<T> buffer, std::size_t minimum_size)
 	{
 		if(buffer.size() < minimum_size)
-			throw genesis::internal_error();
+			throw std::invalid_argument("provided buffer does not have enough space");
 	}
 
 private:
