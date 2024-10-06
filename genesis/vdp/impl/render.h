@@ -95,13 +95,13 @@ private:
 
 		if(hflip)
 		{
-			constexpr auto offsets = {24, 28, 16, 20, 8, 12, 0, 4};
+			constexpr std::array<int, 8> offsets = {24, 28, 16, 20, 8, 12, 0, 4};
 			for(int offset : offsets)
 				on_pixel_read((raw_line >> offset) & 0xF);
 		}
 		else
 		{
-			constexpr auto offsets = {4, 0, 12, 8, 20, 16, 28, 24};
+			constexpr std::array<int, 8> offsets = {4, 0, 12, 8, 20, 16, 28, 24};
 			for(int offset : offsets)
 				on_pixel_read((raw_line >> offset) & 0xF);
 		}

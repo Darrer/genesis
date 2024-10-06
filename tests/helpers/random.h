@@ -78,7 +78,7 @@ public:
 		return *it;
 	}
 
-	static const bool is_true()
+	static bool is_true()
 	{
 		return next<unsigned>() % 2 == 0;
 	}
