@@ -12,3 +12,4 @@ SpaceBeforeParens: Never
 Language: Cpp
 AccessModifierOffset: -4
 IncludeBlocks: Regroup
+LineEnding: LF

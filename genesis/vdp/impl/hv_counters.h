@@ -1,8 +1,8 @@
 #ifndef __VDP_IMPL_HV_COUNTERS_H__
 #define __VDP_IMPL_HV_COUNTERS_H__
 
-#include "vdp/settings.h"
 #include "vdp/mode.h"
+#include "vdp/settings.h"
 
 namespace genesis::vdp::impl
 {
@@ -85,7 +85,6 @@ private:
 };
 
 
-
 class h_counter : public base_counter
 {
 public:
@@ -119,6 +118,6 @@ public:
 	}
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_HV_COUNTERS_H__

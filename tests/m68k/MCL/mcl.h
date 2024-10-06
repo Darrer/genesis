@@ -1,9 +1,10 @@
 #ifndef __M68K_TEST_MCL_H__
 #define __M68K_TEST_MCL_H__
 
-#include <gtest/gtest.h>
 #include "helper.hpp"
 #include "m68k/test_cpu.hpp"
+
+#include <gtest/gtest.h>
 
 namespace genesis::test
 {
@@ -45,10 +46,10 @@ static void load_mcl(test_cpu& cpu)
 	cpu.load_bin(bin_path.string());
 }
 
-}
+} // namespace __impl
 
 // The test program is taken from: https://github.com/MicroCoreLabs/Projects/blob/master/MCL68/MC68000_Test_Code/
-template<class Callable>
+template <class Callable>
 bool run_mcl(test_cpu& cpu, Callable&& after_cycle_hook)
 {
 	__impl::load_mcl(cpu);
@@ -110,7 +111,7 @@ bool run_mcl(test_cpu& cpu, Callable&& after_cycle_hook)
 				// dump some data for debugging
 				std::uint16_t data = cpu.memory().read<std::uint16_t>(curr_pc);
 				std::cout << "Found a loop at " << su::hex_str(curr_pc) << " (" << su::hex_str(data) << ")"
-							<< std::endl;
+						  << std::endl;
 
 				return false;
 			}
@@ -123,6 +124,6 @@ bool run_mcl(test_cpu& cpu, Callable&& after_cycle_hook)
 	}
 }
 
-}
+} // namespace genesis::test
 
 #endif // __M68K_TEST_MCL_H__

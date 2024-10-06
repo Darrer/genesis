@@ -1,13 +1,13 @@
 #ifndef __VDP_REGISTER_SET_H__
 #define __VDP_REGISTER_SET_H__
 
-#include <cstring>
-
 #include "control_register.h"
 #include "exception.hpp"
 #include "impl/fifo.h"
 #include "read_buffer.h"
 #include "registers.h"
+
+#include <cstring>
 
 
 namespace genesis::vdp
@@ -18,11 +18,8 @@ class register_set
 public:
 	register_set()
 	{
-		m_registers = {
-			&R0, &R1, &R2, &R3, &R4, &R5, &R6, &R7, &R8, &R9, &R10,
-			&R11, &R12, &R13, &R14, &R15, &R16, &R17, &R18, &R19, &R20,
-			&R21, &R22, &R23
-		};
+		m_registers = {&R0,	 &R1,  &R2,	 &R3,  &R4,	 &R5,  &R6,	 &R7,  &R8,	 &R9,  &R10, &R11,
+					   &R12, &R13, &R14, &R15, &R16, &R17, &R18, &R19, &R20, &R21, &R22, &R23};
 
 		for(std::size_t i = 0; i < m_registers.size(); ++i)
 			set_register((int)i, 0);

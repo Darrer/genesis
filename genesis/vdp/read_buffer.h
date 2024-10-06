@@ -1,9 +1,9 @@
 #ifndef __VDP_READ_BUFFER_H__
 #define __VDP_READ_BUFFER_H__
 
-#include <cstdint>
-
 #include "exception.hpp"
+
+#include <cstdint>
 
 
 namespace genesis::vdp
@@ -12,7 +12,10 @@ namespace genesis::vdp
 class read_buffer
 {
 public:
-	read_buffer() { reset(); }
+	read_buffer()
+	{
+		reset();
+	}
 
 	std::uint16_t data() const
 	{
@@ -43,7 +46,10 @@ public:
 		_has_data = true;
 	}
 
-	bool has_data() const { return _has_data; }
+	bool has_data() const
+	{
+		return _has_data;
+	}
 
 	// keep the data, but remove the available flag
 	void clear_data_flag() // TODO: remove _flag part
@@ -64,6 +70,6 @@ private:
 	bool _has_data;
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_READ_BUFFER_H__

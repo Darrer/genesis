@@ -1,10 +1,10 @@
 #ifndef __IO_PORTS_DISABLED_PORT_H__
 #define __IO_PORTS_DISABLED_PORT_H__
 
-#include <memory>
-
 #include "memory/addressable.h"
 #include "memory/dummy_memory.h"
+
+#include <memory>
 
 namespace genesis::io_ports
 {
@@ -25,6 +25,6 @@ public:
 	}
 };
 
-}
+} // namespace genesis::io_ports
 
 #endif // __IO_PORTS_DISABLED_PORT_H__

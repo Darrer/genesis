@@ -1,11 +1,11 @@
 #ifndef __VDP_MEMORY_H__
 #define __VDP_MEMORY_H__
 
-#include <array>
-#include <cassert>
-
 #include "memory/memory_unit.h"
 #include "output_color.h"
+
+#include <array>
+#include <cassert>
 
 
 namespace genesis::vdp

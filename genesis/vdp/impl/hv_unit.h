@@ -1,12 +1,11 @@
 #ifndef __VDP_IMPL_HV_UNIT_H__
 #define __VDP_IMPL_HV_UNIT_H__
 
+#include "blank_flags.h"
+#include "hv_counters.h"
+#include "vdp/mode.h"
 #include "vdp/register_set.h"
 #include "vdp/settings.h"
-#include "vdp/mode.h"
-
-#include "hv_counters.h"
-#include "blank_flags.h"
 
 
 namespace genesis::vdp::impl
@@ -18,7 +17,6 @@ class hv_unit
 public:
 	hv_unit(register_set& regs) : m_regs(regs)
 	{
-
 	}
 
 	void reset()
@@ -30,8 +28,14 @@ public:
 		m_vblank_flag.reset();
 	}
 
-	int h_counter_raw() const { return m_h_counter.raw_value(); }
-	int v_counter_raw() const { return m_v_counter.raw_value(); }
+	int h_counter_raw() const
+	{
+		return m_h_counter.raw_value();
+	}
+	int v_counter_raw() const
+	{
+		return m_v_counter.raw_value();
+	}
 
 	void on_pixel(display_width width, display_height height, mode mode)
 	{
@@ -44,7 +48,7 @@ public:
 
 		/* update V counter at specific H position */
 		if((width == display_width::c32 && m_h_counter.raw_value() == 0x85) ||
-			(width == display_width::c40 && m_h_counter.raw_value() == 0xA5))
+		   (width == display_width::c40 && m_h_counter.raw_value() == 0xA5))
 		{
 			m_v_counter.inc(height, mode);
 			m_regs.v_counter = m_v_counter.value();
@@ -64,6 +68,6 @@ private:
 	vblank_flag m_vblank_flag;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_HV_UNIT_H__

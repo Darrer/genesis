@@ -1,11 +1,12 @@
 #ifndef __M68K_EXCEPTION_MANAGER_H__
 #define __M68K_EXCEPTION_MANAGER_H__
 
-#include <cstdint>
-#include <array>
-#include <type_traits>
-#include <span>
 #include "exception.hpp"
+
+#include <array>
+#include <cstdint>
+#include <span>
+#include <type_traits>
 
 // TODO: fix typo riser -> raiser
 
@@ -48,21 +49,26 @@ enum class exception_group
 
 namespace groups
 {
-static constexpr const exception_type ex_group_0[] = { exception_type::reset,
-	exception_type::address_error, exception_type::bus_error };
+static constexpr const exception_type ex_group_0[] = {exception_type::reset, exception_type::address_error,
+													  exception_type::bus_error};
 
-static constexpr const exception_type ex_group_1[] = { exception_type::trace, exception_type::interrupt,
-	exception_type::illegal_instruction, exception_type::privilege_violations,
-	exception_type::line_1010_emulator, exception_type::line_1111_emulator, };
-
-
-static constexpr const exception_type ex_group_2[] = { exception_type::trap, exception_type::trapv,
-	exception_type::chk_instruction, exception_type::division_by_zero };
+static constexpr const exception_type ex_group_1[] = {
+	exception_type::trace,
+	exception_type::interrupt,
+	exception_type::illegal_instruction,
+	exception_type::privilege_violations,
+	exception_type::line_1010_emulator,
+	exception_type::line_1111_emulator,
 };
+
+
+static constexpr const exception_type ex_group_2[] = {
+	exception_type::trap, exception_type::trapv, exception_type::chk_instruction, exception_type::division_by_zero};
+}; // namespace groups
 
 static constexpr std::span<const exception_type> group_exceptions(exception_group group)
 {
-	switch (group)
+	switch(group)
 	{
 	case exception_group::group_0:
 		return groups::ex_group_0;
@@ -72,8 +78,9 @@ static constexpr std::span<const exception_type> group_exceptions(exception_grou
 
 	case exception_group::group_2:
 		return groups::ex_group_2;
-	
-	default: return { };
+
+	default:
+		return {};
 	}
 }
 
@@ -137,7 +144,7 @@ public:
 	void rise(exception_type ex)
 	{
 		// some exceptions required data to be provided, so we cannot allow use generic rise method for them
-		switch (ex)
+		switch(ex)
 		{
 		case exception_type::address_error:
 		case exception_type::bus_error:
@@ -273,6 +280,6 @@ private:
 	unsigned int ex_counter = 0;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_EXCEPTION_MANAGER_H__

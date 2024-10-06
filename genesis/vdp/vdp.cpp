@@ -24,7 +24,7 @@ int cycles_per_pixel(settings& sett)
 {
 	if(sett.display_width() == display_width::c32)
 		return 10; // 3420 / 342
-	return 8; // 3420 / 420
+	return 8;	   // 3420 / 420
 }
 
 int lines_per_frame(settings& sett, clock_rate rate = clock_rate::hz60)
@@ -134,7 +134,7 @@ void vdp::handle_ports_requests()
 			 * The following order seems the right one:
 			 * If address is even: we first have to write MSB and then LSB.
 			 * If address is odd : we first have to write LSB and then LSB.
-			*/
+			 */
 
 			if(entry.control.address() % 2 == 1)
 			{
@@ -265,7 +265,6 @@ void vdp::update_status_register()
 
 void vdp::on_start_scanline()
 {
-
 }
 
 void vdp::on_end_scanline()

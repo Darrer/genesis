@@ -1,8 +1,8 @@
 #ifndef __SMD_IMPL_M68K_BUS_ACCESS__
 #define __SMD_IMPL_M68K_BUS_ACCESS__
 
-#include "vdp/m68k_bus_access.h"
 #include "m68k/bus_access.h"
+#include "vdp/m68k_bus_access.h"
 
 namespace genesis::impl
 {
@@ -10,11 +10,22 @@ namespace genesis::impl
 class m68k_bus_access_impl : public vdp::m68k_bus_access
 {
 public:
-	m68k_bus_access_impl(genesis::m68k::bus_access& bus_access) : bus_access(bus_access) { }
+	m68k_bus_access_impl(genesis::m68k::bus_access& bus_access) : bus_access(bus_access)
+	{
+	}
 
-	void request_bus() override { bus_access.request_bus(); }
-	void release_bus() override { bus_access.release_bus(); }
-	bool bus_granted() const override { return bus_access.bus_granted(); }
+	void request_bus() override
+	{
+		bus_access.request_bus();
+	}
+	void release_bus() override
+	{
+		bus_access.release_bus();
+	}
+	bool bus_granted() const override
+	{
+		return bus_access.bus_granted();
+	}
 
 	void init_read_word(std::uint32_t address) override
 	{
@@ -22,13 +33,20 @@ public:
 		bus_access.init_read_word(address, genesis::m68k::addr_space::DATA);
 	}
 
-	std::uint16_t latched_word() const override { return bus_access.latched_word(); }
+	std::uint16_t latched_word() const override
+	{
+		return bus_access.latched_word();
+	}
 
-	bool is_idle() const override { return bus_access.is_idle(); }
+	bool is_idle() const override
+	{
+		return bus_access.is_idle();
+	}
+
 private:
 	genesis::m68k::bus_access& bus_access;
 };
 
-}
+} // namespace genesis::impl
 
 #endif // __SMD_IMPL_M68K_BUS_ACCESS__

@@ -90,8 +90,7 @@ void bus_manager::assert_idle(std::source_location loc) const
 {
 	if(!is_idle())
 	{
-		throw std::runtime_error(std::string(loc.function_name()) +
-								 " error: cannot perform an operation while busy");
+		throw std::runtime_error(std::string(loc.function_name()) + " error: cannot perform an operation while busy");
 	}
 }
 
@@ -249,7 +248,7 @@ void bus_manager::cycle()
 		if(int_dev->is_idle())
 		{
 			vector_number = int_dev->vector_number();
-			switch (int_dev->interrupt_type())
+			switch(int_dev->interrupt_type())
 			{
 			case interrupt_type::vectored:
 				bus.set(bus::DTACK);
@@ -264,9 +263,10 @@ void bus_manager::cycle()
 				bus.set(bus::BERR);
 				break;
 
-			default: throw internal_error("unknown interrupt type");
+			default:
+				throw internal_error("unknown interrupt type");
 			}
-			
+
 			advance_state();
 		}
 		return;
@@ -306,7 +306,8 @@ void bus_manager::set_idle()
 		assert_idle();
 	}
 
-	// TODO: reset space, also can we use/have space when we're processing interrupt (maybe we need it to process exception)?
+	// TODO: reset space, also can we use/have space when we're processing interrupt (maybe we need it to process
+	// exception)?
 
 	on_idle();
 }
@@ -320,7 +321,7 @@ void bus_manager::on_idle()
 	{
 		// we're idle and bus is requsted - perfect time to give it up
 		bus.set(bus::BG); // grant access just by setting BG flag
-	} 
+	}
 	else if(bus_granted() && !bus.is_set(bus::BR))
 	{
 		// we can become master again

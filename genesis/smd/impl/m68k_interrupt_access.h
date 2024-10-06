@@ -5,8 +5,8 @@
 #include "m68k/interrupting_device.h"
 #include "vdp/m68k_interrupt_access.h"
 
-#include <optional>
 #include <functional>
+#include <optional>
 
 namespace genesis::impl
 {
@@ -68,6 +68,6 @@ private:
 	std::optional<std::reference_wrapper<genesis::m68k::cpu>> m_cpu;
 };
 
-}
+} // namespace genesis::impl
 
 #endif // __SMD_IMPL_M68K_INTERRUPT_ACCESS_H__

@@ -1,17 +1,16 @@
 #ifndef __M68K_CPU_H__
 #define __M68K_CPU_H__
 
+#include "bus_access.h"
 #include "cpu_bus.hpp"
 #include "cpu_registers.hpp"
-#include "bus_access.h"
-#include "interrupting_device.h"
-
 #include "impl/bus_manager.h"
 #include "impl/bus_scheduler.h"
 #include "impl/exception_manager.h"
 #include "impl/exception_unit.hpp"
-#include "impl/trace_riser.hpp"
 #include "impl/interrupt_riser.h"
+#include "impl/trace_riser.hpp"
+#include "interrupting_device.h"
 
 #include <memory>
 

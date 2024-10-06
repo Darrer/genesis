@@ -1,12 +1,11 @@
 #ifndef __SMD_IMPL_Z80_CONTROL_REGISTERS_H__
 #define __SMD_IMPL_Z80_CONTROL_REGISTERS_H__
 
-#include <memory>
-#include <cstdint>
-
 #include "memory/addressable.h"
 
+#include <cstdint>
 #include <iostream>
+#include <memory>
 
 namespace genesis::impl
 {
@@ -118,6 +117,6 @@ private:
 	std::shared_ptr<memory::memory_unit> m_z80_reset;
 };
 
-}
+} // namespace genesis::impl
 
 #endif // __SMD_IMPL_Z80_CONTROL_REGISTERS_H__

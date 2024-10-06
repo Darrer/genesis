@@ -1,8 +1,8 @@
 #ifndef __VDP_IMPL_SPRITES_LIMITS_TRACKER_H__
 #define __VDP_IMPL_SPRITES_LIMITS_TRACKER_H__
 
-#include "vdp/settings.h"
 #include "sprite_table.h"
+#include "vdp/settings.h"
 
 
 namespace genesis::vdp::impl
@@ -19,8 +19,7 @@ public:
 
 	bool line_limit_exceeded() const
 	{
-		return rendered_sprites >= sprites_per_line_limit()
-			|| rendered_pixels >= sett.display_width_in_pixels();
+		return rendered_sprites >= sprites_per_line_limit() || rendered_pixels >= sett.display_width_in_pixels();
 	}
 
 	unsigned line_pixels_limit() const
@@ -57,6 +56,6 @@ private:
 	unsigned rendered_pixels;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_SPRITES_LIMITS_TRACKER_H__

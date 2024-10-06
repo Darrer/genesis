@@ -1,9 +1,9 @@
 #ifndef __VDP_CONTROL_REGISTER_H__
 #define __VDP_CONTROL_REGISTER_H__
 
-#include <cstdint>
-
 #include "exception.hpp"
+
+#include <cstdint>
 
 
 namespace genesis::vdp
@@ -53,11 +53,23 @@ public:
 		set_c2(0);
 	}
 
-	std::uint16_t raw_c1() const { return c1_value; }
-	std::uint16_t raw_c2() const { return c2_value; }
+	std::uint16_t raw_c1() const
+	{
+		return c1_value;
+	}
+	std::uint16_t raw_c2() const
+	{
+		return c2_value;
+	}
 
-	void set_c1(std::uint16_t val) { c1_value = val; }
-	void set_c2(std::uint16_t val) { c2_value = val; }
+	void set_c1(std::uint16_t val)
+	{
+		c1_value = val;
+	}
+	void set_c2(std::uint16_t val)
+	{
+		c2_value = val;
+	}
 
 	std::uint16_t address() const
 	{
@@ -82,7 +94,7 @@ public:
 	{
 		std::uint8_t cd = c1.CD1;
 		cd |= c2.CD3_2 << 1;
-		switch (cd)
+		switch(cd)
 		{
 		case 0b000:
 			return vmem_type::vram;
@@ -101,15 +113,14 @@ public:
 
 	void vmem_type(vdp::vmem_type _type)
 	{
-		switch (_type)
+		switch(_type)
 		{
 		case vmem_type::vram:
 			c1.CD1 = 0;
 			c2.CD3_2 = 0;
 			break;
 
-		case vmem_type::cram:
-		{
+		case vmem_type::cram: {
 			if(control_type() == control_type::read)
 			{
 				c1.CD1 = 0;
@@ -129,7 +140,8 @@ public:
 			c2.CD3_2 = 0b01;
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -171,19 +183,17 @@ public:
 	}
 
 private:
-	union
-	{
+	union {
 		C1 c1;
 		std::uint16_t c1_value;
 	};
 
-	union
-	{
+	union {
 		C2 c2;
 		std::uint16_t c2_value;
 	};
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_CONTROL_REGISTER_H__

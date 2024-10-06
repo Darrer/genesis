@@ -1,11 +1,10 @@
 #include "exception.hpp"
+#include "helpers/random.h"
 #include "m68k/impl/exception_manager.h"
 #include "test_cpu.hpp"
-#include "helpers/random.h"
 #include "test_program.h"
 
 #include <gtest/gtest.h>
-
 #include <iostream>
 #include <string_utils.hpp>
 
@@ -48,8 +47,7 @@ void rise_exception(test_cpu& cpu, exception_type ex)
 		exman.rise_trace();
 		break;
 
-	case exception_type::interrupt:
-	{
+	case exception_type::interrupt: {
 		rise_interrupt(cpu);
 		exman.rise_interrupt(cpu.bus().interrupt_priority());
 		break;
@@ -163,7 +161,8 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_VALIDATE_STACK)
 	ASSERT_EQ(0, regs.flags.TR);
 }
 
-void prepare_vector_table(test_cpu& cpu, std::uint32_t address, std::uint32_t pc_value, std::uint16_t ird, std::uint16_t irc)
+void prepare_vector_table(test_cpu& cpu, std::uint32_t address, std::uint32_t pc_value, std::uint16_t ird,
+						  std::uint16_t irc)
 {
 	auto& mem = cpu.memory();
 
@@ -200,11 +199,11 @@ std::vector<std::uint32_t> build_interrupt_vector_addresses()
 
 	vectors.push_back(60); // Uninitialized Interrupt Vector
 	vectors.push_back(96); // Spurious Interrupt
-	
+
 	// Autovectors
 	for(std::uint32_t vec = 100; vec <= 124; vec += 4)
 		vectors.push_back(vec);
-	
+
 	// User vectors
 	for(std::uint32_t vec = 256; vec <= 1020; vec += 4)
 		vectors.push_back(vec);
@@ -313,7 +312,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_MASKED)
  * NOP
  * INC <counter_address>
  * RTE // return from exception
-*/
+ */
 void dump_interrupt_routine(test_cpu& cpu, std::uint32_t& base_address, std::uint32_t counter_address)
 {
 	auto& mem = cpu.memory();
@@ -363,24 +362,26 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 	std::uint32_t return_pc = 0x0;
 	std::uint32_t vec_addr = 0;
 
-	auto get_interrupt_frequency = []()
-	{
-		return random::in_range<std::uint32_t>(100, 500);
-	};
+	auto get_interrupt_frequency = []() { return random::in_range<std::uint32_t>(100, 500); };
 
 	auto interrupt_frequency = get_interrupt_frequency();
 
 	auto cycles = 0ull;
 
-	enum class test_state { init, wait, wait_idle, start, finish };
+	enum class test_state
+	{
+		init,
+		wait,
+		wait_idle,
+		start,
+		finish
+	};
 	test_state state = test_state::init;
 
-	bool success = run_test_program(cpu, [&]()
-	{
-		switch (state)
+	bool success = run_test_program(cpu, [&]() {
+		switch(state)
 		{
-		case test_state::init:
-		{
+		case test_state::init: {
 			// allocate 4 bytes for counter variable for each interrupt handler
 			std::uint32_t counter_addr = address_after_test_programm;
 			for(auto vec : interrupt_vectors)
@@ -420,8 +421,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 			state = test_state::start;
 			[[fallthrough]];
 
-		case test_state::start:
-		{
+		case test_state::start: {
 			ASSERT_TRUE(cpu.is_idle());
 
 			// there should be no other interrupt/exceptions pending
@@ -454,8 +454,7 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 			break;
 		}
 
-		case test_state::finish:
-		{
+		case test_state::finish: {
 			if(cpu.is_idle() && regs.PC == return_pc)
 			{
 				// restore state
@@ -470,17 +469,15 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 			break;
 		}
 
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 	});
 
 	// wait for last interrupt to complete (if any)
 	if(state == test_state::finish)
 	{
-		cpu.cycle_until([&cpu, return_pc]()
-		{
-			return cpu.is_idle() && cpu.registers().PC == return_pc;
-		});
+		cpu.cycle_until([&cpu, return_pc]() { return cpu.is_idle() && cpu.registers().PC == return_pc; });
 	}
 
 	ASSERT_TRUE(success);
@@ -497,8 +494,8 @@ TEST(M68K_EXCEPTION_UNIT, INTERRUPT_DURING_PROGRAM_EXECUTION)
 
 			if(enable_logging)
 			{
-				std::cout << su::hex_str(vec) << " int counter: " << counter_value
-					<< " int called: " << num_calls << '\n';
+				std::cout << su::hex_str(vec) << " int counter: " << counter_value << " int called: " << num_calls
+						  << '\n';
 			}
 		}
 	}
@@ -515,7 +512,7 @@ TEST(M68K_EXCEPTION_UNIT, MULTIPLE_ADDRESS_ERRORS)
 	// address error exception during processing address error exception
 	mem.write<std::uint32_t>(0xC, 0x1);
 
-	ASSERT_THROW(cpu.cycle_until([&]() { return cpu.is_idle(); } ), std::runtime_error);
+	ASSERT_THROW(cpu.cycle_until([&]() { return cpu.is_idle(); }), std::runtime_error);
 }
 
 TEST(M68K_EXCEPTION_UNIT, BUS_ADDRESS_ERROR_VALIDATE_STACK)
@@ -587,7 +584,8 @@ TEST(M68K_EXCEPTION_UNIT, BUS_ADDRESS_ERROR_VALIDATE_STACK)
 	expected_status |= (rw ? 1 : 0) << 4;
 	ASSERT_EQ(pushed_status & 0b11111, expected_status); // check only documented the first 5 bits
 
-	const std::uint32_t expected_sp = initial_sp - 4 /* PC */ - 2 /* SR */  - 2 /* ISR */ - 4 /* ADDR */ - 2 /* status word */;
+	const std::uint32_t expected_sp =
+		initial_sp - 4 /* PC */ - 2 /* SR */ - 2 /* ISR */ - 4 /* ADDR */ - 2 /* status word */;
 	ASSERT_EQ(expected_sp, regs.SSP.LW);
 
 	ASSERT_EQ(table_pc, regs.PC);

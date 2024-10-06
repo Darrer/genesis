@@ -1,24 +1,26 @@
 #ifndef __VDP_IMPL_NAME_TABLE_H__
 #define __VDP_IMPL_NAME_TABLE_H__
 
-#include <cstdint>
-#include <stdexcept>
-
+#include "plane_type.h"
 #include "vdp/memory.h"
 #include "vdp/settings.h"
-#include "plane_type.h"
+
+#include <cstdint>
+#include <stdexcept>
 
 namespace genesis::vdp::impl
 {
 
 struct name_table_entry
 {
-	name_table_entry() : name_table_entry(0) { }
+	name_table_entry() : name_table_entry(0)
+	{
+	}
 
 	name_table_entry(std::uint16_t value)
 	{
 		pattern_addr = value & 0x07FF; // bits 0-10
-		horizontal_flip = (value >> 11) & 0b1; 
+		horizontal_flip = (value >> 11) & 0b1;
 		vertical_flip = (value >> 12) & 0b1;
 		palette = (value >> 13) & 0b11;
 		priority = (value >> 15) & 0b1;
@@ -41,8 +43,7 @@ static_assert(sizeof(name_table_entry) == 2);
 class name_table
 {
 public:
-	name_table(plane_type plane, genesis::vdp::settings& sett, genesis::vdp::vram_t& vram)
-		: vram(vram)
+	name_table(plane_type plane, genesis::vdp::settings& sett, genesis::vdp::vram_t& vram) : vram(vram)
 	{
 		m_plane_address = plane_address_impl(plane, sett);
 		m_entries_per_row = entries_per_row_impl(plane, sett);
@@ -65,13 +66,12 @@ public:
 	{
 		if(row_number >= row_count())
 			throw std::invalid_argument("row_number");
-		
+
 		if(entry_number >= entries_per_row())
 			throw std::invalid_argument("entry_number");
 
-		std::uint32_t address = m_plane_address
-			+ (m_row_size_in_bytes * row_number)
-			+ (entry_number * sizeof(name_table_entry));
+		std::uint32_t address =
+			m_plane_address + (m_row_size_in_bytes * row_number) + (entry_number * sizeof(name_table_entry));
 
 		return vram.read<std::uint16_t>(address);
 	}
@@ -79,7 +79,7 @@ public:
 private:
 	static std::uint32_t plane_address_impl(plane_type plane, vdp::settings& sett)
 	{
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 			return sett.plane_a_address();
@@ -87,13 +87,14 @@ private:
 			return sett.plane_b_address();
 		case plane_type::w:
 			return sett.plane_w_address();
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static int entries_per_row_impl(plane_type plane, vdp::settings& sett)
 	{
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 		case plane_type::b:
@@ -103,20 +104,22 @@ private:
 			if(sett.display_width() == display_width::c40)
 				return 64;
 			return 32;
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static int row_count_impl(plane_type plane, vdp::settings& sett)
 	{
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 		case plane_type::b:
 			return sett.plane_height_in_tiles();
 		case plane_type::w:
 			return 32; // there are alwyas 32 rows for window plane
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -129,6 +132,6 @@ private:
 	int m_row_size_in_bytes;
 };
 
-};
+}; // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_NAME_TABLE_H__

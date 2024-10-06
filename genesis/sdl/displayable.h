@@ -17,6 +17,6 @@ public:
 	virtual bool is_closed() const = 0;
 };
 
-}
+} // namespace genesis::sdl
 
 #endif // __SDL_DISPLAYABLE_H__

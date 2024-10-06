@@ -33,7 +33,7 @@ public:
 
 	virtual std::uint8_t vector_number() const override
 	{
-		switch (type)
+		switch(type)
 		{
 		case m68k::interrupt_type::spurious:
 			return m68k::spurious_vector_number;
@@ -41,7 +41,8 @@ public:
 			return autovectored(priority);
 		case m68k::interrupt_type::vectored:
 			return vec;
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -74,6 +75,6 @@ private:
 	std::uint8_t vec;
 };
 
-}
+} // namespace genesis::test
 
 #endif // __M68K_TEST_INT_DEV_H__

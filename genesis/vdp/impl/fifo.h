@@ -1,10 +1,10 @@
 #ifndef __VDP_FIFO_H__
 #define __VDP_FIFO_H__
 
-#include <cstdint>
-#include <array>
-
 #include "vdp/control_register.h"
+
+#include <array>
+#include <cstdint>
 
 // TODO: move fifo.h to vdp/
 
@@ -83,6 +83,6 @@ private:
 	std::array<fifo_entry, 4> queue;
 };
 
-};
+}; // namespace genesis::vdp
 
 #endif // __VDP_FIFO_H__

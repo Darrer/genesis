@@ -22,10 +22,10 @@ public:
 
 		auto sum = (std::int64_t)a + (std::int64_t)b + c;
 
-		if (sum > std::numeric_limits<T>::max())
+		if(sum > std::numeric_limits<T>::max())
 			return 1;
 
-		if (sum < std::numeric_limits<T>::min())
+		if(sum < std::numeric_limits<T>::min())
 			return 1;
 
 		return 0;
@@ -40,10 +40,10 @@ public:
 
 		auto diff = (std::int64_t)a - (std::int64_t)b - c;
 
-		if (diff > std::numeric_limits<T>::max())
+		if(diff > std::numeric_limits<T>::max())
 			return 1;
 
-		if (diff < std::numeric_limits<T>::min())
+		if(diff < std::numeric_limits<T>::min())
 			return 1;
 
 		return 0;
@@ -57,7 +57,7 @@ public:
 		static_assert(sizeof(T) <= 4);
 
 		auto sum = (std::int64_t)a + (std::int64_t)b + c;
-		if (sum > std::numeric_limits<T>::max())
+		if(sum > std::numeric_limits<T>::max())
 			return 1;
 
 		return 0;
@@ -71,13 +71,13 @@ public:
 		static_assert(sizeof(T) <= 4);
 
 		auto sum = (std::int64_t)b + c;
-		if (sum > a)
+		if(sum > a)
 			return 1;
 
 		return 0;
 	}
 };
 
-}
+} // namespace genesis
 
 #endif // __GENESIS_CPU_FLAGS_HPP__

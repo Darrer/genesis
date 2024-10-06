@@ -1,15 +1,14 @@
 #ifndef __SMD_IMPL_Z80_68BANK_H__
 #define __SMD_IMPL_Z80_68BANK_H__
 
-#include <memory>
-#include <stdexcept>
-
+#include "exception.hpp"
 #include "memory/addressable.h"
 #include "memory/memory_unit.h"
-#include "exception.hpp"
+#include "string_utils.hpp"
 
 #include <iostream>
-#include "string_utils.hpp"
+#include <memory>
+#include <stdexcept>
 
 namespace genesis::impl
 {
@@ -144,8 +143,8 @@ private:
 		address = (bank_reg << 15) | (address & 0x7fff);
 
 		if(address > 0x3FFFFF)
-			throw not_implemented("z80 bank area: only ROM is supported for now (address: "
-				+ su::hex_str(address) + ")");
+			throw not_implemented("z80 bank area: only ROM is supported for now (address: " + su::hex_str(address) +
+								  ")");
 
 		return address;
 	}
@@ -181,6 +180,6 @@ private:
 	std::shared_ptr<memory::addressable> m_bank_area;
 };
 
-}
+} // namespace genesis::impl
 
 #endif // __SMD_IMPL_Z80_68BANK_H__

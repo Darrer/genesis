@@ -1,15 +1,13 @@
 #ifndef __SMD_H__
 #define __SMD_H__
 
-#include "memory/addressable.h"
-#include "m68k/cpu.h"
-#include "z80/cpu.h"
-#include "vdp/vdp.h"
-#include "rom.h"
-
 #include "impl/z80_control_registers.h"
-
 #include "io_ports/input_device.h"
+#include "m68k/cpu.h"
+#include "memory/addressable.h"
+#include "rom.h"
+#include "vdp/vdp.h"
+#include "z80/cpu.h"
 
 #include <memory>
 #include <string_view>
@@ -25,7 +23,10 @@ public:
 
 	void cycle();
 
-	vdp::vdp& vdp() { return *m_vdp; }
+	vdp::vdp& vdp()
+	{
+		return *m_vdp;
+	}
 
 private:
 	void build_cpu_memory_map(const genesis::rom& rom);
@@ -49,7 +50,7 @@ protected:
 	unsigned cycles = 0;
 
 private:
-	 std::shared_ptr<io_ports::input_device> m_input_dev1;
+	std::shared_ptr<io_ports::input_device> m_input_dev1;
 };
 
 } // namespace genesis

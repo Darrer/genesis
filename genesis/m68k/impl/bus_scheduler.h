@@ -1,14 +1,14 @@
 #ifndef __M68K_BUS_SCHEDULER_H__
 #define __M68K_BUS_SCHEDULER_H__
 
+#include "bus_manager.h"
+#include "m68k/cpu_registers.hpp"
+#include "prefetch_queue.hpp"
+
+#include <functional>
+#include <optional>
 #include <queue>
 #include <variant>
-#include <optional>
-#include <functional>
-
-#include "m68k/cpu_registers.hpp"
-#include "bus_manager.h"
-#include "prefetch_queue.hpp"
 
 
 namespace genesis::m68k
@@ -47,27 +47,27 @@ public:
 	bool is_idle() const;
 	void reset();
 
-	template<class Callable>
+	template <class Callable>
 	void read(std::uint32_t addr, size_type size, Callable on_complete)
 	{
 		read(addr, size, addr_space::DATA, on_complete);
 	}
 
-	template<class Callable>
+	template <class Callable>
 	void read(std::uint32_t addr, size_type size, addr_space space, Callable on_complete)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_impl(addr, size, space, on_complete);
 	}
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void read_imm(size_type size, Callable on_complete = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_imm_impl(size, on_complete);
 	}
 
-	template<class Callable = std::nullptr_t>
+	template <class Callable = std::nullptr_t>
 	void read_imm(size_type size, read_imm_flags flags, Callable on_complete = nullptr)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -76,14 +76,14 @@ public:
 
 	void write(std::uint32_t addr, std::uint32_t data, size_type size, order order = order::lsw_first);
 
-	template<class Callable>
+	template <class Callable>
 	void read_modify_write(std::uint32_t addr, Callable modify)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		read_modify_write_impl(addr, modify);
 	}
 
-	template<class Callable>
+	template <class Callable>
 	void int_ack(std::uint8_t ipl, Callable on_complete)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -97,7 +97,7 @@ public:
 
 	void wait(int cycles);
 
-	template<class Callable>
+	template <class Callable>
 	void call(Callable cb)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
@@ -190,14 +190,15 @@ private:
 	struct operation
 	{
 		op_type type;
-		std::variant<read_operation, read_imm_operation, rmw_operation,
-		int_ack_operation, write_operation, wait_operation, call_operation,
-			register_operation, push_operation> op = {};
+		std::variant<read_operation, read_imm_operation, rmw_operation, int_ack_operation, write_operation,
+					 wait_operation, call_operation, register_operation, push_operation>
+			op = {};
 	};
 
 private:
 	void read_impl(std::uint32_t addr, size_type size, addr_space space, on_read_complete on_complete);
-	void read_imm_impl(size_type size, on_read_complete on_complete, read_imm_flags flags = read_imm_flags::do_prefetch);
+	void read_imm_impl(size_type size, on_read_complete on_complete,
+					   read_imm_flags flags = read_imm_flags::do_prefetch);
 	void read_modify_write_impl(std::uint32_t addr, on_modify modify);
 	void int_ack_impl(std::uint8_t ipl, int_ack_complete);
 	void call_impl(callback);
@@ -228,6 +229,6 @@ private:
 };
 
 
-};
+}; // namespace genesis::m68k
 
 #endif // __M68K_BUS_SCHEDULER_H__

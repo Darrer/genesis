@@ -1,5 +1,5 @@
-#include "time_utils.h"
 #include "../test_cpu.hpp"
+#include "time_utils.h"
 
 #include <gtest/gtest.h>
 #include <iostream>

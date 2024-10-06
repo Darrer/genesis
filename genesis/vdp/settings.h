@@ -164,7 +164,7 @@ public:
 
 	std::uint8_t plane_width_in_tiles() const
 	{
-		switch (plane_width())
+		switch(plane_width())
 		{
 		case plane_dimension::c32:
 			return 32;
@@ -172,13 +172,14 @@ public:
 			return 64;
 		case plane_dimension::c128:
 			return 128;
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	std::uint8_t plane_height_in_tiles() const
 	{
-		switch (plane_height())
+		switch(plane_height())
 		{
 		case plane_dimension::c32:
 			return 32;
@@ -186,7 +187,8 @@ public:
 			return 64;
 		case plane_dimension::c128:
 			return 128;
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 

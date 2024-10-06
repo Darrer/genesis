@@ -14,6 +14,6 @@ public:
 	virtual bool is_key_pressed(key_type) = 0;
 };
 
-}
+} // namespace genesis::io_ports
 
 #endif // __IO_PORTS_INPUT_DEVICE_H__

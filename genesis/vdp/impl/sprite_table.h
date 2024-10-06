@@ -1,11 +1,11 @@
 #ifndef __VDP_IMPL_SPRITE_TABLE_H__
 #define __VDP_IMPL_SPRITE_TABLE_H__
 
-#include <cstdint>
-#include <stdexcept>
-
 #include "vdp/memory.h"
 #include "vdp/settings.h"
+
+#include <cstdint>
+#include <stdexcept>
 
 namespace genesis::vdp::impl
 {
@@ -33,8 +33,7 @@ static_assert(sizeof(sprite_table_entry) == 16);
 class sprite_table
 {
 public:
-	sprite_table(genesis::vdp::settings& sett, genesis::vdp::vram_t& vram)
-		: vram(vram)
+	sprite_table(genesis::vdp::settings& sett, genesis::vdp::vram_t& vram) : vram(vram)
 	{
 		m_num_entries = num_entries_impl(sett);
 		m_sprite_address = sett.sprite_address();
@@ -99,6 +98,6 @@ private:
 	std::uint32_t m_sprite_address;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_SPRITE_TABLE_H__

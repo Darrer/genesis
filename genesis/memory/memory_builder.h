@@ -62,8 +62,8 @@ public:
 
 	// Mirror [start_address; end_address] on [mirrored_start_address; mirrored_end_address]
 	// These address ranges must have the same size.
-	void mirror(std::uint32_t start_address, std::uint32_t end_address,
-		std::uint32_t mirrored_start_address, std::uint32_t mirrored_end_address);
+	void mirror(std::uint32_t start_address, std::uint32_t end_address, std::uint32_t mirrored_start_address,
+				std::uint32_t mirrored_end_address);
 
 private:
 	void assert_not_null(addressable* device) const;

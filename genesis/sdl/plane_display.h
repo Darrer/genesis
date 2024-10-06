@@ -1,20 +1,18 @@
 #ifndef __GENESIS_SDL_PLANE_DISPLAY_H__
 #define __GENESIS_SDL_PLANE_DISPLAY_H__
 
-#include <string_view>
-#include <functional>
-#include <stdexcept>
-#include <cstdint>
-#include <array>
-#include <span>
-
 #include "base_display.h"
+#include "time_utils.h"
 #include "vdp/output_color.h"
 
-#include "time_utils.h"
-
-#include <iostream>
+#include <array>
+#include <cstdint>
+#include <functional>
 #include <iomanip>
+#include <iostream>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 
 namespace genesis::sdl
 {
@@ -42,7 +40,7 @@ public:
 			throw std::invalid_argument("get_height");
 		if(get_row == nullptr)
 			throw std::invalid_argument("get_height");
-		
+
 		m_get_width = get_width;
 		m_get_height = get_height;
 		m_get_row = get_row;
@@ -98,8 +96,7 @@ public:
 			m_texture = create_texture(m_width, m_height);
 		}
 
-		/* auto ns =  */time::measure_in_ns([&]()
-		{
+		/* auto ns =  */ time::measure_in_ns([&]() {
 			int pixel_pos = 0;
 			for(int row_number = 0; row_number < m_height; ++row_number)
 			{
@@ -157,6 +154,6 @@ private:
 	std::string m_title;
 };
 
-}
+} // namespace genesis::sdl
 
 #endif // __GENESIS_SDL_PLANE_DISPLAY_H__

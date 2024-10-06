@@ -1,17 +1,16 @@
 #ifndef __M68K_OPERATIONS_HPP__
 #define __M68K_OPERATIONS_HPP__
 
+#include "cpu_flags.hpp"
+#include "ea_decoder.hpp"
+#include "endian.hpp"
+#include "exception.hpp"
+#include "instruction_type.h"
+#include "m68k/cpu_registers.hpp"
+
 #include <bit>
 #include <cstdint>
 #include <cstdlib>
-
-#include "cpu_flags.hpp"
-#include "exception.hpp"
-#include "endian.hpp"
-
-#include "instruction_type.h"
-#include "m68k/cpu_registers.hpp"
-#include "ea_decoder.hpp"
 
 
 namespace genesis::m68k
@@ -22,13 +21,13 @@ class operations
 public:
 	operations() = delete;
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t add(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return add(value(a, size), value(b, size), size, sr);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t addq(T1 src, operand& dest, size_type size, status_register& sr)
 	{
 		// do not update flags if dest is addr reg
@@ -37,7 +36,7 @@ public:
 		return add(src, dest, size, sr);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t adda(T1 src, T2 dest, size_type size, status_register&)
 	{
 		if(size == size_type::WORD)
@@ -45,19 +44,19 @@ public:
 		return value(src, size) + value(dest, size);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t addx(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return addx(value(a, size), value(b, size), size, sr);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t sub(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return sub(value(a, size), value(b, size), size, sr);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t subq(T1 src, operand& dest, size_type size, status_register& sr)
 	{
 		// do not update flags if dest is addr reg
@@ -66,13 +65,13 @@ public:
 		return sub(dest, src, size, sr);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t subx(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return subx(value(a, size), value(b, size), size, sr);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t cmp(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		// cmp like sub but does not change the result
@@ -82,7 +81,7 @@ public:
 		return value(a, size);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t cmpa(T1 src, T2 dest, size_type size, status_register& sr)
 	{
 		std::uint32_t b = value(dest, size_type::LONG);
@@ -94,7 +93,7 @@ public:
 		return cmp(b, a, size_type::LONG, sr);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t suba(T1 src, T2 dest, size_type size, status_register&)
 	{
 		if(size == size_type::WORD)
@@ -102,7 +101,7 @@ public:
 		return value(dest, size) - value(src, size);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t and_op(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return and_op(value(a, size), value(b, size), size, sr);
@@ -120,7 +119,7 @@ public:
 		SR = SR & src;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t or_op(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return or_op(value(a, size), value(b, size), size, sr);
@@ -137,7 +136,7 @@ public:
 		SR = SR | (src & 0b11111);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t eor(T1 a, T2 b, size_type size, status_register& sr)
 	{
 		return eor(value(a, size), value(b, size), size, sr);
@@ -156,19 +155,19 @@ public:
 		SR = SR | res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t neg(T1 a, size_type size, status_register& sr)
 	{
 		return sub(0, value(a, size), size, sr);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t negx(T1 a, size_type size, status_register& sr)
 	{
 		return subx(0, value(a, size), size, sr);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t not_op(T1 a, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(~value(a, size), size);
@@ -177,7 +176,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t move(T1 src, size_type size, status_register& sr)
 	{
 		std::uint32_t res = value(src, size);
@@ -186,7 +185,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t movea(T1 src, size_type size)
 	{
 		if(size == size_type::LONG)
@@ -194,21 +193,21 @@ public:
 		return sign_extend(value(src, size));
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint16_t move_to_sr(T1 src)
 	{
 		std::uint16_t res = value(src, size_type::WORD);
 		return clear_unimplemented_flags(res);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint16_t move_to_ccr(T1 src, std::uint16_t sr)
 	{
 		std::uint8_t low_byte = value(src, size_type::BYTE) & 0b11111;
 		return (sr & 0xFF00) | low_byte;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t asl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::int32_t val = value(a, size);
@@ -228,7 +227,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t asr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::int32_t val = value(a, size);
@@ -239,9 +238,9 @@ public:
 		for(std::uint32_t i = 0; i < shift_count; ++i)
 		{
 			// if(i < set_flags_limit)
-				sr.C = sr.X = lsb(val);
+			sr.C = sr.X = lsb(val);
 			// else
-				// sr.C = sr.X = 0;
+			// sr.C = sr.X = 0;
 
 			if(size == size_type::BYTE)
 				val = std::int8_t(val) >> 1;
@@ -257,7 +256,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t rol(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -276,7 +275,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t ror(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -295,7 +294,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t roxl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -317,7 +316,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t roxr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -341,7 +340,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t lsl(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -364,7 +363,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t lsr(T1 a, std::uint32_t shift_count, size_type size, status_register& sr)
 	{
 		std::uint32_t val = value(a, size);
@@ -387,7 +386,7 @@ public:
 		return val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static void tst(T1 src, size_type size, status_register& sr)
 	{
 		sr.V = sr.C = 0;
@@ -401,7 +400,7 @@ public:
 		return 0;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t mulu(T1 a, T2 b, status_register& sr)
 	{
 		std::uint32_t a_val = value(a, size_type::WORD);
@@ -414,7 +413,7 @@ public:
 		return res;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t muls(T1 a, T2 b, status_register& sr)
 	{
 		std::int32_t a_val = sign_extend(value(a, size_type::WORD));
@@ -434,7 +433,7 @@ public:
 		sr.N = sr.V = sr.Z = 0;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t divu(T1 dest, T2 src, status_register& sr)
 	{
 		std::uint32_t dest_val = value(dest, size_type::LONG);
@@ -461,16 +460,16 @@ public:
 		return res;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t divs(T1 dest, T2 src, status_register& sr)
 	{
 		std::int32_t dest_val = value(dest, size_type::LONG);
 		std::int16_t src_val = std::uint16_t(value(src, size_type::WORD));
 
 		sr.C = 0;
-		std::int32_t res = dest_val/src_val;
-		bool is_overflow = res > std::numeric_limits<std::int16_t>::max()
-			|| res < std::numeric_limits<std::int16_t>::min();
+		std::int32_t res = dest_val / src_val;
+		bool is_overflow =
+			res > std::numeric_limits<std::int16_t>::max() || res < std::numeric_limits<std::int16_t>::min();
 		if(is_overflow)
 		{
 			sr.V = 1;
@@ -490,7 +489,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t ext(T1 a, size_type size, status_register& sr)
 	{
 		std::uint32_t res = 0;
@@ -511,7 +510,7 @@ public:
 		return res;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static void exg(T1& a, T2& b)
 	{
 		std::uint32_t a_val = value(a, size_type::LONG);
@@ -521,7 +520,7 @@ public:
 		b.LW = a_val;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t swap(T1 a, status_register& sr)
 	{
 		std::uint32_t val = value(a, size_type::LONG);
@@ -537,7 +536,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint8_t bit_number(T1 src, operand& dest)
 	{
 		if(dest.is_data_reg())
@@ -545,7 +544,7 @@ public:
 		return value(src, size_type::BYTE) % 8;
 	}
 
-	template<class T1>
+	template <class T1>
 	static void btst(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
@@ -555,7 +554,7 @@ public:
 		sr.Z = bit_is_set ? 0 : 1;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t bset(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
@@ -568,7 +567,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t bclr(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
@@ -581,7 +580,7 @@ public:
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t bchg(T1 src, operand& dest, status_register& sr)
 	{
 		std::uint32_t bit_num = bit_number(src, dest);
@@ -593,7 +592,7 @@ public:
 		return dest_val ^ (1 << bit_num);
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static bool chk(T1 src, T2 dest, status_register& sr)
 	{
 		std::int16_t src_val = std::uint16_t(value(src, size_type::WORD));
@@ -608,7 +607,7 @@ public:
 			sr.N = 0;
 
 		sr.Z = zer_flag(dest_val, size_type::WORD); // Undocumented behavior
-		sr.V = sr.C = 0; // Undocumented behavior
+		sr.V = sr.C = 0;							// Undocumented behavior
 
 		return lz || mu;
 	}
@@ -616,17 +615,17 @@ public:
 	static bool cond_test(std::uint8_t cc, status_register sr)
 	{
 		cc = cc & 0b1111;
-		switch (cc)
+		switch(cc)
 		{
 		case 0b0000:
 			return true;
-		
+
 		case 0b0001:
 			return false;
 
 		case 0b0010:
 			return sr.C == 0 && sr.Z == 0;
-		
+
 		case 0b0011:
 			return sr.C == 1 || sr.Z == 1;
 
@@ -666,7 +665,8 @@ public:
 		case 0b1111:
 			return (sr.Z == 1) || (sr.N == 1 && sr.V == 0) || (sr.N == 0 && sr.V == 1);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -679,13 +679,13 @@ public:
 		const T mask = sizeof(T) == 1 ? 0xF : 0xFFF;
 
 		long sum = (long)(a & mask) + (long)(b & mask) + c;
-		if (sum > mask)
+		if(sum > mask)
 			return 1;
 
 		return 0;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t abcd(T1 src, T2 dest, status_register& sr)
 	{
 		std::uint32_t src_val = value(src, size_type::BYTE);
@@ -703,13 +703,13 @@ public:
 		if(res != 0)
 			sr.Z = 0;
 
-		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
+		sr.N = neg_flag(res, size_type::BYTE);									// Undocumented behavior
 		sr.V = msb(ss, size_type::BYTE) == 0 && msb(res, size_type::BYTE) == 1; // Undocumented behavior
 
 		return res;
 	}
 
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t sbcd(T1 src, T2 dest, status_register& sr)
 	{
 		std::uint32_t src_val = value(src, size_type::BYTE);
@@ -729,19 +729,19 @@ public:
 		if(res != 0)
 			sr.Z = 0;
 
-		sr.N = neg_flag(res, size_type::BYTE); // Undocumented behavior
+		sr.N = neg_flag(res, size_type::BYTE);					// Undocumented behavior
 		sr.V = msb_flag == 1 && msb(res, size_type::BYTE) == 0; // Undocumented behavior
 
 		return res;
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t nbcd(T1 src, status_register& sr)
 	{
 		return sbcd(src, 0, sr);
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t tas(T1 src, status_register& sr)
 	{
 		std::uint32_t src_val = value(src, size_type::BYTE);
@@ -756,7 +756,7 @@ public:
 
 	static std::uint32_t advance_pc(std::uint32_t pc, addressing_mode mode, size_type size)
 	{
-		switch (mode)
+		switch(mode)
 		{
 		case addressing_mode::data_reg:
 		case addressing_mode::addr_reg:
@@ -780,15 +780,16 @@ public:
 				return pc + 4;
 			return pc + 2;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	/* helpers */
-	template<class T1, class T2>
+	template <class T1, class T2>
 	static std::uint32_t alu(inst_type inst, T1 a, T2 b, size_type size, status_register& sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ADD:
 		case inst_type::ADDI:
@@ -829,10 +830,10 @@ public:
 
 		case inst_type::CMPA:
 			return operations::cmpa(a, b, size, sr);
-		
+
 		case inst_type::MULU:
 			return operations::mulu(a, b, sr);
-		
+
 		case inst_type::MULS:
 			return operations::muls(a, b, sr);
 
@@ -850,14 +851,15 @@ public:
 		case inst_type::SBCDmem:
 			return operations::sbcd(a, b, sr);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t alu(inst_type inst, T1 a, size_type size, status_register& sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::NEG:
 			return neg(a, size, sr);
@@ -872,28 +874,30 @@ public:
 		case inst_type::NBCD:
 			return nbcd(a, sr);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t aluq(inst_type inst, T1 src, operand& dest, size_type size, status_register& sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ADDQ:
 			return addq(src, dest, size, sr);
 
 		case inst_type::SUBQ:
 			return subq(src, dest, size, sr);
-		
-		default: throw internal_error();
+
+		default:
+			throw internal_error();
 		}
 	}
 
 	static void alu_to_sr(inst_type inst, std::uint16_t src, std::uint16_t& SR)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ANDItoSR:
 			andi_to_sr(src, SR);
@@ -907,13 +911,14 @@ public:
 			eori_to_sr(src, SR);
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static void alu_to_ccr(inst_type inst, std::uint8_t src, std::uint16_t& SR)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ANDItoCCR:
 			andi_to_ccr(src, SR);
@@ -927,14 +932,16 @@ public:
 			eori_to_ccr(src, SR);
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
-	template<class T1>
-	static std::uint32_t shift(inst_type inst, T1 src, std::uint8_t shift_count, bool is_left_shift, size_type size, status_register& sr)
+	template <class T1>
+	static std::uint32_t shift(inst_type inst, T1 src, std::uint8_t shift_count, bool is_left_shift, size_type size,
+							   status_register& sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ASLRreg:
 		case inst_type::ASLRmem:
@@ -960,14 +967,15 @@ public:
 				return roxl(src, shift_count, size, sr);
 			return roxr(src, shift_count, size, sr);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
-	template<class T1>
+	template <class T1>
 	static std::uint32_t bit(inst_type inst, T1 src, operand& dest, status_register& sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::BSETimm:
 		case inst_type::BSETreg:
@@ -981,13 +989,14 @@ public:
 		case inst_type::BCHGimm:
 			return bchg(src, dest, sr);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static std::uint16_t ret(inst_type inst, std::uint16_t new_sr, std::uint16_t current_sr)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::RTE:
 			return operations::clear_unimplemented_flags(new_sr);
@@ -995,7 +1004,8 @@ public:
 		case inst_type::RTR:
 			return operations::move_to_ccr(new_sr, current_sr);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1013,8 +1023,10 @@ public:
 private:
 	static std::uint32_t add(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size)
 	{
-		if(size == size_type::BYTE) return std::uint8_t(a + b + x);
-		if(size == size_type::WORD) return std::uint16_t(a + b + x);
+		if(size == size_type::BYTE)
+			return std::uint8_t(a + b + x);
+		if(size == size_type::WORD)
+			return std::uint16_t(a + b + x);
 		return a + b + x;
 	}
 
@@ -1032,15 +1044,18 @@ private:
 		std::uint32_t res = add(a, b, sr.X, size);
 		set_carry_and_overflow_flags(a, b, sr.X, size, sr);
 		sr.X = sr.C;
-		if(res != 0) sr.Z = 0;
+		if(res != 0)
+			sr.Z = 0;
 		sr.N = neg_flag(res, size);
 		return res;
 	}
 
 	static std::uint32_t sub(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size)
 	{
-		if(size == size_type::BYTE) return std::uint8_t(a - b - x);
-		if(size == size_type::WORD) return std::uint16_t(a - b - x);
+		if(size == size_type::BYTE)
+			return std::uint8_t(a - b - x);
+		if(size == size_type::WORD)
+			return std::uint16_t(a - b - x);
 		return a - b - x;
 	}
 
@@ -1058,7 +1073,8 @@ private:
 		std::uint32_t res = sub(a, b, sr.X, size);
 		set_borrow_and_overflow_flags(a, b, sr.X, size, sr);
 		sr.X = sr.C;
-		if(res != 0) sr.Z = 0;
+		if(res != 0)
+			sr.Z = 0;
 		sr.N = neg_flag(res, size);
 		return res;
 	}
@@ -1084,8 +1100,8 @@ private:
 		return res;
 	}
 
-	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
-		size_type size, status_register& sr)
+	static void set_carry_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size,
+											 status_register& sr)
 	{
 		if(size == size_type::BYTE)
 		{
@@ -1104,8 +1120,8 @@ private:
 		}
 	}
 
-	static void set_borrow_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x,
-		size_type size, status_register& sr)
+	static void set_borrow_and_overflow_flags(std::uint32_t a, std::uint32_t b, std::uint8_t x, size_type size,
+											  status_register& sr)
 	{
 		if(size == size_type::BYTE)
 		{
@@ -1126,8 +1142,10 @@ private:
 
 	static std::uint8_t neg_flag(std::uint32_t val, size_type size)
 	{
-		if(size == size_type::BYTE) return std::int8_t(val) < 0;
-		if(size == size_type::WORD) return std::int16_t(val) < 0;
+		if(size == size_type::BYTE)
+			return std::int8_t(val) < 0;
+		if(size == size_type::WORD)
+			return std::int16_t(val) < 0;
 		return std::int32_t(val) < 0;
 	}
 
@@ -1172,17 +1190,21 @@ public:
 	{
 		if(size == size_type::BYTE)
 			return endian::lsb(val);
-		else if (size == size_type::WORD)
+		else if(size == size_type::WORD)
 			return endian::lsw(val);
 		return val;
 	}
 
 	static std::uint32_t value(operand& op, size_type size)
 	{
-		if(op.is_imm()) return value(op.imm(), size);
-		if(op.is_pointer()) return value(op.pointer().value(), size);
-		if(op.is_data_reg()) return value(op.data_reg(), size);
-		if(op.is_addr_reg()) return value(op.addr_reg(), size);
+		if(op.is_imm())
+			return value(op.imm(), size);
+		if(op.is_pointer())
+			return value(op.pointer().value(), size);
+		if(op.is_data_reg())
+			return value(op.data_reg(), size);
+		if(op.is_addr_reg())
+			return value(op.addr_reg(), size);
 
 		throw internal_error();
 	}
@@ -1211,6 +1233,6 @@ public:
 	}
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_OPERATIONS_HPP__

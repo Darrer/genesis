@@ -9,7 +9,9 @@ namespace genesis::vdp
 class m68k_bus_access
 {
 public:
-	virtual ~m68k_bus_access() { }
+	virtual ~m68k_bus_access()
+	{
+	}
 
 	virtual void request_bus() = 0;
 	virtual void release_bus() = 0;
@@ -21,6 +23,6 @@ public:
 	virtual bool is_idle() const = 0;
 };
 
-};
+}; // namespace genesis::vdp
 
 #endif // __VDP_M68K_BUS_ACCESS_H__

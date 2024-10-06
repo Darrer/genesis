@@ -1,10 +1,10 @@
 #ifndef __M68K_EXCEPTION_UNIT_HPP__
 #define __M68K_EXCEPTION_UNIT_HPP__
 
+#include "endian.hpp"
+#include "exception.hpp"
 #include "exception_manager.h"
 #include "pc_corrector.hpp"
-#include "exception.hpp"
-#include "endian.hpp"
 
 
 namespace genesis::m68k
@@ -20,11 +20,10 @@ private:
 	};
 
 public:
-	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, cpu_bus& bus,
-		m68k::bus_scheduler& scheduler, std::function<void()> __abort_execution,
-		std::function<bool()> __instruction_unit_is_idle)
+	exception_unit(m68k::cpu_registers& regs, exception_manager& exman, cpu_bus& bus, m68k::bus_scheduler& scheduler,
+				   std::function<void()> __abort_execution, std::function<bool()> __instruction_unit_is_idle)
 		: regs(regs), exman(exman), bus(bus), scheduler(scheduler), __abort_execution(__abort_execution),
-		__instruction_unit_is_idle(__instruction_unit_is_idle)
+		  __instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__abort_execution == nullptr)
 			throw std::invalid_argument("__abort_execution");
@@ -57,9 +56,7 @@ public:
 		if(!exman.is_raised_any())
 			return true;
 
-		return !exception_0_group_is_rised() &&
-			!exception_1_group_is_rised() &&
-			!exception_2_group_is_rised();
+		return !exception_0_group_is_rised() && !exception_1_group_is_rised() && !exception_2_group_is_rised();
 	}
 
 	void reset()
@@ -81,10 +78,10 @@ private:
 
 	void schedule_exception()
 	{
-		switch (curr_ex)
+		switch(curr_ex)
 		{
-	
-		/* group 0 */
+
+			/* group 0 */
 
 		case exception_type::reset:
 			reset_handler();
@@ -96,7 +93,7 @@ private:
 			address_error();
 			break;
 
-		/* group 1 */
+			/* group 1 */
 
 		case exception_type::trace:
 			trace();
@@ -122,7 +119,7 @@ private:
 			line_1111_emulator();
 			break;
 
-		/* group 2 */
+			/* group 2 */
 
 		case exception_type::trap:
 			trap();
@@ -140,7 +137,8 @@ private:
 			division_by_zero();
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -164,7 +162,7 @@ private:
 	{
 		if(!instruction_unit_is_idle())
 			return false;
-		
+
 		return exman.is_raised(exception_group::group_1);
 	}
 
@@ -214,7 +212,7 @@ private:
 			return false;
 
 		curr_ex = ex;
-		switch (curr_ex)
+		switch(curr_ex)
 		{
 		case exception_type::address_error:
 			addr_error = exman.accept_address_error();
@@ -263,8 +261,7 @@ private:
 
 		scheduler.wait(10);
 
-		scheduler.call([this]()
-		{
+		scheduler.call([this]() {
 			bus.clear(bus::RESET);
 			bus.clear(bus::HALT);
 		});
@@ -272,16 +269,12 @@ private:
 		scheduler.wait(4);
 
 		// Read SSP
-		scheduler.read(0, size_type::LONG, addr_space::PROGRAM, [this](std::uint32_t data, size_type)
-		{
-			regs.SSP.LW = data;
-		});
+		scheduler.read(0, size_type::LONG, addr_space::PROGRAM,
+					   [this](std::uint32_t data, size_type) { regs.SSP.LW = data; });
 
 		// Read PC
-		scheduler.read(4, size_type::LONG, addr_space::PROGRAM, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = data;
-		});
+		scheduler.read(4, size_type::LONG, addr_space::PROGRAM,
+					   [this](std::uint32_t data, size_type) { regs.PC = data; });
 
 		schedule_prefetch_two_with_gap();
 	}
@@ -292,7 +285,7 @@ private:
 	 * 3. Push Instruction Register (IRD)
 	 * 4. Push address
 	 * 5. Info word
-	*/
+	 */
 	void address_error()
 	{
 		abort_execution();
@@ -334,10 +327,7 @@ private:
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		std::uint32_t addr = vector_address(curr_ex);
-		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = data;
-		});
+		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type) { regs.PC = data; });
 
 		schedule_prefetch_two_with_gap();
 	}
@@ -345,11 +335,11 @@ private:
 	std::uint16_t addr_error_info() const
 	{
 		std::uint16_t status = regs.SIRD & ~0b11111; // undocumented behavior
-		status |= addr_error.func_codes & 0x7; // first 3 bits
+		status |= addr_error.func_codes & 0x7;		 // first 3 bits
 
 		if(addr_error.in)
 			status |= 1 << 3; // 4rd bit
-		
+
 		if(addr_error.rw)
 			status |= 1 << 4; // 5th bit
 
@@ -397,7 +387,7 @@ private:
 	 * 3. Push PC (MSW first)
 	 * 4. Read PC
 	 * 5. Fill prefetch queue
-	*/
+	 */
 	void interrupt()
 	{
 		scheduler.wait(6);
@@ -409,18 +399,14 @@ private:
 		regs.flags.TR = 0;
 		regs.flags.IPM = m_ipl;
 
-		scheduler.int_ack(m_ipl, [this](std::uint8_t vector_number)
-		{
+		scheduler.int_ack(m_ipl, [this](std::uint8_t vector_number) {
 			scheduler.wait(4);
 
 			scheduler.write(regs.SSP.LW - 4, regs.PC, size_type::LONG, order::msw_first);
 			regs.SSP.LW -= 6;
 
 			std::uint32_t addr = vector_number * 4;
-			scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
-			{
-				regs.PC = data;
-			});
+			scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type) { regs.PC = data; });
 
 			schedule_prefetch_two_with_gap();
 		});
@@ -447,7 +433,7 @@ private:
 	/* Sequence of actions
 	 * 1. Push PC
 	 * 2. Push SR
-	*/
+	 */
 	void schedule_trap(std::uint32_t pc, std::uint8_t trap_vector)
 	{
 		// PUSH PC LOW
@@ -468,17 +454,14 @@ private:
 		regs.SSP.LW -= 2; // next word is already pushed on the stack
 
 		std::uint32_t addr = trap_vector * 4;
-		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = data;
-		});
+		scheduler.read(addr, size_type::LONG, [this](std::uint32_t data, size_type) { regs.PC = data; });
 
 		schedule_prefetch_two_with_gap();
 	}
 
 	static std::uint32_t vector_nummber(exception_type ex)
 	{
-		switch (ex)
+		switch(ex)
 		{
 		case exception_type::bus_error:
 			return 2;
@@ -500,7 +483,8 @@ private:
 			return 10;
 		case exception_type::line_1111_emulator:
 			return 11;
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -534,9 +518,9 @@ private:
 	void check_catastrophic_failures() const
 	{
 		/** Catastrophic failures can occur when during processing bus/address error exception
-		  * another bus/address error exception is occured.
-		  * CPU should be halted in this case.
-		*/
+		 * another bus/address error exception is occured.
+		 * CPU should be halted in this case.
+		 */
 
 		if(!exman.is_raised_any())
 			return;
@@ -566,6 +550,6 @@ private:
 	std::uint8_t m_ipl;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_EXCEPTION_UNIT_HPP__

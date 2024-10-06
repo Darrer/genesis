@@ -1,18 +1,17 @@
 #ifndef __VDP_IMPL_RENDER_H__
 #define __VDP_IMPL_RENDER_H__
 
-#include <cstdint>
-#include <cassert>
-#include <array>
-#include <span>
-
-#include "vdp/register_set.h"
-#include "vdp/settings.h"
-#include "vdp/memory.h"
-#include "vdp/output_color.h"
-
 #include "name_table.h"
 #include "sprite_table.h"
+#include "vdp/memory.h"
+#include "vdp/output_color.h"
+#include "vdp/register_set.h"
+#include "vdp/settings.h"
+
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <span>
 
 namespace genesis::vdp::impl
 {
@@ -21,8 +20,8 @@ namespace genesis::vdp::impl
 class render
 {
 public:
-	render(genesis::vdp::register_set& regs, genesis::vdp::settings& sett,
-	 genesis::vdp::vram_t& vram,  genesis::vdp::vsram_t& vsram, genesis::vdp::cram_t& cram);
+	render(genesis::vdp::register_set& regs, genesis::vdp::settings& sett, genesis::vdp::vram_t& vram,
+		   genesis::vdp::vsram_t& vsram, genesis::vdp::cram_t& cram);
 
 
 	output_color background_color() const;
@@ -32,16 +31,22 @@ public:
 	unsigned plane_width_in_pixels(plane_type) const;
 	unsigned plane_height_in_pixels(plane_type) const;
 
-	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type,
-		unsigned row_number, std::span<genesis::vdp::output_color> buffer) const;
+	std::span<genesis::vdp::output_color> get_plane_row(impl::plane_type plane_type, unsigned row_number,
+														std::span<genesis::vdp::output_color> buffer) const;
 
 	/* Sprites */
 
-	unsigned sprite_width_in_pixels() const { return 512; }
-	unsigned sprite_height_in_pixels() const { return 512; }
+	unsigned sprite_width_in_pixels() const
+	{
+		return 512;
+	}
+	unsigned sprite_height_in_pixels() const
+	{
+		return 512;
+	}
 
 	std::span<genesis::vdp::output_color> get_sprite_row(unsigned row_number,
-		std::span<genesis::vdp::output_color> buffer) const;
+														 std::span<genesis::vdp::output_color> buffer) const;
 
 	/* Active Display */
 
@@ -49,7 +54,7 @@ public:
 	unsigned active_display_height() const;
 
 	std::span<genesis::vdp::output_color> get_active_display_row(unsigned row_number,
-		std::span<genesis::vdp::output_color> buffer);
+																 std::span<genesis::vdp::output_color> buffer);
 
 	// should be called when VDP starts rendering new frame
 	void reset_limits();
@@ -79,15 +84,18 @@ private:
 		bool priority : 1;
 
 		// pixel is transparent if color_id is 0
-		bool transparent() const { return color_id == 0; }
+		bool transparent() const
+		{
+			return color_id == 0;
+		}
 	};
 
 	static_assert(sizeof(internal_pixel) == 1);
 
 	// line_number - zero based
-	template<class Callable>
-	void read_pattern_line(unsigned line_number, std::uint32_t pattern_addres,
-		bool hflip, bool vflip, Callable on_pixel_read) const
+	template <class Callable>
+	void read_pattern_line(unsigned line_number, std::uint32_t pattern_addres, bool hflip, bool vflip,
+						   Callable on_pixel_read) const
 	{
 		assert(line_number < 8);
 
@@ -121,21 +129,21 @@ private:
 	void read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<vdp::output_color> buffer) const;
 
 	// Returns true if sprites collision occurs
-	bool read_sprite(unsigned row_number,const sprite_table_entry& entry,
-		std::span<internal_pixel> dest, unsigned pixels_limit) const;
+	bool read_sprite(unsigned row_number, const sprite_table_entry& entry, std::span<internal_pixel> dest,
+					 unsigned pixels_limit) const;
 
 	std::uint32_t sprite_pattern_address(unsigned row_number, unsigned pattern_number,
-		const sprite_table_entry& entry) const;
+										 const sprite_table_entry& entry) const;
 
 	/* Plane helpers */
 
 	std::span<internal_pixel> get_active_plane_row(plane_type plane_type, unsigned row_number,
-		std::span<internal_pixel> buffer) const;
+												   std::span<internal_pixel> buffer) const;
 
 	void render_active_window_row(unsigned line_number, std::span<internal_pixel> plane_a_buffer) const;
 
-	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,
-		internal_pixel plane_a, internal_pixel plane_b, internal_pixel sprite) const;
+	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color, internal_pixel plane_a,
+												internal_pixel plane_b, internal_pixel sprite) const;
 
 	/* internal buffers used during rendering */
 
@@ -148,7 +156,7 @@ private:
 
 private:
 	/* Helper functions */
-	template<class T>
+	template <class T>
 	static void check_buffer_size(std::span<T> buffer, std::size_t minimum_size)
 	{
 		if(buffer.size() < minimum_size)
@@ -163,6 +171,6 @@ private:
 	genesis::vdp::cram_t& cram;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_RENDER_H__

@@ -33,8 +33,7 @@ class register_set
 private:
 	struct af_regs
 	{
-		union
-		{
+		union {
 			z80::flags flags;
 			std::int8_t f;
 		};
@@ -59,26 +58,22 @@ private:
 		std::int8_t h;
 	};
 
-	union
-	{
+	union {
 		af_regs af_t;
 		std::int16_t af;
 	};
 
-	union
-	{
+	union {
 		bc_regs bc_t;
 		std::int16_t bc;
 	};
 
-	union
-	{
+	union {
 		de_regs de_t;
 		std::int16_t de;
 	};
 
-	union
-	{
+	union {
 		hl_regs hl_t;
 		std::int16_t hl;
 	};
@@ -129,14 +124,12 @@ private:
 		std::int8_t iyh;
 	};
 
-	union
-	{
+	union {
 		ix_regs ix_lh;
 		std::int16_t ix;
 	};
 
-	union
-	{
+	union {
 		iy_regs iy_lh;
 		std::int16_t iy;
 	};

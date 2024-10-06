@@ -1,25 +1,23 @@
-#include <iostream>
-#include <string_view>
-#include <filesystem>
-#include <iomanip>
-
 #include "rom.h"
-#include "smd/smd.h"
 #include "rom_debug.hpp"
+#include "sdl/input_device.h"
+#include "sdl/palette_display.h"
+#include "sdl/plane_display.h"
+#include "smd/smd.h"
 #include "string_utils.hpp"
 #include "time_utils.h"
 
-#include "sdl/palette_display.h"
-#include "sdl/plane_display.h"
-#include "sdl/input_device.h"
+#include <filesystem>
+#include <iomanip>
+#include <iostream>
+#include <string_view>
 
 using namespace genesis;
 
 
 void print_usage(const char* prog_path)
 {
-	std::wcout << "Usage ." << std::filesystem::path::preferred_separator
-		<< prog_path << " <path to rom>" << std::endl;
+	std::wcout << "Usage ." << std::filesystem::path::preferred_separator << prog_path << " <path to rom>" << std::endl;
 }
 
 void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
@@ -27,24 +25,14 @@ void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout
 	std::cout << "==== Key layout ====\n";
 
 	const auto keys = {
-		io_ports::key_type::UP,
-		io_ports::key_type::DOWN,
-		io_ports::key_type::LEFT,
-		io_ports::key_type::RIGHT,
-		io_ports::key_type::START,
-		io_ports::key_type::MODE,
-		io_ports::key_type::A,
-		io_ports::key_type::B,
-		io_ports::key_type::C,
-		io_ports::key_type::X,
-		io_ports::key_type::Y,
-		io_ports::key_type::Z,
+		io_ports::key_type::UP,	   io_ports::key_type::DOWN, io_ports::key_type::LEFT, io_ports::key_type::RIGHT,
+		io_ports::key_type::START, io_ports::key_type::MODE, io_ports::key_type::A,	   io_ports::key_type::B,
+		io_ports::key_type::C,	   io_ports::key_type::X,	 io_ports::key_type::Y,	   io_ports::key_type::Z,
 	};
 
 	for(auto key : keys)
 	{
-		auto it = std::find_if(layout.cbegin(), layout.cend(),
-			[key](const auto& el) { return el.second == key; });
+		auto it = std::find_if(layout.cbegin(), layout.cend(), [key](const auto& el) { return el.second == key; });
 
 		if(it == layout.cend())
 			continue;
@@ -56,7 +44,7 @@ void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout
 	std::cout << "====================\n";
 }
 
-template<class T>
+template <class T>
 void measure_and_log(T func, std::string_view msg)
 {
 	auto ms = time::measure_in_ms(func);
@@ -69,47 +57,37 @@ std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::st
 
 	std::vector<std::unique_ptr<sdl::displayable>> displays;
 
-	displays.push_back(
-		std::make_unique<sdl::palette_display>(smd.vdp().cram())
-	);
+	displays.push_back(std::make_unique<sdl::palette_display>(smd.vdp().cram()));
 
 	using vdp::impl::plane_type;
 
-	displays.push_back(
-		std::make_unique<sdl::plane_display>("plane a",
-			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::a); },
-			[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::a); },
-			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
-				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::a, row_number, buffer); }
-		)
-	);
+	displays.push_back(std::make_unique<sdl::plane_display>(
+		"plane a", [&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::a); },
+		[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::a); },
+		[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer) {
+			return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::a, row_number, buffer);
+		}));
 
-	displays.push_back(
-		std::make_unique<sdl::plane_display>("plane b",
-			[&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::b); },
-			[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::b); },
-			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
-				{ return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::b, row_number, buffer); }
-		)
-	);
+	displays.push_back(std::make_unique<sdl::plane_display>(
+		"plane b", [&smd]() { return smd.vdp().render().plane_width_in_pixels(plane_type::b); },
+		[&smd]() { return smd.vdp().render().plane_height_in_pixels(plane_type::b); },
+		[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer) {
+			return smd.vdp().render().get_plane_row(genesis::vdp::impl::plane_type::b, row_number, buffer);
+		}));
 
-	displays.push_back(
-		std::make_unique<sdl::plane_display>("sprites",
-			[&smd]() { return smd.vdp().render().sprite_width_in_pixels(); },
-			[&smd]() { return smd.vdp().render().sprite_height_in_pixels(); },
-			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
-				{ return smd.vdp().render().get_sprite_row(row_number, buffer); }
-		)
-	);
+	displays.push_back(std::make_unique<sdl::plane_display>(
+		"sprites", [&smd]() { return smd.vdp().render().sprite_width_in_pixels(); },
+		[&smd]() { return smd.vdp().render().sprite_height_in_pixels(); },
+		[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer) {
+			return smd.vdp().render().get_sprite_row(row_number, buffer);
+		}));
 
-	displays.push_back(
-		std::make_unique<sdl::plane_display>(rom_title,
-			[&smd]() { return smd.vdp().render().active_display_width(); },
-			[&smd]() { return smd.vdp().render().active_display_height(); },
-			[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer)
-				{ return smd.vdp().render().get_active_display_row(row_number, buffer); }
-		)
-	);
+	displays.push_back(std::make_unique<sdl::plane_display>(
+		rom_title, [&smd]() { return smd.vdp().render().active_display_width(); },
+		[&smd]() { return smd.vdp().render().active_display_height(); },
+		[&smd](unsigned row_number, sdl::plane_display::row_buffer buffer) {
+			return smd.vdp().render().get_active_display_row(row_number, buffer);
+		}));
 
 	return displays;
 }
@@ -140,8 +118,8 @@ int main(int args, char* argv[])
 		genesis::debug::print_rom_header(std::cout, rom.header());
 		if(rom.checksum() != rom.header().rom_checksum)
 		{
-			std::cout << "WARNING: ROM checksum mismatch (expected " << su::hex_str(rom.checksum())
-				<< " vs actual " << su::hex_str(rom.header().rom_checksum) << ")\n";
+			std::cout << "WARNING: ROM checksum mismatch (expected " << su::hex_str(rom.checksum()) << " vs actual "
+					  << su::hex_str(rom.header().rom_checksum) << ")\n";
 		}
 
 		if(SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -159,20 +137,19 @@ int main(int args, char* argv[])
 
 		auto displays = create_displays(smd, std::move(rom_title));
 
-		smd.vdp().on_frame_end([&]()
-		{
+		smd.vdp().on_frame_end([&]() {
 			// measure_and_log([&]()
 			// {
-				for(auto& disp: displays)
-					disp->update();
+			for(auto& disp : displays)
+				disp->update();
 
-				SDL_Event e;
-				while(SDL_PollEvent(&e) > 0)
-				{
-					for(auto& disp: displays)
-						disp->handle_event(e);
-					input_device->handle_event(e);
-				}
+			SDL_Event e;
+			while(SDL_PollEvent(&e) > 0)
+			{
+				for(auto& disp : displays)
+					disp->handle_event(e);
+				input_device->handle_event(e);
+			}
 			// }, "render frame");
 		});
 
@@ -196,8 +173,8 @@ int main(int args, char* argv[])
 				start = stop;
 				cycle = 0;
 
-				bool all_closed = std::all_of(displays.cbegin(), displays.cend(),
-					[](const auto& d) {return d->is_closed(); });
+				bool all_closed =
+					std::all_of(displays.cbegin(), displays.cend(), [](const auto& d) { return d->is_closed(); });
 				if(all_closed)
 				{
 					break;

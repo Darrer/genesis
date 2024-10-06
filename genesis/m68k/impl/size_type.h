@@ -20,6 +20,6 @@ static unsigned int size_in_bytes(size_type size)
 	return 4;
 }
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_SIZE_TYPE_H__

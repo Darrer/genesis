@@ -1,10 +1,10 @@
 #ifndef __M68K_BUS_ACCESS_H__
 #define __M68K_BUS_ACCESS_H__
 
-#include <source_location>
-#include <cstdint>
-
 #include "impl/bus_manager.h"
+
+#include <cstdint>
+#include <source_location>
 
 namespace genesis::m68k
 {
@@ -17,7 +17,9 @@ namespace genesis::m68k
 class bus_access
 {
 public:
-	bus_access(m68k::bus_manager& busm) : busm(busm) { }
+	bus_access(m68k::bus_manager& busm) : busm(busm)
+	{
+	}
 
 	bool is_idle() const
 	{
@@ -92,6 +94,6 @@ private:
 	m68k::bus_manager& busm;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_BUS_ACCESS_H__

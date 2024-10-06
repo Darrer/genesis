@@ -1,4 +1,5 @@
 #include "random.h"
+
 #include <iostream>
 
 using namespace genesis;

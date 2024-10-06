@@ -38,8 +38,8 @@ public:
 				genesis::vdp::output_color color = cram.read_color(palette, col);
 
 				SDL_Rect rect = {x, y, 25, 25}; // x, y, width, height
-				SDL_FillRect(screenSurface, &rect, SDL_MapRGB(screenSurface->format, 
-					color.red * 36, color.green * 36, color.blue * 36));
+				SDL_FillRect(screenSurface, &rect,
+							 SDL_MapRGB(screenSurface->format, color.red * 36, color.green * 36, color.blue * 36));
 			}
 		}
 
@@ -50,6 +50,6 @@ private:
 	vdp::cram_t& cram;
 };
 
-}
+} // namespace genesis::sdl
 
 #endif // __GENESIS_SDL_PALETTE_DISPLAY_H__

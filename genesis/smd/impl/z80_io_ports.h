@@ -24,6 +24,6 @@ private:
 	std::uint8_t data = 0x0;
 };
 
-}
+} // namespace genesis::impl
 
 #endif // __SMD_IMPL_Z80_IO_PORTS_H__

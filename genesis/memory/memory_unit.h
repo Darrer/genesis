@@ -3,14 +3,13 @@
 
 #include "addressable.h"
 #include "base_unit.h"
-
-#include "exception.hpp"
 #include "endian.hpp"
+#include "exception.hpp"
 #include "string_utils.hpp"
 
-#include <vector>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace genesis::memory
 {
@@ -45,11 +44,11 @@ private:
 
 [[maybe_unused]] [[nodiscard]]
 static std::unique_ptr<memory::addressable> make_memory_unit(std::uint32_t highest_address,
-	std::endian byte_order = std::endian::native)
+															 std::endian byte_order = std::endian::native)
 {
 	return std::make_unique<memory::memory_unit>(highest_address, byte_order);
 }
 
-}
+} // namespace genesis::memory
 
 #endif // __MEMORY_MEMORY_UNIT_H__

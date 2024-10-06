@@ -21,7 +21,9 @@ struct output_color
 		transparent = false;
 	}
 
-	output_color() : red(0), green(0), blue(0), transparent(true) { }
+	output_color() : red(0), green(0), blue(0), transparent(true)
+	{
+	}
 
 	bool operator==(const output_color& rcolor) const = default;
 
@@ -46,6 +48,6 @@ static_assert(sizeof(output_color) == 2);
 static const output_color TRANSPARENT_COLOR;
 
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_OUTPUT_COLOR_H__

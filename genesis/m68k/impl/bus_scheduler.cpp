@@ -1,7 +1,7 @@
 #include "bus_scheduler.h"
 
-#include "exception.hpp"
 #include "endian.hpp"
+#include "exception.hpp"
 
 #include <iostream>
 
@@ -9,7 +9,7 @@
 // as bus_manager won't call on_complete callback => current_op won't be reseted => bus_scheduler will wait
 // for operation to be completed forever.
 // Generally it's not a problem as exception unit should reset all components when it starts processing exception,
-// however, it would be nice to have a mechanism to notify bus_scheduler that operation was failed and 
+// however, it would be nice to have a mechanism to notify bus_scheduler that operation was failed and
 // that bus_scheduler should react appropriately (probably clear its queue).
 
 namespace genesis::m68k
@@ -121,7 +121,7 @@ void bus_scheduler::read_modify_write_impl(std::uint32_t addr, on_modify modify)
 
 void bus_scheduler::int_ack_impl(std::uint8_t ipl, int_ack_complete on_complete)
 {
-	int_ack_operation op { ipl, on_complete };
+	int_ack_operation op{ipl, on_complete};
 	queue.emplace(op_type::INT_ACK, op);
 }
 
@@ -338,7 +338,8 @@ void bus_scheduler::start_operation(operation& op)
 
 	case op_type::RMW: {
 		rmw_operation& rmw = std::get<rmw_operation>(op.op);
-		busm.init_read_modify_write(rmw.addr, std::move(rmw.modify), addr_space::DATA, [this]() { run_cycless_operations(); });
+		busm.init_read_modify_write(rmw.addr, std::move(rmw.modify), addr_space::DATA,
+									[this]() { run_cycless_operations(); });
 		break;
 	}
 
@@ -426,7 +427,7 @@ bool bus_scheduler::next_bus_operation() const
 {
 	op_type next = queue.front().type;
 
-	switch (next)
+	switch(next)
 	{
 	case op_type::READ:
 	case op_type::READ_IMM:

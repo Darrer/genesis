@@ -1,12 +1,13 @@
 #ifndef __M68K_TIMINGS_HPP__
 #define __M68K_TIMINGS_HPP__
 
+#include "ea_decoder.hpp"
+#include "instruction_type.h"
+
+#include <bit>
 #include <cstdint>
 #include <cstdlib>
-#include <bit>
 #include <limits>
-#include "instruction_type.h"
-#include "ea_decoder.hpp"
 
 
 namespace genesis::m68k
@@ -57,7 +58,7 @@ public:
 			return 4;
 		return 2;
 	}
-	
+
 	static constexpr std::uint8_t adda(addressing_mode mode, std::uint8_t opmode)
 	{
 		if(opmode == 0b011 || !indirect_mode(mode))
@@ -102,7 +103,7 @@ public:
 	/* EOR */
 	static constexpr auto eor = add;
 	static constexpr auto eori = addi;
-	
+
 	/* NEG */
 	static constexpr auto neg = cmpi;
 	static constexpr auto negx = neg;
@@ -202,9 +203,9 @@ public:
 		if(dividend < 0)
 			++cycles;
 
-		std::int32_t sdiv = dividend/divisor;
-		bool is_overflow = sdiv > std::numeric_limits<std::int16_t>::max()
-			|| sdiv < std::numeric_limits<std::int16_t>::min();
+		std::int32_t sdiv = dividend / divisor;
+		bool is_overflow =
+			sdiv > std::numeric_limits<std::int16_t>::max() || sdiv < std::numeric_limits<std::int16_t>::min();
 
 		if(is_overflow)
 			return (cycles + 2) * 2;
@@ -236,7 +237,7 @@ public:
 
 	static constexpr std::uint8_t btst(addressing_mode mode)
 	{
-		if(mode == addressing_mode::data_reg) 
+		if(mode == addressing_mode::data_reg)
 			return 2;
 
 		// TODO: external tests expect to get this timing for imm operand
@@ -249,7 +250,7 @@ public:
 
 	static constexpr std::uint8_t bset(addressing_mode mode, std::uint8_t bit_number)
 	{
-		if(mode == addressing_mode::data_reg) 
+		if(mode == addressing_mode::data_reg)
 			return bit_number < 16 ? 2 : 4;
 
 		// TODO: external tests expect to get this timing for imm operand
@@ -262,7 +263,7 @@ public:
 
 	static constexpr std::uint8_t bclr(addressing_mode mode, std::uint8_t bit_number)
 	{
-		if(mode == addressing_mode::data_reg) 
+		if(mode == addressing_mode::data_reg)
 			return bit_number < 16 ? 4 : 6;
 
 		// TODO: external tests expect to get this timing for imm operand
@@ -333,7 +334,7 @@ public:
 	/* helpers */
 	static std::uint8_t alu_mode(inst_type inst, addressing_mode mode, std::uint8_t opmode)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ADD:
 			return add(mode, opmode);
@@ -354,13 +355,14 @@ public:
 		case inst_type::CMPA:
 			return cmpa();
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static std::uint8_t alu_size(inst_type inst, addressing_mode mode, size_type size)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::ADDI:
 			return addi(mode, size);
@@ -391,13 +393,14 @@ public:
 		case inst_type::NBCD:
 			return nbcd(mode);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static std::uint8_t mul(inst_type inst, std::uint16_t src)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::MULU:
 			return mulu(src);
@@ -405,13 +408,14 @@ public:
 		case inst_type::MULS:
 			return muls(src);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static std::uint8_t div(inst_type inst, std::uint32_t dividend, std::uint16_t divisor)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::DIVU:
 			return divu(dividend, divisor);
@@ -419,13 +423,14 @@ public:
 		case inst_type::DIVS:
 			return divs(dividend, divisor);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	static std::uint8_t bit(inst_type inst, addressing_mode mode, std::uint8_t bit_number)
 	{
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::BSETimm:
 		case inst_type::BSETreg:
@@ -439,20 +444,20 @@ public:
 		case inst_type::BCHGimm:
 			return bchg(mode, bit_number);
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 private:
 	static constexpr bool indirect_mode(addressing_mode mode)
 	{
-		if(mode == addressing_mode::data_reg || mode == addressing_mode::addr_reg ||
-			mode == addressing_mode::imm)
+		if(mode == addressing_mode::data_reg || mode == addressing_mode::addr_reg || mode == addressing_mode::imm)
 			return false;
 		return true;
 	}
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_TIMINGS_HPP__

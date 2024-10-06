@@ -1,11 +1,11 @@
 #ifndef __M68K_PC_CORRECTOR_HPP__
 #define __M68K_PC_CORRECTOR_HPP__
 
-#include <cstdint>
-
+#include "exception_manager.h"
 #include "m68k/cpu_registers.hpp"
 #include "opcode_decoder.h"
-#include "exception_manager.h"
+
+#include <cstdint>
 
 
 namespace genesis::m68k
@@ -47,6 +47,6 @@ private:
 };
 
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_PC_CORRECTOR_HPP__

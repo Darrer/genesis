@@ -1,10 +1,10 @@
 #ifndef __IO_PORTS_KEY_TYPE_H__
 #define __IO_PORTS_KEY_TYPE_H__
 
-#include <type_traits>
-#include <string_view>
-
 #include "exception.hpp"
+
+#include <string_view>
+#include <type_traits>
 
 namespace genesis::io_ports
 {
@@ -18,8 +18,12 @@ enum class key_type
 	START,
 	MODE,
 
-	A, B, C,
-	X, Y, Z,
+	A,
+	B,
+	C,
+	X,
+	Y,
+	Z,
 };
 
 static constexpr const int key_type_count = 12;
@@ -33,7 +37,7 @@ static constexpr std::underlying_type_t<enum key_type> key_type_index(key_type k
 [[maybe_unused]]
 static std::string_view key_type_name(key_type key)
 {
-	switch (key)
+	switch(key)
 	{
 	case key_type::UP:
 		return "UP";
@@ -64,6 +68,6 @@ static std::string_view key_type_name(key_type key)
 	}
 }
 
-}
+} // namespace genesis::io_ports
 
 #endif // __IO_PORTS_KEY_TYPE_H__

@@ -1,12 +1,12 @@
 #ifndef __VDP_IMPL_HSCROLL_TABLE_H__
 #define __VDP_IMPL_HSCROLL_TABLE_H__
 
-#include <cstdint>
-#include <stdexcept>
-
+#include "plane_type.h"
 #include "vdp/memory.h"
 #include "vdp/settings.h"
-#include "plane_type.h"
+
+#include <cstdint>
+#include <stdexcept>
 
 
 namespace genesis::vdp::impl
@@ -37,7 +37,7 @@ private:
 	std::uint32_t entry_address(unsigned line_number) const
 	{
 		std::uint32_t address = sett.horizontal_scroll_address();
-		switch (sett.horizontal_scrolling())
+		switch(sett.horizontal_scrolling())
 		{
 		case horizontal_scrolling::full_screen:
 			break;
@@ -55,19 +55,20 @@ private:
 
 			address += (line_number >> 3) * 32;
 			break;
-		
+
 		case horizontal_scrolling::invalid:
 			// undocumented behavior
 			// TODO: not sure about this behavior
 			address += (line_number & 0b111) * 4;
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 
 		if(plane == plane_type::b)
 			address += 2;
-		
+
 		return address;
 	}
 
@@ -77,6 +78,6 @@ private:
 	genesis::vdp::vram_t& vram;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_HSCROLL_TABLE_H__

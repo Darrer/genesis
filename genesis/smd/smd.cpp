@@ -1,25 +1,22 @@
 #include "smd.h"
 
-#include "memory/read_only_memory_unit.h"
-#include "memory/memory_builder.h"
-#include "memory/memory_unit.h"
-#include "memory/dummy_memory.h"
-#include "memory/logging_memory.h"
-
 #include "impl/m68k_bus_access.h"
 #include "impl/m68k_interrupt_access.h"
-#include "impl/z80_io_ports.h"
 #include "impl/z80_68bank.h"
-
+#include "impl/z80_io_ports.h"
 #include "io_ports/controller.h"
 #include "io_ports/disabled_port.h"
+#include "memory/dummy_memory.h"
+#include "memory/logging_memory.h"
+#include "memory/memory_builder.h"
+#include "memory/memory_unit.h"
+#include "memory/read_only_memory_unit.h"
 
 
 namespace genesis
 {
 
-smd::smd(const genesis::rom& rom, std::shared_ptr<io_ports::input_device> input_dev1)
-	: m_input_dev1(input_dev1)
+smd::smd(const genesis::rom& rom, std::shared_ptr<io_ports::input_device> input_dev1) : m_input_dev1(input_dev1)
 {
 	m_vdp = std::make_unique<vdp::vdp>();
 
@@ -81,7 +78,7 @@ void smd::build_cpu_memory_map(const genesis::rom& rom)
 	memory::memory_builder z80_builder;
 
 	z80_builder.add_unique(memory::make_memory_unit(0x1FFF, std::endian::little), 0x0, 0x1FFF); // main RAM
-	z80_builder.mirror(0x0, 0x1FFF, 0x2000, 0x3FFF); // main RAM mirrored
+	z80_builder.mirror(0x0, 0x1FFF, 0x2000, 0x3FFF);											// main RAM mirrored
 
 	z80_builder.add_unique(std::make_unique<memory::dummy_memory>(0x0, std::endian::little), 0x4000, 0x4000);
 	z80_builder.add_unique(std::make_unique<memory::zero_memory_unit>(0x0, std::endian::little), 0x4001, 0x4001);
@@ -167,16 +164,13 @@ void smd::build_cpu_memory_map(const genesis::rom& rom)
 	/* Z80 control registers */
 	m68k_builder.add(m_z80_ctrl_registers.z80_bus_request_register(), 0xA11100, 0xA11101);
 	m68k_builder.add(m_z80_ctrl_registers.z80_reset_register(), 0xA11200, 0xA11201);
-	
+
 	m_m68k_mem_map = m68k_builder.build();
 }
 
 std::unique_ptr<memory::addressable> smd::build_version_register(const genesis::rom& rom)
 {
-	auto supports = [&rom](char region_type)
-	{
-		return rom.header().region_support.contains(region_type);
-	};
+	auto supports = [&rom](char region_type) { return rom.header().region_support.contains(region_type); };
 
 	std::uint8_t reg_value = 0x0;
 

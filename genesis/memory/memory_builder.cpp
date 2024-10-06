@@ -3,9 +3,9 @@
 #include "exception.hpp"
 #include "string_utils.hpp"
 
+#include <functional>
 #include <optional>
 #include <stdexcept>
-#include <functional>
 
 
 namespace genesis::memory
@@ -27,7 +27,6 @@ bool is_intersect(const auto& device, std::uint32_t address)
 class composite_memory : public addressable
 {
 public:
-
 	/* Addressable interface */
 
 	std::uint32_t max_address() const override
@@ -171,15 +170,14 @@ std::shared_ptr<addressable> memory_builder::build()
 		devices.push_back({dev.memory_unit, dev.start_address, dev.end_address});
 
 	// Place devices with larger capacities at the beginning of the array
-	std::ranges::sort(devices, [](const addressable_device& a, const addressable_device& b)
-	{
+	std::ranges::sort(devices, [](const addressable_device& a, const addressable_device& b) {
 		auto a_capacity = a.end_address - a.start_address;
 		auto b_capacity = b.end_address - b.start_address;
 		return b_capacity < a_capacity;
 	});
 
 	std::shared_ptr<composite_memory> comp = std::make_shared<composite_memory>();
-	
+
 	comp->save_devices(std::move(devices));
 	comp->save_ptrs(std::move(m_shared_ptrs));
 	comp->save_ptrs(std::move(m_unique_ptrs));
@@ -209,8 +207,7 @@ void memory_builder::add(std::shared_ptr<addressable> device, std::uint32_t star
 	add(device, start_address, start_address + device->max_address());
 }
 
-void memory_builder::add(std::shared_ptr<addressable> device, std::uint32_t start_address,
-						 std::uint32_t end_address)
+void memory_builder::add(std::shared_ptr<addressable> device, std::uint32_t start_address, std::uint32_t end_address)
 {
 	check_args(device.get(), start_address, end_address);
 
@@ -226,8 +223,7 @@ void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t star
 	add(std::move(device), start_address, end_address);
 }
 
-void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t start_address,
-	std::uint32_t end_address)
+void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t start_address, std::uint32_t end_address)
 {
 	check_args(device.get(), start_address, end_address);
 
@@ -236,7 +232,7 @@ void memory_builder::add(std::unique_ptr<addressable> device, std::uint32_t star
 }
 
 void memory_builder::mirror(std::uint32_t start_address, std::uint32_t end_address,
-		std::uint32_t mirrored_start_address, std::uint32_t mirrored_end_address)
+							std::uint32_t mirrored_start_address, std::uint32_t mirrored_end_address)
 {
 	if((end_address - start_address) != (mirrored_end_address - mirrored_start_address))
 		throw std::invalid_argument("address ranges must have the same size");
@@ -246,22 +242,21 @@ void memory_builder::mirror(std::uint32_t start_address, std::uint32_t end_addre
 	// check that start_address and end_address belong to the same device
 	for(const auto& device : m_refs)
 	{
-		if((is_intersect(device, start_address) && !is_intersect(device, end_address))
-			|| (is_intersect(device, end_address) && !is_intersect(device, start_address)))
+		if((is_intersect(device, start_address) && !is_intersect(device, end_address)) ||
+		   (is_intersect(device, end_address) && !is_intersect(device, start_address)))
 		{
 			throw std::invalid_argument("start/end addresses must belong to the same device");
 		}
 	}
 
-	const auto& device = std::ranges::find_if(m_refs, [start_address, end_address](const auto& dev)
-	{
+	const auto& device = std::ranges::find_if(m_refs, [start_address, end_address](const auto& dev) {
 		return is_intersect(dev, start_address) && is_intersect(dev, end_address);
 	});
 
 	if(device == m_refs.end())
 		throw std::invalid_argument("cannot find device serving inital addresses");
 
-	memory_ref new_device {device->memory_unit, mirrored_start_address, mirrored_end_address};
+	memory_ref new_device{device->memory_unit, mirrored_start_address, mirrored_end_address};
 	m_refs.push_back(new_device);
 }
 

@@ -1,10 +1,9 @@
 #ifndef __M68K_TEST_CPU_HPP__
 #define __M68K_TEST_CPU_HPP__
 
+#include "int_dev.h"
 #include "m68k/cpu.h"
 #include "memory/memory_unit.h"
-
-#include "int_dev.h"
 
 #include <fstream>
 
@@ -21,8 +20,7 @@ const std::uint16_t nop_opcode = 0b0100111001110001;
 class test_cpu : public genesis::m68k::cpu
 {
 private:
-	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit,
-		std::shared_ptr<int_dev> int_dev)
+	test_cpu(std::shared_ptr<memory::memory_unit> mem_unit, std::shared_ptr<int_dev> int_dev)
 		: cpu(mem_unit, int_dev), mem_unit(mem_unit), _int_dev(int_dev)
 	{
 		if(exman.is_raised(m68k::exception_type::reset))
@@ -30,8 +28,8 @@ private:
 	}
 
 public:
-	test_cpu() : test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big),
-		std::make_shared<int_dev>())
+	test_cpu()
+		: test_cpu(std::make_shared<memory::memory_unit>(0x1000000, std::endian::big), std::make_shared<int_dev>())
 	{
 	}
 
@@ -66,7 +64,7 @@ public:
 	}
 
 	// do cycle() untill func returns true
-	template<class Callable>
+	template <class Callable>
 	unsigned long long cycle_until(Callable&& func, unsigned long long cycles_limit = 1000)
 	{
 		unsigned long long cycles = 0;

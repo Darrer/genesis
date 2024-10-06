@@ -1,8 +1,8 @@
 #include "../helpers/random.h"
-#include "test_vdp.h"
 #include "m68k/test_cpu.hpp"
 #include "m68k/test_program.h"
 #include "smd/impl/m68k_bus_access.h"
+#include "test_vdp.h"
 
 #include <gtest/gtest.h>
 #include <iostream>
@@ -726,7 +726,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY_INTEGRATION_TEST)
 	test::vdp vdp(m68k_bus_access);
 
 	vdp.registers().R15.INC = 2;
-	
+
 	// Prepare source memory
 	const std::uint32_t source_address = test::address_after_test_programm;
 	const std::uint16_t dest_address = 2048;
@@ -743,8 +743,7 @@ TEST(VDP_DMA, BASIC_M68K_COPY_INTEGRATION_TEST)
 	auto cycles = 0ull;
 
 	// Act
-	bool succeed = test::run_test_program(m68k_cpu, [&]()
-	{
+	bool succeed = test::run_test_program(m68k_cpu, [&]() {
 		vdp.cycle(); // In this test we don't really care about execution order
 
 		++cycles;

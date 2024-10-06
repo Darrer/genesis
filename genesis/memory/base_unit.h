@@ -1,15 +1,15 @@
 #ifndef __MEMORY_BASE_UNIT_H__
 #define __MEMORY_BASE_UNIT_H__
 
-#include <span>
-#include <cstdint>
-#include <optional>
-#include <cstring>
-
 #include "addressable.h"
 #include "endian.hpp"
 #include "exception.hpp"
 #include "string_utils.hpp"
+
+#include <cstdint>
+#include <cstring>
+#include <optional>
+#include <span>
 
 namespace genesis::memory
 {
@@ -78,17 +78,17 @@ public:
 
 	/* direct interface */
 
-	template<class T>
+	template <class T>
 	void write(std::uint32_t address, T data)
 	{
 		check_addr(address, sizeof(T));
 
 		// convert to proper byte order
-		if (m_byte_order == std::endian::little)
+		if(m_byte_order == std::endian::little)
 		{
 			endian::sys_to_little(data);
 		}
-		else if (m_byte_order == std::endian::big)
+		else if(m_byte_order == std::endian::big)
 		{
 			endian::sys_to_big(data);
 		}
@@ -96,17 +96,17 @@ public:
 		std::memcpy(&m_buffer[address], &data, sizeof(T));
 	}
 
-	template<class T>
+	template <class T>
 	T read(std::uint32_t address)
 	{
 		T data = read_raw<T>(address);
 
 		// convert to sys byte order
-		if (m_byte_order == std::endian::little)
+		if(m_byte_order == std::endian::little)
 		{
 			endian::little_to_sys(data);
 		}
-		else if (m_byte_order == std::endian::big)
+		else if(m_byte_order == std::endian::big)
 		{
 			endian::big_to_sys(data);
 		}
@@ -115,7 +115,7 @@ public:
 	}
 
 	/* Read data without BE/LE conversion */
-	template<class T>
+	template <class T>
 	T read_raw(std::uint32_t address)
 	{
 		check_addr(address, sizeof(T));
@@ -131,7 +131,7 @@ private:
 	{
 		if(addr > max_address() || (addr + size - 1) > max_address())
 			throw internal_error("buffer_unit check_addr error (" + su::hex_str(addr) +
-									 ") size: " + std::to_string(size));
+								 ") size: " + std::to_string(size));
 	}
 
 	void reset()
@@ -148,6 +148,6 @@ private:
 	std::optional<std::uint16_t> m_latched_word;
 };
 
-}
+} // namespace genesis::memory
 
 #endif // __buffer_BASE_UNIT_H__

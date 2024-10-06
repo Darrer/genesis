@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
-
-#include "test_vdp.h"
-#include "renderer_builder.hpp"
-#include "helpers/random.h"
 #include "exception.hpp"
-
+#include "helpers/random.h"
+#include "renderer_builder.hpp"
+#include "test_vdp.h"
 #include "vdp/impl/plane_type.h"
+
+#include <gtest/gtest.h>
 using genesis::vdp::impl::plane_type;
 
 using namespace genesis::test;
@@ -43,16 +42,10 @@ TEST(VDP_RENDER, BACKGROUND_COLOR)
 
 std::vector<std::uint8_t> transparent_tail()
 {
-	return {
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
-	};
+	return {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+			0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
 }
 
 std::vector<std::uint8_t> random_tail(std::uint8_t min = 0x0, std::uint8_t max = 0xF)
@@ -72,9 +65,8 @@ plane_type random_plane()
 	return random::pick({plane_type::a, plane_type::b, plane_type::w});
 }
 
-std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col,
-	bool horizontal_flip = false, bool vertical_flip = false,
-	int hscroll = 0)
+std::uint8_t get_tail_index(std::uint8_t row, std::uint8_t col, bool horizontal_flip = false,
+							bool vertical_flip = false, int hscroll = 0)
 {
 	if(row > 8 || col > 8)
 		throw genesis::internal_error();
@@ -105,7 +97,7 @@ genesis::vdp::output_color read_active_color(vdp& vdp, std::uint8_t palette_idx,
 	return vdp.cram().read_color(palette_idx, col_idx);
 }
 
-template<class T>
+template <class T>
 void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 {
 	if(tail.size() != 64) // support only 8x8 pixels for now
@@ -133,9 +125,8 @@ void copy_tail(vdp& vdp, std::uint32_t address, const T& tail)
 	}
 }
 
-std::uint16_t get_plane_entry(std::uint32_t tail_address,
-	bool horizintal_flip = false, bool vertical_flip = false, std::uint8_t palette = 0,
-	bool priority = false)
+std::uint16_t get_plane_entry(std::uint32_t tail_address, bool horizintal_flip = false, bool vertical_flip = false,
+							  std::uint8_t palette = 0, bool priority = false)
 {
 	if(palette > 4)
 		throw std::invalid_argument("palette");
@@ -177,7 +168,7 @@ std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address
 	auto& regs = vdp.registers();
 	auto& sett = vdp.sett();
 
-	switch (plane)
+	switch(plane)
 	{
 	case plane_type::a:
 		regs.R2.PA5_3 = address; // plane A
@@ -188,7 +179,8 @@ std::uint32_t set_plane_address(vdp& vdp, plane_type plane, std::uint8_t address
 	case plane_type::w:
 		regs.R3.W5_1 = address;
 		return sett.plane_w_address();
-	default: throw genesis::internal_error();
+	default:
+		throw genesis::internal_error();
 	}
 }
 
@@ -196,7 +188,7 @@ void set_plane_dimension(vdp& vdp, plane_type plane)
 {
 	auto& regs = vdp.registers();
 
-	switch (plane)
+	switch(plane)
 	{
 	case plane_type::a:
 	case plane_type::b:
@@ -208,13 +200,13 @@ void set_plane_dimension(vdp& vdp, plane_type plane)
 		regs.R12.RS0 = random::in_range<std::uint8_t>(0, 1);
 		break;
 
-	default: throw genesis::internal_error();
+	default:
+		throw genesis::internal_error();
 	}
 }
 
-template<class T, class Callable>
-void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
-	const T& tail, Callable expected_color)
+template <class T, class Callable>
+void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip, const T& tail, Callable expected_color)
 {
 	// Setup
 	const std::uint8_t palette = random_palette();
@@ -235,16 +227,14 @@ void setup_and_run_plane_test(vdp& vdp, bool hflip, bool vflip,
 		for(auto actual_color : row)
 		{
 			genesis::vdp::output_color color = expected_color(row_idx, col_idx++, palette);
-					
-			ASSERT_EQ(actual_color, color)
-				<< "row: " << row_idx << ", col: " << col_idx - 1
-				<< ", expected " << color.to_internal()
-				<< ", actual " << actual_color.to_internal();
+
+			ASSERT_EQ(actual_color, color) << "row: " << row_idx << ", col: " << col_idx - 1 << ", expected "
+										   << color.to_internal() << ", actual " << actual_color.to_internal();
 		}
 	}
 }
 
-template<class Callable>
+template <class Callable>
 void run_active_display_test(vdp& vdp, Callable expected_color)
 {
 	auto& render = vdp.render();
@@ -256,11 +246,9 @@ void run_active_display_test(vdp& vdp, Callable expected_color)
 		for(auto actual_color : row)
 		{
 			genesis::vdp::output_color color = expected_color(row_idx, col_idx++);
-					
-			ASSERT_EQ(actual_color, color)
-				<< "row: " << row_idx << ", col: " << col_idx - 1
-				<< ", expected " << color.to_internal()
-				<< ", actual " << actual_color.to_internal();
+
+			ASSERT_EQ(actual_color, color) << "row: " << row_idx << ", col: " << col_idx - 1 << ", expected "
+										   << color.to_internal() << ", actual " << actual_color.to_internal();
 		}
 	}
 }
@@ -347,19 +335,12 @@ TEST(VDP_RENDER, PLANE_W_HEIGHT)
 TEST(VDP_RENDER, PLANE_DRAW_SAME_TAIL)
 {
 	std::array<std::uint8_t, 64> tail = {
-		0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8,
-		0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0,
-		0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8,
-		0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x1,
-		0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9,
-		0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1,
-		0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9,
-		0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1
-	};
+		0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6,
+		0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd,
+		0xe, 0xf, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1};
 
 	vdp vdp;
-	setup_and_run_plane_test(vdp, false, false, tail, [&](int row, int col, std::uint8_t palette)
-	{
+	setup_and_run_plane_test(vdp, false, false, tail, [&](int row, int col, std::uint8_t palette) {
 		auto tail_idx = get_tail_index(row % 8, col % 8);
 		return read_color(vdp, palette, tail.at(tail_idx));
 	});
@@ -370,8 +351,7 @@ TEST(VDP_RENDER, PLANE_HORIZONTAL_FLIP_TAIL)
 	vdp vdp;
 	auto tail = random_tail();
 
-	setup_and_run_plane_test(vdp, true, false, tail, [&](int row, int col, std::uint8_t palette)
-	{
+	setup_and_run_plane_test(vdp, true, false, tail, [&](int row, int col, std::uint8_t palette) {
 		auto tail_idx = get_tail_index(row % 8, col % 8, true);
 		return read_color(vdp, palette, tail.at(tail_idx));
 	});
@@ -382,8 +362,7 @@ TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 	vdp vdp;
 	auto tail = random_tail();
 
-	setup_and_run_plane_test(vdp, false, true, tail, [&](int row, int col, std::uint8_t palette)
-	{
+	setup_and_run_plane_test(vdp, false, true, tail, [&](int row, int col, std::uint8_t palette) {
 		auto tail_idx = get_tail_index(row % 8, col % 8, false, true);
 		return read_color(vdp, palette, tail.at(tail_idx));
 	});
@@ -392,30 +371,17 @@ TEST(VDP_RENDER, PLANE_VERTICAL_FLIP_TAIL)
 TEST(VDP_RENDER, PLANE_VERTICAL_AND_HORIZONTAL_FLIP_TAIL)
 {
 	const std::array<std::uint8_t, 64> tail = {
-		0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7,
-		0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1, 0x8,
-		0xa, 0xf, 0x0, 0x1, 0x2, 0x3, 0x2, 0x9,
-		0x9, 0xe, 0xb, 0xc, 0xd, 0x4, 0x3, 0xa,
-		0x8, 0xd, 0xa, 0xf, 0xe, 0x5, 0x4, 0xb,
-		0x7, 0xc, 0x9, 0x8, 0x7, 0x6, 0x5, 0xc,
-		0x6, 0xb, 0xa, 0x9, 0x8, 0x7, 0x6, 0xd,
-		0x5, 0x4, 0x3, 0x2, 0x1, 0x0, 0xf, 0xe
-	};
+		0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x1, 0x8, 0xa, 0xf, 0x0, 0x1, 0x2, 0x3,
+		0x2, 0x9, 0x9, 0xe, 0xb, 0xc, 0xd, 0x4, 0x3, 0xa, 0x8, 0xd, 0xa, 0xf, 0xe, 0x5, 0x4, 0xb, 0x7, 0xc, 0x9, 0x8,
+		0x7, 0x6, 0x5, 0xc, 0x6, 0xb, 0xa, 0x9, 0x8, 0x7, 0x6, 0xd, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0, 0xf, 0xe};
 
 	const std::array<std::uint8_t, 64> fliped_tail = {
-		0xe, 0xf, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5,
-		0xd, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0x6,
-		0xc, 0x5, 0x6, 0x7, 0x8, 0x9, 0xc, 0x7,
-		0xb, 0x4, 0x5, 0xe, 0xf, 0xa, 0xd, 0x8,
-		0xa, 0x3, 0x4, 0xd, 0xc, 0xb, 0xe, 0x9,
-		0x9, 0x2, 0x3, 0x2, 0x1, 0x0, 0xf, 0xa,
-		0x8, 0x1, 0x0, 0xf, 0xe, 0xd, 0xc, 0xb,
-		0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0
-	};
+		0xe, 0xf, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0xd, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0x6, 0xc, 0x5, 0x6, 0x7, 0x8, 0x9,
+		0xc, 0x7, 0xb, 0x4, 0x5, 0xe, 0xf, 0xa, 0xd, 0x8, 0xa, 0x3, 0x4, 0xd, 0xc, 0xb, 0xe, 0x9, 0x9, 0x2, 0x3, 0x2,
+		0x1, 0x0, 0xf, 0xa, 0x8, 0x1, 0x0, 0xf, 0xe, 0xd, 0xc, 0xb, 0x7, 0x6, 0x5, 0x4, 0x3, 0x2, 0x1, 0x0};
 
 	vdp vdp;
-	setup_and_run_plane_test(vdp, true, true, tail, [&](int row, int col, std::uint8_t palette)
-	{
+	setup_and_run_plane_test(vdp, true, true, tail, [&](int row, int col, std::uint8_t palette) {
 		auto tail_idx = get_tail_index(row % 8, col % 8);
 		return read_color(vdp, palette, fliped_tail.at(tail_idx));
 	});
@@ -480,8 +446,7 @@ TEST(VDP_RENDER, PLANE_ROW_UNIQUE_TILES_PER_ROW)
 				genesis::vdp::output_color expected_color = read_color(vdp, palette, tail.at(tail_idx));
 
 				ASSERT_EQ(expected_color, actual_color)
-					<< "row: " << row_number << ", col: " << col_idx
-					<< ", color id: " << (int)tail.at(tail_idx);
+					<< "row: " << row_number << ", col: " << col_idx << ", color id: " << (int)tail.at(tail_idx);
 
 				++col_idx;
 			}
@@ -496,7 +461,7 @@ TEST(VDP_RENDER, PLANE_ROW_INCORRECT_ROW_NUMBER_MUST_THROW)
 
 	auto tail = random_tail();
 	auto plane = random_plane();
-	
+
 	builder.setup_plane(plane, tail);
 
 	auto& render = vdp.render();
@@ -521,10 +486,7 @@ TEST(VDP_RENDERER, RENDER_TRANSPARENT_FRAMES)
 	builder.reset();
 
 	// Assert
-	run_active_display_test(vdp, [&](int /* row */, int /* col */)
-	{
-		return vdp.render().background_color();
-	});
+	run_active_display_test(vdp, [&](int /* row */, int /* col */) { return vdp.render().background_color(); });
 }
 
 TEST(VDP_RENDERER, ACTIVE_AB_PLANE_DRAW_TAIL)
@@ -558,8 +520,7 @@ TEST(VDP_RENDERER, ACTIVE_AB_PLANE_DRAW_TAIL)
 		fill_cram(vdp);
 
 		// Assert
-		run_active_display_test(vdp, [&](int row, int col)
-		{
+		run_active_display_test(vdp, [&](int row, int col) {
 			auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
 			return read_active_color(vdp, palette, tail_main.at(tail_idx));
 		});
@@ -589,8 +550,8 @@ TEST(VDP_RENDERER, ACTIVE_W_PLANE_DRAW_TAIL)
 
 	auto& regs = vdp.registers();
 	regs.R17.HP = 0; // from the 0th column
-	regs.R17.R = 1;  // to the last one
-	regs.R18.D = 1;  // from the 0th line
+	regs.R17.R = 1;	 // to the last one
+	regs.R18.D = 1;	 // from the 0th line
 	regs.R18.VP = 0; // to the last one
 
 	// use random tails for A/B planes as they should be overlaped by W plane anyway
@@ -600,8 +561,7 @@ TEST(VDP_RENDERER, ACTIVE_W_PLANE_DRAW_TAIL)
 	fill_cram(vdp);
 
 	// Assert
-	run_active_display_test(vdp, [&](int row, int col)
-	{
+	run_active_display_test(vdp, [&](int row, int col) {
 		auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip);
 		return read_active_color(vdp, palette, tail_main.at(tail_idx));
 	});
@@ -637,16 +597,14 @@ TEST(VDP_RENDERER, ACTIVE_FULL_SCREEN_H_SCROLLING)
 				builder.set_screen_hscroll(random::next<std::uint16_t>(), hscroll);
 
 			// Assert
-			run_active_display_test(vdp, [&](int row, int col)
-			{
+			run_active_display_test(vdp, [&](int row, int col) {
 				auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip, hscroll);
 				return read_active_color(vdp, 0, tail_main.at(tail_idx));
 			});
 
 			if(testing::Test::HasFatalFailure())
 			{
-				FAIL() << "Failed plane: " << static_cast<int>(plane)
-					<< ", hscroll: " << hscroll << '\n';
+				FAIL() << "Failed plane: " << static_cast<int>(plane) << ", hscroll: " << hscroll << '\n';
 				return;
 			}
 		}
@@ -685,8 +643,7 @@ TEST(VDP_RENDERER, ACTIVE_LINE_H_SCROLLING)
 			builder.set_line_hscroll(scroll_other, scroll_main);
 
 		// Assert
-		run_active_display_test(vdp, [&](int row, int col)
-		{
+		run_active_display_test(vdp, [&](int row, int col) {
 			auto tail_idx = get_tail_index(row % 8, col % 8, hflip, vflip, scroll_main.at(row));
 			return read_active_color(vdp, 0, tail_main.at(tail_idx));
 		});

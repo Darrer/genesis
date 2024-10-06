@@ -1,5 +1,5 @@
-#include "test_cpu.hpp"
 #include "helpers/random.h"
+#include "test_cpu.hpp"
 #include "test_program.h"
 
 #include <array>
@@ -419,7 +419,7 @@ TEST(M68K_BUS_MANAGER, REQUEST_BUS_TWICE)
 
 const std::uint32_t int_ack_cycles = 4;
 
-template<class Callback = std::nullptr_t>
+template <class Callback = std::nullptr_t>
 std::uint32_t interrupt_ack(test::test_cpu& cpu, std::uint8_t int_priority = 1, Callback callback = nullptr)
 {
 	cpu.registers().flags.IPM = 0;
@@ -433,7 +433,7 @@ TEST(M68K_BUS_MANAGER, INT_ACK_VECTORED)
 	test::test_cpu cpu;
 	auto& busm = cpu.bus_manager();
 	auto& int_dev = cpu.interrupt_dev();
-	
+
 	auto vectors = test::random::next_few<std::uint8_t>(10);
 
 	for(auto expected_vector : vectors)
@@ -452,7 +452,7 @@ TEST(M68K_BUS_MANAGER, INT_ACK_UNINITIALIZED)
 	test::test_cpu cpu;
 	auto& busm = cpu.bus_manager();
 	auto& int_dev = cpu.interrupt_dev();
-	
+
 	int_dev.set_uninitialized();
 
 	auto cycles = interrupt_ack(cpu);
@@ -466,7 +466,7 @@ TEST(M68K_BUS_MANAGER, INT_ACK_SPURIOUS)
 	test::test_cpu cpu;
 	auto& busm = cpu.bus_manager();
 	auto& int_dev = cpu.interrupt_dev();
-	
+
 	int_dev.set_spurious();
 
 	auto cycles = interrupt_ack(cpu);
@@ -676,12 +676,9 @@ TEST(M68K_BUS_MANAGER, INT_ACK_ON_COMPLETE_CALLBACK)
 		std::uint8_t vector_number;
 	};
 
-	test_data data { cpu, 0 };
+	test_data data{cpu, 0};
 
-	interrupt_ack(cpu, 1, [&data]()
-	{
-		data.vector_number = data.cpu.bus_manager().get_vector_number();
-	});
+	interrupt_ack(cpu, 1, [&data]() { data.vector_number = data.cpu.bus_manager().get_vector_number(); });
 
 	ASSERT_EQ(expected_vec_number, data.vector_number);
 }
@@ -709,8 +706,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_DURING_PROGRAM_EXECUTION)
 	bool bus_requested = false;
 	bool release_requested = false;
 
-	bool succeed = test::run_test_program(cpu, [&]()
-	{
+	bool succeed = test::run_test_program(cpu, [&]() {
 		++cycles;
 
 		if((cycles % request_bus_cycles_threshold) == 0)
@@ -787,7 +783,15 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 
 	const long request_bus_cycles_threshold = 1001;
 
-	enum class test_state { run, starting, read, reading, write, writing };
+	enum class test_state
+	{
+		run,
+		starting,
+		read,
+		reading,
+		write,
+		writing
+	};
 
 	test_state state = test_state::run;
 	test_state old_state = state;
@@ -803,12 +807,10 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 	std::uint8_t old_data = 0;
 	std::uint8_t new_data = 0;
 
-	bool succeed = test::run_test_program(cpu, [&]()
-	{
-		switch (state)
+	bool succeed = test::run_test_program(cpu, [&]() {
+		switch(state)
 		{
-		case test_state::run:
-		{
+		case test_state::run: {
 			++cycles;
 
 			if((cycles % request_bus_cycles_threshold) == 0)
@@ -821,8 +823,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 		}
 		break;
 
-		case test_state::starting:
-		{
+		case test_state::starting: {
 			if(busm.is_idle() && busm.bus_granted())
 			{
 				state = test_state::read;
@@ -830,8 +831,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 		}
 		break;
 
-		case test_state::read:
-		{
+		case test_state::read: {
 			ASSERT_TRUE(busm.bus_granted());
 			ASSERT_TRUE(busm.is_idle());
 
@@ -842,8 +842,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 		}
 		break;
 
-		case test_state::reading:
-		{
+		case test_state::reading: {
 			ASSERT_TRUE(busm.bus_granted());
 
 			if(busm.is_idle())
@@ -858,8 +857,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 		}
 		break;
 
-		case test_state::write:
-		{
+		case test_state::write: {
 			ASSERT_TRUE(busm.bus_granted());
 			ASSERT_TRUE(busm.is_idle());
 
@@ -873,8 +871,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 		}
 		break;
 
-		case test_state::writing:
-		{
+		case test_state::writing: {
 			if(busm.is_idle())
 			{
 				// make sure data has been written
@@ -889,7 +886,7 @@ TEST(M68K_BUS_MANAGER, TAKE_BUS_TO_READ_WRITE_DURING_TEST_PROGRAM_EXECUTION)
 			}
 		}
 		break;
-		
+
 		default:
 			throw internal_error();
 		}

@@ -1,16 +1,15 @@
 #ifndef __Z80_MEMORY_H__
 #define __Z80_MEMORY_H__
 
-#include <memory>
-
+#include "exception.hpp"
 #include "memory/addressable.h"
 #include "memory/memory_unit.h"
 
-#include "exception.hpp"
+#include <memory>
 
 namespace genesis::z80
 {
-	// using memory = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
+// using memory = genesis::memory<std::uint16_t, 0xffff, std::endian::little>;
 
 class memory
 {
@@ -25,7 +24,7 @@ public:
 			throw std::invalid_argument("addressable");
 
 		// if(addressable->max_address() < 0xFFFF)
-			// throw genesis::internal_error();
+		// throw genesis::internal_error();
 	}
 
 	// Use this default constructable objects for backword compatability
@@ -66,6 +65,6 @@ private:
 	std::shared_ptr<genesis::memory::addressable> addressable;
 };
 
-}
+} // namespace genesis::z80
 
 #endif // __Z80_MEMORY_H__

@@ -1,10 +1,10 @@
 #ifndef __TEST_RENDERER_BUILDER_H__
 #define __TEST_RENDERER_BUILDER_H__
 
-#include <vector>
-
-#include "test_vdp.h"
 #include "helpers/random.h"
+#include "test_vdp.h"
+
+#include <vector>
 
 using genesis::vdp::impl::plane_type;
 
@@ -43,9 +43,9 @@ public:
 	}
 
 	// setup specified plane to render provided tail
-	template<class T>
-	void setup_plane(plane_type plane, const T& tail, bool hflip = false, bool vflip = false,
-		std::uint8_t palette = 0, bool priority = false)
+	template <class T>
+	void setup_plane(plane_type plane, const T& tail, bool hflip = false, bool vflip = false, std::uint8_t palette = 0,
+					 bool priority = false)
 	{
 		std::uint32_t tail_addr = get_tail_address(plane);
 		copy_tail(tail_addr, tail);
@@ -60,7 +60,6 @@ public:
 
 	void set_window_position()
 	{
-
 	}
 
 	void disable_window()
@@ -77,7 +76,7 @@ public:
 		auto& regs = m_vdp.registers();
 		auto& sett = m_vdp.sett();
 
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 			regs.R2.PA5_3 = address >> 13;
@@ -88,7 +87,8 @@ public:
 		case plane_type::w:
 			regs.R3.W5_1 = address >> 11;
 			return sett.plane_w_address();
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 	}
 
@@ -96,7 +96,7 @@ public:
 	{
 		auto& regs = m_vdp.registers();
 
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 		case plane_type::b:
@@ -108,7 +108,8 @@ public:
 			regs.R12.RS0 = random::in_range<std::uint8_t>(0, 1);
 			break;
 
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 	}
 
@@ -152,7 +153,7 @@ public:
 	}
 
 private:
-	template<class T>
+	template <class T>
 	void copy_tail(std::uint32_t address, const T& tail)
 	{
 		if(tail.size() != 64)
@@ -187,7 +188,7 @@ private:
 		auto& render = m_vdp.render();
 
 		std::uint32_t plane_address = 0;
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 			plane_address = sett.plane_a_address();
@@ -198,11 +199,11 @@ private:
 		case plane_type::w:
 			plane_address = sett.plane_w_address();
 			break;
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 
-		auto plane_entries = (render.plane_height_in_pixels(plane) / 8)
-			* (render.plane_width_in_pixels(plane) / 8);
+		auto plane_entries = (render.plane_height_in_pixels(plane) / 8) * (render.plane_width_in_pixels(plane) / 8);
 		for(unsigned i = 0; i < plane_entries; ++i)
 		{
 			vram.write<std::uint16_t>(plane_address, plane_entry);
@@ -210,8 +211,8 @@ private:
 		}
 	}
 
-	std::uint16_t get_plane_entry(std::uint32_t tail_address, bool horizintal_flip = false,
-		bool vertical_flip = false, std::uint8_t palette = 0, bool priority = false)
+	std::uint16_t get_plane_entry(std::uint32_t tail_address, bool horizintal_flip = false, bool vertical_flip = false,
+								  std::uint8_t palette = 0, bool priority = false)
 	{
 		if(palette > 4)
 			throw std::invalid_argument("palette must be in range [0; 4]");
@@ -239,7 +240,7 @@ private:
 
 		// we can allocate 3 tails 32 bytes each till overflow
 		std::uint32_t base_addr = 0b1111111110100000;
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 			return base_addr;
@@ -247,7 +248,8 @@ private:
 			return base_addr + TAIL_SIZE;
 		case plane_type::w:
 			return base_addr + (TAIL_SIZE * 2);
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 	}
 
@@ -257,7 +259,7 @@ private:
 		const std::uint32_t MAX_PLANE_SIZE = 8192;
 
 		std::uint32_t base_addr = 0x0;
-		switch (plane)
+		switch(plane)
 		{
 		case plane_type::a:
 			return base_addr;
@@ -265,7 +267,8 @@ private:
 			return base_addr + MAX_PLANE_SIZE;
 		case plane_type::w:
 			return base_addr + (MAX_PLANE_SIZE * 2);
-		default: throw genesis::internal_error();
+		default:
+			throw genesis::internal_error();
 		}
 	}
 
@@ -280,7 +283,7 @@ private:
 	vdp& m_vdp;
 };
 
-}
+} // namespace genesis::test
 
 
 #endif // __TEST_RENDERER_BUILDER_H__

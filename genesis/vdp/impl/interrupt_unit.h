@@ -1,15 +1,14 @@
 #ifndef __VDP_IMPL_INTERRUPT_UNIT_H__
 #define __VDP_IMPL_INTERRUPT_UNIT_H__
 
-#include "vdp/register_set.h"
+#include "exception.hpp"
 #include "vdp/m68k_interrupt_access.h"
+#include "vdp/register_set.h"
 #include "vdp/settings.h"
 
-#include "exception.hpp"
-
-#include <memory>
-#include <limits>
 #include <iostream>
+#include <limits>
+#include <memory>
 
 namespace genesis::vdp::impl
 {
@@ -25,7 +24,7 @@ public:
 	void set_m68k_interrupt_access(std::shared_ptr<m68k_interrupt_access> m68k_int)
 	{
 		m_m68k_int = m68k_int;
-		m_m68k_int->set_interrupt_callback([this](std::uint8_t ipl) { on_interrupt(ipl); } );
+		m_m68k_int->set_interrupt_callback([this](std::uint8_t ipl) { on_interrupt(ipl); });
 	}
 
 	void reset()
@@ -168,6 +167,6 @@ private:
 	bool m_vint_raised;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_INTERRUPT_UNIT_H__

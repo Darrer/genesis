@@ -10,6 +10,6 @@ enum class mode
 	NTSC,
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_MODE_H__

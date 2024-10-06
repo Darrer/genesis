@@ -3,10 +3,10 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
-#include <span>
 #include <optional>
+#include <span>
 #include <string_view>
+#include <vector>
 
 
 namespace genesis

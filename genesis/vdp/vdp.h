@@ -1,13 +1,12 @@
 #ifndef __VDP_H__
 #define __VDP_H__
 
-#include "impl/dma.h"
-#include "impl/render.h"
-#include "impl/hv_counters.h"
 #include "impl/blank_flags.h"
+#include "impl/dma.h"
+#include "impl/hv_counters.h"
 #include "impl/hv_unit.h"
 #include "impl/interrupt_unit.h"
-
+#include "impl/render.h"
 #include "m68k_bus_access.h"
 #include "m68k_interrupt_access.h"
 #include "memory.h"
@@ -15,8 +14,8 @@
 #include "register_set.h"
 #include "settings.h"
 
-#include <memory>
 #include <functional>
+#include <memory>
 
 
 namespace genesis::vdp
@@ -27,7 +26,9 @@ class vdp
 public:
 	vdp(std::shared_ptr<m68k_bus_access> m68k_bus);
 
-	vdp() : vdp(nullptr) { }
+	vdp() : vdp(nullptr)
+	{
+	}
 
 	void set_m68k_bus_access(std::shared_ptr<m68k_bus_access> m68k_bus)
 	{
@@ -72,7 +73,10 @@ public:
 		return _vsram;
 	}
 
-	impl::render& render() { return m_render; }
+	impl::render& render()
+	{
+		return m_render;
+	}
 
 	// must be called before VINT/HINT
 	void on_frame_end(std::function<void()> callback)

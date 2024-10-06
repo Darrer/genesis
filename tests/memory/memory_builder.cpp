@@ -41,8 +41,7 @@ std::shared_ptr<memory::addressable> build(unsigned num_devices, unsigned mem_pe
 
 TEST(MEMORY, MEMORY_BUILDER_INTERSECT_DEVICES)
 {
-	auto test_boundaries = [](auto make_device)
-	{
+	auto test_boundaries = [](auto make_device) {
 		memory::memory_builder builder;
 		builder.add(make_device(1024), 1024);
 
@@ -79,7 +78,7 @@ TEST(MEMORY, MEMORY_BUILDER_GAP)
 {
 	memory::memory_builder builder;
 
-	builder.add(shared_device(32), 0);	   // [0 ; 32]
+	builder.add(shared_device(32), 0);	  // [0 ; 32]
 	builder.add(unique_device(32), 1024); // [1024 ; 1056]
 
 	auto mem = builder.build();
@@ -98,7 +97,7 @@ TEST(MEMORY, MEMORY_BUILDER_UNITS_BORDER)
 {
 	memory::memory_builder builder;
 
-	builder.add(shared_device(32), 0);	 // [0 ; 32]
+	builder.add(shared_device(32), 0);	// [0 ; 32]
 	builder.add(unique_device(32), 33); // [33 ; 65]
 
 	const std::uint32_t border_address = 32;
@@ -136,7 +135,7 @@ TEST(MEMORY, MEMORY_BUILDER_MIRROR_INVALID_ADDRESSES)
 {
 	memory::memory_builder builder;
 
-	builder.add(shared_device(0x20), 0);	 // [0 ; 0x20]
+	builder.add(shared_device(0x20), 0);	// [0 ; 0x20]
 	builder.add(unique_device(0x20), 0x21); // [0x21 ; 0x41]
 
 	// different ranges capacity
@@ -161,7 +160,7 @@ TEST(MEMORY, MEMORY_BUILDER_MIRROR)
 {
 	memory::memory_builder builder;
 
-	builder.add(shared_device(0x20), 0);	 // [0 ; 0x20]
+	builder.add(shared_device(0x20), 0);	// [0 ; 0x20]
 	builder.add(unique_device(0x20), 0x21); // [0x21 ; 0x41]
 
 	const std::uint32_t START_MIRROR = 0x50;

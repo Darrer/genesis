@@ -1,11 +1,10 @@
 #ifndef __VDP_PORTS_H__
 #define __VDP_PORTS_H__
 
+#include "exception.hpp"
 #include "memory/addressable.h"
 #include "register_set.h"
 #include "settings.h"
-
-#include "exception.hpp"
 #include "string_utils.hpp"
 
 #include <optional>

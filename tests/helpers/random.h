@@ -2,9 +2,9 @@
 #define __TEST_RANDOM_H__
 
 #include <limits>
-#include <vector>
 #include <random>
 #include <stdexcept>
+#include <vector>
 
 
 namespace genesis::test
@@ -13,7 +13,7 @@ namespace genesis::test
 class random
 {
 public:
-	template<class T>
+	template <class T>
 	static T next()
 	{
 		// TODO: works only with unsigned numbers
@@ -21,7 +21,7 @@ public:
 		return dist(gen) % std::numeric_limits<T>::max();
 	}
 
-	template<class T>
+	template <class T>
 	static std::vector<T> next_few(unsigned count)
 	{
 		std::vector<T> res;
@@ -30,7 +30,7 @@ public:
 		return res;
 	}
 
-	template<class T>
+	template <class T>
 	static std::vector<T> next_few_in_range(unsigned count, T a, T b)
 	{
 		std::vector<T> res;
@@ -40,7 +40,7 @@ public:
 	}
 
 	// returns random value in range [a; b]
-	template<class T>
+	template <class T>
 	static T in_range(T a, T b)
 	{
 		if(b <= a)
@@ -50,7 +50,7 @@ public:
 		return a + (next<T>() % (diff + 1));
 	}
 
-	template<class T>
+	template <class T>
 	static T::value_type& pick(T& array)
 	{
 		if(array.size() == 0)
@@ -63,7 +63,7 @@ public:
 		return array[idx];
 	}
 
-	template<class T>
+	template <class T>
 	static const T pick(std::initializer_list<T> array)
 	{
 		if(array.size() == 0)
@@ -88,6 +88,6 @@ private:
 	static std::uniform_int_distribution<int> dist;
 };
 
-};
+}; // namespace genesis::test
 
 #endif // __TEST_RANDOM_H__

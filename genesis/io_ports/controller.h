@@ -1,11 +1,11 @@
 #ifndef __IO_PORTS_CONTROLLER_H__
 #define __IO_PORTS_CONTROLLER_H__
 
-#include <memory>
-#include <cstdint>
-
 #include "input_device.h"
 #include "memory/addressable.h"
+
+#include <cstdint>
+#include <memory>
 
 namespace genesis::io_ports
 {
@@ -31,9 +31,15 @@ public:
 	}
 
 	/* addressable interface */
-	virtual std::uint32_t max_address() const { return 0x1; }
+	virtual std::uint32_t max_address() const
+	{
+		return 0x1;
+	}
 
-	virtual bool is_idle() const { return true; }
+	virtual bool is_idle() const
+	{
+		return true;
+	}
 
 	virtual void init_write(std::uint32_t /* address */, std::uint8_t data)
 	{
@@ -79,7 +85,7 @@ private:
 
 	void on_read()
 	{
-		switch (m_state)
+		switch(m_state)
 		{
 		case state::first_byte:
 			m_latched_data = first_byte();
@@ -98,21 +104,21 @@ private:
 	std::uint8_t first_byte()
 	{
 		std::uint8_t data = 0x0;
-		data |= key_state(key_type::UP,    0);
-		data |= key_state(key_type::DOWN,  1);
-		data |= key_state(key_type::LEFT,  2);
+		data |= key_state(key_type::UP, 0);
+		data |= key_state(key_type::DOWN, 1);
+		data |= key_state(key_type::LEFT, 2);
 		data |= key_state(key_type::RIGHT, 3);
-		data |= key_state(key_type::B,     4);
-		data |= key_state(key_type::C,     5);
+		data |= key_state(key_type::B, 4);
+		data |= key_state(key_type::C, 5);
 		return data;
 	}
 
 	std::uint8_t second_byte()
 	{
 		std::uint8_t data = 0x0;
-		data |= key_state(key_type::UP,    0);
-		data |= key_state(key_type::DOWN,  1);
-		data |= key_state(key_type::A,     4);
+		data |= key_state(key_type::UP, 0);
+		data |= key_state(key_type::DOWN, 1);
+		data |= key_state(key_type::A, 4);
 		data |= key_state(key_type::START, 5);
 		return data;
 	}
@@ -133,8 +139,8 @@ private:
 } // namespace __impl
 
 /* * Standard 3-button controller
-	* This class can be destroyed after getting data/control ports
-*/
+ * This class can be destroyed after getting data/control ports
+ */
 class controller
 {
 public:
@@ -159,6 +165,6 @@ private:
 	std::shared_ptr<memory::addressable> m_control_port;
 };
 
-};
+}; // namespace genesis::io_ports
 
 #endif // __IO_PORTS_CONTROLLER_H__

@@ -1,13 +1,13 @@
 #ifndef __VDP_DMA_H__
 #define __VDP_DMA_H__
 
-#include <iostream>
-#include <memory>
-
-#include "vdp/register_set.h"
-#include "vdp/settings.h"
 #include "memory_access.h"
 #include "vdp/m68k_bus_access.h"
+#include "vdp/register_set.h"
+#include "vdp/settings.h"
+
+#include <iostream>
+#include <memory>
 
 
 namespace genesis::vdp::impl
@@ -27,27 +27,32 @@ private:
 	};
 
 public:
-	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory, std::shared_ptr<vdp::m68k_bus_access> m68k_bus)
-		: regs(regs), sett(sett),  memory(memory), m68k_bus(m68k_bus) { }
+	dma(vdp::register_set& regs, vdp::settings& sett, memory_access& memory,
+		std::shared_ptr<vdp::m68k_bus_access> m68k_bus)
+		: regs(regs), sett(sett), memory(memory), m68k_bus(m68k_bus)
+	{
+	}
 
-	bool is_idle() const { return _state == state::idle; }
+	bool is_idle() const
+	{
+		return _state == state::idle;
+	}
 
 	void set_m68k_bus_access(std::shared_ptr<vdp::m68k_bus_access> m68k_bus)
 	{
 		this->m68k_bus = m68k_bus;
 	}
-	
+
 	void cycle()
 	{
 		check_work();
 
-		switch (_state)
+		switch(_state)
 		{
 		case state::idle:
 			break;
 
-		case state::fill_pending:
-		{
+		case state::fill_pending: {
 			if(regs.fifo.empty())
 			{
 				// wait till FIFO gets an entry
@@ -56,7 +61,7 @@ public:
 
 			// TODO: should we start processing operation on this cycle?
 			_state = state::fill;
-			break; 
+			break;
 		}
 
 		case state::fill:
@@ -72,13 +77,13 @@ public:
 			break;
 
 		// TODO: we're losing 1 cycle here
-		case state::finishing:
-		{
+		case state::finishing: {
 			do_finishing();
 			break;
 		}
-		
-		default: throw internal_error();
+
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -97,7 +102,7 @@ private:
 		// TODO: reset DMA unit to make sure the previous operation won't affect the new one
 
 		// start dma
-		switch (sett.dma_mode())
+		switch(sett.dma_mode())
 		{
 		case dma_mode::vram_fill:
 			_state = state::fill_pending;
@@ -110,8 +115,9 @@ private:
 		case dma_mode::mem_to_vram:
 			_state = state::m68k_copy;
 			break;
-		
-		default: throw internal_error();
+
+		default:
+			throw internal_error();
 		}
 
 		m_length = sett.dma_length();
@@ -259,7 +265,7 @@ private:
 
 	void inc_control_address()
 	{
-		regs.control.address( regs.control.address() + sett.auto_increment_value() );
+		regs.control.address(regs.control.address() + sett.auto_increment_value());
 	}
 
 	void advance()
@@ -313,6 +319,6 @@ private:
 	std::uint32_t m_source = 0;
 };
 
-};
+}; // namespace genesis::vdp::impl
 
 #endif // __VDP_DMA_H__

@@ -1,11 +1,11 @@
 #ifndef __M68K_TRACE_RISER_HPP__
 #define __M68K_TRACE_RISER_HPP__
 
-#include <functional>
-#include <stdexcept>
-
 #include "exception_manager.h"
 #include "m68k/cpu_registers.hpp"
+
+#include <functional>
+#include <stdexcept>
 
 namespace genesis::m68k::impl
 {
@@ -15,8 +15,9 @@ namespace genesis::m68k::impl
 class trace_riser
 {
 public:
-	trace_riser(m68k::cpu_registers& regs, m68k::exception_manager& exman, std::function<bool()> __instruction_unit_is_idle) :
-		regs(regs), exman(exman), __instruction_unit_is_idle(__instruction_unit_is_idle)
+	trace_riser(m68k::cpu_registers& regs, m68k::exception_manager& exman,
+				std::function<bool()> __instruction_unit_is_idle)
+		: regs(regs), exman(exman), __instruction_unit_is_idle(__instruction_unit_is_idle)
 	{
 		if(__instruction_unit_is_idle == nullptr)
 			throw std::invalid_argument("__instruction_unit_is_idle");
@@ -63,7 +64,8 @@ private:
 			return;
 
 		// don't rise if any of the following exceptions occurs during executing instruction
-		if(exman.is_raised(exception_type::illegal_instruction) || exman.is_raised(exception_type::privilege_violations))
+		if(exman.is_raised(exception_type::illegal_instruction) ||
+		   exman.is_raised(exception_type::privilege_violations))
 			return;
 
 		exman.rise_trace();
@@ -77,7 +79,7 @@ private:
 	bool tracing_is_enabled = false;
 };
 
-};
+}; // namespace genesis::m68k::impl
 
 
 #endif // __M68K_TRACE_RISER_HPP__

@@ -2,11 +2,11 @@
 #define __MEMORY_LOGGING_MEMORY_H__
 
 #include "addressable.h"
+#include "string_utils.hpp"
+
 #include <memory>
 #include <string>
 #include <string_view>
-
-#include "string_utils.hpp"
 
 namespace genesis::memory
 {
@@ -15,11 +15,19 @@ class logging_memory : public memory::addressable
 {
 public:
 	logging_memory(std::shared_ptr<addressable> unit, std::ostream& os, std::string_view name)
-		: m_unit(unit), m_os(os), m_name(name) { }
+		: m_unit(unit), m_os(os), m_name(name)
+	{
+	}
 
-	std::uint32_t max_address() const override { return m_unit->max_address(); }
+	std::uint32_t max_address() const override
+	{
+		return m_unit->max_address();
+	}
 
-	bool is_idle() const override { return m_unit->is_idle(); }
+	bool is_idle() const override
+	{
+		return m_unit->is_idle();
+	}
 
 	void init_write(std::uint32_t address, std::uint8_t data) override
 	{
@@ -65,6 +73,6 @@ private:
 	std::string m_name;
 };
 
-}
+} // namespace genesis::memory
 
 #endif // __MEMORY_LOGGING_MEMORY_H__

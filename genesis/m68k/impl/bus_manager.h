@@ -86,8 +86,7 @@ private:
 
 public:
 	bus_manager(m68k::cpu_bus& bus, m68k::cpu_registers& regs, exception_manager& exman,
-				std::shared_ptr<memory::addressable> external_memory,
-				std::shared_ptr<interrupting_device> int_dev);
+				std::shared_ptr<memory::addressable> external_memory, std::shared_ptr<interrupting_device> int_dev);
 
 	void cycle();
 
@@ -119,8 +118,7 @@ public:
 	}
 
 	template <class OnModify, class OnComplete = std::nullptr_t>
-	void init_read_modify_write(std::uint32_t address, OnModify modify,
-		addr_space space, OnComplete cb = nullptr)
+	void init_read_modify_write(std::uint32_t address, OnModify modify, addr_space space, OnComplete cb = nullptr)
 	{
 		static_assert(sizeof(OnModify) <= max_callable_size);
 		static_assert(sizeof(OnComplete) <= max_callable_size);
@@ -134,9 +132,8 @@ public:
 		byte_operation = true;
 	}
 
-	template<class Callable = std::nullptr_t>
-	void init_read_modify_write(std::uint32_t address, on_modify&& modify,
-		addr_space space, Callable cb)
+	template <class Callable = std::nullptr_t>
+	void init_read_modify_write(std::uint32_t address, on_modify&& modify, addr_space space, Callable cb)
 	{
 		static_assert(sizeof(Callable) <= max_callable_size);
 		assert_idle();

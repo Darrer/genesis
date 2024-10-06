@@ -17,7 +17,7 @@ public:
 		if(regs.flags.S == 1)
 			return true;
 
-		switch (inst)
+		switch(inst)
 		{
 		case inst_type::MOVEtoSR:
 		case inst_type::MOVE_USP:
@@ -35,6 +35,6 @@ public:
 	}
 };
 
-}
+} // namespace genesis::m68k::impl
 
 #endif // __M68K_PRIVILEGE_CHECKER_HPP__

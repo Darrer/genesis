@@ -1,14 +1,14 @@
 #include "rom.h"
 
 #include "endian.hpp"
-#include "string_utils.hpp"
 #include "exception.hpp"
+#include "string_utils.hpp"
 
-#include <exception>
-#include <fstream>
-#include <filesystem>
-#include <ranges>
 #include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <ranges>
 
 
 namespace genesis
@@ -61,13 +61,9 @@ public:
 
 const rom_parser* find_parser(std::string_view extention)
 {
-	static std::array<std::unique_ptr<rom_parser>, 1> registered_parsers
-	{
-		std::make_unique<bin_rom_parser>()
-	};
+	static std::array<std::unique_ptr<rom_parser>, 1> registered_parsers{std::make_unique<bin_rom_parser>()};
 
-	auto is_support_ext = [&](const auto& p)
-	{
+	auto is_support_ext = [&](const auto& p) {
 		auto exts = p->supported_extentions();
 		return std::ranges::contains(exts, extention);
 	};
@@ -142,7 +138,7 @@ std::string_view read_string_view(std::span<const std::uint8_t> buffer, std::siz
 {
 	if(offset + size > buffer.size())
 		throw internal_error();
-	std::string_view str {reinterpret_cast<const char*>(buffer.data() + offset), size};
+	std::string_view str{reinterpret_cast<const char*>(buffer.data() + offset), size};
 	su::trim(str);
 	return str;
 }

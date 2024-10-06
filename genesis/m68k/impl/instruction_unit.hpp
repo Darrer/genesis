@@ -2,19 +2,16 @@
 #define __M68K_INSTRUCTION_UNIT_HPP__
 
 
-#include "m68k/cpu_registers.hpp"
 #include "bus_scheduler.h"
-#include "exception_manager.h"
-
-
-#include "instruction_type.h"
-#include "opcode_decoder.h"
 #include "ea_decoder.hpp"
-#include "timings.hpp"
+#include "exception.hpp"
+#include "exception_manager.h"
+#include "instruction_type.h"
+#include "m68k/cpu_registers.hpp"
+#include "opcode_decoder.h"
 #include "operations.hpp"
 #include "privilege_checker.hpp"
-
-#include "exception.hpp"
+#include "timings.hpp"
 
 #include <iostream>
 
@@ -39,8 +36,7 @@ private:
 	};
 
 public:
-	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman,
-		cpu_bus& bus, m68k::bus_scheduler& scheduler)
+	instruction_unit(m68k::cpu_registers& regs, exception_manager& exman, cpu_bus& bus, m68k::bus_scheduler& scheduler)
 		: regs(regs), dec(regs, scheduler), exman(exman), bus(bus), scheduler(scheduler)
 	{
 		reset();
@@ -61,7 +57,7 @@ public:
 
 	void cycle()
 	{
-		switch (m_unit_state)
+		switch(m_unit_state)
 		{
 		case unit_state::idle:
 			m_exec_state = prepare_executing();
@@ -74,7 +70,8 @@ public:
 			on_executing();
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -108,7 +105,7 @@ private:
 	{
 		while(true)
 		{
-			switch (m_exec_state)
+			switch(m_exec_state)
 			{
 			case exec_state::in_progress:
 				m_exec_state = execute();
@@ -138,14 +135,15 @@ private:
 				}
 				return;
 
-			default: throw internal_error();
+			default:
+				throw internal_error();
 			}
 		}
 	}
 
 	exec_state execute()
 	{
-		switch (curr_inst)
+		switch(curr_inst)
 		{
 		case inst_type::ADD:
 		case inst_type::SUB:
@@ -204,16 +202,16 @@ private:
 
 		case inst_type::MOVEP:
 			return movep_handler();
-		
+
 		case inst_type::MOVEfromSR:
 			return move_from_sr_handler();
-		
+
 		case inst_type::MOVEtoSR:
 			return move_to_sr_handler();
 
 		case inst_type::MOVE_USP:
 			return move_usp_handler();
-		
+
 		case inst_type::MOVEtoCCR:
 			return move_to_ccr_handler();
 
@@ -221,12 +219,12 @@ private:
 		case inst_type::ORItoCCR:
 		case inst_type::EORItoCCR:
 			return alu_to_ccr_handler();
-		
+
 		case inst_type::ANDItoSR:
 		case inst_type::ORItoSR:
 		case inst_type::EORItoSR:
 			return alu_to_sr_handler();
-		
+
 		case inst_type::ASLRreg:
 		case inst_type::ROLRreg:
 		case inst_type::LSLRreg:
@@ -267,10 +265,10 @@ private:
 
 		case inst_type::BTSTreg:
 			return btst_reg_handler();
-		
+
 		case inst_type::BTSTimm:
 			return btst_imm_handler();
-		
+
 		case inst_type::BSETreg:
 		case inst_type::BCLRreg:
 		case inst_type::BCHGreg:
@@ -338,21 +336,21 @@ private:
 		case inst_type::STOP:
 			throw not_implemented();
 
-		default: throw internal_error("Unknown instruction: " + std::to_string((int)curr_inst));
+		default:
+			throw internal_error("Unknown instruction: " + std::to_string((int)curr_inst));
 		}
 	}
 
 	exec_state alu_mode_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
@@ -375,22 +373,22 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state alu_address_mode_handler()
 	{
 		const std::uint8_t opmode = (opcode >> 6) & 0x7;
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = opmode == 0b011 ? size_type::WORD : size_type::LONG;
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.A((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
@@ -401,13 +399,14 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state alu_imm_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
@@ -418,8 +417,7 @@ private:
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 2:
-		{
+		case 2: {
 			auto op = dec.result();
 
 			res = operations::alu(curr_inst, op, imm, size, regs.flags);
@@ -438,23 +436,24 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state alu_quick_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			std::uint8_t data = (opcode >> 9) & 0x7;
-			if(data == 0) data = 8;
+			if(data == 0)
+				data = 8;
 
 			auto op = dec.result();
 
@@ -466,13 +465,14 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state rm_postinc_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			src_reg = opcode & 0x7;
@@ -480,7 +480,7 @@ private:
 			size = dec_size(opcode >> 6);
 
 			// TODO: incrementing before read doesn't make much sense, however, that's how external tests work
-			scheduler.inc_addr_reg(src_reg, size); 
+			scheduler.inc_addr_reg(src_reg, size);
 			read(regs.A(src_reg).LW, size);
 			return exec_state::wait_scheduler;
 
@@ -497,13 +497,14 @@ private:
 			scheduler.prefetch_one();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state rm_predec_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			src_reg = opcode & 0x7;
@@ -524,7 +525,8 @@ private:
 				res = operations::alu(curr_inst, dest, src, size, regs.flags);
 				store(dest, size, res);
 				scheduler.prefetch_one();
-				if(size == size_type::LONG) scheduler.wait(4);
+				if(size == size_type::LONG)
+					scheduler.wait(4);
 				return exec_state::done;
 			}
 
@@ -557,21 +559,21 @@ private:
 			}
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state unary_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 
 			res = operations::alu(curr_inst, op, size, regs.flags);
@@ -582,7 +584,8 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -594,7 +597,7 @@ private:
 
 	exec_state move_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			// decode source
@@ -602,14 +605,14 @@ private:
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto src_op = dec.result();
 			res = operations::alu(curr_inst, src_op, size, regs.flags);
 			return decode_move_and_write(src_op, res, size);
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -621,7 +624,7 @@ private:
 		std::uint8_t ea_move = ((opcode >> 3) & 0b111000) | dest_reg;
 		auto ea_mode = ea_decoder::decode_mode(ea_move);
 
-		switch (ea_mode)
+		switch(ea_mode)
 		{
 		case addressing_mode::data_reg:
 		case addressing_mode::indir:
@@ -630,8 +633,7 @@ private:
 		case addressing_mode::abs_short:
 			dec.schedule_decoding(ea_move, size, ea_decoder::flags::no_read);
 
-			scheduler.call([this]()
-			{
+			scheduler.call([this]() {
 				auto op = dec.result();
 
 				if(op.is_pointer())
@@ -675,8 +677,7 @@ private:
 			scheduler.read_imm(size_type::WORD);
 			if(src_op.is_pointer())
 			{
-				scheduler.call([this]()
-				{
+				scheduler.call([this]() {
 					addr = addr | (regs.IRC & 0xFFFF);
 					scheduler.write(addr, this->res, this->size, order::msw_first);
 					scheduler.read_imm(size_type::WORD);
@@ -685,8 +686,7 @@ private:
 			}
 			else
 			{
-				scheduler.call([this]()
-				{
+				scheduler.call([this]() {
 					addr = addr | (regs.IRC & 0xFFFF);
 					scheduler.read_imm(size_type::WORD);
 					scheduler.write(addr, this->res, this->size, order::msw_first);
@@ -696,10 +696,11 @@ private:
 
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 
-		return exec_state::done; 
+		return exec_state::done;
 	}
 
 	exec_state moveq_handler()
@@ -716,7 +717,7 @@ private:
 
 	exec_state movea_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = bit_is_set(opcode, 12) ? size_type::WORD : size_type::LONG;
@@ -730,13 +731,14 @@ private:
 			scheduler.prefetch_one();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state movem_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = bit_is_set(opcode, 6) ? size_type::LONG : size_type::WORD;
@@ -748,8 +750,7 @@ private:
 			dec.schedule_decoding(opcode & 0xFF, size, ea_decoder::flags::no_read);
 			return exec_state::wait_scheduler;
 
-		case 2:
-		{
+		case 2: {
 			std::uint16_t reg_mask = endian::lsw(imm);
 
 			if(bit_is_set(opcode, 10))
@@ -761,7 +762,8 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -804,10 +806,7 @@ private:
 		if(predec_mode)
 		{
 			addr = predec_mode ? (start_addr - offset) : start_addr;
-			scheduler.call([this]()
-			{
-				regs.A(src_reg).LW = addr;
-			});
+			scheduler.call([this]() { regs.A(src_reg).LW = addr; });
 		}
 	}
 
@@ -865,10 +864,8 @@ private:
 			if(!bit_is_set(reg_mask, i))
 				continue;
 
-			scheduler.read(start_addr, size, [this](std::uint32_t data, size_type size)
-			{
-				move_to_register(data, size);
-			});
+			scheduler.read(start_addr, size,
+						   [this](std::uint32_t data, size_type size) { move_to_register(data, size); });
 
 			start_addr += offset;
 		}
@@ -879,16 +876,13 @@ private:
 		if(postinc_mode)
 		{
 			addr = start_addr;
-			scheduler.call([this]()
-			{
-				regs.A(src_reg).LW = addr;
-			});
+			scheduler.call([this]() { regs.A(src_reg).LW = addr; });
 		}
 	}
 
 	exec_state movep_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = bit_is_set(opcode, 6) ? size_type::LONG : size_type::WORD;
@@ -898,8 +892,7 @@ private:
 			read_imm(size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			addr = regs.A(src_reg).LW + operations::sign_extend(endian::lsw(imm));
 			bool reg_to_mem = bit_is_set(opcode, 7);
 			if(reg_to_mem)
@@ -910,15 +903,15 @@ private:
 			scheduler.prefetch_one();
 			return exec_state::done;
 		}
-		
-		default: throw internal_error();
+
+		default:
+			throw internal_error();
 		}
 	}
 
 	void movep_memory_to_register()
 	{
-		auto on_read = [this](std::uint32_t data, size_type)
-		{
+		auto on_read = [this](std::uint32_t data, size_type) {
 			auto& reg = regs.D(dest_reg);
 			if(size == size_type::LONG)
 				reg.LW = (reg.LW << 8) | endian::lsb(data);
@@ -956,14 +949,13 @@ private:
 
 	exec_state move_from_sr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			res = regs.SR; // TODO: do I need to set unimplemented bits to zero?
 			auto op = dec.result();
 			schedule_prefetch_and_write(op, res, size_type::WORD);
@@ -971,13 +963,14 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state move_to_sr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
@@ -989,7 +982,8 @@ private:
 			scheduler.prefetch_two();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1014,7 +1008,7 @@ private:
 
 	exec_state move_to_ccr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
@@ -1026,13 +1020,14 @@ private:
 			scheduler.prefetch_two();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state alu_to_ccr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			read_imm(size_type::BYTE);
@@ -1044,13 +1039,14 @@ private:
 			scheduler.prefetch_two();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state alu_to_sr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			read_imm(size_type::WORD);
@@ -1062,7 +1058,8 @@ private:
 			scheduler.prefetch_two();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1096,37 +1093,36 @@ private:
 
 	exec_state shift_mem_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 			bool is_left_shift = bit_is_set(opcode, 8);
 			res = operations::shift(curr_inst, op, 1, is_left_shift, size_type::WORD, regs.flags);
-			
+
 			schedule_prefetch_and_write(op, res, size_type::WORD);
 		}
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state tst_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			size = dec_size(opcode >> 6);
 			dec.schedule_decoding(opcode & 0xFF, size);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 
 			operations::tst(op, size, regs.flags);
@@ -1135,20 +1131,20 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state mul_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 			auto& dest = regs.D((opcode >> 9) & 7);
 			std::uint32_t src = operations::value(op, size_type::WORD);
@@ -1162,7 +1158,8 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1186,14 +1183,13 @@ private:
 
 	exec_state div_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& dest_reg = regs.D((opcode >> 9) & 0x7);
 			auto op = dec.result();
 
@@ -1215,7 +1211,8 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1274,14 +1271,13 @@ private:
 
 	exec_state btst_reg_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto dest = dec.result();
 
@@ -1293,13 +1289,14 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state btst_imm_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			read_imm(size_type::BYTE);
@@ -1309,8 +1306,7 @@ private:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
 			return exec_state::wait_scheduler;
 
-		case 2:
-		{
+		case 2: {
 			auto dest = dec.result();
 
 			operations::btst(imm, dest, regs.flags);
@@ -1320,20 +1316,20 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state bit_reg_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.D((opcode >> 9) & 0x7);
 			auto dest = dec.result();
 			size = dec_bit_size(dest);
@@ -1347,13 +1343,14 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state bit_imm_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			read_imm(size_type::BYTE);
@@ -1363,8 +1360,7 @@ private:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
 			return exec_state::wait_scheduler;
 
-		case 2:
-		{
+		case 2: {
 			auto dest = dec.result();
 			size = dec_bit_size(dest);
 			std::uint8_t bit_number = operations::bit_number(imm, dest);
@@ -1376,27 +1372,23 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state ret_handler()
 	{
 		// Read PC High
-		scheduler.read(regs.SSP.LW + 2, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
-			regs.PC = data << 16;
-		});
+		scheduler.read(regs.SSP.LW + 2, size_type::WORD,
+					   [this](std::uint32_t data, size_type) { regs.PC = data << 16; });
 
 		// Read SR
-		scheduler.read(regs.SSP.LW, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
-			res = operations::ret(curr_inst, data, regs.SR);
-		});
+		scheduler.read(regs.SSP.LW, size_type::WORD,
+					   [this](std::uint32_t data, size_type) { res = operations::ret(curr_inst, data, regs.SR); });
 
 		// Read PC Low
-		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type)
-		{
+		scheduler.read(regs.SSP.LW + 4, size_type::WORD, [this](std::uint32_t data, size_type) {
 			regs.PC = regs.PC | data;
 
 			regs.SSP.LW += 6;
@@ -1411,8 +1403,7 @@ private:
 	exec_state rts_handler()
 	{
 		// Read PC
-		scheduler.read(regs.SSP.LW, size_type::LONG, [this](std::uint32_t data, size_type)
-		{
+		scheduler.read(regs.SSP.LW, size_type::LONG, [this](std::uint32_t data, size_type) {
 			regs.PC = data;
 			regs.SSP.LW += 4;
 		});
@@ -1423,10 +1414,9 @@ private:
 
 	exec_state jmp_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
-		case 0:
-		{
+		case 0: {
 			auto flags = ea_decoder::flags::no_read | ea_decoder::flags::no_prefetch;
 			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, flags);
 			return exec_state::wait_scheduler;
@@ -1437,22 +1427,21 @@ private:
 			scheduler.prefetch_two();
 			return exec_state::done;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state chk_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
-		case 0:
-		{
+		case 0: {
 			dec.schedule_decoding(opcode & 0xFF, size_type::WORD);
 			return exec_state::wait_scheduler;
 		}
 
-		case 1:
-		{
+		case 1: {
 			std::uint8_t reg = (opcode >> 9) & 0x7;
 			auto op = dec.result();
 
@@ -1470,21 +1459,21 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state jsr_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::LONG,
-				ea_decoder::flags::no_prefetch | ea_decoder::flags::no_read);
+								  ea_decoder::flags::no_prefetch | ea_decoder::flags::no_read);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 			std::uint32_t advanced_pc = operations::advance_pc(regs.PC, op.mode(), size_type::LONG);
 
@@ -1497,7 +1486,8 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1522,14 +1512,13 @@ private:
 
 	exec_state lea_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, ea_decoder::flags::no_read);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.A((opcode >> 9) & 0x7);
 
 			auto op = dec.result();
@@ -1541,27 +1530,27 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state pea_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::LONG, ea_decoder::flags::no_read);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 			scheduler.wait(timings::pea(op.mode()));
 
 			addr = op.pointer().address;
 
-			bool prefetch_after_push = op.mode() == addressing_mode::abs_short
-				|| op.mode() == addressing_mode::abs_long;
+			bool prefetch_after_push =
+				op.mode() == addressing_mode::abs_short || op.mode() == addressing_mode::abs_long;
 
 			if(!prefetch_after_push)
 				scheduler.prefetch_one();
@@ -1574,20 +1563,20 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state link_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			read_imm(size_type::WORD);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto& reg = regs.A(opcode & 0x7);
 
 			regs.SP().LW -= 4;
@@ -1598,17 +1587,15 @@ private:
 			scheduler.write(addr, reg.LW, size_type::LONG, order::msw_first);
 
 			reg.LW = addr;
-			
-			scheduler.call([this]()
-			{
-				regs.SP().LW += std::int16_t(imm);
-			});
+
+			scheduler.call([this]() { regs.SP().LW += std::int16_t(imm); });
 
 			scheduler.prefetch_one();
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1619,8 +1606,7 @@ private:
 		auto& sp = regs.SP();
 		sp.LW = reg.LW;
 
-		scheduler.read(sp.LW, size_type::LONG, [this](std::uint32_t data, size_type)
-		{
+		scheduler.read(sp.LW, size_type::LONG, [this](std::uint32_t data, size_type) {
 			// TODO: shoudn't the order be different? First load reg, then update stack pointer?
 			regs.SP().LW += 4;
 			regs.A(dest_reg).LW = data;
@@ -1649,7 +1635,7 @@ private:
 		{
 			regs.PC += disp;
 		}
-		
+
 		if(cond || size == size_type::WORD)
 		{
 			if(cond == false)
@@ -1673,7 +1659,7 @@ private:
 
 		bool cond = operations::cond_test(cc, regs.flags);
 		scheduler.wait(timings::dbcc(cond));
-		
+
 		if(cond)
 		{
 			regs.PC += 2;
@@ -1699,14 +1685,13 @@ private:
 
 	exec_state scc_handler()
 	{
-		switch (exec_stage++)
+		switch(exec_stage++)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE);
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			std::uint8_t cc = (opcode >> 8) & 0b1111;
 			bool cond = operations::cond_test(cc, regs.flags);
 			res = cond ? 0xFF : 0;
@@ -1718,14 +1703,15 @@ private:
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
 	exec_state bcd_reg_handler()
 	{
 		auto& dest = regs.D((opcode >> 9) & 0x7);
-		auto& src =  regs.D(opcode & 0x7);
+		auto& src = regs.D(opcode & 0x7);
 
 		res = operations::alu(curr_inst, src, dest, size_type::BYTE, regs.flags);
 		store(dest, size_type::BYTE, res);
@@ -1741,19 +1727,17 @@ private:
 		src_reg = opcode & 0x7;
 		dest_reg = (opcode >> 9) & 0x7;
 
-		auto& src =  regs.A(src_reg);
+		auto& src = regs.A(src_reg);
 
 		scheduler.wait(2);
 		regs.dec_addr(src_reg, size_type::BYTE);
-		scheduler.read(src.LW, size_type::BYTE, [this](std::uint32_t src, size_type)
-		{
+		scheduler.read(src.LW, size_type::BYTE, [this](std::uint32_t src, size_type) {
 			res = src & 0xFF;
 
 			regs.dec_addr(dest_reg, size_type::BYTE);
 
 			// TODO: it would be better to get rid of nested scheduler calls
-			scheduler.read(regs.A(dest_reg).LW, size_type::BYTE, [this](std::uint32_t dest, size_type)
-			{
+			scheduler.read(regs.A(dest_reg).LW, size_type::BYTE, [this](std::uint32_t dest, size_type) {
 				res = operations::alu(curr_inst, res, dest, size_type::BYTE, regs.flags);
 				scheduler.prefetch_one();
 				scheduler.write(regs.A(dest_reg).LW, res, size_type::BYTE);
@@ -1767,25 +1751,21 @@ private:
 	{
 		bus.set(bus::RESET);
 		scheduler.wait(timings::reset());
-		scheduler.call([this]()
-		{
-			bus.clear(bus::RESET);
-		});
+		scheduler.call([this]() { bus.clear(bus::RESET); });
 		scheduler.prefetch_one();
 		return exec_state::done;
 	}
 
 	exec_state tas_handler()
 	{
-		switch (exec_stage)
+		switch(exec_stage)
 		{
 		case 0:
 			dec.schedule_decoding(opcode & 0xFF, size_type::BYTE, ea_decoder::flags::no_read);
 			++exec_stage;
 			return exec_state::wait_scheduler;
 
-		case 1:
-		{
+		case 1: {
 			auto op = dec.result();
 			if(op.is_data_reg())
 			{
@@ -1813,17 +1793,16 @@ private:
 					addr = regs.A(reg).LW;
 				}
 
-				scheduler.read_modify_write(addr, [this](std::uint8_t data)
-				{
-					return operations::tas(data, regs.flags);
-				});
+				scheduler.read_modify_write(addr,
+											[this](std::uint8_t data) { return operations::tas(data, regs.flags); });
 			}
 
 			scheduler.prefetch_one();
 			return exec_state::done;
 		}
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -1893,9 +1872,12 @@ private:
 	size_type dec_size(std::uint8_t size)
 	{
 		size = size & 0b11;
-		if(size == 0) return size_type::BYTE;
-		if(size == 1) return size_type::WORD;
-		if(size == 2) return size_type::LONG;
+		if(size == 0)
+			return size_type::BYTE;
+		if(size == 1)
+			return size_type::WORD;
+		if(size == 2)
+			return size_type::LONG;
 
 		throw internal_error();
 	}
@@ -1903,9 +1885,12 @@ private:
 	size_type dec_move_size(std::uint8_t size)
 	{
 		size = size & 0b11;
-		if(size == 0b01) return size_type::BYTE;
-		if(size == 0b11) return size_type::WORD;
-		if(size == 0b10) return size_type::LONG;
+		if(size == 0b01)
+			return size_type::BYTE;
+		if(size == 0b11)
+			return size_type::WORD;
+		if(size == 0b10)
+			return size_type::LONG;
 
 		throw internal_error();
 	}
@@ -1940,7 +1925,7 @@ private:
 	{
 		if(inst != inst_type::NONE)
 			return false;
-		
+
 		std::uint8_t high_nibble = opcode >> 12;
 		if(high_nibble == 0b1010)
 			exman.rise_line_1010_emulator();
@@ -1975,13 +1960,13 @@ private:
 
 			// read LSW
 			scheduler.read(regs.A(addr_reg).LW, size_type::WORD,
-						[this](std::uint32_t data, size_type) { this->data = data; });
+						   [this](std::uint32_t data, size_type) { this->data = data; });
 
 			scheduler.dec_addr_reg(addr_reg, size_type::WORD);
 
 			// read MSW
 			scheduler.read(regs.A(addr_reg).LW - 2, size_type::WORD,
-						[this](std::uint32_t data, size_type) { this->data |= data << 16; });
+						   [this](std::uint32_t data, size_type) { this->data |= data << 16; });
 		}
 	}
 
@@ -2010,6 +1995,6 @@ private:
 	std::uint32_t data;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_INSTRUCTION_UNIT_HPP__

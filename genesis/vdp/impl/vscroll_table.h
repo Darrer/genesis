@@ -1,12 +1,12 @@
 #ifndef __VDP_IMPL_VSCROLL_TABLE_H__
 #define __VDP_IMPL_VSCROLL_TABLE_H__
 
-#include <cstdint>
-#include <stdexcept>
-
+#include "plane_type.h"
 #include "vdp/memory.h"
 #include "vdp/settings.h"
-#include "plane_type.h"
+
+#include <cstdint>
+#include <stdexcept>
 
 namespace genesis::vdp::impl
 {
@@ -27,21 +27,21 @@ private:
 	static std::uint16_t get_address(plane_type plane_type, unsigned tail_column_number, vdp::settings& sett)
 	{
 		std::uint16_t address = 0;
-		switch (sett.vertical_scrolling())
+		switch(sett.vertical_scrolling())
 		{
 		case vertical_scrolling::full_screen:
 			break;
 
-		case vertical_scrolling::two_cell:
-		{
-			// (tail_column_number >> 1) as each 2 tails (16 pixels) use the same scrolling 
+		case vertical_scrolling::two_cell: {
+			// (tail_column_number >> 1) as each 2 tails (16 pixels) use the same scrolling
 			// * 4 bytes for each A/B plane
 			int strip = (tail_column_number >> 1) % num_strips(sett);
 			address += strip * 4;
 			break;
 		}
-		
-		default: throw genesis::internal_error();
+
+		default:
+			throw genesis::internal_error();
 		}
 
 		if(plane_type == plane_type::b)
@@ -60,6 +60,6 @@ private:
 	}
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_VSCROLL_TABLE_H__

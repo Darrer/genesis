@@ -100,6 +100,6 @@ enum class inst_type
 	STOP, // TODO: implement it
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_INSTRUCTION_TYPE_H__

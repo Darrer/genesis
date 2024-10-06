@@ -1,10 +1,10 @@
 #ifndef __M68K_INTERRUPTING_DEVICE_H__
 #define __M68K_INTERRUPTING_DEVICE_H__
 
+#include "m68k/cpu_bus.hpp"
+
 #include <cstdint>
 #include <stdexcept>
-
-#include "m68k/cpu_bus.hpp"
 
 namespace genesis::m68k
 {
@@ -70,6 +70,6 @@ private:
 	std::uint8_t priority;
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_INTERRUPTING_DEVICE_H__

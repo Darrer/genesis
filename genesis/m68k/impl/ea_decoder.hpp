@@ -1,10 +1,10 @@
 #ifndef __M68K_EA_DECODER_HPP__
 #define __M68K_EA_DECODER_HPP__
 
-#include "size_type.h"
-#include "m68k/cpu_registers.hpp"
 #include "bus_scheduler.h"
 #include "endian.hpp"
+#include "m68k/cpu_registers.hpp"
+#include "size_type.h"
 
 #include <cstdint>
 
@@ -70,9 +70,12 @@ class operand
 public:
 	struct raw_pointer
 	{
-		raw_pointer(std::uint32_t address) : address(address) { }
-		raw_pointer(std::uint32_t address, std::uint32_t value)
-			: address(address), _value(value) { }
+		raw_pointer(std::uint32_t address) : address(address)
+		{
+		}
+		raw_pointer(std::uint32_t address, std::uint32_t value) : address(address), _value(value)
+		{
+		}
 
 		std::uint32_t address;
 
@@ -94,49 +97,74 @@ public:
 	};
 
 public:
-	operand(address_register& _addr_reg, size_type size) : _addr_reg(_addr_reg), _size(size),
-		_mode(addressing_mode::addr_reg) { }
+	operand(address_register& _addr_reg, size_type size)
+		: _addr_reg(_addr_reg), _size(size), _mode(addressing_mode::addr_reg)
+	{
+	}
 
-	operand(data_register& _data_reg, size_type size) : _data_reg(_data_reg), _size(size),
-		_mode(addressing_mode::data_reg) { }
+	operand(data_register& _data_reg, size_type size)
+		: _data_reg(_data_reg), _size(size), _mode(addressing_mode::data_reg)
+	{
+	}
 
-	operand(std::uint32_t _imm, size_type size) : _imm(_imm), _size(size),
-		_mode(addressing_mode::imm) { }
+	operand(std::uint32_t _imm, size_type size) : _imm(_imm), _size(size), _mode(addressing_mode::imm)
+	{
+	}
 
-	operand(raw_pointer ptr, size_type size, addressing_mode mode) : _ptr(ptr), _size(size),
-		_mode(mode) { }
+	operand(raw_pointer ptr, size_type size, addressing_mode mode) : _ptr(ptr), _size(size), _mode(mode)
+	{
+	}
 
-	bool is_addr_reg() const { return _addr_reg.has_value(); }
-	bool is_data_reg() const { return _data_reg.has_value(); }
-	bool is_imm() const { return _imm.has_value(); }
-	bool is_pointer() const { return _ptr.has_value(); }
+	bool is_addr_reg() const
+	{
+		return _addr_reg.has_value();
+	}
+	bool is_data_reg() const
+	{
+		return _data_reg.has_value();
+	}
+	bool is_imm() const
+	{
+		return _imm.has_value();
+	}
+	bool is_pointer() const
+	{
+		return _ptr.has_value();
+	}
 
-	addressing_mode mode() const { return _mode; }
+	addressing_mode mode() const
+	{
+		return _mode;
+	}
 
 	address_register& addr_reg()
 	{
-		if(!is_addr_reg()) throw internal_error();
+		if(!is_addr_reg())
+			throw internal_error();
 
 		return _addr_reg.value().get();
 	}
 
 	data_register& data_reg()
 	{
-		if(!is_data_reg()) throw internal_error();
+		if(!is_data_reg())
+			throw internal_error();
 
 		return _data_reg.value().get();
 	}
 
 	std::uint32_t imm() const
 	{
-		if(!is_imm()) throw internal_error();
+		if(!is_imm())
+			throw internal_error();
 
 		return _imm.value();
 	}
 
 	raw_pointer pointer() const
 	{
-		if(!is_pointer()) throw internal_error();
+		if(!is_pointer())
+			throw internal_error();
 
 		return _ptr.value();
 	}
@@ -168,8 +196,9 @@ public:
 	};
 
 public:
-	ea_decoder(cpu_registers& regs, bus_scheduler& scheduler)
-		: regs(regs), scheduler(scheduler) { }
+	ea_decoder(cpu_registers& regs, bus_scheduler& scheduler) : regs(regs), scheduler(scheduler)
+	{
+	}
 
 	bool ready() const
 	{
@@ -178,7 +207,8 @@ public:
 
 	operand result()
 	{
-		if(!ready()) throw internal_error();
+		if(!ready())
+			throw internal_error();
 
 		return res.value();
 	}
@@ -213,7 +243,7 @@ public:
 		std::uint8_t mode = (ea >> 3) & 0x7;
 		std::uint8_t reg = ea & 0x7;
 
-		switch (mode)
+		switch(mode)
 		{
 		case 0b000:
 			return addressing_mode::data_reg;
@@ -236,28 +266,27 @@ public:
 		case 0b110:
 			return addressing_mode::index_indir;
 
-		case 0b111:
-		{
-		switch (reg)
-		{
-		case 0b000:
-			return addressing_mode::abs_short;
+		case 0b111: {
+			switch(reg)
+			{
+			case 0b000:
+				return addressing_mode::abs_short;
 
-		case 0b001:
-			return addressing_mode::abs_long;
+			case 0b001:
+				return addressing_mode::abs_long;
 
-		case 0b010:
-			return addressing_mode::disp_pc;
+			case 0b010:
+				return addressing_mode::disp_pc;
 
-		case 0b011:
-			return addressing_mode::index_pc;
+			case 0b011:
+				return addressing_mode::index_pc;
 
-		case 0b100:
-			return addressing_mode::imm;
+			case 0b100:
+				return addressing_mode::imm;
 
-		default:
-			return addressing_mode::unknown;
-		}
+			default:
+				return addressing_mode::unknown;
+			}
 
 		default:
 			return addressing_mode::unknown;
@@ -268,7 +297,7 @@ public:
 private:
 	void schedule_decoding(addressing_mode mode, std::uint8_t reg, size_type size)
 	{
-		switch (mode)
+		switch(mode)
 		{
 		case addressing_mode::data_reg:
 			decode_data_reg(reg, size);
@@ -318,7 +347,8 @@ private:
 			decode_imm(size);
 			break;
 
-		default: throw internal_error();
+		default:
+			throw internal_error();
 		}
 	}
 
@@ -326,15 +356,15 @@ private:
 	/* immediately decoding */
 	void decode_data_reg(std::uint8_t reg, size_type size)
 	{
-		res = { regs.D(reg), size };
+		res = {regs.D(reg), size};
 	}
 
 	void decode_addr_reg(std::uint8_t reg, size_type size)
 	{
-		res = { regs.A(reg), size };
+		res = {regs.A(reg), size};
 	}
 
-	// Address Register Indirect Mode 
+	// Address Register Indirect Mode
 	void decode_indir(std::uint8_t reg, size_type size)
 	{
 		schedule_read_and_save(regs.A(reg).LW, size);
@@ -353,7 +383,7 @@ private:
 		schedule_read_and_save(regs.A(reg).LW, size);
 	}
 
-	// Address Register Indirect with Predecrement Mode 
+	// Address Register Indirect with Predecrement Mode
 	void decode_predec(std::uint8_t reg, size_type size)
 	{
 		if(flags == flags::none)
@@ -374,7 +404,7 @@ private:
 		schedule_read_and_save(ptr, size);
 	}
 
-	// Address Register Indirect with Index (8-Bit Displacement) Mode 
+	// Address Register Indirect with Index (8-Bit Displacement) Mode
 	void decode_index_indir(std::uint8_t reg, size_type size)
 	{
 		if(no_prefetch())
@@ -391,7 +421,7 @@ private:
 		schedule_read_and_save(ptr, size);
 	}
 
-	// Absolute Short Addressing Mode 
+	// Absolute Short Addressing Mode
 	void decode_abs_short(size_type size)
 	{
 		schedule_prefetch_irc();
@@ -403,10 +433,8 @@ private:
 	{
 		this->size = size;
 		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
-		scheduler.read_imm(size_type::LONG, flags, [this](std::uint32_t imm, size_type)
-		{
-			schedule_read_and_save(imm, this->size);
-		});
+		scheduler.read_imm(size_type::LONG, flags,
+						   [this](std::uint32_t imm, size_type) { schedule_read_and_save(imm, this->size); });
 	}
 
 	// Program Counter Indirect with Displacement Mode
@@ -418,7 +446,7 @@ private:
 		schedule_read_and_save(ptr, size);
 	}
 
-	// Program Counter Indirect with Index (8-Bit Displacement) Mode 
+	// Program Counter Indirect with Index (8-Bit Displacement) Mode
 	void decode_index_pc(size_type size)
 	{
 		if(no_prefetch())
@@ -435,14 +463,11 @@ private:
 		schedule_read_and_save(ptr, size);
 	}
 
-	// Immediate Data 
+	// Immediate Data
 	void decode_imm(size_type size)
 	{
 		auto flags = no_prefetch() ? read_imm_flags::no_prefetch : read_imm_flags::do_prefetch;
-		scheduler.read_imm(size, flags, [this](std::uint32_t imm, size_type size)
-		{
-			res = { imm, size };
-		});
+		scheduler.read_imm(size, flags, [this](std::uint32_t imm, size_type size) { res = {imm, size}; });
 	}
 
 
@@ -460,14 +485,13 @@ private:
 	{
 		if(no_read())
 		{
-			res = { operand::raw_pointer(addr), size, mode };
+			res = {operand::raw_pointer(addr), size, mode};
 		}
 		else
 		{
 			ptr = addr;
-			scheduler.read(addr, size, [this](std::uint32_t data, size_type size)
-			{
-				res = { operand::raw_pointer(ptr, data), size, mode };
+			scheduler.read(addr, size, [this](std::uint32_t data, size_type size) {
+				res = {operand::raw_pointer(ptr, data), size, mode};
 			});
 		}
 	}
@@ -539,11 +563,11 @@ private:
 };
 
 
-constexpr enum ea_decoder::flags operator |( const enum ea_decoder::flags selfValue, const enum ea_decoder::flags inValue )
+constexpr enum ea_decoder::flags operator|(const enum ea_decoder::flags selfValue, const enum ea_decoder::flags inValue)
 {
 	return (enum ea_decoder::flags)(std::uint8_t(selfValue) | std::uint8_t(inValue));
 }
 
-}
+} // namespace genesis::m68k
 
 #endif //__M68K_EA_DECODER_HPP__

@@ -18,6 +18,6 @@ public:
 	virtual void set_interrupt_callback(interrupt_callback) = 0;
 };
 
-}
+} // namespace genesis::vdp
 
 #endif // __VDP_M68K_INTERRUPT_ACCESS_H__

@@ -1,10 +1,10 @@
 #ifndef __M68K_CPU_BUS_HPP__
 #define __M68K_CPU_BUS_HPP__
 
-#include <cstdint>
-#include <array>
-#include <type_traits>
 #include <algorithm>
+#include <array>
+#include <cstdint>
+#include <type_traits>
 
 
 namespace genesis::m68k
@@ -74,10 +74,19 @@ public:
 		addr_bus = val & 0xFFFFFF;
 	}
 
-	std::uint32_t address() const { return addr_bus; }
+	std::uint32_t address() const
+	{
+		return addr_bus;
+	}
 
-	void data(std::uint16_t val) { data_bus = val; }
-	std::uint16_t data() const { return data_bus; }
+	void data(std::uint16_t val)
+	{
+		data_bus = val;
+	}
+	std::uint16_t data() const
+	{
+		return data_bus;
+	}
 
 	void func_codes(int fc)
 	{
@@ -89,9 +98,12 @@ public:
 	int func_codes() const
 	{
 		int func_codes = 0;
-		if(is_set(bus::FC0)) func_codes |= 0b001;
-		if(is_set(bus::FC1)) func_codes |= 0b010;
-		if(is_set(bus::FC2)) func_codes |= 0b100;
+		if(is_set(bus::FC0))
+			func_codes |= 0b001;
+		if(is_set(bus::FC1))
+			func_codes |= 0b010;
+		if(is_set(bus::FC2))
+			func_codes |= 0b100;
 		return func_codes;
 	}
 
@@ -105,9 +117,12 @@ public:
 	std::uint8_t interrupt_priority() const
 	{
 		std::uint8_t ipl = 0;
-		if(is_set(bus::IPL0)) ipl |= 0b001;
-		if(is_set(bus::IPL1)) ipl |= 0b010;
-		if(is_set(bus::IPL2)) ipl |= 0b100;
+		if(is_set(bus::IPL0))
+			ipl |= 0b001;
+		if(is_set(bus::IPL1))
+			ipl |= 0b010;
+		if(is_set(bus::IPL2))
+			ipl |= 0b100;
 		return ipl;
 	}
 
@@ -123,6 +138,6 @@ private:
 	bool bus_state[num_buses];
 };
 
-}
+} // namespace genesis::m68k
 
 #endif // __M68K_CPU_BUS_HPP__

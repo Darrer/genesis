@@ -1,10 +1,10 @@
 #ifndef __TEST_VDP_H__
 #define __TEST_VDP_H__
 
-#include "memory/memory_unit.h"
-#include "vdp/vdp.h"
 #include "exception.hpp"
+#include "memory/memory_unit.h"
 #include "vdp/m68k_bus_access.h"
+#include "vdp/vdp.h"
 
 namespace genesis::test
 {
@@ -55,10 +55,19 @@ public:
 		return data.value();
 	}
 
-	bool is_idle() const override { return cycles_to_idle == 0; }
+	bool is_idle() const override
+	{
+		return cycles_to_idle == 0;
+	}
 
-	m68k_memory_t& memory() { return m68k_memory; }
-	bool bus_acquired() const { return has_access; }
+	m68k_memory_t& memory()
+	{
+		return m68k_memory;
+	}
+	bool bus_acquired() const
+	{
+		return has_access;
+	}
 
 	void cycle()
 	{
@@ -91,14 +100,20 @@ private:
 
 class vdp : public genesis::vdp::vdp
 {
-static const std::uint32_t cycle_limit = 100'000;
+	static const std::uint32_t cycle_limit = 100'000;
 
-	vdp(std::shared_ptr<mock_m68k_bus_access> m68k_bus) : genesis::vdp::vdp(m68k_bus), m68k_bus(m68k_bus) { }
+	vdp(std::shared_ptr<mock_m68k_bus_access> m68k_bus) : genesis::vdp::vdp(m68k_bus), m68k_bus(m68k_bus)
+	{
+	}
 
 public:
-	vdp() : vdp (std::make_shared<mock_m68k_bus_access>()) { }
+	vdp() : vdp(std::make_shared<mock_m68k_bus_access>())
+	{
+	}
 
-	vdp(std::shared_ptr<genesis::vdp::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus) { }
+	vdp(std::shared_ptr<genesis::vdp::m68k_bus_access> _m68k_bus) : genesis::vdp::vdp(_m68k_bus)
+	{
+	}
 
 	::genesis::vdp::impl::render& render()
 	{
@@ -114,33 +129,32 @@ public:
 
 	std::uint32_t wait_fifo()
 	{
-		return wait([this](){ return registers().fifo.empty(); });
+		return wait([this]() { return registers().fifo.empty(); });
 	}
 
 	std::uint32_t wait_io_ports()
 	{
-		return wait([this](){ return io_ports().is_idle(); });
+		return wait([this]() { return io_ports().is_idle(); });
 	}
 
 	std::uint32_t wait_write()
 	{
 		std::uint32_t cycles = 0;
 		cycles += wait_io_ports(); // first wait ports
-		cycles += wait_fifo(); // then make sure vdp wrote the data
+		cycles += wait_fifo();	   // then make sure vdp wrote the data
 		return cycles;
 	}
 
 	std::uint32_t wait_dma()
 	{
 		// TODO: increase cycle threshold
-		return wait([this]()
-		{
+		return wait([this]() {
 			bool dma_is_idle = dma.is_idle();
 			std::uint8_t expected_dma_state = dma_is_idle ? 0 : 1;
 			if(registers().SR.DMA != expected_dma_state)
 				throw std::runtime_error("Unexpected DMA status flag");
 			return dma_is_idle;
-		} );
+		});
 	}
 
 	std::uint32_t wait_dma_start()
@@ -175,11 +189,11 @@ public:
 	}
 
 private:
-	template<class Callable>
+	template <class Callable>
 	std::uint32_t wait(const Callable&& predicate)
 	{
 		std::uint32_t cycles = 0;
-		while (!predicate())
+		while(!predicate())
 		{
 			cycle();
 			++cycles;
@@ -195,6 +209,6 @@ private:
 	std::shared_ptr<mock_m68k_bus_access> m68k_bus;
 };
 
-}
+} // namespace genesis::test
 
 #endif // __TEST_VDP_H__

@@ -11,6 +11,6 @@ enum class plane_type
 	w  // window
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_PLANE_TYPE_H__

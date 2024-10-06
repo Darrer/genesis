@@ -1,8 +1,8 @@
 #ifndef __VDP_IMPL_BLANK_FLAGS_H__
 #define __VDP_IMPL_BLANK_FLAGS_H__
 
-#include "vdp/settings.h"
 #include "vdp/mode.h"
+#include "vdp/settings.h"
 
 namespace genesis::vdp::impl
 {
@@ -10,14 +10,20 @@ namespace genesis::vdp::impl
 class vblank_flag
 {
 public:
-	vblank_flag() { reset(); }
+	vblank_flag()
+	{
+		reset();
+	}
 
 	void reset()
 	{
 		m_flag = false;
 	}
 
-	bool value() const { return m_flag; }
+	bool value() const
+	{
+		return m_flag;
+	}
 
 	void update(int vcounter_raw, vdp::display_height height, vdp::mode mode)
 	{
@@ -64,14 +70,20 @@ private:
 class hblank_flag
 {
 public:
-	hblank_flag() { reset(); }
+	hblank_flag()
+	{
+		reset();
+	}
 
 	void reset()
 	{
 		m_flag = false;
 	}
 
-	bool value() const { return m_flag; }
+	bool value() const
+	{
+		return m_flag;
+	}
 
 	void update(int hcounter_raw, display_width width)
 	{
@@ -95,6 +107,6 @@ private:
 	bool m_flag;
 };
 
-}
+} // namespace genesis::vdp::impl
 
 #endif // __VDP_IMPL_BLANK_FLAGS_H__

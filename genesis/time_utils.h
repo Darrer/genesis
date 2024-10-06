@@ -32,6 +32,6 @@ static long long measure_in_ns(Callable func)
 	return dur.count();
 }
 
-};
+}; // namespace genesis::time
 
 #endif // __GENESIS_TIME_UTILS_H__

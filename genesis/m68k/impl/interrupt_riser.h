@@ -1,9 +1,9 @@
 #ifndef __M68K_INTERRUPT_RISER_H__
 #define __M68K_INTERRUPT_RISER_H__
 
-#include "m68k/cpu_registers.hpp"
-#include "m68k/cpu_bus.hpp"
 #include "exception_manager.h"
+#include "m68k/cpu_bus.hpp"
+#include "m68k/cpu_registers.hpp"
 
 
 namespace genesis::m68k::impl
@@ -54,6 +54,6 @@ private:
 	std::uint8_t m_raised_ipl;
 };
 
-}
+} // namespace genesis::m68k::impl
 
 #endif // __M68K_INTERRUPT_RISER_H__

@@ -17,9 +17,15 @@ public:
 
 	/* addressable interface */
 
-	std::uint32_t max_address() const override { return highest_address; }
+	std::uint32_t max_address() const override
+	{
+		return highest_address;
+	}
 
-	bool is_idle() const override { return true; } // always idle
+	bool is_idle() const override
+	{
+		return true;
+	} // always idle
 
 	void init_write(std::uint32_t /* address */, std::uint8_t /* data */) override
 	{
@@ -43,8 +49,14 @@ public:
 		_latched_word = next_16++;
 	}
 
-	std::uint8_t latched_byte() const override { return _latched_byte.value(); }
-	std::uint16_t latched_word() const override { return _latched_word.value(); }
+	std::uint8_t latched_byte() const override
+	{
+		return _latched_byte.value();
+	}
+	std::uint16_t latched_word() const override
+	{
+		return _latched_word.value();
+	}
 
 private:
 	void reset()
@@ -61,7 +73,7 @@ private:
 	std::optional<std::uint16_t> _latched_word;
 };
 
-template<std::uint8_t read8_value, std::uint16_t read16_value>
+template <std::uint8_t read8_value, std::uint16_t read16_value>
 class constant_memory_unit : public memory::addressable
 {
 public:
@@ -73,9 +85,15 @@ public:
 
 	/* addressable interface */
 
-	std::uint32_t max_address() const override { return highest_address; }
+	std::uint32_t max_address() const override
+	{
+		return highest_address;
+	}
 
-	bool is_idle() const override { return true; } // always idle
+	bool is_idle() const override
+	{
+		return true;
+	} // always idle
 
 	void init_write(std::uint32_t /* address */, std::uint8_t /* data */) override
 	{
@@ -93,8 +111,14 @@ public:
 	{
 	}
 
-	std::uint8_t latched_byte() const override { return read8_value; }
-	std::uint16_t latched_word() const override { return read16_value; }
+	std::uint8_t latched_byte() const override
+	{
+		return read8_value;
+	}
+	std::uint16_t latched_word() const override
+	{
+		return read16_value;
+	}
 
 private:
 	std::uint32_t highest_address;
@@ -103,6 +127,6 @@ private:
 using zero_memory_unit = constant_memory_unit<0x00, 0x0000>;
 using ffff_memory_unit = constant_memory_unit<0xFF, 0xFFFF>;
 
-}
+} // namespace genesis::memory
 
 #endif // __MEMORY_DUMMY_MEMORY_H__
