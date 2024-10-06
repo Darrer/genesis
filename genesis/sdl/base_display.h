@@ -40,6 +40,8 @@ public:
 		}
 	}
 
+	bool is_closed() const override { return m_window == nullptr; }
+
 protected:
 	void create_window(std::string_view title, int width, int height)
 	{

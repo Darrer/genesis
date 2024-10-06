@@ -176,7 +176,7 @@ int main(int args, char* argv[])
 			// }, "render frame");
 		});
 
-		const auto cycles_batch_log = 10'000'000ull;
+		const auto batch_cycles = 10'000'000ull;
 		auto cycle = 0ull;
 
 		auto start = std::chrono::high_resolution_clock::now();
@@ -186,7 +186,7 @@ int main(int args, char* argv[])
 			smd.cycle();
 			++cycle;
 
-			if(cycle == cycles_batch_log)
+			if(cycle == batch_cycles)
 			{
 				auto stop = std::chrono::high_resolution_clock::now();
 				auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -195,6 +195,13 @@ int main(int args, char* argv[])
 
 				start = stop;
 				cycle = 0;
+
+				bool all_closed = std::all_of(displays.cbegin(), displays.cend(),
+					[](const auto& d) {return d->is_closed(); });
+				if(all_closed)
+				{
+					break;
+				}
 			}
 		}
 	}

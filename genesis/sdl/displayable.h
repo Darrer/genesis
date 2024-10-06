@@ -14,6 +14,7 @@ public:
 
 	virtual void update() = 0;
 	virtual void handle_event(const SDL_Event& event) = 0;
+	virtual bool is_closed() const = 0;
 };
 
 }
