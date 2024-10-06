@@ -5,6 +5,7 @@
 #include "vscroll_table.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 
 namespace genesis::vdp::impl
@@ -140,11 +141,11 @@ void render::reset_limits()
 {
 }
 
-std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
-	std::span<render::pixel> buffer) const
+std::span<render::internal_pixel> render::get_active_plane_row(plane_type plane_type, unsigned row_number,
+	std::span<render::internal_pixel> buffer) const
 {
-	std::size_t buffer_size = active_display_width() + 8 /* room for one more tail */;
-	check_buffer_size(buffer, buffer_size);
+	const std::size_t buffer_size = active_display_width() + 8 /* room for one more tail */;
+	assert(buffer_size <= buffer.size());
 
 	unsigned max_height = plane_height_in_pixels(plane_type);
 
@@ -177,13 +178,13 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 
 		auto on_pixel_read = [&](int color_id)
 		{
-			*(buffer_it++) = { read_color(entry.palette, color_id), entry.priority };
+			*(buffer_it++) = { entry.palette, color_id, entry.priority };
 		};
 
 		read_pattern_line(tail_row, entry.effective_pattern_address(),
 			entry.horizontal_flip, entry.vertical_flip, on_pixel_read);
 	}
-	
+
 	// apply horizontal-pixel scrolling
 	int hpixel_offset = 0;
 	if((hoffset % 8) != 0)
@@ -199,18 +200,17 @@ std::span<render::pixel> render::get_active_plane_row(plane_type plane_type, uns
 			*buffer_it = *it;
 	}
 
-
-	buffer = std::span<pixel>(buffer.begin() + hpixel_offset, active_display_width());
+	assert((std::size_t)std::distance(buffer.begin(), buffer_it) <= buffer_size);
+	buffer = std::span<internal_pixel>(buffer.begin() + hpixel_offset, active_display_width());
 	return buffer;
 }
 
 // render active window in plane a buffer (effectively overwriting plane a) 
 void render::render_active_window_row(unsigned line_number,
-	std::span<render::pixel> plane_a_buffer) const
+	std::span<render::internal_pixel> plane_a_buffer) const
 {
-	std::size_t buffer_size = active_display_width();
-	if(plane_a_buffer.size() != buffer_size)
-		throw internal_error("Expected plane a buffer");
+	const std::size_t buffer_size = active_display_width();
+	assert(plane_a_buffer.size() == buffer_size);
 
 	// range: [start_col; end_col), 0-based, in tails
 	int start_col = regs.R17.R == 0 ? 0 : (regs.R17.HP * 2);
@@ -252,7 +252,7 @@ void render::render_active_window_row(unsigned line_number,
 
 		auto on_pixel_read = [&](int color_id)
 		{
-			*(buffer_it++) = { read_color(entry.palette, color_id), true };
+			*(buffer_it++) = { entry.palette, color_id, true };
 		};
 
 		read_pattern_line(line_number % 8, entry.effective_pattern_address(),
@@ -263,10 +263,10 @@ void render::render_active_window_row(unsigned line_number,
 }
 
 // Rename to render_active_sprite_line
-std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, std::span<render::pixel> buffer)
+std::span<render::internal_pixel> render::get_active_sprites_row(unsigned line_number, std::span<render::internal_pixel> buffer)
 {
-	const auto buffer_size = sprite_width_in_pixels();
-	check_buffer_size(buffer, buffer_size);
+	const std::size_t buffer_size = sprite_width_in_pixels();
+	assert(buffer_size <= buffer.size());
 
 	bool prev_line_overflow = regs.SR.SO == 1;
 	regs.SR.SO = 0;
@@ -274,8 +274,10 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, st
 
 	line_number += 128;
 
-	buffer = std::span<pixel>(buffer.begin(), buffer_size);
-	std::fill(buffer.begin(), buffer.end(), TRANSPARENT_PIXEL);
+	buffer = std::span<internal_pixel>(buffer.begin(), buffer_size);
+
+	internal_pixel transparent {};
+	std::fill(buffer.begin(), buffer.end(), transparent);
 
 	sprites_limits_tracker sprites_limits(sett);
 	sprite_table stable(sett, vram);
@@ -324,45 +326,45 @@ std::span<render::pixel> render::get_active_sprites_row(unsigned line_number, st
 
 	// sprites on active display starts on 128 position
 	auto first_it = std::next(buffer.begin(), 128);
-	return std::span<pixel>(first_it, active_display_width());
+	return std::span<internal_pixel>(first_it, active_display_width());
 }
 
 genesis::vdp::output_color render::resolve_priority(genesis::vdp::output_color background_color,
-	pixel plane_a, pixel plane_b, pixel sprite) const
+	internal_pixel plane_a, internal_pixel plane_b, internal_pixel sprite) const
 {
-	if(sprite.color.transparent)
+	if(sprite.transparent())
 	{
 		// check only a/b
-		if(plane_a.color.transparent)
+		if(plane_a.transparent())
 		{
 			// check only b
-			if(plane_b.color.transparent)
+			if(plane_b.transparent())
 				return background_color;
-			return plane_b.color;
+			return read_color(plane_b.palette_id, plane_b.color_id);
 		}
-		else if(plane_a.priority_flag)
+		else if(plane_a.priority)
 		{
-			return plane_a.color;
+			return read_color(plane_a.palette_id, plane_a.color_id);
 		}
 		else
 		{
-			if(plane_b.priority_flag && plane_b.color.transparent == false)
-				return plane_b.color;
-			return plane_a.color;
+			if(plane_b.priority && !plane_b.transparent())
+				return read_color(plane_b.palette_id, plane_b.color_id);
+			return read_color(plane_a.palette_id, plane_a.color_id);
 		}
 	}
-	else if(sprite.priority_flag)
+	else if(sprite.priority)
 	{
-		return sprite.color;
+		return read_color(sprite.palette_id, sprite.color_id);
 	}
 	else
 	{
 		// check a/b
-		if(plane_a.priority_flag && plane_a.color.transparent == false)
-			return plane_a.color;
-		if(plane_b.priority_flag && plane_b.color.transparent == false)
-			return plane_b.color;
-		return sprite.color;
+		if(plane_a.priority && !plane_a.transparent())
+			return read_color(plane_a.palette_id, plane_a.color_id);
+		if(plane_b.priority && !plane_b.transparent())
+			return read_color(plane_b.palette_id, plane_b.color_id);
+		return read_color(sprite.palette_id, sprite.color_id);
 	}
 }
 
@@ -411,10 +413,12 @@ void render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
 		read_pattern_line(pattern_row_number, pattern_addr,
 			entry.horizontal_flip, entry.vertical_flip, on_pixel_read);
 	}
+
+	assert((std::size_t)std::distance(dest.begin(), dest_it) <= dest.size());
 }
 
 bool render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
-	std::span<render::pixel> dest, unsigned pixels_limit) const
+	std::span<render::internal_pixel> dest, unsigned pixels_limit) const
 {
 	check_buffer_size(dest, entry.horizontal_position);
 
@@ -432,9 +436,9 @@ bool render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
 	{
 		if(read_more)
 		{
-			if(dest_it->color == TRANSPARENT_COLOR)
+			if(dest_it->transparent())
 			{
-				*dest_it = { read_color(entry.palette, color_id), entry.priority_flag };
+				*dest_it = { entry.palette, color_id, entry.priority_flag };
 			}
 			else if(color_id != 0)
 			{
@@ -458,6 +462,7 @@ bool render::read_sprite(unsigned row_number, const sprite_table_entry& entry,
 			entry.horizontal_flip, entry.vertical_flip, on_pixel_read);
 	}
 
+	assert((std::size_t)std::distance(dest.begin(), dest_it) <= dest.size());
 	return collision;
 }
 

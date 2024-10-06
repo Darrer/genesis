@@ -55,30 +55,34 @@ public:
 	void reset_limits();
 
 private:
-	struct pixel
-	{
-		vdp::output_color color;
-
-		// we greatly simplify algorithm by using priority flag per pixel
-		// even though plane A/B have priority flag per tail
-		bool priority_flag;
-	};
-
 	// the actual pixel produced by vdp does not have priority or transparency,
 	// but these properties are required to build the vdp frame,
 	// so use different pixel representation for internal purposes
 	struct internal_pixel
 	{
-		std::uint8_t palette_id;
+		internal_pixel()
+		{
+			palette_id = color_id = priority = 0;
+		}
 
-		// pixel is transparent if color_id is 0
-		std::uint8_t color_id;
+		internal_pixel(int p, int c, bool pr)
+		{
+			palette_id = (std::uint8_t)p;
+			color_id = (std::uint8_t)c;
+			priority = pr;
+		}
+
+		std::uint8_t palette_id : 2;
+		std::uint8_t color_id : 4;
 
 		// only tails have priority, but it would be easier to assign each pixel a priority
-		bool priority;
+		bool priority : 1;
+
+		// pixel is transparent if color_id is 0
+		bool transparent() const { return color_id == 0; }
 	};
 
-	const pixel TRANSPARENT_PIXEL = { TRANSPARENT_COLOR, false };
+	static_assert(sizeof(internal_pixel) == 1);
 
 	// line_number - zero based
 	template<class Callable>
@@ -107,12 +111,10 @@ private:
 		}
 	}
 
-	// std::span<pixel>::iterator write_pattern()
-
 	vdp::output_color read_color(unsigned palette_idx, unsigned color_idx) const;
 
 	/* Sprites helpers */
-	std::span<pixel> get_active_sprites_row(unsigned row_number, std::span<pixel> buffer);
+	std::span<internal_pixel> get_active_sprites_row(unsigned row_number, std::span<internal_pixel> buffer);
 	bool should_render_sprite(unsigned row_number, unsigned vertical_position, unsigned vertical_size) const;
 
 	// For performance reason it better to duplicate these functions
@@ -120,29 +122,29 @@ private:
 
 	// Returns true if sprites collision occurs
 	bool read_sprite(unsigned row_number,const sprite_table_entry& entry,
-		std::span<pixel> dest, unsigned pixels_limit) const;
+		std::span<internal_pixel> dest, unsigned pixels_limit) const;
 
 	std::uint32_t sprite_pattern_address(unsigned row_number, unsigned pattern_number,
 		const sprite_table_entry& entry) const;
 
 	/* Plane helpers */
 
-	std::span<pixel> get_active_plane_row(plane_type plane_type, unsigned row_number,
-		std::span<pixel> buffer) const;
+	std::span<internal_pixel> get_active_plane_row(plane_type plane_type, unsigned row_number,
+		std::span<internal_pixel> buffer) const;
 
-	void render_active_window_row(unsigned line_number, std::span<pixel> plane_a_buffer) const;
+	void render_active_window_row(unsigned line_number, std::span<internal_pixel> plane_a_buffer) const;
 
 	genesis::vdp::output_color resolve_priority(genesis::vdp::output_color background_color,
-		pixel plane_a, pixel plane_b, pixel sprite) const;
+		internal_pixel plane_a, internal_pixel plane_b, internal_pixel sprite) const;
 
 	/* internal buffers used during rendering */
 
 	// 512 is sprite plane width
-	mutable std::array<pixel, 512> sprite_buffer;
+	mutable std::array<internal_pixel, 512> sprite_buffer;
 
 	// 1024 is max palne width
-	mutable std::array<pixel, 1024> pixel_a_buffer;
-	mutable std::array<pixel, 1024> pixel_b_buffer;
+	mutable std::array<internal_pixel, 1024> pixel_a_buffer;
+	mutable std::array<internal_pixel, 1024> pixel_b_buffer;
 
 private:
 	/* Helper functions */
