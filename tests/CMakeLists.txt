@@ -28,50 +28,54 @@ add_executable(${GENESIS_TESTS})
 target_sources(${GENESIS_TESTS}
 PRIVATE
 	helpers/random.cpp
+	helpers/random.h
 
-	endian.cpp
-	rom.cpp
-	helper.hpp
+	m68k/MCL/mcl.h
+	m68k/MCL/runner.cpp
+
+	m68k/OPCLOGR3/opcode_decoder.cpp
+	m68k/OPCLOGR3/opcode_loader.cpp
+	m68k/OPCLOGR3/opcode_loader.h
+
+	m68k/performance/performance.cpp
+
+	# Tom Harte's Tests
+	m68k/THT/test_case.h
+	m68k/THT/tests_loader.cpp
+	m68k/THT/tests_loader.h
+	m68k/THT/tests_runner.cpp
+
+	m68k/THT_MAP/map_loader.cpp
+	m68k/THT_MAP/map_loader.h
+	m68k/THT_MAP/map_test.cpp
+
+	m68k/bus_manager.cpp
+	m68k/ea_decoder.cpp
+	m68k/exception_unit.cpp
+	m68k/int_dev.h
+	m68k/prefetch_queue.cpp
+	m68k/test_cpu.hpp
+	m68k/test_program.h
 
 	memory/helper.h
-	memory/memory_unit.cpp
 	memory/memory_builder.cpp
+	memory/memory_unit.cpp
+
+	vdp/blank_flags.cpp
+	vdp/dma.cpp
+	vdp/hv_counters.cpp
+	vdp/ports.cpp
+	vdp/render.cpp
+	vdp/renderer_builder.hpp
+	vdp/test_vdp.h
 
 	z80/cpu_registers.cpp
 	z80/tap_loader.hpp
 	z80/tests_runner.cpp
 
-	m68k/bus_manager.cpp
-	m68k/prefetch_queue.cpp
-	m68k/ea_decoder.cpp
-	m68k/exception_unit.cpp
-	m68k/test_cpu.hpp
-	m68k/int_dev.h
-
-	# Tom Harte's Tests
-	m68k/THT/test_case.h
-	m68k/THT/tests_loader.h
-	m68k/THT/tests_loader.cpp
-	m68k/THT/tests_runner.cpp
-
-	m68k/OPCLOGR3/opcode_loader.cpp
-	m68k/OPCLOGR3/opcode_loader.h
-	m68k/OPCLOGR3/opcode_decoder.cpp
-
-	m68k/THT_MAP/map_loader.h
-	m68k/THT_MAP/map_loader.cpp
-	m68k/THT_MAP/map_test.cpp
-
-	m68k/performance/performance.cpp
-	m68k/MCL/mcl.h
-	m68k/MCL/runner.cpp
-	m68k/test_program.h
-
-	vdp/ports.cpp
-	vdp/dma.cpp
-	vdp/render.cpp
-	vdp/hv_counters.cpp
-	vdp/blank_flags.cpp
+	endian.cpp
+	helper.hpp
+	rom.cpp
 )
 
 target_link_libraries(${GENESIS_TESTS} gtest_main)
