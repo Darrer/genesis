@@ -21,7 +21,7 @@ jobs:
 
     - name: Install build tools
       if: ${{ matrix.CC == 'clang' }}
-      run: bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+      run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 
     - name: Build project
       run: |
