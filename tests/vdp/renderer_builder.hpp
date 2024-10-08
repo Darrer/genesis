@@ -273,7 +273,7 @@ private:
 	}
 
 	// display can be up to 240 pixels height, each line in table is 4 bytes
-	const std::uint32_t HSCROLL_TABLE_SIZE = 960;
+	// const std::uint32_t HSCROLL_TABLE_SIZE = 960;
 	std::uint32_t get_hscroll_address()
 	{
 		return 24576;

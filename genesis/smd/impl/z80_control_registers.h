@@ -2,6 +2,7 @@
 #define __SMD_IMPL_Z80_CONTROL_REGISTERS_H__
 
 #include "memory/addressable.h"
+#include "memory/memory_unit.h"
 
 #include <cstdint>
 #include <iostream>

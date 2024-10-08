@@ -53,7 +53,7 @@ std::vector<std::uint8_t> random_tail(std::uint8_t min = 0x0, std::uint8_t max =
 	return random::next_few_in_range<std::uint8_t>(64, min, max);
 }
 
-const int TAIL_SIZE = 64; // bytes
+// const int TAIL_SIZE = 64; // bytes
 
 std::uint8_t random_palette()
 {

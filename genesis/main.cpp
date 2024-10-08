@@ -17,7 +17,7 @@ using namespace genesis;
 
 void print_usage(const char* prog_path)
 {
-	std::wcout << "Usage ." << std::filesystem::path::preferred_separator << prog_path << " <path to rom>" << std::endl;
+	std::wcout << "Usage ." << std::filesystem::path::preferred_separator << prog_path << " <path to rom>\n";
 }
 
 void print_key_layout(const std::map<int /* SDLK */, io_ports::key_type>& layout)
@@ -51,7 +51,7 @@ void measure_and_log(T func, std::string_view msg)
 	std::cout << "Executing " << msg << " took " << ms << " ms\n";
 }
 
-std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::string rom_title)
+std::vector<std::unique_ptr<sdl::displayable>> create_displays(smd& smd, std::string_view rom_title)
 {
 	// TODO: interface between vdp/smd is not established yet, so use vdp::render directly
 
@@ -135,7 +135,7 @@ int main(int args, char* argv[])
 
 		genesis::smd smd(rom, input_device);
 
-		auto displays = create_displays(smd, std::move(rom_title));
+		auto displays = create_displays(smd, rom_title);
 
 		smd.vdp().on_frame_end([&]() {
 			// measure_and_log([&]()

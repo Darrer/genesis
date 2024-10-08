@@ -12,7 +12,7 @@ namespace genesis::test
 namespace __impl
 {
 
-static void nop_some_tests(genesis::memory::memory_unit& mem)
+static inline void nop_some_tests(genesis::memory::memory_unit& mem)
 {
 	auto nop_test = [&](std::uint32_t jump_addr) {
 		// jump takes 6 bytes - 2 for opcode, 4 for ptr
@@ -38,7 +38,7 @@ static void nop_some_tests(genesis::memory::memory_unit& mem)
 	nop_test(move_to_sr_jump_addr);
 }
 
-static void load_mcl(test_cpu& cpu)
+static inline void load_mcl(test_cpu& cpu)
 {
 	const auto bin_path = get_exec_path() / "m68k" / "MC68000_test_all_opcodes.bin";
 
@@ -67,7 +67,7 @@ bool run_mcl(test_cpu& cpu, Callable&& after_cycle_hook)
 
 	// set cycles threshold to prevent infinitive loops
 	// it take a little bit less than 3 million cycles to execute MCL program,
-	// but set threshold to much bigger number to account for tests that take control over cpu bus
+	// but set threshold to much bigger value to account for tests that take control over cpu bus
 	const auto cycles_threshld = 100'000'000;
 	auto cycles = 0ull;
 

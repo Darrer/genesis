@@ -3,6 +3,7 @@
 
 #include "input_device.h"
 #include "memory/addressable.h"
+#include "memory/dummy_memory.h"
 
 #include <cstdint>
 #include <memory>

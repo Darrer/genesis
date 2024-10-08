@@ -555,10 +555,10 @@ private:
 
 	std::optional<operand> res;
 
-	size_type size;
-	std::uint8_t reg;
-	addressing_mode mode;
-	std::uint32_t ptr;
+	size_type size{};
+	std::uint8_t reg{};
+	addressing_mode mode{};
+	std::uint32_t ptr{};
 	flags flags = flags::none;
 };
 

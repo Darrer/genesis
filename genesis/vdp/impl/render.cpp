@@ -173,7 +173,7 @@ std::span<render::internal_pixel> render::get_active_plane_row(plane_type plane_
 
 		name_table_entry entry = table.get(tail_row_number, tail_column_number);
 
-		auto on_pixel_read = [&](int color_id) { *(buffer_it++) = {entry.palette, color_id, entry.priority}; };
+		auto on_pixel_read = [&](int color_id) { *(buffer_it++) = {entry.palette, color_id, entry.priority == 1}; };
 
 		read_pattern_line(tail_row, entry.effective_pattern_address(), entry.horizontal_flip, entry.vertical_flip,
 						  on_pixel_read);

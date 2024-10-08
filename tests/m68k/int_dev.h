@@ -1,6 +1,8 @@
 #ifndef __M68K_TEST_INT_DEV_H__
 #define __M68K_TEST_INT_DEV_H__
 
+#include <utility>
+
 #include "m68k/interrupting_device.h"
 
 
@@ -41,9 +43,9 @@ public:
 			return autovectored(priority);
 		case m68k::interrupt_type::vectored:
 			return vec;
-		default:
-			throw internal_error();
 		}
+
+		std::unreachable();
 	}
 
 	/* test methods */
