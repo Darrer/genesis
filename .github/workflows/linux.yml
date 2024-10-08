@@ -19,6 +19,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install build tools
+      if: ${{ matrix.CC == 'clang' }}
+      run: bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+
     - name: Build project
       run: |
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.CC }} -DCMAKE_CXX_COMPILER=${{ matrix.CXX }} -G "Unix Makefiles" -B build
