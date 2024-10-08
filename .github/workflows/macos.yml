@@ -18,7 +18,7 @@ jobs:
 
     - name: Build project
       run: |
-        cmake -G "Unix Makefiles"
+        cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
         make -j3
       env:
         CC: /opt/homebrew/opt/llvm/bin/clang

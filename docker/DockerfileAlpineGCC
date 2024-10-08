@@ -9,4 +9,4 @@ COPY . .
 RUN mkdir build
 
 WORKDIR /genesis/build
-RUN cmake -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -G "Unix Makefiles" ..
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -G "Unix Makefiles" ..

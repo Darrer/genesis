@@ -84,7 +84,7 @@ jobs:
     - name: Build Project
       run: >
         ssh -i ssh-key -p2222 root@localhost "df -h && mkdir /mnt/build && cd /mnt/build &&
-        cmake -G 'Unix Makefiles' .. && make -j2"
+        cmake -DCMAKE_BUILD_TYPE=Release -G 'Unix Makefiles' .. && make -j2"
 
     - name: Run tests
       run: ssh -i ssh-key -p2222 root@localhost "cd /mnt/build && ctest"

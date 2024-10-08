@@ -7,17 +7,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(ENABLE_ADDRESS_SANITIZER "Enable AddressSanitizer" OFF)
 option(ENABLE_MEMORY_SANITIZER "Enable MemorySanitizer" OFF)
 option(ENABLE_UB_SANITIZER "Enable UndefinedBehaviorSanitizer" OFF)
-option(INCLUDE_DEBUG_SYMBOLS "Include Debug Symbols" ON)
 option(BUILD_TESTING "Build Tests" ON)
 
 if (MSVC)
 	# /w34189 - enable unused variable warnings
 	# /w34100 - enable unused parameter warnings
 	# /w34505 - enable unused function warnings
-	set(GENESIS_CXX_FLAGS /W3 /WX /O2 /w34189 /w34100 /w34505)
+	set(GENESIS_CXX_FLAGS /W3 /WX /w34189 /w34100 /w34505)
 	set(GENESIS_LINK_FLAGS)
 else()
-	set(GENESIS_CXX_FLAGS -Wall -Wextra -pedantic -O3 -fpermissive -Wno-switch)
+	set(GENESIS_CXX_FLAGS -Wall -Wextra -pedantic -fpermissive -Wno-switch)
 	set(GENESIS_LINK_FLAGS)
 endif()
 
@@ -51,16 +50,6 @@ if(ENABLE_UB_SANITIZER)
 		list(APPEND GENESIS_LINK_FLAGS -fsanitize=undefined)
 	endif()
 endif()
-
-if(INCLUDE_DEBUG_SYMBOLS)
-	if (MSVC)
-		list(APPEND GENESIS_CXX_FLAGS /DEBUG:FULL /Zi)
-		list(APPEND GENESIS_LINK_FLAGS /DEBUG:FULL)
-	else()
-		list(APPEND GENESIS_CXX_FLAGS -g -ggdb)
-	endif()
-endif()
-
 
 message("Genesis CXX flags: ${GENESIS_CXX_FLAGS}")
 message("Genesis link flags: ${GENESIS_LINK_FLAGS}")
