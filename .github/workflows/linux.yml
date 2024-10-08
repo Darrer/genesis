@@ -8,25 +8,31 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       matrix:
         include:
-          - CC: "clang"
-            CXX: "clang++"
+          - CC: "clang-19"
+            CXX: "clang++-19"
+            CXX_FLAGS: "-stdlib=libc++" # use libc++ from clang project to avoid clang/gcc interop issues
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install build tools
-      if: ${{ matrix.CC == 'clang' }}
-      run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+      if: ${{ matrix.CC == 'clang-19' }}
+      run: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 19 && sudo apt install libc++-19-dev
 
     - name: Build project
       run: |
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.CC }} -DCMAKE_CXX_COMPILER=${{ matrix.CXX }} -G "Unix Makefiles" -B build
+        cmake -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=${{ matrix.CC }} \
+        -DCMAKE_CXX_COMPILER=${{ matrix.CXX }} \
+        -DCMAKE_CXX_FLAGS="${{ matrix.CXX_FLAGS }}" \
+        -G "Unix Makefiles" \
+        -B build
         make -C build -j 2
 
     - name: Run tests
-      run: ctest
+      run: cd build && ctest
