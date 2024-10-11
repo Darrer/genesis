@@ -23,6 +23,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install Ninja
+      run: sudo apt install ninja-build
+
     - name: Install build tools
       if: ${{ matrix.CC == 'clang-19' }}
       run: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 19 && sudo apt install libc++-19-dev
