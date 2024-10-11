@@ -15,7 +15,10 @@ jobs:
         include:
           - CC: "clang-19"
             CXX: "clang++-19"
-            CXX_FLAGS: "-stdlib=libc++" # use libc++ from clang project to avoid clang/gcc interop issues
+            CXX_FLAGS: "-stdlib=libc++" # use libc++ from clang project to avoid clang/gcc interop issue
+          - CC: "gcc"
+            CXX: "g++"
+            CXX_FLAGS: ""
 
     steps:
     - uses: actions/checkout@v4
@@ -30,9 +33,9 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.CC }} \
         -DCMAKE_CXX_COMPILER=${{ matrix.CXX }} \
         -DCMAKE_CXX_FLAGS="${{ matrix.CXX_FLAGS }}" \
-        -G "Unix Makefiles" \
+        -G "Ninja" \
         -B build
-        make -C build -j 2
+        ninja -C build 
 
     - name: Run tests
       run: cd build && ctest
