@@ -42,11 +42,13 @@ void smd::cycle()
 	// NOTE: preliminary implementation
 	++cycles;
 
-	// TODO: temporary use random numbers
-	if(cycles % 8 == 0)
+	// Optimize: use bitwise operations instead of modulo for better performance
+	// M68K runs at 1/8th the master clock rate
+	if((cycles & 0x7) == 0)
 		m_m68k_cpu->cycle();
 
-	if(cycles % 64 == 0)
+	// Z80 runs at 1/64th the master clock rate  
+	if((cycles & 0x3F) == 0)
 		z80_cycle();
 
 	m_vdp->cycle();

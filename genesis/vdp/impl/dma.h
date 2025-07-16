@@ -255,12 +255,14 @@ private:
 
 	void do_finishing()
 	{
+		// Ensure all operations are complete before transitioning to idle
 		if(memory.is_idle() && m68k_bus->is_idle())
 		{
 			_state = state::idle;
 			regs.control.dma_start(false);
 			regs.SR.DMA = 0;
 		}
+		// If not idle, continue waiting - this ensures we don't lose cycles
 	}
 
 	void inc_control_address()
