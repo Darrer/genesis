@@ -48,14 +48,13 @@ jobs:
         sudo umount genesis # umount from runner to avoid disk.raw corruption
         screen -dmS web-server python3 -m http.server 8000 --bind 127.0.0.1 # server ssh-key and modloop file
         sudo screen -dmS qemu qemu-system-i386 -accel kvm -cpu host \
-          -M microvm,x-option-roms=off,pic=off,pit=off,rtc=off \
           -m 2048 -smp 2 -nographic \
           -kernel vmlinuz-lts \
           -initrd initramfs-lts \
           -drive format=raw,file=disk.raw,if=none,id=disk0 \
-          -device virtio-blk-device,drive=disk0 \
+          -device virtio-blk-pci,drive=disk0 \
           -netdev user,id=net0,hostfwd=tcp:0.0.0.0:2222-:22 \
-          -device virtio-net-device,netdev=net0  \
+          -device virtio-net-pci,netdev=net0  \
           -append "ip=dhcp alpine_repo=https://dl-cdn.alpinelinux.org/alpine/${{matrix.ALPINE_VER}}/main \
           modloop=http://10.0.2.2:8000/modloop-lts console=ttyS0 \
           ssh_key=http://10.0.2.2:8000/ssh-key.pub"
