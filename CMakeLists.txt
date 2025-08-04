@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.10)
 project (genesis)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -32,12 +32,15 @@ endif()
 
 # Set compiler flags for MemorySanitizer if enabled
 if(ENABLE_MEMORY_SANITIZER)
-	if (MSVC)
-		message(FATAL_ERROR "MemorySanitizer is not supported on MSVC.")
+	if (MSVC OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		message(FATAL_ERROR "MemorySanitizer is not supported on MSVC and GCC.")
 	else()
-		# TODO: we need to build c++ std lib with memory sanitize flags
-		list(APPEND GENESIS_CXX_FLAGS -fsanitize=memory -fPIE -fno-omit-frame-pointer -g)
-		list(APPEND GENESIS_LINK_FLAGS -fsanitize=memory -pie)
+		# Specify path to msan-instrumented libc++ using MSAN_CXX_FLAGS_EXTRA and MSAN_LINK_FLAGS_EXTRA
+		set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+		list(APPEND MSAN_CXX_FLAGS -fsanitize=memory -fno-omit-frame-pointer -g -stdlib=libc++ ${MSAN_CXX_FLAGS_EXTRA})
+		list(APPEND MSAN_LINK_FLAGS -fsanitize=memory -stdlib=libc++ ${MSAN_LINK_FLAGS_EXTRA})
+		list(APPEND GENESIS_CXX_FLAGS ${MSAN_CXX_FLAGS})
+		list(APPEND GENESIS_LINK_FLAGS ${MSAN_LINK_FLAGS})
 	endif()
 endif()
 

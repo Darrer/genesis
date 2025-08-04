@@ -28,7 +28,7 @@ jobs:
 
     - name: Install build tools
       if: ${{ matrix.CC == 'clang-19' }}
-      run: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 19 && sudo apt install libc++-19-dev
+      run: sudo apt install clang-19 libc++-19-dev
 
     - name: Build project
       run: |

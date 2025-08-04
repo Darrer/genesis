@@ -1,13 +1,16 @@
-cmake_minimum_required (VERSION 3.5)
+cmake_minimum_required (VERSION 3.10)
 project(tests)
 
 include(FetchContent)
+
+add_compile_options(${MSAN_CXX_FLAGS})
+add_link_options(${MSAN_LINK_FLAGS})
 
 FetchContent_Declare(
 	googletest
 
 	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG release-1.12.0
+	GIT_TAG v1.17.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -16,7 +19,7 @@ FetchContent_Declare(
 	json
 
 	GIT_REPOSITORY https://github.com/nlohmann/json.git
-	GIT_TAG v3.11.2
+	GIT_TAG v3.12.0
 )
 
 FetchContent_MakeAvailable(googletest json)
@@ -84,7 +87,7 @@ target_link_libraries(${GENESIS_TESTS} nlohmann_json::nlohmann_json)
 target_link_libraries(${GENESIS_TESTS} ${GENESIS_LIB})
 
 include(GoogleTest)
-gtest_discover_tests(${GENESIS_TESTS})
+gtest_discover_tests(${GENESIS_TESTS} PROPERTIES DISCOVERY_TIMEOUT 60)
 
 # copy z80 exercisers
 file(COPY z80/exercisers/Spectrum/zexdoc DESTINATION z80)
