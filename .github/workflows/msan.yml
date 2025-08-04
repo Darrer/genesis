@@ -1,0 +1,50 @@
+name: MSAN CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Install build tools
+      run: sudo apt -y install clang-19 ninja-build
+
+    - name: Checkout LLVM
+      uses: actions/checkout@v4
+      with:
+        repository: llvm/llvm-project
+        ref: release/19.x
+        path: llvm-project
+
+    - name: Build libc++ with MSAN
+      run: |
+        cd llvm-project
+        CC=clang-19 CXX=clang++-19 cmake -G Ninja -S runtimes -B build_libcxx \
+           -DCMAKE_BUILD_TYPE=Release \
+           -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi" \
+           -DLLVM_USE_SANITIZER=Memory \
+           -DLIBCXXABI_USE_LLVM_UNWINDER=OFF \
+           -DCMAKE_INSTALL_PREFIX=/opt/llvm
+        ninja -C build_libcxx install
+
+    - name: Checkout project
+      uses: actions/checkout@v4
+
+    - name: Build project
+      run: |
+        CC=clang-19 CXX=clang++-19 cmake -G Ninja -B build \
+           -DENABLE_MEMORY_SANITIZER=1 \
+           -DMSAN_CXX_FLAGS_EXTRA="-O2;-I/opt/llvm/include/c++/v1" \
+           -DMSAN_LINK_FLAGS_EXTRA="-L/opt/llvm/lib"
+        LD_LIBRARY_PATH=/opt/llvm/lib cmake --build build --target genesis_tests
+
+    - name: Run tests
+      run: |
+        sudo sysctl vm.mmap_rnd_bits=28 # ref: https://github.com/google/sanitizers/issues/1614
+        cd build
+        LD_LIBRARY_PATH=/opt/llvm/lib ctest --output-on-failure --exclude-regex "M68K.MCL|M68K_PERFORMANCE.*"

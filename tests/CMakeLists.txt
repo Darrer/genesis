@@ -3,6 +3,9 @@ project(tests)
 
 include(FetchContent)
 
+add_compile_options(${MSAN_CXX_FLAGS})
+add_link_options(${MSAN_LINK_FLAGS})
+
 FetchContent_Declare(
 	googletest
 
@@ -84,7 +87,7 @@ target_link_libraries(${GENESIS_TESTS} nlohmann_json::nlohmann_json)
 target_link_libraries(${GENESIS_TESTS} ${GENESIS_LIB})
 
 include(GoogleTest)
-gtest_discover_tests(${GENESIS_TESTS})
+gtest_discover_tests(${GENESIS_TESTS} PROPERTIES DISCOVERY_TIMEOUT 60)
 
 # copy z80 exercisers
 file(COPY z80/exercisers/Spectrum/zexdoc DESTINATION z80)
